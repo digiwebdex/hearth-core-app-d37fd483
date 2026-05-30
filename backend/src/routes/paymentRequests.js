@@ -1,4 +1,6 @@
 // Dedicated payment-request route with strict tenant isolation
+const fs = require("fs");
+const path = require("path");
 const router = require("express").Router();
 const { authenticate, requireRole, prisma } = require("../middleware/auth");
 
@@ -12,6 +14,14 @@ const DEFAULT_PAYMENT_METHODS = [
 ];
 
 const PENDING_REVIEW_STATUSES = ["pending", "submitted", "pending_review", "needs_info"];
+const ALLOWED_PROOF_MIME = {
+  "image/png": ".png",
+  "image/jpeg": ".jpg",
+  "image/jpg": ".jpg",
+  "image/webp": ".webp",
+};
+const MAX_PROOF_SIZE_BYTES = 5 * 1024 * 1024;
+const PROOF_UPLOAD_DIR = path.join(__dirname, "../../uploads/payment-proofs");
 
 function normalizePlan(plan) {
   return String(plan || "free").trim().toLowerCase();
@@ -36,6 +46,40 @@ function resolveRequestType({ currentPlan, requestedPlan, subscriptionStatus, ex
   if (!current || current === "free" || subscriptionStatus === "trial" || subscriptionStatus === "expired") return "activate";
   if (current === requested) return "renew";
   return "upgrade";
+}
+
+function ensureProofDirectory() {
+  fs.mkdirSync(PROOF_UPLOAD_DIR, { recursive: true });
+}
+
+function parseProofPayload(body = {}) {
+  const rawData = String(body.dataUrl || body.base64 || "").trim();
+  if (!rawData) throw new Error("Screenshot data is required");
+
+  let mimeType = String(body.contentType || "").trim().toLowerCase();
+  let encoded = rawData;
+  const match = rawData.match(/^data:(.+?);base64,(.+)$/);
+  if (match) {
+    mimeType = mimeType || match[1].toLowerCase();
+    encoded = match[2];
+  }
+
+  const extension = ALLOWED_PROOF_MIME[mimeType];
+  if (!extension) throw new Error("Only PNG, JPG, JPEG, or WEBP screenshots are allowed");
+
+  const buffer = Buffer.from(encoded, "base64");
+  if (!buffer.length) throw new Error("Invalid screenshot data");
+  if (buffer.length > MAX_PROOF_SIZE_BYTES) throw new Error("Screenshot must be 5 MB or smaller");
+
+  return { mimeType, extension, buffer };
+}
+
+function buildProofResponse(req, fileName) {
+  const apiBase = (process.env.API_BASE_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
+  return {
+    proofUrl: `${apiBase}/uploads/payment-proofs/${fileName}`,
+    proofFileName: fileName,
+  };
 }
 
 async function getEnabledPaymentMethods() {
@@ -126,6 +170,20 @@ async function buildPaymentRequestInput(req, body, tenant) {
   };
 }
 
+router.post("/upload-proof", requireRole("tenant_owner"), async (req, res) => {
+  try {
+    ensureProofDirectory();
+    const { extension, buffer } = parseProofPayload(req.body || {});
+    const safeBaseName = String(req.body?.fileName || "payment-proof").replace(/[^a-zA-Z0-9._-]/g, "-").replace(/-+/g, "-").slice(0, 40) || "payment-proof";
+    const fileName = `${req.tenantId || "tenant"}-${Date.now()}-${safeBaseName}${extension}`;
+    const filePath = path.join(PROOF_UPLOAD_DIR, fileName);
+    fs.writeFileSync(filePath, buffer);
+    return res.status(201).json(buildProofResponse(req, fileName));
+  } catch (err) {
+    return res.status(400).json({ message: err.message });
+  }
+});
+
 router.get("/methods", async (_req, res) => {
   try {
     res.json(await getEnabledPaymentMethods());
@@ -183,7 +241,7 @@ router.post("/", requireRole("tenant_owner"), async (req, res) => {
       action: "payment_request_created",
       targetId: item.id,
       targetLabel: `${item.requestedPlan || item.plan} - ${item.amountSent || item.amount}`,
-      newValue: { plan: item.requestedPlan || item.plan, amount: item.amountSent || item.amount, method: item.paymentMethod || item.method, trxId: item.transactionId || item.trxId },
+      newValue: { plan: item.requestedPlan || item.plan, amount: item.amountSent || item.amount, method: item.paymentMethod || item.method, trxId: item.transactionId || item.trxId, proofFileName: item.proofFileName || null },
       metadata: { billingCycle: item.billingCycle, requestType: item.requestType },
     });
     res.status(201).json(item);
@@ -209,7 +267,7 @@ router.post("/:id/resubmit", requireRole("tenant_owner"), async (req, res) => {
       targetId: item.id,
       targetLabel: `${item.requestedPlan || item.plan} - ${item.amountSent || item.amount}`,
       oldValue: { status: existing.status, transactionId: existing.transactionId || existing.trxId },
-      newValue: { status: item.status, transactionId: item.transactionId || item.trxId },
+      newValue: { status: item.status, transactionId: item.transactionId || item.trxId, proofFileName: item.proofFileName || null },
       metadata: { billingCycle: item.billingCycle, requestType: item.requestType },
     });
     res.json(item);
