@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { adminApi, type AdminTenant } from "@/lib/api";
+import { adminApi, domainApi, type AdminTenant, type TenantDomainRecord } from "@/lib/api";
 import { adminSubscriptionWorkflowApi, type WorkflowPaymentRequest, type WorkflowSubscriptionHistory } from "@/lib/subscriptionWorkflowApi";
 import { PLANS, type BillingCycle, type PlanType } from "@/lib/plans";
 
@@ -33,6 +33,7 @@ const AdminTenantDetails = () => {
   const [tenant, setTenant] = useState<AdminTenant | null>(null);
   const [requests, setRequests] = useState<WorkflowPaymentRequest[]>([]);
   const [history, setHistory] = useState<WorkflowSubscriptionHistory[]>([]);
+  const [domains, setDomains] = useState<TenantDomainRecord[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [actionType, setActionType] = useState<ActionType | null>(null);
   const [plan, setPlan] = useState<PlanType>("basic");
@@ -45,14 +46,16 @@ const AdminTenantDetails = () => {
     if (!tenantId) return;
     setLoading(true);
     try {
-      const [tenantData, requestData, historyData] = await Promise.all([
+      const [tenantData, requestData, historyData, domainData] = await Promise.all([
         adminApi.getTenant(tenantId),
         adminSubscriptionWorkflowApi.listPaymentRequests({ tenantId }),
         adminSubscriptionWorkflowApi.getSubscriptionHistory(tenantId),
+        domainApi.list(),
       ]);
       setTenant(tenantData);
       setRequests(requestData);
       setHistory(historyData);
+      setDomains((domainData || []).filter((item) => item.tenantId === tenantId));
       setPlan((tenantData.subscriptionPlan || "basic") as PlanType);
     } catch (err: any) {
       toast({ title: "Failed to load tenant", description: err.message, variant: "destructive" });
@@ -144,6 +147,41 @@ const AdminTenantDetails = () => {
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Custom domains</CardTitle>
+            <Button variant="outline" onClick={() => navigate("/admin/domains")}>Open domain management</Button>
+          </CardHeader>
+          <CardContent>
+            {domains.length === 0 ? (
+              <p className="text-sm text-muted-foreground">This agency has not connected any custom domain yet.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Domain</TableHead>
+                    <TableHead>Verification</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>SSL</TableHead>
+                    <TableHead>Primary</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {domains.map((domain) => (
+                    <TableRow key={domain.id}>
+                      <TableCell className="font-medium">{domain.domain}</TableCell>
+                      <TableCell className="capitalize">{domain.verificationStatus}</TableCell>
+                      <TableCell className="capitalize">{domain.status}</TableCell>
+                      <TableCell className="capitalize">{domain.sslStatus}</TableCell>
+                      <TableCell>{domain.isPrimary ? <Badge>Primary</Badge> : "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader><CardTitle>Recent payment requests</CardTitle></CardHeader>
