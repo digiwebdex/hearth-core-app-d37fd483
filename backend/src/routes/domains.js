@@ -2,15 +2,29 @@ const router = require("express").Router();
 const { authenticate, requireSuperAdmin, prisma } = require("../middleware/auth");
 const crypto = require("crypto");
 
+const DOMAIN_PLAN_LIMITS = { free: 0, basic: 0, pro: 1, business: 2, enterprise: -1, unlimited: -1 };
+const ACTIVE_SUBSCRIPTION_STATUSES = new Set(["active", "trial"]);
+
 router.use(authenticate);
 router.use(requireSuperAdmin);
 
-// Helper: generate verification token
 function generateToken() {
   return "tas-verify-" + crypto.randomBytes(12).toString("hex").slice(0, 16);
 }
 
-// Helper: log audit
+function normalizeDomain(rawDomain) {
+  return String(rawDomain || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/.*$/, "");
+}
+
+function getDomainLimit(plan) {
+  return DOMAIN_PLAN_LIMITS[String(plan || "free").toLowerCase()] ?? 0;
+}
+
 async function logDomainAudit(req, action, domain, extra = {}) {
   try {
     const user = await prisma.user.findUnique({ where: { id: req.userId }, select: { name: true, email: true, role: true } });
@@ -33,7 +47,6 @@ async function logDomainAudit(req, action, domain, extra = {}) {
   } catch (e) { console.error("Audit log error:", e.message); }
 }
 
-// ── List all domains (with tenant info) ──
 router.get("/", async (req, res) => {
   try {
     const domains = await prisma.tenantDomain.findMany({
@@ -44,27 +57,32 @@ router.get("/", async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// ── Add domain ──
 router.post("/", async (req, res) => {
   try {
     const { tenantId, domain: rawDomain, wwwRedirect } = req.body;
     if (!tenantId || !rawDomain) return res.status(400).json({ message: "tenantId and domain are required" });
 
-    // Clean domain
-    const domain = rawDomain.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "");
-    if (!domain || domain.includes(" ")) return res.status(400).json({ message: "Invalid domain" });
+    const domain = normalizeDomain(rawDomain);
+    if (!domain || domain.includes(" ") || !domain.includes(".")) {
+      return res.status(400).json({ message: "Invalid domain" });
+    }
 
-    // Duplicate check
     const existing = await prisma.tenantDomain.findUnique({ where: { domain } });
     if (existing) return res.status(409).json({ message: "Domain already registered" });
 
-    // Check tenant exists
-    const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { id: true, subscriptionPlan: true, subscriptionStatus: true },
+    });
     if (!tenant) return res.status(404).json({ message: "Tenant not found" });
 
-    // Plan domain limit check
-    const planLimits = { free: 0, basic: 0, pro: 1, business: 3, enterprise: -1 };
-    const maxDomains = planLimits[tenant.subscriptionPlan] ?? 0;
+    const plan = String(tenant.subscriptionPlan || "free").toLowerCase();
+    const status = String(tenant.subscriptionStatus || "").toLowerCase();
+    const maxDomains = getDomainLimit(plan);
+
+    if (!ACTIVE_SUBSCRIPTION_STATUSES.has(status)) {
+      return res.status(403).json({ message: "Subscription must be active before adding custom domains" });
+    }
     if (maxDomains === 0) return res.status(403).json({ message: "Current plan does not support custom domains" });
     if (maxDomains > 0) {
       const count = await prisma.tenantDomain.count({ where: { tenantId } });
@@ -84,16 +102,13 @@ router.post("/", async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// ── Verify domain (check DNS TXT) ──
 router.post("/:id/verify", async (req, res) => {
   try {
     const dom = await prisma.tenantDomain.findUnique({ where: { id: req.params.id } });
     if (!dom) return res.status(404).json({ message: "Domain not found" });
 
-    // Update to verifying
     await prisma.tenantDomain.update({ where: { id: dom.id }, data: { verificationStatus: "verifying" } });
 
-    // Check DNS via Google DNS-over-HTTPS
     const lookupDomain = `_verify.${dom.domain}`;
     let verified = false;
     try {
@@ -116,15 +131,11 @@ router.post("/:id/verify", async (req, res) => {
       include: { tenant: { select: { id: true, name: true, slug: true, subscriptionPlan: true } } },
     });
 
-    await logDomainAudit(req, verified ? "verify" : "verify_failed", updated, {
-      newValue: newStatus,
-    });
-
+    await logDomainAudit(req, verified ? "verify" : "verify_failed", updated, { newValue: newStatus });
     res.json({ verified, domain: updated });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// ── Update SSL status ──
 router.patch("/:id/ssl", async (req, res) => {
   try {
     const { sslStatus } = req.body;
@@ -145,18 +156,27 @@ router.patch("/:id/ssl", async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// ── Activate / deactivate domain ──
 router.patch("/:id/status", async (req, res) => {
   try {
     const { status } = req.body;
     if (!["active", "pending", "error"].includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
     }
-    const dom = await prisma.tenantDomain.findUnique({ where: { id: req.params.id } });
+    const dom = await prisma.tenantDomain.findUnique({
+      where: { id: req.params.id },
+      include: { tenant: { select: { subscriptionPlan: true, subscriptionStatus: true } } },
+    });
     if (!dom) return res.status(404).json({ message: "Domain not found" });
 
-    if (status === "active" && dom.verificationStatus !== "verified") {
-      return res.status(400).json({ message: "Domain must be verified before activation" });
+    if (status === "active") {
+      if (dom.verificationStatus !== "verified") {
+        return res.status(400).json({ message: "Domain must be verified before activation" });
+      }
+      const plan = String(dom.tenant?.subscriptionPlan || "free").toLowerCase();
+      const subStatus = String(dom.tenant?.subscriptionStatus || "").toLowerCase();
+      if (getDomainLimit(plan) === 0 || !ACTIVE_SUBSCRIPTION_STATUSES.has(subStatus)) {
+        return res.status(403).json({ message: "Tenant plan is not eligible for custom domains" });
+      }
     }
 
     const updated = await prisma.tenantDomain.update({
@@ -170,17 +190,12 @@ router.patch("/:id/status", async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// ── Set primary domain ──
 router.patch("/:id/primary", async (req, res) => {
   try {
     const dom = await prisma.tenantDomain.findUnique({ where: { id: req.params.id } });
     if (!dom) return res.status(404).json({ message: "Domain not found" });
 
-    // Unset all other primaries for this tenant
-    await prisma.tenantDomain.updateMany({
-      where: { tenantId: dom.tenantId },
-      data: { isPrimary: false },
-    });
+    await prisma.tenantDomain.updateMany({ where: { tenantId: dom.tenantId }, data: { isPrimary: false } });
 
     const updated = await prisma.tenantDomain.update({
       where: { id: req.params.id },
@@ -193,7 +208,6 @@ router.patch("/:id/primary", async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// ── Delete domain ──
 router.delete("/:id", async (req, res) => {
   try {
     const dom = await prisma.tenantDomain.findUnique({ where: { id: req.params.id } });
