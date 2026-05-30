@@ -103,6 +103,7 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 // Routes
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/tenants", require("./routes/tenants"));
+app.use("/api/tenant-domains", require("./routes/tenantDomains"));
 app.use("/api/dashboard", require("./routes/dashboard"));
 app.use("/api/clients", require("./routes/clients"));
 app.use("/api/agents", require("./routes/crud")("agent"));
