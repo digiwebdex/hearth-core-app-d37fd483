@@ -17,6 +17,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return res.json();
 }
 
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsDataURL(file);
+  });
+}
+
 export interface WorkflowPaymentMethod {
   id?: string;
   methodCode: string;
@@ -122,11 +131,23 @@ export interface PaymentRequestActionPayload {
   reason?: string;
 }
 
+export interface ProofUploadResult {
+  proofUrl: string;
+  proofFileName: string;
+}
+
 export const tenantSubscriptionWorkflowApi = {
   getSummary: () => request<WorkflowSubscriptionSummary>("/payment-requests/summary"),
   getMethods: () => request<WorkflowPaymentMethod[]>("/payment-requests/methods"),
   listRequests: () => request<WorkflowPaymentRequest[]>("/payment-requests"),
   getRequest: (id: string) => request<WorkflowPaymentRequest>(`/payment-requests/${id}`),
+  uploadProof: async (file: File) => {
+    const dataUrl = await fileToDataUrl(file);
+    return request<ProofUploadResult>("/payment-requests/upload-proof", {
+      method: "POST",
+      body: JSON.stringify({ fileName: file.name, contentType: file.type, dataUrl }),
+    });
+  },
   createRequest: (data: Record<string, unknown>) =>
     request<WorkflowPaymentRequest>("/payment-requests", { method: "POST", body: JSON.stringify(data) }),
   resubmitRequest: (id: string, data: Record<string, unknown>) =>
