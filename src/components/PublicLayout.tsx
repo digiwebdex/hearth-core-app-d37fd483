@@ -4,7 +4,7 @@ import { Menu, X, Plane } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
-const navLinks = [
+const previewNavLinks = [
   { label: "Home", path: "/site" },
   { label: "About", path: "/site/about" },
   { label: "Packages", path: "/site/packages" },
@@ -12,17 +12,30 @@ const navLinks = [
   { label: "Contact", path: "/site/contact" },
 ];
 
+const tenantNavLinks = [
+  { label: "Home", path: "/" },
+  { label: "About", path: "/about" },
+  { label: "Packages", path: "/packages" },
+  { label: "Contact", path: "/contact" },
+];
+
 const PublicLayout = ({ children }: { children: React.ReactNode }) => {
-  const { tenant } = useWebsite();
+  const { tenant, domainResolution } = useWebsite();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const isTenantHost = domainResolution?.type === "slug" || domainResolution?.type === "custom-domain";
+  const navLinks = isTenantHost ? tenantNavLinks : previewNavLinks;
+  const homePath = isTenantHost ? "/" : "/site";
+  const loginHref = isTenantHost && import.meta.env.VITE_APP_DOMAIN
+    ? `https://app.${import.meta.env.VITE_APP_DOMAIN}/login`
+    : "/login";
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Navbar */}
       <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <Link to="/site" className="flex items-center gap-2">
+          <Link to={homePath} className="flex items-center gap-2">
             <Plane className="h-6 w-6 text-primary" />
             <span className="text-lg font-bold">{tenant.name}</span>
           </Link>
@@ -40,9 +53,9 @@ const PublicLayout = ({ children }: { children: React.ReactNode }) => {
                 {link.label}
               </Link>
             ))}
-            <Link to="/login">
+            <a href={loginHref}>
               <Button size="sm">Login</Button>
-            </Link>
+            </a>
           </nav>
 
           {/* Mobile Menu Toggle */}
@@ -66,9 +79,9 @@ const PublicLayout = ({ children }: { children: React.ReactNode }) => {
                 {link.label}
               </Link>
             ))}
-            <Link to="/login" onClick={() => setMenuOpen(false)}>
+            <a href={loginHref} onClick={() => setMenuOpen(false)}>
               <Button size="sm" className="mt-2 w-full">Login</Button>
-            </Link>
+            </a>
           </div>
         )}
       </header>
