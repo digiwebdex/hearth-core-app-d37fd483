@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { websiteApi, templateDefaults, type WebsiteConfig } from "@/lib/websiteApi";
-import { Plane, Moon, Mountain, Check, Palette, Type, Image, Eye, Plus, Trash2, Save, Users, MessageSquare, HelpCircle, Phone } from "lucide-react";
+import { tenantDomainApi, type TenantDomainRecord, type TenantDomainSummary } from "@/lib/tenantDomainApi";
+import { Plane, Moon, Mountain, Check, Palette, Type, Image, Eye, Plus, Trash2, Save, Users, Phone, Globe, Copy, RefreshCw, ShieldCheck, AlertCircle, ExternalLink, Link2 } from "lucide-react";
 
 const templates = [
   { id: "travel-agency" as const, name: "Travel Agency", desc: "Classic travel agency with flights, hotels, visa", icon: Plane, color: "bg-blue-500" },
@@ -22,14 +24,42 @@ const WebsiteCustomizer = () => {
   const [config, setConfig] = useState<WebsiteConfig>(templateDefaults["travel-agency"]);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [domainSummary, setDomainSummary] = useState<TenantDomainSummary | null>(null);
+  const [domains, setDomains] = useState<TenantDomainRecord[]>([]);
+  const [domainForm, setDomainForm] = useState({ domain: "", wwwRedirect: "www-to-root" as "www-to-root" | "root-to-www" });
+  const [domainSubmitting, setDomainSubmitting] = useState(false);
+  const [domainActionId, setDomainActionId] = useState<string | null>(null);
+
+  const loadDomains = async () => {
+    const [summary, records] = await Promise.all([
+      tenantDomainApi.getSummary(),
+      tenantDomainApi.list(),
+    ]);
+    setDomainSummary(summary);
+    setDomains(records);
+  };
 
   useEffect(() => {
-    websiteApi.getConfig().then((c) => { setConfig(c); setLoading(false); });
+    Promise.all([websiteApi.getConfig(), loadDomains()])
+      .then(([websiteConfig]) => {
+        setConfig(websiteConfig);
+      })
+      .catch((err: any) => {
+        toast({ title: "Failed to load website settings", description: err.message, variant: "destructive" });
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const selectTemplate = (id: WebsiteConfig["template"]) => {
     const defaults = templateDefaults[id];
-    setConfig((prev) => ({ ...prev, template: id, colors: { ...defaults.colors }, content: { ...defaults.content }, socialLinks: { ...defaults.socialLinks }, contactInfo: { ...defaults.contactInfo } }));
+    setConfig((prev) => ({
+      ...prev,
+      template: id,
+      colors: { ...defaults.colors },
+      content: { ...defaults.content },
+      socialLinks: { ...defaults.socialLinks },
+      contactInfo: { ...defaults.contactInfo },
+    }));
   };
 
   const updateColor = (key: keyof WebsiteConfig["colors"], value: string) => {
@@ -47,16 +77,9 @@ const WebsiteCustomizer = () => {
       return { ...prev, content: { ...prev.content, services } };
     });
   };
+  const addService = () => setConfig((prev) => ({ ...prev, content: { ...prev.content, services: [...prev.content.services, { icon: "Star", title: "", desc: "" }] } }));
+  const removeService = (index: number) => setConfig((prev) => ({ ...prev, content: { ...prev.content, services: prev.content.services.filter((_, i) => i !== index) } }));
 
-  const addService = () => {
-    setConfig((prev) => ({ ...prev, content: { ...prev.content, services: [...prev.content.services, { icon: "Star", title: "", desc: "" }] } }));
-  };
-
-  const removeService = (index: number) => {
-    setConfig((prev) => ({ ...prev, content: { ...prev.content, services: prev.content.services.filter((_, i) => i !== index) } }));
-  };
-
-  // Stats helpers
   const updateStat = (index: number, field: string, value: string) => {
     setConfig((prev) => {
       const stats = [...(prev.content.stats || [])];
@@ -67,7 +90,6 @@ const WebsiteCustomizer = () => {
   const addStat = () => setConfig((prev) => ({ ...prev, content: { ...prev.content, stats: [...(prev.content.stats || []), { value: "", label: "" }] } }));
   const removeStat = (i: number) => setConfig((prev) => ({ ...prev, content: { ...prev.content, stats: (prev.content.stats || []).filter((_, idx) => idx !== i) } }));
 
-  // Testimonials helpers
   const updateTestimonial = (index: number, field: string, value: string) => {
     setConfig((prev) => {
       const testimonials = [...(prev.content.testimonials || [])];
@@ -78,7 +100,6 @@ const WebsiteCustomizer = () => {
   const addTestimonial = () => setConfig((prev) => ({ ...prev, content: { ...prev.content, testimonials: [...(prev.content.testimonials || []), { name: "", text: "", date: "" }] } }));
   const removeTestimonial = (i: number) => setConfig((prev) => ({ ...prev, content: { ...prev.content, testimonials: (prev.content.testimonials || []).filter((_, idx) => idx !== i) } }));
 
-  // FAQ helpers
   const updateFaq = (index: number, field: string, value: string) => {
     setConfig((prev) => {
       const faq = [...(prev.content.faq || [])];
@@ -89,7 +110,6 @@ const WebsiteCustomizer = () => {
   const addFaq = () => setConfig((prev) => ({ ...prev, content: { ...prev.content, faq: [...(prev.content.faq || []), { question: "", answer: "" }] } }));
   const removeFaq = (i: number) => setConfig((prev) => ({ ...prev, content: { ...prev.content, faq: (prev.content.faq || []).filter((_, idx) => idx !== i) } }));
 
-  // Team helpers
   const updateTeam = (index: number, field: string, value: string) => {
     setConfig((prev) => {
       const team = [...(prev.content.team || [])];
@@ -100,7 +120,6 @@ const WebsiteCustomizer = () => {
   const addTeam = () => setConfig((prev) => ({ ...prev, content: { ...prev.content, team: [...(prev.content.team || []), { name: "", role: "", desc: "" }] } }));
   const removeTeam = (i: number) => setConfig((prev) => ({ ...prev, content: { ...prev.content, team: (prev.content.team || []).filter((_, idx) => idx !== i) } }));
 
-  // Why Choose Us helpers
   const updateWhy = (index: number, field: string, value: string) => {
     setConfig((prev) => {
       const whyChooseUs = [...(prev.content.whyChooseUs || [])];
@@ -155,6 +174,93 @@ const WebsiteCustomizer = () => {
     return `${Math.round(h)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
   };
 
+  const copyText = async (value: string, label: string) => {
+    await navigator.clipboard.writeText(value);
+    toast({ title: `${label} copied` });
+  };
+
+  const addDomain = async () => {
+    if (!domainForm.domain.trim()) {
+      toast({ title: "Enter a domain name", variant: "destructive" });
+      return;
+    }
+    setDomainSubmitting(true);
+    try {
+      await tenantDomainApi.add(domainForm);
+      setDomainForm({ domain: "", wwwRedirect: "www-to-root" });
+      await loadDomains();
+      toast({ title: "Domain added", description: "Now add the DNS TXT record and verify the domain." });
+    } catch (err: any) {
+      toast({ title: "Failed to add domain", description: err.message, variant: "destructive" });
+    } finally {
+      setDomainSubmitting(false);
+    }
+  };
+
+  const verifyDomain = async (id: string) => {
+    setDomainActionId(id);
+    try {
+      const result = await tenantDomainApi.verify(id);
+      await loadDomains();
+      toast({ title: result.verified ? "Domain verified" : "Verification pending", description: result.verified ? "Ask super admin to activate SSL and connect the live domain." : "TXT record not found yet. Recheck DNS and try again." });
+    } catch (err: any) {
+      toast({ title: "Verification failed", description: err.message, variant: "destructive" });
+    } finally {
+      setDomainActionId(null);
+    }
+  };
+
+  const setPrimaryDomain = async (id: string) => {
+    setDomainActionId(id);
+    try {
+      await tenantDomainApi.setPrimary(id);
+      await loadDomains();
+      toast({ title: "Primary domain updated" });
+    } catch (err: any) {
+      toast({ title: "Failed to set primary", description: err.message, variant: "destructive" });
+    } finally {
+      setDomainActionId(null);
+    }
+  };
+
+  const removeDomain = async (id: string) => {
+    setDomainActionId(id);
+    try {
+      await tenantDomainApi.remove(id);
+      await loadDomains();
+      toast({ title: "Domain removed" });
+    } catch (err: any) {
+      toast({ title: "Failed to remove domain", description: err.message, variant: "destructive" });
+    } finally {
+      setDomainActionId(null);
+    }
+  };
+
+  const primaryDomain = domains.find((item) => item.isPrimary) || null;
+  const primaryLiveUrl = primaryDomain ? `https://${primaryDomain.wwwRedirect === "root-to-www" ? `www.${primaryDomain.domain}` : primaryDomain.domain}` : domainSummary?.defaultWebsiteUrl;
+
+  const getVerificationBadge = (record: TenantDomainRecord) => {
+    if (record.verificationStatus === "verified") {
+      return <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"><ShieldCheck className="mr-1 h-3 w-3" />Verified</Badge>;
+    }
+    if (record.verificationStatus === "verifying") {
+      return <Badge variant="secondary"><RefreshCw className="mr-1 h-3 w-3 animate-spin" />Checking</Badge>;
+    }
+    return <Badge variant="outline" className="text-amber-700 border-amber-300"><AlertCircle className="mr-1 h-3 w-3" />Unverified</Badge>;
+  };
+
+  const getStatusBadge = (record: TenantDomainRecord) => {
+    if (record.status === "active") return <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Active</Badge>;
+    if (record.status === "error") return <Badge variant="destructive">Error</Badge>;
+    return <Badge variant="secondary">Pending admin activation</Badge>;
+  };
+
+  const getSslBadge = (record: TenantDomainRecord) => {
+    if (record.sslStatus === "active") return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">SSL ready</Badge>;
+    if (record.sslStatus === "pending") return <Badge variant="secondary">SSL pending</Badge>;
+    return <Badge variant="outline">No SSL yet</Badge>;
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -179,6 +285,153 @@ const WebsiteCustomizer = () => {
           </Button>
         </div>
 
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2"><Globe className="h-5 w-5" />Custom domain connection</CardTitle>
+              <CardDescription>Connect your own domain from the agency account, then super admin can verify SSL and activate it for the live website.</CardDescription>
+            </div>
+            <Button variant="outline" onClick={loadDomains}><RefreshCw className="mr-2 h-4 w-4" />Refresh domains</Button>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="rounded-lg border p-4">
+                <p className="text-sm text-muted-foreground">Plan</p>
+                <p className="font-semibold capitalize">{domainSummary?.subscriptionPlan || "free"}</p>
+                <p className="mt-1 text-sm text-muted-foreground">Status: <span className="capitalize">{domainSummary?.subscriptionStatus || "inactive"}</span></p>
+              </div>
+              <div className="rounded-lg border p-4">
+                <p className="text-sm text-muted-foreground">Domain allowance</p>
+                <p className="font-semibold">{domainSummary?.domainLimit === -1 ? "Unlimited" : `${domainSummary?.usedDomains || 0} / ${domainSummary?.domainLimit || 0}`}</p>
+                <p className="mt-1 text-sm text-muted-foreground">Primary live URL</p>
+                <p className="truncate text-sm font-medium">{primaryLiveUrl || "—"}</p>
+              </div>
+              <div className="rounded-lg border p-4">
+                <p className="text-sm text-muted-foreground">Default website URL</p>
+                <div className="mt-1 flex items-center gap-2">
+                  <a href={domainSummary?.defaultWebsiteUrl} target="_blank" rel="noreferrer" className="truncate text-sm font-medium text-primary underline">{domainSummary?.defaultWebsiteUrl || "—"}</a>
+                  {domainSummary?.defaultWebsiteUrl && <Button type="button" size="icon" variant="ghost" onClick={() => copyText(domainSummary.defaultWebsiteUrl, "Default URL")}><Copy className="h-4 w-4" /></Button>}
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">Use this until the custom domain becomes fully active.</p>
+              </div>
+            </div>
+
+            {domainSummary?.domainLimit === 0 ? (
+              <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+                Your current plan does not include custom domains. Upgrade to Pro or higher, then connect a custom website URL.
+              </div>
+            ) : (
+              <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Add or connect a custom domain</CardTitle>
+                    <CardDescription>Enter the root domain only. Example: yourcompany.com. The system will handle www automatically.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Domain name</Label>
+                      <Input placeholder="tourandtravels.cloud" value={domainForm.domain} onChange={(e) => setDomainForm((prev) => ({ ...prev, domain: e.target.value }))} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Preferred redirect</Label>
+                      <Select value={domainForm.wwwRedirect} onValueChange={(value: "www-to-root" | "root-to-www") => setDomainForm((prev) => ({ ...prev, wwwRedirect: value }))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="www-to-root">www → root domain</SelectItem>
+                          <SelectItem value="root-to-www">root → www domain</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button onClick={addDomain} disabled={domainSubmitting || !domainSummary?.canAddDomain}>
+                      {domainSubmitting ? "Adding..." : "Add domain"}
+                    </Button>
+                    {!domainSummary?.canAddDomain && (
+                      <p className="text-xs text-muted-foreground">You have reached the domain limit for your current subscription or your subscription is inactive.</p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>How domain connection works</CardTitle>
+                    <CardDescription>Agency and super admin work together.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-sm text-muted-foreground">
+                    <p>1. Add your domain here from the agency account.</p>
+                    <p>2. Add the TXT verification record and point the A/CNAME records to your server.</p>
+                    <p>3. Click Verify from the agency account.</p>
+                    <p>4. Super admin checks DNS, configures Nginx + SSL, and activates the domain.</p>
+                    <p>5. Once active, your live website opens from the connected domain.</p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Connected domains</CardTitle>
+                <CardDescription>Manage your agency website domains and share the verification details with your hosting provider.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {domains.length === 0 ? (
+                  <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">No custom domains added yet.</div>
+                ) : domains.map((domain) => {
+                  const preferredLiveHost = domain.wwwRedirect === "root-to-www" ? `www.${domain.domain}` : domain.domain;
+                  const redirectHost = domain.wwwRedirect === "root-to-www" ? domain.domain : `www.${domain.domain}`;
+                  return (
+                    <div key={domain.id} className="rounded-lg border p-4 space-y-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-semibold">{domain.domain}</h3>
+                            {domain.isPrimary && <Badge>Primary</Badge>}
+                            {getVerificationBadge(domain)}
+                            {getStatusBadge(domain)}
+                            {getSslBadge(domain)}
+                          </div>
+                          <p className="mt-1 text-sm text-muted-foreground">Live domain target: <span className="font-medium text-foreground">{preferredLiveHost}</span> • Redirect helper: {redirectHost}</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button size="sm" variant="outline" onClick={() => copyText(domain.verificationToken, "Verification token")}><Copy className="mr-2 h-4 w-4" />Copy token</Button>
+                          <Button size="sm" variant="outline" onClick={() => verifyDomain(domain.id)} disabled={domainActionId === domain.id}><ShieldCheck className="mr-2 h-4 w-4" />{domainActionId === domain.id ? "Checking..." : "Verify"}</Button>
+                          <Button size="sm" variant="outline" onClick={() => setPrimaryDomain(domain.id)} disabled={domainActionId === domain.id || domain.isPrimary}>Set primary</Button>
+                          <Button size="sm" variant="ghost" onClick={() => window.open(`https://${preferredLiveHost}`, "_blank")}>Open<ExternalLink className="ml-2 h-4 w-4" /></Button>
+                          <Button size="sm" variant="destructive" onClick={() => removeDomain(domain.id)} disabled={domainActionId === domain.id}><Trash2 className="mr-2 h-4 w-4" />Remove</Button>
+                        </div>
+                      </div>
+
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <div className="rounded-md bg-muted/40 p-3 text-sm">
+                          <p className="font-medium">DNS TXT verification</p>
+                          <p className="mt-2"><span className="text-muted-foreground">Type:</span> TXT</p>
+                          <p><span className="text-muted-foreground">Name:</span> _verify</p>
+                          <p className="break-all"><span className="text-muted-foreground">Value:</span> {domain.verificationToken}</p>
+                        </div>
+                        <div className="rounded-md bg-muted/40 p-3 text-sm">
+                          <p className="font-medium">Root domain DNS</p>
+                          <p className="mt-2"><span className="text-muted-foreground">Type:</span> A</p>
+                          <p><span className="text-muted-foreground">Host:</span> @</p>
+                          <p><span className="text-muted-foreground">Value:</span> Point to your server IP</p>
+                        </div>
+                        <div className="rounded-md bg-muted/40 p-3 text-sm">
+                          <p className="font-medium">www DNS</p>
+                          <p className="mt-2"><span className="text-muted-foreground">Type:</span> CNAME</p>
+                          <p><span className="text-muted-foreground">Host:</span> www</p>
+                          <p><span className="text-muted-foreground">Value:</span> {domain.domain}</p>
+                        </div>
+                      </div>
+
+                      <div className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+                        Super admin action needed after verification: configure Nginx, issue SSL, and activate the domain from Admin → Domains.
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          </CardContent>
+        </Card>
+
         <Tabs defaultValue="template" className="space-y-6">
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="template"><Image className="mr-1 h-4 w-4" />Template</TabsTrigger>
@@ -189,7 +442,6 @@ const WebsiteCustomizer = () => {
             <TabsTrigger value="preview"><Eye className="mr-1 h-4 w-4" />Preview</TabsTrigger>
           </TabsList>
 
-          {/* Template Selection */}
           <TabsContent value="template">
             <div className="grid gap-4 md:grid-cols-3">
               {templates.map((t) => (
@@ -223,7 +475,6 @@ const WebsiteCustomizer = () => {
             </Card>
           </TabsContent>
 
-          {/* Colors */}
           <TabsContent value="colors">
             <Card>
               <CardHeader><CardTitle>Color Scheme</CardTitle><CardDescription>ওয়েবসাইটের রং পরিবর্তন করুন</CardDescription></CardHeader>
@@ -254,7 +505,6 @@ const WebsiteCustomizer = () => {
             </Card>
           </TabsContent>
 
-          {/* Content */}
           <TabsContent value="content" className="space-y-6">
             <Card>
               <CardHeader><CardTitle>Hero Section</CardTitle></CardHeader>
@@ -328,9 +578,7 @@ const WebsiteCustomizer = () => {
             </Card>
           </TabsContent>
 
-          {/* Sections (Testimonials, FAQ, Team, Why Choose Us) */}
           <TabsContent value="sections" className="space-y-6">
-            {/* Why Choose Us */}
             <Card>
               <CardHeader className="flex-row items-center justify-between">
                 <div><CardTitle>Why Choose Us</CardTitle><CardDescription>কেন আপনাকে বেছে নেবে তা লিখুন</CardDescription></div>
@@ -349,19 +597,18 @@ const WebsiteCustomizer = () => {
               </CardContent>
             </Card>
 
-            {/* Testimonials */}
             <Card>
               <CardHeader className="flex-row items-center justify-between">
                 <div><CardTitle>Testimonials</CardTitle><CardDescription>গ্রাহকদের মতামত যুক্ত করুন</CardDescription></div>
                 <Button onClick={addTestimonial} size="sm" variant="outline"><Plus className="mr-1 h-4 w-4" />Add</Button>
               </CardHeader>
               <CardContent className="space-y-3">
-                {(config.content.testimonials || []).map((t, i) => (
+                {(config.content.testimonials || []).map((testimonial, i) => (
                   <div key={i} className="flex gap-3 items-start p-3 border rounded-lg">
                     <div className="flex-1 grid gap-3 sm:grid-cols-3">
-                      <div className="space-y-1"><Label className="text-xs">Name</Label><Input value={t.name} onChange={(e) => updateTestimonial(i, "name", e.target.value)} /></div>
-                      <div className="space-y-1"><Label className="text-xs">Review</Label><Input value={t.text} onChange={(e) => updateTestimonial(i, "text", e.target.value)} /></div>
-                      <div className="space-y-1"><Label className="text-xs">Date</Label><Input value={t.date || ""} onChange={(e) => updateTestimonial(i, "date", e.target.value)} placeholder="2024" /></div>
+                      <div className="space-y-1"><Label className="text-xs">Name</Label><Input value={testimonial.name} onChange={(e) => updateTestimonial(i, "name", e.target.value)} /></div>
+                      <div className="space-y-1"><Label className="text-xs">Review</Label><Input value={testimonial.text} onChange={(e) => updateTestimonial(i, "text", e.target.value)} /></div>
+                      <div className="space-y-1"><Label className="text-xs">Date</Label><Input value={testimonial.date || ""} onChange={(e) => updateTestimonial(i, "date", e.target.value)} placeholder="2024" /></div>
                     </div>
                     <Button variant="ghost" size="icon" className="text-destructive" onClick={() => removeTestimonial(i)}><Trash2 className="h-4 w-4" /></Button>
                   </div>
@@ -369,7 +616,6 @@ const WebsiteCustomizer = () => {
               </CardContent>
             </Card>
 
-            {/* FAQ */}
             <Card>
               <CardHeader className="flex-row items-center justify-between">
                 <div><CardTitle>FAQ</CardTitle><CardDescription>সচরাচর জিজ্ঞাসিত প্রশ্ন ও উত্তর</CardDescription></div>
@@ -388,7 +634,6 @@ const WebsiteCustomizer = () => {
               </CardContent>
             </Card>
 
-            {/* Team */}
             <Card>
               <CardHeader className="flex-row items-center justify-between">
                 <div><CardTitle>Team Members</CardTitle><CardDescription>টিম মেম্বার যুক্ত করুন</CardDescription></div>
@@ -409,7 +654,6 @@ const WebsiteCustomizer = () => {
             </Card>
           </TabsContent>
 
-          {/* Contact & Social */}
           <TabsContent value="contact" className="space-y-6">
             <Card>
               <CardHeader><CardTitle>Contact Information</CardTitle><CardDescription>যোগাযোগের তথ্য যুক্ত করুন</CardDescription></CardHeader>
@@ -432,17 +676,13 @@ const WebsiteCustomizer = () => {
             </Card>
           </TabsContent>
 
-          {/* Preview */}
           <TabsContent value="preview">
             <Card>
               <CardContent className="p-0 overflow-hidden rounded-lg">
-                {/* Hero Preview */}
                 <div className="p-12" style={{ backgroundColor: `hsl(${config.colors.primary} / 0.1)` }}>
                   <div className="grid md:grid-cols-2 gap-8 items-center">
                     <div>
-                      {config.content.heroBadge && (
-                        <span className="inline-block text-xs px-3 py-1 rounded-full mb-3" style={{ backgroundColor: `hsl(${config.colors.primary} / 0.1)`, color: `hsl(${config.colors.primary})` }}>{config.content.heroBadge}</span>
-                      )}
+                      {config.content.heroBadge && <span className="inline-block text-xs px-3 py-1 rounded-full mb-3" style={{ backgroundColor: `hsl(${config.colors.primary} / 0.1)`, color: `hsl(${config.colors.primary})` }}>{config.content.heroBadge}</span>}
                       {config.logo && <img src={config.logo} alt="Logo" className="h-10 mb-4 object-contain" />}
                       <h2 className="text-2xl font-extrabold mb-2" style={{ color: `hsl(${config.colors.text})` }}>{config.content.heroTitle}</h2>
                       <p className="text-sm" style={{ color: `hsl(${config.colors.text} / 0.7)` }}>{config.content.heroSubtitle}</p>
@@ -463,32 +703,29 @@ const WebsiteCustomizer = () => {
                   </div>
                 </div>
 
-                {/* Stats Preview */}
                 {config.content.stats && config.content.stats.length > 0 && (
                   <div className="p-6 grid grid-cols-4 gap-4 text-center border-b" style={{ backgroundColor: `hsl(${config.colors.background})` }}>
-                    {config.content.stats.slice(0, 4).map((s, i) => (
+                    {config.content.stats.slice(0, 4).map((stat, i) => (
                       <div key={i}>
-                        <div className="text-lg font-bold" style={{ color: `hsl(${config.colors.primary})` }}>{s.value}</div>
-                        <div className="text-xs opacity-60">{s.label}</div>
+                        <div className="text-lg font-bold" style={{ color: `hsl(${config.colors.primary})` }}>{stat.value}</div>
+                        <div className="text-xs opacity-60">{stat.label}</div>
                       </div>
                     ))}
                   </div>
                 )}
 
-                {/* Services Preview */}
                 <div className="p-8" style={{ backgroundColor: `hsl(${config.colors.background})` }}>
                   <h3 className="text-lg font-bold text-center mb-4" style={{ color: `hsl(${config.colors.text})` }}>Our Services</h3>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    {config.content.services.slice(0, 4).map((s, i) => (
+                    {config.content.services.slice(0, 4).map((service, i) => (
                       <div key={i} className="p-3 rounded-lg border text-center" style={{ borderColor: `hsl(${config.colors.primary} / 0.2)` }}>
-                        <div className="w-8 h-8 rounded-full mx-auto mb-2 flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: `hsl(${config.colors.primary})` }}>{s.icon.charAt(0)}</div>
-                        <h4 className="font-semibold text-xs">{s.title}</h4>
+                        <div className="w-8 h-8 rounded-full mx-auto mb-2 flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: `hsl(${config.colors.primary})` }}>{service.icon.charAt(0)}</div>
+                        <h4 className="font-semibold text-xs">{service.title}</h4>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Footer Preview */}
                 <div className="p-4 text-center text-xs" style={{ backgroundColor: `hsl(${config.colors.text})`, color: `hsl(${config.colors.background})` }}>
                   {config.content.footerText}
                 </div>
