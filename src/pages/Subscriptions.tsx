@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { PLANS, type BillingCycle, type PlanType, getPlanPrice } from "@/lib/plans";
@@ -39,9 +41,30 @@ const emptyForm = {
   proofUrl: "",
 };
 
+const friendlyMethodName = (method?: string | null) => {
+  if (!method) return "Manual payment";
+  const map: Record<string, string> = {
+    bkash: "bKash",
+    nagad: "Nagad",
+    rocket: "Rocket",
+    bank_transfer: "Bank transfer",
+  };
+  return map[method] || method;
+};
+
+const nextSuggestedPlan = (currentPlan: string): PlanType => {
+  const normalized = (currentPlan || "free").toLowerCase();
+  if (normalized === "basic") return "pro";
+  if (normalized === "pro") return "business";
+  if (normalized === "business") return "enterprise";
+  return "pro";
+};
+
 const Subscriptions = () => {
   const { tenant, currentPlan, refreshTenant } = useAuth();
   const { toast } = useToast();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [summaryMethods, setSummaryMethods] = useState<WorkflowPaymentMethod[]>([]);
   const [requests, setRequests] = useState<WorkflowPaymentRequest[]>([]);
@@ -76,14 +99,15 @@ const Subscriptions = () => {
   const selectedPlanMeta = useMemo(() => PLANS.find((plan) => plan.id === selectedPlan), [selectedPlan]);
   const payableAmount = useMemo(() => selectedPlanMeta ? getPlanPrice(selectedPlanMeta.id, form.billingCycle) : 0, [selectedPlanMeta, form.billingCycle]);
 
-  const openRequestDialog = (plan: PlanType, request?: WorkflowPaymentRequest) => {
+  const openRequestDialog = (plan: PlanType, request?: WorkflowPaymentRequest, preferredMethod?: string) => {
     setSelectedPlan(plan);
     setEditingRequest(request || null);
-    const method = request?.paymentMethod || request?.method || summaryMethods[0]?.methodCode || "bkash";
+    const method = preferredMethod || request?.paymentMethod || request?.method || summaryMethods[0]?.methodCode || "bkash";
+    const cycle = (request?.billingCycle as BillingCycle) || "monthly";
     setForm({
-      billingCycle: (request?.billingCycle as BillingCycle) || "monthly",
+      billingCycle: cycle,
       paymentMethod: method,
-      amountSent: String(request?.amountSent || request?.expectedAmount || getPlanPrice(plan, "monthly") || ""),
+      amountSent: String(request?.amountSent || request?.expectedAmount || getPlanPrice(plan, cycle) || ""),
       senderAccountOrNumber: request?.senderAccountOrNumber || "",
       transactionId: request?.transactionId || request?.trxId || "",
       paymentDate: request?.paymentDate || new Date().toISOString().slice(0, 10),
@@ -93,6 +117,15 @@ const Subscriptions = () => {
     setDialogOpen(true);
   };
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("upgrade") === "1" && !dialogOpen && !pendingRequest) {
+      openRequestDialog(nextSuggestedPlan(currentPlan), undefined, summaryMethods[0]?.methodCode);
+      params.delete("upgrade");
+      navigate({ pathname: location.pathname, search: params.toString() ? `?${params.toString()}` : "" }, { replace: true });
+    }
+  }, [location.search, dialogOpen, pendingRequest, currentPlan, summaryMethods]);
+
   const closeDialog = () => {
     setDialogOpen(false);
     setSelectedPlan(null);
@@ -101,6 +134,13 @@ const Subscriptions = () => {
   };
 
   const selectedMethodMeta = summaryMethods.find((method) => method.methodCode === form.paymentMethod);
+  const selectedMethodHasReceiverDetails = Boolean(selectedMethodMeta?.accountNumber || selectedMethodMeta?.accountName || selectedMethodMeta?.bankName || selectedMethodMeta?.branchName);
+  const howToPaySteps = [
+    `Choose a plan and billing cycle.${selectedMethodMeta ? ` Then select ${friendlyMethodName(selectedMethodMeta.methodCode)}.` : ""}`,
+    "Send the exact amount manually from your mobile banking or bank account.",
+    "Submit sender number, transaction/reference ID, payment date, and proof screenshot link.",
+    "Super admin verifies the payment and activates or upgrades your subscription.",
+  ];
 
   const submitRequest = async () => {
     if (!selectedPlan) return;
@@ -153,7 +193,14 @@ const Subscriptions = () => {
             <h1 className="text-3xl font-bold tracking-tight">Subscription</h1>
             <p className="text-muted-foreground">Upgrade, renew, and submit your manual payment details for approval.</p>
           </div>
-          <Button variant="outline" onClick={() => { refreshTenant(); loadData(); }} disabled={loading}>Refresh</Button>
+          <div className="flex items-center gap-2">
+            {!pendingRequest && (
+              <Button onClick={() => openRequestDialog(nextSuggestedPlan(currentPlan), undefined, summaryMethods[0]?.methodCode)}>
+                Upgrade now
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => { refreshTenant(); loadData(); }} disabled={loading}>Refresh</Button>
+          </div>
         </div>
 
         <Card>
@@ -180,6 +227,7 @@ const Subscriptions = () => {
             const isCurrent = plan.id === currentPlan;
             const disabled = !!pendingRequest && !editingRequest;
             const price = getPlanPrice(plan.id, "monthly");
+            const label = isCurrent ? "Current plan" : (plan.id === currentPlan ? "Current plan" : `Request ${plan.name}`);
             return (
               <Card key={plan.id} className={isCurrent ? "border-primary" : ""}>
                 <CardHeader>
@@ -194,8 +242,8 @@ const Subscriptions = () => {
                   <ul className="text-sm space-y-1 text-muted-foreground">
                     {plan.features.slice(0, 4).map((feature) => <li key={feature}>• {feature}</li>)}
                   </ul>
-                  <Button className="w-full" variant={isCurrent ? "outline" : "default"} disabled={isCurrent || disabled || plan.id === "enterprise"} onClick={() => openRequestDialog(plan.id)}>
-                    {isCurrent ? "Current plan" : plan.id === currentPlan ? "Current plan" : currentPlan === plan.id ? "Renew" : `Request ${plan.name}`}
+                  <Button className="w-full" variant={isCurrent ? "outline" : "default"} disabled={isCurrent || disabled} onClick={() => openRequestDialog(plan.id, undefined, summaryMethods[0]?.methodCode)}>
+                    {label}
                   </Button>
                 </CardContent>
               </Card>
@@ -206,19 +254,30 @@ const Subscriptions = () => {
         <Card>
           <CardHeader><CardTitle>Manual payment methods</CardTitle></CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
-            {summaryMethods.map((method) => (
-              <div key={method.methodCode} className="rounded-lg border p-4 space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="font-semibold">{method.label}</h3>
-                  <Badge variant={method.enabled ? "secondary" : "outline"}>{method.enabled ? "Enabled" : "Disabled"}</Badge>
+            {summaryMethods.map((method) => {
+              const hasDetails = Boolean(method.accountName || method.accountNumber || method.bankName || method.branchName);
+              return (
+                <div key={method.methodCode} className="rounded-lg border p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <h3 className="font-semibold">{method.label}</h3>
+                      <p className="text-xs text-muted-foreground">{method.instructions || "Manual payment method"}</p>
+                    </div>
+                    <Badge variant={method.enabled ? "secondary" : "outline"}>{method.enabled ? "Enabled" : "Disabled"}</Badge>
+                  </div>
+                  <div className="grid gap-1 text-sm">
+                    <p><span className="text-muted-foreground">Account name:</span> {method.accountName || "Not configured yet"}</p>
+                    <p><span className="text-muted-foreground">Account number:</span> {method.accountNumber || "Not configured yet"}</p>
+                    <p><span className="text-muted-foreground">Bank:</span> {method.bankName || "—"}</p>
+                    <p><span className="text-muted-foreground">Branch:</span> {method.branchName || "—"}</p>
+                  </div>
+                  {!hasDetails && <p className="text-xs text-amber-700 dark:text-amber-300">Super admin needs to save the receiving account details for this method.</p>}
+                  <Button variant="outline" size="sm" disabled={!!pendingRequest} onClick={() => openRequestDialog(nextSuggestedPlan(currentPlan), undefined, method.methodCode)}>
+                    Pay with {friendlyMethodName(method.methodCode)}
+                  </Button>
                 </div>
-                {method.accountName && <p className="text-sm"><span className="text-muted-foreground">Account name:</span> {method.accountName}</p>}
-                {method.accountNumber && <p className="text-sm"><span className="text-muted-foreground">Account no:</span> {method.accountNumber}</p>}
-                {method.bankName && <p className="text-sm"><span className="text-muted-foreground">Bank:</span> {method.bankName}</p>}
-                {method.branchName && <p className="text-sm"><span className="text-muted-foreground">Branch:</span> {method.branchName}</p>}
-                {method.instructions && <p className="text-sm text-muted-foreground">{method.instructions}</p>}
-              </div>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
 
@@ -244,7 +303,7 @@ const Subscriptions = () => {
                   <TableRow key={request.id}>
                     <TableCell className="capitalize">{request.requestedPlan || request.plan}</TableCell>
                     <TableCell className="capitalize">{request.requestType || "activate"}</TableCell>
-                    <TableCell className="capitalize">{request.paymentMethod || request.method}</TableCell>
+                    <TableCell className="capitalize">{friendlyMethodName(request.paymentMethod || request.method)}</TableCell>
                     <TableCell className="font-mono text-xs">{request.transactionId || request.trxId || "—"}</TableCell>
                     <TableCell><span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusClasses[request.status] || ""}`}>{request.status}</span></TableCell>
                     <TableCell>{new Date(request.createdAt).toLocaleDateString()}</TableCell>
@@ -264,11 +323,11 @@ const Subscriptions = () => {
         </Card>
 
         <Dialog open={dialogOpen} onOpenChange={(open) => !open ? closeDialog() : setDialogOpen(open)}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-3xl">
             <DialogHeader>
               <DialogTitle>{editingRequest ? "Resubmit payment request" : `Request ${selectedPlanMeta?.name || "plan"}`}</DialogTitle>
             </DialogHeader>
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
               <div className="space-y-3">
                 <div>
                   <Label>Billing cycle</Label>
@@ -294,7 +353,7 @@ const Subscriptions = () => {
                   <Input value={form.amountSent} onChange={(e) => setForm((prev) => ({ ...prev, amountSent: e.target.value }))} placeholder={String(payableAmount)} />
                 </div>
                 <div>
-                  <Label>Sender mobile/bank account</Label>
+                  <Label>Sender mobile / bank account</Label>
                   <Input value={form.senderAccountOrNumber} onChange={(e) => setForm((prev) => ({ ...prev, senderAccountOrNumber: e.target.value }))} placeholder="e.g. 017xxxxxxxx" />
                 </div>
                 <div>
@@ -307,7 +366,7 @@ const Subscriptions = () => {
                 </div>
                 <div>
                   <Label>Proof URL</Label>
-                  <Input value={form.proofUrl} onChange={(e) => setForm((prev) => ({ ...prev, proofUrl: e.target.value }))} placeholder="https://..." />
+                  <Input value={form.proofUrl} onChange={(e) => setForm((prev) => ({ ...prev, proofUrl: e.target.value }))} placeholder="https://image-or-drive-link" />
                 </div>
                 <div>
                   <Label>Note</Label>
@@ -326,15 +385,32 @@ const Subscriptions = () => {
                 </div>
                 {selectedMethodMeta && (
                   <>
+                    <Separator />
                     <div>
                       <p className="text-sm text-muted-foreground">Receiver</p>
                       <p className="font-medium">{selectedMethodMeta.label}</p>
                     </div>
-                    {selectedMethodMeta.accountName && <p className="text-sm"><span className="text-muted-foreground">Account name:</span> {selectedMethodMeta.accountName}</p>}
-                    {selectedMethodMeta.accountNumber && <p className="text-sm"><span className="text-muted-foreground">Account number:</span> {selectedMethodMeta.accountNumber}</p>}
-                    {selectedMethodMeta.instructions && <p className="text-sm text-muted-foreground">{selectedMethodMeta.instructions}</p>}
+                    <div className="space-y-2 text-sm">
+                      <p><span className="text-muted-foreground">Account name:</span> {selectedMethodMeta.accountName || "Not configured yet"}</p>
+                      <p><span className="text-muted-foreground">Account number:</span> {selectedMethodMeta.accountNumber || "Not configured yet"}</p>
+                      <p><span className="text-muted-foreground">Bank:</span> {selectedMethodMeta.bankName || "—"}</p>
+                      <p><span className="text-muted-foreground">Branch:</span> {selectedMethodMeta.branchName || "—"}</p>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{selectedMethodMeta.instructions || "Send the amount manually and submit the transaction/reference details."}</p>
+                    {!selectedMethodHasReceiverDetails && (
+                      <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
+                        Receiver account details are not configured yet. Ask the super admin to save the {selectedMethodMeta.label} number/account details first.
+                      </div>
+                    )}
                   </>
                 )}
+                <Separator />
+                <div>
+                  <p className="font-medium">How to pay</p>
+                  <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
+                    {howToPaySteps.map((step) => <li key={step}>{step}</li>)}
+                  </ol>
+                </div>
                 {editingRequest?.rejectionReason && (
                   <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
                     Previous rejection reason: {editingRequest.rejectionReason}
