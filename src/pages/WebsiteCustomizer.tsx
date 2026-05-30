@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -9,32 +9,74 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { websiteApi, templateDefaults, type WebsiteConfig } from "@/lib/websiteApi";
+import { themePresets, templateDefaults, websiteApi, type ThemePreset, type WebsiteConfig } from "@/lib/websiteApi";
 import { tenantDomainApi, type TenantDomainRecord, type TenantDomainSummary } from "@/lib/tenantDomainApi";
-import { Plane, Moon, Mountain, Check, Palette, Type, Image, Eye, Plus, Trash2, Save, Users, Phone, Globe, Copy, RefreshCw, ShieldCheck, AlertCircle, ExternalLink, Link2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { AlertCircle, Check, Copy, ExternalLink, Globe, Image as ImageIcon, LayoutTemplate, Loader2, Palette, Plus, RefreshCw, Save, ShieldCheck, Sparkles, Trash2, Type, Upload, Wand2 } from "lucide-react";
 
 const templates = [
-  { id: "travel-agency" as const, name: "Travel Agency", desc: "Classic travel agency with flights, hotels, visa", icon: Plane, color: "bg-blue-500" },
-  { id: "hajj-umrah" as const, name: "Hajj & Umrah", desc: "Specialized for Hajj/Umrah service providers", icon: Moon, color: "bg-emerald-500" },
-  { id: "tour-packages" as const, name: "Tour Packages", desc: "Adventure & leisure tour operator", icon: Mountain, color: "bg-purple-500" },
+  { id: "travel-agency" as const, name: "Travel Agency", description: "Classic agency layout for flight, visa, hotel and outbound businesses." },
+  { id: "hajj-umrah" as const, name: "Hajj & Umrah", description: "Sacred journey layout with calm spiritual branding and pilgrim-focused sections." },
+  { id: "tour-packages" as const, name: "Tour Packages", description: "Interactive leisure and adventure design for package sellers and tour operators." },
 ];
+
+const defaultServicesByTemplate: Record<WebsiteConfig["template"], { icon: string; title: string; desc: string }[]> = {
+  "travel-agency": [
+    { icon: "Plane", title: "Air Ticketing", desc: "Domestic and international flight support" },
+    { icon: "Shield", title: "Visa Processing", desc: "Fast and guided document handling" },
+    { icon: "Hotel", title: "Hotel Booking", desc: "Comfortable stays at trusted rates" },
+  ],
+  "hajj-umrah": [
+    { icon: "Moon", title: "Umrah Packages", desc: "Flexible and guided Umrah packages" },
+    { icon: "Star", title: "Hajj Packages", desc: "Premium pilgrim support and logistics" },
+    { icon: "MapPin", title: "Ziyarat Tours", desc: "Guided holy site visits and transport" },
+  ],
+  "tour-packages": [
+    { icon: "Mountain", title: "Adventure Tours", desc: "Exciting domestic and international adventures" },
+    { icon: "Palmtree", title: "Holiday Packages", desc: "Relaxing beach and family experiences" },
+    { icon: "Building", title: "City Breaks", desc: "Curated short city escapes and seasonal offers" },
+  ],
+};
+
+const defaultStatsByTemplate: Record<WebsiteConfig["template"], { value: string; label: string }[]> = {
+  "travel-agency": [
+    { value: "5000+", label: "Happy Travelers" },
+    { value: "200+", label: "Destinations" },
+    { value: "50+", label: "Tour Packages" },
+  ],
+  "hajj-umrah": [
+    { value: "1000+", label: "Pilgrims Served" },
+    { value: "10+", label: "Guides" },
+    { value: "24/7", label: "Support" },
+  ],
+  "tour-packages": [
+    { value: "3000+", label: "Happy Travelers" },
+    { value: "100+", label: "Packages" },
+    { value: "50+", label: "Destinations" },
+  ],
+};
+
+const createEmptyConfig = (template: WebsiteConfig["template"]): WebsiteConfig => JSON.parse(JSON.stringify(templateDefaults[template]));
 
 const WebsiteCustomizer = () => {
   const { toast } = useToast();
-  const [config, setConfig] = useState<WebsiteConfig>(templateDefaults["travel-agency"]);
+  const { tenant, user } = useAuth();
+  const [config, setConfig] = useState<WebsiteConfig>(createEmptyConfig("travel-agency"));
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [uploadingAsset, setUploadingAsset] = useState<null | "logo" | "hero" | "about">(null);
   const [domainSummary, setDomainSummary] = useState<TenantDomainSummary | null>(null);
   const [domains, setDomains] = useState<TenantDomainRecord[]>([]);
   const [domainForm, setDomainForm] = useState({ domain: "", wwwRedirect: "www-to-root" as "www-to-root" | "root-to-www" });
   const [domainSubmitting, setDomainSubmitting] = useState(false);
   const [domainActionId, setDomainActionId] = useState<string | null>(null);
 
+  const logoInputRef = useRef<HTMLInputElement | null>(null);
+  const heroInputRef = useRef<HTMLInputElement | null>(null);
+  const aboutInputRef = useRef<HTMLInputElement | null>(null);
+
   const loadDomains = async () => {
-    const [summary, records] = await Promise.all([
-      tenantDomainApi.getSummary(),
-      tenantDomainApi.list(),
-    ]);
+    const [summary, records] = await Promise.all([tenantDomainApi.getSummary(), tenantDomainApi.list()]);
     setDomainSummary(summary);
     setDomains(records);
   };
@@ -42,7 +84,12 @@ const WebsiteCustomizer = () => {
   useEffect(() => {
     Promise.all([websiteApi.getConfig(), loadDomains()])
       .then(([websiteConfig]) => {
-        setConfig(websiteConfig);
+        const normalized = { ...createEmptyConfig(websiteConfig.template || "travel-agency"), ...websiteConfig } as WebsiteConfig;
+        normalized.content = { ...createEmptyConfig(normalized.template).content, ...normalized.content };
+        normalized.contactInfo = { ...createEmptyConfig(normalized.template).contactInfo, ...normalized.contactInfo };
+        normalized.socialLinks = { ...createEmptyConfig(normalized.template).socialLinks, ...normalized.socialLinks };
+        if (!normalized.contactInfo?.email && user?.email) normalized.contactInfo = { ...normalized.contactInfo, email: user.email };
+        setConfig(normalized);
       })
       .catch((err: any) => {
         toast({ title: "Failed to load website settings", description: err.message, variant: "destructive" });
@@ -50,128 +97,164 @@ const WebsiteCustomizer = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  const selectTemplate = (id: WebsiteConfig["template"]) => {
-    const defaults = templateDefaults[id];
-    setConfig((prev) => ({
-      ...prev,
-      template: id,
-      colors: { ...defaults.colors },
-      content: { ...defaults.content },
-      socialLinks: { ...defaults.socialLinks },
-      contactInfo: { ...defaults.contactInfo },
-    }));
+  const activePreset = useMemo(() => themePresets.find((preset) => preset.template === config.template), [config.template]);
+  const primaryDomain = domains.find((item) => item.isPrimary) || null;
+  const primaryLiveUrl = primaryDomain ? `https://${primaryDomain.wwwRedirect === "root-to-www" ? `www.${primaryDomain.domain}` : primaryDomain.domain}` : domainSummary?.defaultWebsiteUrl;
+
+  const updateColors = (updates: Partial<WebsiteConfig["colors"]>) => {
+    setConfig((prev) => ({ ...prev, colors: { ...prev.colors, ...updates } }));
   };
 
-  const updateColor = (key: keyof WebsiteConfig["colors"], value: string) => {
-    setConfig((prev) => ({ ...prev, colors: { ...prev.colors, [key]: value } }));
+  const updateContent = (field: keyof WebsiteConfig["content"], value: any) => {
+    setConfig((prev) => ({ ...prev, content: { ...prev.content, [field]: value } }));
   };
 
-  const updateContent = (key: string, value: string) => {
-    setConfig((prev) => ({ ...prev, content: { ...prev.content, [key]: value } }));
+  const updateContact = (field: keyof NonNullable<WebsiteConfig["contactInfo"]>, value: string) => {
+    setConfig((prev) => ({ ...prev, contactInfo: { ...prev.contactInfo, [field]: value } }));
   };
 
-  const updateService = (index: number, field: string, value: string) => {
+  const updateSocial = (field: keyof NonNullable<WebsiteConfig["socialLinks"]>, value: string) => {
+    setConfig((prev) => ({ ...prev, socialLinks: { ...prev.socialLinks, [field]: value } }));
+  };
+
+  const updateService = (index: number, field: "title" | "desc", value: string) => {
     setConfig((prev) => {
       const services = [...prev.content.services];
       services[index] = { ...services[index], [field]: value };
       return { ...prev, content: { ...prev.content, services } };
     });
   };
-  const addService = () => setConfig((prev) => ({ ...prev, content: { ...prev.content, services: [...prev.content.services, { icon: "Star", title: "", desc: "" }] } }));
-  const removeService = (index: number) => setConfig((prev) => ({ ...prev, content: { ...prev.content, services: prev.content.services.filter((_, i) => i !== index) } }));
 
-  const updateStat = (index: number, field: string, value: string) => {
+  const addService = () => {
+    setConfig((prev) => ({
+      ...prev,
+      content: {
+        ...prev.content,
+        services: [...prev.content.services, { icon: "Star", title: "New Service", desc: "Describe the service in one short sentence." }],
+      },
+    }));
+  };
+
+  const removeService = (index: number) => {
+    setConfig((prev) => ({ ...prev, content: { ...prev.content, services: prev.content.services.filter((_, i) => i !== index) } }));
+  };
+
+  const updateStat = (index: number, field: "value" | "label", value: string) => {
     setConfig((prev) => {
       const stats = [...(prev.content.stats || [])];
       stats[index] = { ...stats[index], [field]: value };
       return { ...prev, content: { ...prev.content, stats } };
     });
   };
-  const addStat = () => setConfig((prev) => ({ ...prev, content: { ...prev.content, stats: [...(prev.content.stats || []), { value: "", label: "" }] } }));
-  const removeStat = (i: number) => setConfig((prev) => ({ ...prev, content: { ...prev.content, stats: (prev.content.stats || []).filter((_, idx) => idx !== i) } }));
 
-  const updateTestimonial = (index: number, field: string, value: string) => {
-    setConfig((prev) => {
-      const testimonials = [...(prev.content.testimonials || [])];
-      testimonials[index] = { ...testimonials[index], [field]: value };
-      return { ...prev, content: { ...prev.content, testimonials } };
-    });
+  const addStat = () => {
+    setConfig((prev) => ({
+      ...prev,
+      content: { ...prev.content, stats: [...(prev.content.stats || []), { value: "100+", label: "Add stat" }] },
+    }));
   };
-  const addTestimonial = () => setConfig((prev) => ({ ...prev, content: { ...prev.content, testimonials: [...(prev.content.testimonials || []), { name: "", text: "", date: "" }] } }));
-  const removeTestimonial = (i: number) => setConfig((prev) => ({ ...prev, content: { ...prev.content, testimonials: (prev.content.testimonials || []).filter((_, idx) => idx !== i) } }));
 
-  const updateFaq = (index: number, field: string, value: string) => {
-    setConfig((prev) => {
-      const faq = [...(prev.content.faq || [])];
-      faq[index] = { ...faq[index], [field]: value };
-      return { ...prev, content: { ...prev.content, faq } };
-    });
+  const removeStat = (index: number) => {
+    setConfig((prev) => ({ ...prev, content: { ...prev.content, stats: (prev.content.stats || []).filter((_, i) => i !== index) } }));
   };
-  const addFaq = () => setConfig((prev) => ({ ...prev, content: { ...prev.content, faq: [...(prev.content.faq || []), { question: "", answer: "" }] } }));
-  const removeFaq = (i: number) => setConfig((prev) => ({ ...prev, content: { ...prev.content, faq: (prev.content.faq || []).filter((_, idx) => idx !== i) } }));
 
-  const updateTeam = (index: number, field: string, value: string) => {
-    setConfig((prev) => {
-      const team = [...(prev.content.team || [])];
-      team[index] = { ...team[index], [field]: value };
-      return { ...prev, content: { ...prev.content, team } };
-    });
+  const applyTemplate = (templateId: WebsiteConfig["template"]) => {
+    const defaults = createEmptyConfig(templateId);
+    setConfig((prev) => ({
+      ...defaults,
+      logo: prev.logo,
+      content: {
+        ...defaults.content,
+        heroImage: prev.content.heroImage,
+        aboutImage: prev.content.aboutImage,
+      },
+      contactInfo: {
+        ...defaults.contactInfo,
+        phone: prev.contactInfo?.phone || defaults.contactInfo?.phone,
+        email: prev.contactInfo?.email || defaults.contactInfo?.email,
+        address: prev.contactInfo?.address || defaults.contactInfo?.address,
+        mapEmbed: prev.contactInfo?.mapEmbed || defaults.contactInfo?.mapEmbed,
+      },
+      socialLinks: { ...defaults.socialLinks, ...prev.socialLinks },
+    }));
+    toast({ title: "Template applied", description: templates.find((item) => item.id === templateId)?.name });
   };
-  const addTeam = () => setConfig((prev) => ({ ...prev, content: { ...prev.content, team: [...(prev.content.team || []), { name: "", role: "", desc: "" }] } }));
-  const removeTeam = (i: number) => setConfig((prev) => ({ ...prev, content: { ...prev.content, team: (prev.content.team || []).filter((_, idx) => idx !== i) } }));
 
-  const updateWhy = (index: number, field: string, value: string) => {
-    setConfig((prev) => {
-      const whyChooseUs = [...(prev.content.whyChooseUs || [])];
-      whyChooseUs[index] = { ...whyChooseUs[index], [field]: value };
-      return { ...prev, content: { ...prev.content, whyChooseUs } };
-    });
+  const applyPreset = (preset: ThemePreset) => {
+    const defaults = createEmptyConfig(preset.template);
+    setConfig((prev) => ({
+      ...defaults,
+      template: preset.template,
+      logo: prev.logo,
+      colors: { ...defaults.colors, ...preset.colors },
+      content: {
+        ...defaults.content,
+        ...preset.sampleContent,
+        heroImage: prev.content.heroImage,
+        aboutImage: prev.content.aboutImage,
+        services: prev.content.services?.length ? prev.content.services : defaults.content.services,
+        stats: prev.content.stats?.length ? prev.content.stats : defaults.content.stats,
+      },
+      contactInfo: {
+        ...defaults.contactInfo,
+        phone: prev.contactInfo?.phone || defaults.contactInfo?.phone,
+        email: prev.contactInfo?.email || defaults.contactInfo?.email,
+        address: prev.contactInfo?.address || defaults.contactInfo?.address,
+        mapEmbed: prev.contactInfo?.mapEmbed || defaults.contactInfo?.mapEmbed,
+      },
+      socialLinks: { ...defaults.socialLinks, ...prev.socialLinks },
+    }));
+    toast({ title: "Interactive theme applied", description: `${preset.name} is now active.` });
   };
-  const addWhy = () => setConfig((prev) => ({ ...prev, content: { ...prev.content, whyChooseUs: [...(prev.content.whyChooseUs || []), { title: "", desc: "" }] } }));
-  const removeWhy = (i: number) => setConfig((prev) => ({ ...prev, content: { ...prev.content, whyChooseUs: (prev.content.whyChooseUs || []).filter((_, idx) => idx !== i) } }));
+
+  const resetSectionsForTemplate = () => {
+    setConfig((prev) => ({
+      ...prev,
+      content: {
+        ...prev.content,
+        services: defaultServicesByTemplate[prev.template].map((item) => ({ ...item })),
+        stats: defaultStatsByTemplate[prev.template].map((item) => ({ ...item })),
+      },
+    }));
+    toast({ title: "Sections reset", description: "Service and stat cards were rebuilt for this template." });
+  };
+
+  const uploadAsset = async (file: File | null, assetType: "logo" | "hero" | "about") => {
+    if (!file) return;
+    setUploadingAsset(assetType);
+    try {
+      const uploaded = await websiteApi.uploadAsset(file, assetType);
+      if (assetType === "logo") {
+        setConfig((prev) => ({ ...prev, logo: uploaded.assetUrl }));
+      } else if (assetType === "hero") {
+        updateContent("heroImage", uploaded.assetUrl);
+      } else {
+        updateContent("aboutImage", uploaded.assetUrl);
+      }
+      toast({ title: "Image uploaded", description: `${assetType} image updated successfully.` });
+    } catch (err: any) {
+      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingAsset(null);
+    }
+  };
+
+  const removeAsset = (assetType: "logo" | "hero" | "about") => {
+    if (assetType === "logo") setConfig((prev) => ({ ...prev, logo: "" }));
+    if (assetType === "hero") updateContent("heroImage", "");
+    if (assetType === "about") updateContent("aboutImage", "");
+  };
 
   const handleSave = async () => {
     setSaving(true);
     try {
       await websiteApi.saveConfig(config);
-      toast({ title: "সেভ হয়েছে!", description: "ওয়েবসাইট কাস্টমাইজেশন সফলভাবে সেভ হয়েছে।" });
-    } catch {
-      toast({ title: "ত্রুটি", description: "সেভ করতে সমস্যা হয়েছে।", variant: "destructive" });
+      toast({ title: "Website saved", description: "Your theme, content, and media updates are now live." });
+    } catch (err: any) {
+      toast({ title: "Save failed", description: err.message || "Could not save website settings.", variant: "destructive" });
     } finally {
       setSaving(false);
     }
-  };
-
-  const hslToHex = (hsl: string): string => {
-    const parts = hsl.split(" ").map(Number);
-    if (parts.length < 3) return "#3b82f6";
-    const [h, s, l] = [parts[0], parts[1] / 100, parts[2] / 100];
-    const a2 = s * Math.min(l, 1 - l);
-    const f = (n: number) => {
-      const k = (n + h / 30) % 12;
-      const color = l - a2 * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-      return Math.round(255 * color).toString(16).padStart(2, "0");
-    };
-    return `#${f(0)}${f(8)}${f(4)}`;
-  };
-
-  const hexToHsl = (hex: string): string => {
-    const r = parseInt(hex.slice(1, 3), 16) / 255;
-    const g = parseInt(hex.slice(3, 5), 16) / 255;
-    const b = parseInt(hex.slice(5, 7), 16) / 255;
-    const max = Math.max(r, g, b), min = Math.min(r, g, b);
-    const l = (max + min) / 2;
-    let h = 0, s = 0;
-    if (max !== min) {
-      const d = max - min;
-      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-      switch (max) {
-        case r: h = ((g - b) / d + (g < b ? 6 : 0)) * 60; break;
-        case g: h = ((b - r) / d + 2) * 60; break;
-        case b: h = ((r - g) / d + 4) * 60; break;
-      }
-    }
-    return `${Math.round(h)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
   };
 
   const copyText = async (value: string, label: string) => {
@@ -189,7 +272,7 @@ const WebsiteCustomizer = () => {
       await tenantDomainApi.add(domainForm);
       setDomainForm({ domain: "", wwwRedirect: "www-to-root" });
       await loadDomains();
-      toast({ title: "Domain added", description: "Now add the DNS TXT record and verify the domain." });
+      toast({ title: "Domain added", description: "Add the DNS record, then verify it from here." });
     } catch (err: any) {
       toast({ title: "Failed to add domain", description: err.message, variant: "destructive" });
     } finally {
@@ -202,7 +285,7 @@ const WebsiteCustomizer = () => {
     try {
       const result = await tenantDomainApi.verify(id);
       await loadDomains();
-      toast({ title: result.verified ? "Domain verified" : "Verification pending", description: result.verified ? "Ask super admin to activate SSL and connect the live domain." : "TXT record not found yet. Recheck DNS and try again." });
+      toast({ title: result.verified ? "Domain verified" : "TXT record not found", description: result.verified ? "Super admin can now enable SSL and activate the domain." : "Recheck DNS and try again in a few minutes." });
     } catch (err: any) {
       toast({ title: "Verification failed", description: err.message, variant: "destructive" });
     } finally {
@@ -236,37 +319,62 @@ const WebsiteCustomizer = () => {
     }
   };
 
-  const primaryDomain = domains.find((item) => item.isPrimary) || null;
-  const primaryLiveUrl = primaryDomain ? `https://${primaryDomain.wwwRedirect === "root-to-www" ? `www.${primaryDomain.domain}` : primaryDomain.domain}` : domainSummary?.defaultWebsiteUrl;
-
-  const getVerificationBadge = (record: TenantDomainRecord) => {
-    if (record.verificationStatus === "verified") {
-      return <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"><ShieldCheck className="mr-1 h-3 w-3" />Verified</Badge>;
-    }
-    if (record.verificationStatus === "verifying") {
-      return <Badge variant="secondary"><RefreshCw className="mr-1 h-3 w-3 animate-spin" />Checking</Badge>;
-    }
+  const verificationBadge = (record: TenantDomainRecord) => {
+    if (record.verificationStatus === "verified") return <Badge className="bg-green-100 text-green-800"><ShieldCheck className="mr-1 h-3 w-3" />Verified</Badge>;
+    if (record.verificationStatus === "verifying") return <Badge variant="secondary"><Loader2 className="mr-1 h-3 w-3 animate-spin" />Checking</Badge>;
     return <Badge variant="outline" className="text-amber-700 border-amber-300"><AlertCircle className="mr-1 h-3 w-3" />Unverified</Badge>;
   };
 
-  const getStatusBadge = (record: TenantDomainRecord) => {
-    if (record.status === "active") return <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Active</Badge>;
+  const statusBadge = (record: TenantDomainRecord) => {
+    if (record.status === "active") return <Badge className="bg-green-100 text-green-800">Active</Badge>;
     if (record.status === "error") return <Badge variant="destructive">Error</Badge>;
     return <Badge variant="secondary">Pending admin activation</Badge>;
   };
 
-  const getSslBadge = (record: TenantDomainRecord) => {
-    if (record.sslStatus === "active") return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">SSL ready</Badge>;
+  const sslBadge = (record: TenantDomainRecord) => {
+    if (record.sslStatus === "active") return <Badge className="bg-emerald-100 text-emerald-800">SSL ready</Badge>;
     if (record.sslStatus === "pending") return <Badge variant="secondary">SSL pending</Badge>;
     return <Badge variant="outline">No SSL yet</Badge>;
   };
 
+  const renderImageUploader = ({
+    title,
+    description,
+    value,
+    assetType,
+    inputRef,
+  }: {
+    title: string;
+    description: string;
+    value?: string;
+    assetType: "logo" | "hero" | "about";
+    inputRef: React.RefObject<HTMLInputElement>;
+  }) => (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml" className="hidden" onChange={(e) => uploadAsset(e.target.files?.[0] || null, assetType)} />
+        <div className="flex h-52 items-center justify-center overflow-hidden rounded-xl border bg-muted/30">
+          {value ? <img src={value} alt={title} className="h-full w-full object-cover" /> : <div className="text-center text-sm text-muted-foreground"><ImageIcon className="mx-auto mb-2 h-8 w-8 opacity-60" />Upload image</div>}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" onClick={() => inputRef.current?.click()} disabled={uploadingAsset === assetType}>
+            {uploadingAsset === assetType ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}Upload {title}
+          </Button>
+          {value && <Button type="button" variant="ghost" onClick={() => removeAsset(assetType)}><Trash2 className="mr-2 h-4 w-4" />Remove</Button>}
+        </div>
+        <p className="text-xs text-muted-foreground">No more logo URL or hero image URL. Upload directly from your device.</p>
+      </CardContent>
+    </Card>
+  );
+
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-        </div>
+        <div className="flex h-72 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
       </DashboardLayout>
     );
   }
@@ -274,461 +382,364 @@ const WebsiteCustomizer = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Website Customizer</h1>
-            <p className="text-muted-foreground">আপনার ওয়েবসাইটের ডিজাইন ও কন্টেন্ট পরিবর্তন করুন</p>
+            <h1 className="text-3xl font-bold tracking-tight">Theme Builder</h1>
+            <p className="text-muted-foreground">Build a modern agency website with presets, direct image uploads, and simple content controls.</p>
           </div>
-          <Button onClick={handleSave} disabled={saving} size="lg">
-            <Save className="mr-2 h-4 w-4" />
-            {saving ? "সেভ হচ্ছে..." : "সেভ করুন"}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {primaryLiveUrl && <Button variant="outline" onClick={() => window.open(primaryLiveUrl, "_blank")}><ExternalLink className="mr-2 h-4 w-4" />Open live site</Button>}
+            <Button onClick={handleSave} disabled={saving}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}Save website</Button>
+          </div>
         </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-start justify-between gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2"><Globe className="h-5 w-5" />Custom domain connection</CardTitle>
-              <CardDescription>Connect your own domain from the agency account, then super admin can verify SSL and activate it for the live website.</CardDescription>
-            </div>
-            <Button variant="outline" onClick={loadDomains}><RefreshCw className="mr-2 h-4 w-4" />Refresh domains</Button>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="rounded-lg border p-4">
-                <p className="text-sm text-muted-foreground">Plan</p>
-                <p className="font-semibold capitalize">{domainSummary?.subscriptionPlan || "free"}</p>
-                <p className="mt-1 text-sm text-muted-foreground">Status: <span className="capitalize">{domainSummary?.subscriptionStatus || "inactive"}</span></p>
+        <div className="grid gap-4 xl:grid-cols-4">
+          <Card className="xl:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5" />Quick setup</CardTitle>
+              <CardDescription>Update the most important website details from one place.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Agency name</Label>
+                <Input value={tenant?.name || ""} disabled />
               </div>
-              <div className="rounded-lg border p-4">
-                <p className="text-sm text-muted-foreground">Domain allowance</p>
-                <p className="font-semibold">{domainSummary?.domainLimit === -1 ? "Unlimited" : `${domainSummary?.usedDomains || 0} / ${domainSummary?.domainLimit || 0}`}</p>
-                <p className="mt-1 text-sm text-muted-foreground">Primary live URL</p>
-                <p className="truncate text-sm font-medium">{primaryLiveUrl || "—"}</p>
+              <div className="space-y-2">
+                <Label>Selected template</Label>
+                <Input value={templates.find((item) => item.id === config.template)?.name || config.template} disabled />
               </div>
-              <div className="rounded-lg border p-4">
-                <p className="text-sm text-muted-foreground">Default website URL</p>
-                <div className="mt-1 flex items-center gap-2">
-                  <a href={domainSummary?.defaultWebsiteUrl} target="_blank" rel="noreferrer" className="truncate text-sm font-medium text-primary underline">{domainSummary?.defaultWebsiteUrl || "—"}</a>
-                  {domainSummary?.defaultWebsiteUrl && <Button type="button" size="icon" variant="ghost" onClick={() => copyText(domainSummary.defaultWebsiteUrl, "Default URL")}><Copy className="h-4 w-4" /></Button>}
-                </div>
-                <p className="mt-2 text-xs text-muted-foreground">Use this until the custom domain becomes fully active.</p>
+              <div className="space-y-2 md:col-span-2">
+                <Label>Hero title</Label>
+                <Input value={config.content.heroTitle} onChange={(e) => updateContent("heroTitle", e.target.value)} placeholder="Main headline for your agency website" />
               </div>
-            </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label>Hero subtitle</Label>
+                <Textarea value={config.content.heroSubtitle} onChange={(e) => updateContent("heroSubtitle", e.target.value)} rows={3} placeholder="Short summary that explains what your agency sells" />
+              </div>
+              <div className="space-y-2">
+                <Label>Phone</Label>
+                <Input value={config.contactInfo?.phone || ""} onChange={(e) => updateContact("phone", e.target.value)} placeholder="017xxxxxxxx" />
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input value={config.contactInfo?.email || ""} onChange={(e) => updateContact("email", e.target.value)} placeholder="info@agency.com" />
+              </div>
+            </CardContent>
+          </Card>
 
-            {domainSummary?.domainLimit === 0 ? (
-              <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
-                Your current plan does not include custom domains. Upgrade to Pro or higher, then connect a custom website URL.
-              </div>
-            ) : (
-              <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Add or connect a custom domain</CardTitle>
-                    <CardDescription>Enter the root domain only. Example: yourcompany.com. The system will handle www automatically.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Domain name</Label>
-                      <Input placeholder="tourandtravels.cloud" value={domainForm.domain} onChange={(e) => setDomainForm((prev) => ({ ...prev, domain: e.target.value }))} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Preferred redirect</Label>
-                      <Select value={domainForm.wwwRedirect} onValueChange={(value: "www-to-root" | "root-to-www") => setDomainForm((prev) => ({ ...prev, wwwRedirect: value }))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="www-to-root">www → root domain</SelectItem>
-                          <SelectItem value="root-to-www">root → www domain</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <Button onClick={addDomain} disabled={domainSubmitting || !domainSummary?.canAddDomain}>
-                      {domainSubmitting ? "Adding..." : "Add domain"}
-                    </Button>
-                    {!domainSummary?.canAddDomain && (
-                      <p className="text-xs text-muted-foreground">You have reached the domain limit for your current subscription or your subscription is inactive.</p>
-                    )}
-                  </CardContent>
-                </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Brand status</CardTitle>
+              <CardDescription>See how complete your public website is.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">Theme preset</span><Badge variant="secondary">{activePreset?.name || templates.find((item) => item.id === config.template)?.name}</Badge></div>
+              <div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">Logo</span>{config.logo ? <Badge className="bg-green-100 text-green-800">Ready</Badge> : <Badge variant="outline">Missing</Badge>}</div>
+              <div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">Hero image</span>{config.content.heroImage ? <Badge className="bg-green-100 text-green-800">Ready</Badge> : <Badge variant="outline">Missing</Badge>}</div>
+              <div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">Primary domain</span><Badge variant="secondary">{primaryDomain ? "Connected" : "Default URL"}</Badge></div>
+            </CardContent>
+          </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>How domain connection works</CardTitle>
-                    <CardDescription>Agency and super admin work together.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3 text-sm text-muted-foreground">
-                    <p>1. Add your domain here from the agency account.</p>
-                    <p>2. Add the TXT verification record and point the A/CNAME records to your server.</p>
-                    <p>3. Click Verify from the agency account.</p>
-                    <p>4. Super admin checks DNS, configures Nginx + SSL, and activates the domain.</p>
-                    <p>5. Once active, your live website opens from the connected domain.</p>
-                  </CardContent>
-                </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Live URL</CardTitle>
+              <CardDescription>Share this link with your customers.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="break-all rounded-lg border bg-muted/30 p-3 text-sm">{primaryLiveUrl || domainSummary?.defaultWebsiteUrl || "No live URL yet"}</p>
+              <div className="flex gap-2">
+                {primaryLiveUrl && <Button variant="outline" onClick={() => copyText(primaryLiveUrl, "Live URL")}><Copy className="mr-2 h-4 w-4" />Copy</Button>}
+                {domainSummary?.defaultWebsiteUrl && <Button variant="ghost" onClick={() => copyText(domainSummary.defaultWebsiteUrl, "Default URL")}>Default URL</Button>}
               </div>
-            )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <Tabs defaultValue="themes" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="themes"><LayoutTemplate className="mr-1 h-4 w-4" />Themes</TabsTrigger>
+            <TabsTrigger value="branding"><ImageIcon className="mr-1 h-4 w-4" />Branding</TabsTrigger>
+            <TabsTrigger value="content"><Type className="mr-1 h-4 w-4" />Agency Info</TabsTrigger>
+            <TabsTrigger value="sections"><Palette className="mr-1 h-4 w-4" />Sections</TabsTrigger>
+            <TabsTrigger value="publish"><Globe className="mr-1 h-4 w-4" />Domain & Publish</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="themes" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Wand2 className="h-5 w-5" />Interactive theme presets</CardTitle>
+                <CardDescription>Select a ready-made visual style. It updates the template, colors, and key hero text instantly.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4 xl:grid-cols-3">
+                {themePresets.map((preset) => (
+                  <div key={preset.id} className={`rounded-2xl border p-4 transition-all ${config.template === preset.template ? "border-primary shadow-sm" : ""}`}>
+                    <div className="mb-4 flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold">{preset.name}</h3>
+                        <p className="text-sm text-muted-foreground">{preset.description}</p>
+                      </div>
+                      {activePreset?.id === preset.id && <Badge><Check className="mr-1 h-3 w-3" />Active</Badge>}
+                    </div>
+                    <div className="mb-4 flex gap-2">
+                      {preset.palettePreview.map((color) => (
+                        <span key={color} className="h-10 w-10 rounded-full border" style={{ backgroundColor: `hsl(${color})` }} />
+                      ))}
+                    </div>
+                    <div className="rounded-xl border bg-muted/20 p-4 text-sm">
+                      <p className="font-medium">{preset.sampleContent.heroBadge}</p>
+                      <p className="mt-2 text-lg font-semibold">{preset.sampleContent.heroTitle}</p>
+                      <p className="mt-2 text-muted-foreground">{preset.sampleContent.heroSubtitle}</p>
+                    </div>
+                    <div className="mt-4 flex gap-2">
+                      <Button className="flex-1" onClick={() => applyPreset(preset)}>Apply theme</Button>
+                      <Button variant="outline" onClick={() => applyTemplate(preset.template)}>Template only</Button>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Connected domains</CardTitle>
-                <CardDescription>Manage your agency website domains and share the verification details with your hosting provider.</CardDescription>
+                <CardTitle>Template base layouts</CardTitle>
+                <CardDescription>Switch the whole website structure by business type.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {domains.length === 0 ? (
-                  <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">No custom domains added yet.</div>
-                ) : domains.map((domain) => {
-                  const preferredLiveHost = domain.wwwRedirect === "root-to-www" ? `www.${domain.domain}` : domain.domain;
-                  const redirectHost = domain.wwwRedirect === "root-to-www" ? domain.domain : `www.${domain.domain}`;
-                  return (
-                    <div key={domain.id} className="rounded-lg border p-4 space-y-4">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-semibold">{domain.domain}</h3>
-                            {domain.isPrimary && <Badge>Primary</Badge>}
-                            {getVerificationBadge(domain)}
-                            {getStatusBadge(domain)}
-                            {getSslBadge(domain)}
-                          </div>
-                          <p className="mt-1 text-sm text-muted-foreground">Live domain target: <span className="font-medium text-foreground">{preferredLiveHost}</span> • Redirect helper: {redirectHost}</p>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <Button size="sm" variant="outline" onClick={() => copyText(domain.verificationToken, "Verification token")}><Copy className="mr-2 h-4 w-4" />Copy token</Button>
-                          <Button size="sm" variant="outline" onClick={() => verifyDomain(domain.id)} disabled={domainActionId === domain.id}><ShieldCheck className="mr-2 h-4 w-4" />{domainActionId === domain.id ? "Checking..." : "Verify"}</Button>
-                          <Button size="sm" variant="outline" onClick={() => setPrimaryDomain(domain.id)} disabled={domainActionId === domain.id || domain.isPrimary}>Set primary</Button>
-                          <Button size="sm" variant="ghost" onClick={() => window.open(`https://${preferredLiveHost}`, "_blank")}>Open<ExternalLink className="ml-2 h-4 w-4" /></Button>
-                          <Button size="sm" variant="destructive" onClick={() => removeDomain(domain.id)} disabled={domainActionId === domain.id}><Trash2 className="mr-2 h-4 w-4" />Remove</Button>
-                        </div>
-                      </div>
-
-                      <div className="grid gap-4 md:grid-cols-3">
-                        <div className="rounded-md bg-muted/40 p-3 text-sm">
-                          <p className="font-medium">DNS TXT verification</p>
-                          <p className="mt-2"><span className="text-muted-foreground">Type:</span> TXT</p>
-                          <p><span className="text-muted-foreground">Name:</span> _verify</p>
-                          <p className="break-all"><span className="text-muted-foreground">Value:</span> {domain.verificationToken}</p>
-                        </div>
-                        <div className="rounded-md bg-muted/40 p-3 text-sm">
-                          <p className="font-medium">Root domain DNS</p>
-                          <p className="mt-2"><span className="text-muted-foreground">Type:</span> A</p>
-                          <p><span className="text-muted-foreground">Host:</span> @</p>
-                          <p><span className="text-muted-foreground">Value:</span> Point to your server IP</p>
-                        </div>
-                        <div className="rounded-md bg-muted/40 p-3 text-sm">
-                          <p className="font-medium">www DNS</p>
-                          <p className="mt-2"><span className="text-muted-foreground">Type:</span> CNAME</p>
-                          <p><span className="text-muted-foreground">Host:</span> www</p>
-                          <p><span className="text-muted-foreground">Value:</span> {domain.domain}</p>
-                        </div>
-                      </div>
-
-                      <div className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
-                        Super admin action needed after verification: configure Nginx, issue SSL, and activate the domain from Admin → Domains.
-                      </div>
+              <CardContent className="grid gap-4 lg:grid-cols-3">
+                {templates.map((template) => (
+                  <div key={template.id} className={`rounded-2xl border p-4 ${config.template === template.id ? "border-primary shadow-sm" : ""}`}>
+                    <div className="mb-3 flex items-center justify-between">
+                      <h3 className="text-lg font-semibold">{template.name}</h3>
+                      {config.template === template.id && <Badge>Selected</Badge>}
                     </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-          </CardContent>
-        </Card>
-
-        <Tabs defaultValue="template" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="template"><Image className="mr-1 h-4 w-4" />Template</TabsTrigger>
-            <TabsTrigger value="colors"><Palette className="mr-1 h-4 w-4" />Colors</TabsTrigger>
-            <TabsTrigger value="content"><Type className="mr-1 h-4 w-4" />Content</TabsTrigger>
-            <TabsTrigger value="sections"><Users className="mr-1 h-4 w-4" />Sections</TabsTrigger>
-            <TabsTrigger value="contact"><Phone className="mr-1 h-4 w-4" />Contact</TabsTrigger>
-            <TabsTrigger value="preview"><Eye className="mr-1 h-4 w-4" />Preview</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="template">
-            <div className="grid gap-4 md:grid-cols-3">
-              {templates.map((t) => (
-                <Card key={t.id} className={`cursor-pointer transition-all hover:shadow-lg ${config.template === t.id ? "ring-2 ring-primary" : ""}`} onClick={() => selectTemplate(t.id)}>
-                  <CardContent className="pt-6 text-center">
-                    <div className={`${t.color} w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4`}>
-                      <t.icon className="h-8 w-8 text-white" />
-                    </div>
-                    <h3 className="font-bold text-lg mb-1">{t.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-3">{t.desc}</p>
-                    {config.template === t.id && <Badge className="gap-1"><Check className="h-3 w-3" />Selected</Badge>}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-            <Card className="mt-6">
-              <CardHeader><CardTitle>Logo</CardTitle><CardDescription>আপনার কোম্পানির লোগো আপলোড করুন (URL)</CardDescription></CardHeader>
-              <CardContent>
-                <div className="flex gap-4 items-end">
-                  <div className="flex-1 space-y-2">
-                    <Label>Logo URL</Label>
-                    <Input placeholder="https://example.com/logo.png" value={config.logo || ""} onChange={(e) => setConfig((prev) => ({ ...prev, logo: e.target.value }))} />
+                    <p className="text-sm text-muted-foreground">{template.description}</p>
+                    <Button className="mt-4 w-full" variant={config.template === template.id ? "outline" : "default"} onClick={() => applyTemplate(template.id)}>
+                      {config.template === template.id ? "Current template" : `Use ${template.name}`}
+                    </Button>
                   </div>
-                  {config.logo && (
-                    <div className="h-16 w-16 border rounded-lg overflow-hidden flex items-center justify-center bg-muted">
-                      <img src={config.logo} alt="Logo" className="max-h-full max-w-full object-contain" />
-                    </div>
-                  )}
-                </div>
+                ))}
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="colors">
+          <TabsContent value="branding" className="space-y-6">
+            <div className="grid gap-6 xl:grid-cols-3">
+              {renderImageUploader({ title: "Logo", description: "Your agency logo appears in the header and branding areas.", value: config.logo, assetType: "logo", inputRef: logoInputRef })}
+              {renderImageUploader({ title: "Hero image", description: "This main banner image creates the first visual impression.", value: config.content.heroImage, assetType: "hero", inputRef: heroInputRef })}
+              {renderImageUploader({ title: "About image", description: "Add a supporting photo for the about or intro section.", value: config.content.aboutImage, assetType: "about", inputRef: aboutInputRef })}
+            </div>
             <Card>
-              <CardHeader><CardTitle>Color Scheme</CardTitle><CardDescription>ওয়েবসাইটের রং পরিবর্তন করুন</CardDescription></CardHeader>
-              <CardContent>
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {(Object.keys(config.colors) as (keyof WebsiteConfig["colors"])[]).map((key) => (
-                    <div key={key} className="space-y-2">
-                      <Label className="capitalize">{key}</Label>
-                      <div className="flex gap-2 items-center">
-                        <input type="color" value={hslToHex(config.colors[key])} onChange={(e) => updateColor(key, hexToHsl(e.target.value))} className="w-12 h-10 rounded cursor-pointer border-0" />
-                        <Input value={config.colors[key]} onChange={(e) => updateColor(key, e.target.value)} className="flex-1" placeholder="H S% L%" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-8 p-6 rounded-xl border">
-                  <h4 className="font-semibold mb-4">Color Preview</h4>
-                  <div className="flex gap-3 flex-wrap">
-                    {Object.entries(config.colors).map(([key, val]) => (
-                      <div key={key} className="text-center">
-                        <div className="w-16 h-16 rounded-lg border shadow-sm" style={{ backgroundColor: `hsl(${val})` }} />
-                        <span className="text-xs text-muted-foreground mt-1 block capitalize">{key}</span>
-                      </div>
-                    ))}
+              <CardHeader>
+                <CardTitle>Color controls</CardTitle>
+                <CardDescription>Fine-tune your theme colors after choosing a preset.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+                {(Object.keys(config.colors) as (keyof WebsiteConfig["colors"])[]).map((key) => (
+                  <div key={key} className="space-y-2">
+                    <Label className="capitalize">{key}</Label>
+                    <Input value={config.colors[key]} onChange={(e) => updateColors({ [key]: e.target.value } as Partial<WebsiteConfig["colors"]>)} placeholder="H S% L%" />
+                    <div className="h-10 rounded-xl border" style={{ backgroundColor: `hsl(${config.colors[key]})` }} />
                   </div>
-                </div>
+                ))}
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="content" className="space-y-6">
             <Card>
-              <CardHeader><CardTitle>Hero Section</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2"><Label>Hero Badge</Label><Input value={config.content.heroBadge || ""} onChange={(e) => updateContent("heroBadge", e.target.value)} placeholder="e.g. Trusted Travel Partner" /></div>
-                <div className="space-y-2"><Label>Hero Title</Label><Input value={config.content.heroTitle} onChange={(e) => updateContent("heroTitle", e.target.value)} /></div>
-                <div className="space-y-2"><Label>Hero Subtitle</Label><Textarea value={config.content.heroSubtitle} onChange={(e) => updateContent("heroSubtitle", e.target.value)} /></div>
-                <div className="space-y-2"><Label>Hero Image URL</Label><Input value={config.content.heroImage || ""} onChange={(e) => updateContent("heroImage", e.target.value)} placeholder="https://example.com/hero.jpg" /></div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader><CardTitle>About Section</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2"><Label>About Title</Label><Input value={config.content.aboutTitle} onChange={(e) => updateContent("aboutTitle", e.target.value)} /></div>
-                <div className="space-y-2"><Label>About Text</Label><Textarea value={config.content.aboutText} onChange={(e) => updateContent("aboutText", e.target.value)} rows={4} /></div>
-                <div className="space-y-2"><Label>About Image URL</Label><Input value={config.content.aboutImage || ""} onChange={(e) => updateContent("aboutImage", e.target.value)} placeholder="https://example.com/about.jpg" /></div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex-row items-center justify-between">
-                <div><CardTitle>Services</CardTitle><CardDescription>আপনার সেবাসমূহ যুক্ত/সম্পাদনা করুন</CardDescription></div>
-                <Button onClick={addService} size="sm" variant="outline"><Plus className="mr-1 h-4 w-4" />Add</Button>
+              <CardHeader>
+                <CardTitle>Agency information</CardTitle>
+                <CardDescription>Update the main texts, contact details, and links your visitors see.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {config.content.services.map((service, i) => (
-                  <div key={i} className="flex gap-3 items-start p-3 border rounded-lg">
-                    <div className="flex-1 grid gap-3 sm:grid-cols-3">
-                      <div className="space-y-1"><Label className="text-xs">Icon</Label><Input value={service.icon} onChange={(e) => updateService(i, "icon", e.target.value)} placeholder="Plane, Hotel..." /></div>
-                      <div className="space-y-1"><Label className="text-xs">Title</Label><Input value={service.title} onChange={(e) => updateService(i, "title", e.target.value)} /></div>
-                      <div className="space-y-1"><Label className="text-xs">Description</Label><Input value={service.desc} onChange={(e) => updateService(i, "desc", e.target.value)} /></div>
-                    </div>
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => removeService(i)}><Trash2 className="h-4 w-4" /></Button>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex-row items-center justify-between">
-                <div><CardTitle>Stats / Counter</CardTitle><CardDescription>পরিসংখ্যান যুক্ত করুন (যেমন: 5000+ Happy Travelers)</CardDescription></div>
-                <Button onClick={addStat} size="sm" variant="outline"><Plus className="mr-1 h-4 w-4" />Add</Button>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {(config.content.stats || []).map((stat, i) => (
-                  <div key={i} className="flex gap-3 items-center p-3 border rounded-lg">
-                    <div className="flex-1 grid gap-3 sm:grid-cols-2">
-                      <div className="space-y-1"><Label className="text-xs">Value</Label><Input value={stat.value} onChange={(e) => updateStat(i, "value", e.target.value)} placeholder="5000+" /></div>
-                      <div className="space-y-1"><Label className="text-xs">Label</Label><Input value={stat.label} onChange={(e) => updateStat(i, "label", e.target.value)} placeholder="Happy Travelers" /></div>
-                    </div>
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => removeStat(i)}><Trash2 className="h-4 w-4" /></Button>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader><CardTitle>CTA (Call to Action)</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2"><Label>CTA Title</Label><Input value={config.content.ctaTitle || ""} onChange={(e) => updateContent("ctaTitle", e.target.value)} placeholder="Ready to Start?" /></div>
-                <div className="space-y-2"><Label>CTA Subtitle</Label><Input value={config.content.ctaSubtitle || ""} onChange={(e) => updateContent("ctaSubtitle", e.target.value)} placeholder="Contact us today..." /></div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader><CardTitle>Footer</CardTitle></CardHeader>
-              <CardContent>
-                <div className="space-y-2"><Label>Footer Text</Label><Input value={config.content.footerText} onChange={(e) => updateContent("footerText", e.target.value)} /></div>
+              <CardContent className="grid gap-4 lg:grid-cols-2">
+                <div className="space-y-2 lg:col-span-2">
+                  <Label>Hero badge</Label>
+                  <Input value={config.content.heroBadge || ""} onChange={(e) => updateContent("heroBadge", e.target.value)} placeholder="Trusted Travel Partner" />
+                </div>
+                <div className="space-y-2 lg:col-span-2">
+                  <Label>Hero title</Label>
+                  <Input value={config.content.heroTitle} onChange={(e) => updateContent("heroTitle", e.target.value)} placeholder="Main headline" />
+                </div>
+                <div className="space-y-2 lg:col-span-2">
+                  <Label>Hero subtitle</Label>
+                  <Textarea value={config.content.heroSubtitle} onChange={(e) => updateContent("heroSubtitle", e.target.value)} rows={3} placeholder="Short explanation of your service" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Contact phone</Label>
+                  <Input value={config.contactInfo?.phone || ""} onChange={(e) => updateContact("phone", e.target.value)} placeholder="017xxxxxxxx" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Contact email</Label>
+                  <Input value={config.contactInfo?.email || ""} onChange={(e) => updateContact("email", e.target.value)} placeholder="info@agency.com" />
+                </div>
+                <div className="space-y-2 lg:col-span-2">
+                  <Label>Office address</Label>
+                  <Textarea value={config.contactInfo?.address || ""} onChange={(e) => updateContact("address", e.target.value)} rows={2} placeholder="Office address" />
+                </div>
+                <div className="space-y-2"><Label>Facebook</Label><Input value={config.socialLinks?.facebook || ""} onChange={(e) => updateSocial("facebook", e.target.value)} placeholder="https://facebook.com/..." /></div>
+                <div className="space-y-2"><Label>Instagram</Label><Input value={config.socialLinks?.instagram || ""} onChange={(e) => updateSocial("instagram", e.target.value)} placeholder="https://instagram.com/..." /></div>
+                <div className="space-y-2"><Label>YouTube</Label><Input value={config.socialLinks?.youtube || ""} onChange={(e) => updateSocial("youtube", e.target.value)} placeholder="https://youtube.com/..." /></div>
+                <div className="space-y-2"><Label>WhatsApp</Label><Input value={config.socialLinks?.whatsapp || ""} onChange={(e) => updateSocial("whatsapp", e.target.value)} placeholder="https://wa.me/..." /></div>
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="sections" className="space-y-6">
             <Card>
-              <CardHeader className="flex-row items-center justify-between">
-                <div><CardTitle>Why Choose Us</CardTitle><CardDescription>কেন আপনাকে বেছে নেবে তা লিখুন</CardDescription></div>
-                <Button onClick={addWhy} size="sm" variant="outline"><Plus className="mr-1 h-4 w-4" />Add</Button>
+              <CardHeader>
+                <CardTitle>About section</CardTitle>
+                <CardDescription>Edit your story and value proposition.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3">
-                {(config.content.whyChooseUs || []).map((item, i) => (
-                  <div key={i} className="flex gap-3 items-start p-3 border rounded-lg">
-                    <div className="flex-1 grid gap-3 sm:grid-cols-2">
-                      <div className="space-y-1"><Label className="text-xs">Title</Label><Input value={item.title} onChange={(e) => updateWhy(i, "title", e.target.value)} /></div>
-                      <div className="space-y-1"><Label className="text-xs">Description</Label><Input value={item.desc} onChange={(e) => updateWhy(i, "desc", e.target.value)} /></div>
-                    </div>
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => removeWhy(i)}><Trash2 className="h-4 w-4" /></Button>
+              <CardContent className="space-y-4">
+                <div className="space-y-2"><Label>About title</Label><Input value={config.content.aboutTitle} onChange={(e) => updateContent("aboutTitle", e.target.value)} /></div>
+                <div className="space-y-2"><Label>About text</Label><Textarea value={config.content.aboutText} onChange={(e) => updateContent("aboutText", e.target.value)} rows={4} /></div>
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <div className="space-y-2"><Label>CTA title</Label><Input value={config.content.ctaTitle || ""} onChange={(e) => updateContent("ctaTitle", e.target.value)} /></div>
+                  <div className="space-y-2"><Label>CTA subtitle</Label><Input value={config.content.ctaSubtitle || ""} onChange={(e) => updateContent("ctaSubtitle", e.target.value)} /></div>
+                </div>
+                <div className="space-y-2"><Label>Footer text</Label><Input value={config.content.footerText} onChange={(e) => updateContent("footerText", e.target.value)} /></div>
+              </CardContent>
+            </Card>
+
+            <div className="grid gap-6 xl:grid-cols-2">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Service cards</CardTitle>
+                    <CardDescription>Simple editable cards for the homepage service section.</CardDescription>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex-row items-center justify-between">
-                <div><CardTitle>Testimonials</CardTitle><CardDescription>গ্রাহকদের মতামত যুক্ত করুন</CardDescription></div>
-                <Button onClick={addTestimonial} size="sm" variant="outline"><Plus className="mr-1 h-4 w-4" />Add</Button>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {(config.content.testimonials || []).map((testimonial, i) => (
-                  <div key={i} className="flex gap-3 items-start p-3 border rounded-lg">
-                    <div className="flex-1 grid gap-3 sm:grid-cols-3">
-                      <div className="space-y-1"><Label className="text-xs">Name</Label><Input value={testimonial.name} onChange={(e) => updateTestimonial(i, "name", e.target.value)} /></div>
-                      <div className="space-y-1"><Label className="text-xs">Review</Label><Input value={testimonial.text} onChange={(e) => updateTestimonial(i, "text", e.target.value)} /></div>
-                      <div className="space-y-1"><Label className="text-xs">Date</Label><Input value={testimonial.date || ""} onChange={(e) => updateTestimonial(i, "date", e.target.value)} placeholder="2024" /></div>
-                    </div>
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => removeTestimonial(i)}><Trash2 className="h-4 w-4" /></Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={resetSectionsForTemplate}>Reset by theme</Button>
+                    <Button onClick={addService}><Plus className="mr-2 h-4 w-4" />Add service</Button>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex-row items-center justify-between">
-                <div><CardTitle>FAQ</CardTitle><CardDescription>সচরাচর জিজ্ঞাসিত প্রশ্ন ও উত্তর</CardDescription></div>
-                <Button onClick={addFaq} size="sm" variant="outline"><Plus className="mr-1 h-4 w-4" />Add</Button>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {(config.content.faq || []).map((item, i) => (
-                  <div key={i} className="flex gap-3 items-start p-3 border rounded-lg">
-                    <div className="flex-1 space-y-3">
-                      <div className="space-y-1"><Label className="text-xs">Question</Label><Input value={item.question} onChange={(e) => updateFaq(i, "question", e.target.value)} /></div>
-                      <div className="space-y-1"><Label className="text-xs">Answer</Label><Textarea value={item.answer} onChange={(e) => updateFaq(i, "answer", e.target.value)} rows={2} /></div>
-                    </div>
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => removeFaq(i)}><Trash2 className="h-4 w-4" /></Button>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex-row items-center justify-between">
-                <div><CardTitle>Team Members</CardTitle><CardDescription>টিম মেম্বার যুক্ত করুন</CardDescription></div>
-                <Button onClick={addTeam} size="sm" variant="outline"><Plus className="mr-1 h-4 w-4" />Add</Button>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {(config.content.team || []).map((member, i) => (
-                  <div key={i} className="flex gap-3 items-start p-3 border rounded-lg">
-                    <div className="flex-1 grid gap-3 sm:grid-cols-3">
-                      <div className="space-y-1"><Label className="text-xs">Name</Label><Input value={member.name} onChange={(e) => updateTeam(i, "name", e.target.value)} /></div>
-                      <div className="space-y-1"><Label className="text-xs">Role</Label><Input value={member.role} onChange={(e) => updateTeam(i, "role", e.target.value)} /></div>
-                      <div className="space-y-1"><Label className="text-xs">Description</Label><Input value={member.desc || ""} onChange={(e) => updateTeam(i, "desc", e.target.value)} /></div>
-                    </div>
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => removeTeam(i)}><Trash2 className="h-4 w-4" /></Button>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="contact" className="space-y-6">
-            <Card>
-              <CardHeader><CardTitle>Contact Information</CardTitle><CardDescription>যোগাযোগের তথ্য যুক্ত করুন</CardDescription></CardHeader>
-              <CardContent className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2"><Label>Phone</Label><Input value={config.contactInfo?.phone || ""} onChange={(e) => setConfig((p) => ({ ...p, contactInfo: { ...p.contactInfo, phone: e.target.value } }))} placeholder="+880 1234-567890" /></div>
-                <div className="space-y-2"><Label>Email</Label><Input value={config.contactInfo?.email || ""} onChange={(e) => setConfig((p) => ({ ...p, contactInfo: { ...p.contactInfo, email: e.target.value } }))} placeholder="info@company.com" /></div>
-                <div className="space-y-2 sm:col-span-2"><Label>Address</Label><Input value={config.contactInfo?.address || ""} onChange={(e) => setConfig((p) => ({ ...p, contactInfo: { ...p.contactInfo, address: e.target.value } }))} placeholder="Dhaka, Bangladesh" /></div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader><CardTitle>Social Links</CardTitle><CardDescription>সোশ্যাল মিডিয়া লিংক যুক্ত করুন</CardDescription></CardHeader>
-              <CardContent className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2"><Label>Facebook</Label><Input value={config.socialLinks?.facebook || ""} onChange={(e) => setConfig((p) => ({ ...p, socialLinks: { ...p.socialLinks, facebook: e.target.value } }))} placeholder="https://facebook.com/..." /></div>
-                <div className="space-y-2"><Label>Instagram</Label><Input value={config.socialLinks?.instagram || ""} onChange={(e) => setConfig((p) => ({ ...p, socialLinks: { ...p.socialLinks, instagram: e.target.value } }))} placeholder="https://instagram.com/..." /></div>
-                <div className="space-y-2"><Label>YouTube</Label><Input value={config.socialLinks?.youtube || ""} onChange={(e) => setConfig((p) => ({ ...p, socialLinks: { ...p.socialLinks, youtube: e.target.value } }))} placeholder="https://youtube.com/..." /></div>
-                <div className="space-y-2"><Label>WhatsApp</Label><Input value={config.socialLinks?.whatsapp || ""} onChange={(e) => setConfig((p) => ({ ...p, socialLinks: { ...p.socialLinks, whatsapp: e.target.value } }))} placeholder="https://wa.me/..." /></div>
-                <div className="space-y-2"><Label>Twitter/X</Label><Input value={config.socialLinks?.twitter || ""} onChange={(e) => setConfig((p) => ({ ...p, socialLinks: { ...p.socialLinks, twitter: e.target.value } }))} placeholder="https://x.com/..." /></div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="preview">
-            <Card>
-              <CardContent className="p-0 overflow-hidden rounded-lg">
-                <div className="p-12" style={{ backgroundColor: `hsl(${config.colors.primary} / 0.1)` }}>
-                  <div className="grid md:grid-cols-2 gap-8 items-center">
-                    <div>
-                      {config.content.heroBadge && <span className="inline-block text-xs px-3 py-1 rounded-full mb-3" style={{ backgroundColor: `hsl(${config.colors.primary} / 0.1)`, color: `hsl(${config.colors.primary})` }}>{config.content.heroBadge}</span>}
-                      {config.logo && <img src={config.logo} alt="Logo" className="h-10 mb-4 object-contain" />}
-                      <h2 className="text-2xl font-extrabold mb-2" style={{ color: `hsl(${config.colors.text})` }}>{config.content.heroTitle}</h2>
-                      <p className="text-sm" style={{ color: `hsl(${config.colors.text} / 0.7)` }}>{config.content.heroSubtitle}</p>
-                      <div className="mt-4 flex gap-2">
-                        <Button size="sm" style={{ backgroundColor: `hsl(${config.colors.primary})`, color: "white" }}>View Packages</Button>
-                        <Button size="sm" variant="outline" style={{ borderColor: `hsl(${config.colors.primary})`, color: `hsl(${config.colors.primary})` }}>Contact</Button>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {config.content.services.map((service, index) => (
+                    <div key={`${service.title}-${index}`} className="rounded-xl border p-4 space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <Badge variant="outline">Card {index + 1}</Badge>
+                        {config.content.services.length > 1 && <Button variant="ghost" size="sm" onClick={() => removeService(index)}><Trash2 className="mr-2 h-4 w-4" />Remove</Button>}
                       </div>
+                      <div className="space-y-2"><Label>Title</Label><Input value={service.title} onChange={(e) => updateService(index, "title", e.target.value)} /></div>
+                      <div className="space-y-2"><Label>Description</Label><Textarea value={service.desc} onChange={(e) => updateService(index, "desc", e.target.value)} rows={2} /></div>
                     </div>
-                    <div>
-                      {config.content.heroImage ? (
-                        <img src={config.content.heroImage} alt="Hero" className="rounded-lg shadow-lg max-h-48 w-full object-cover" />
-                      ) : (
-                        <div className="h-48 rounded-lg flex items-center justify-center" style={{ backgroundColor: `hsl(${config.colors.primary} / 0.05)` }}>
-                          <span className="text-sm opacity-40">Hero Image</span>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Stats / counters</CardTitle>
+                    <CardDescription>Numbers that build trust on the homepage.</CardDescription>
+                  </div>
+                  <Button onClick={addStat}><Plus className="mr-2 h-4 w-4" />Add stat</Button>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {(config.content.stats || []).map((stat, index) => (
+                    <div key={`${stat.label}-${index}`} className="rounded-xl border p-4 space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <Badge variant="outline">Stat {index + 1}</Badge>
+                        {(config.content.stats || []).length > 1 && <Button variant="ghost" size="sm" onClick={() => removeStat(index)}><Trash2 className="mr-2 h-4 w-4" />Remove</Button>}
+                      </div>
+                      <div className="space-y-2"><Label>Value</Label><Input value={stat.value} onChange={(e) => updateStat(index, "value", e.target.value)} placeholder="5000+" /></div>
+                      <div className="space-y-2"><Label>Label</Label><Input value={stat.label} onChange={(e) => updateStat(index, "label", e.target.value)} placeholder="Happy Travelers" /></div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="publish" className="space-y-6">
+            <div className="grid gap-4 xl:grid-cols-4">
+              <Card>
+                <CardHeader><CardTitle>Publishing summary</CardTitle></CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                  <div className="flex items-center justify-between"><span className="text-muted-foreground">Plan</span><span className="font-medium capitalize">{domainSummary?.subscriptionPlan || "free"}</span></div>
+                  <div className="flex items-center justify-between"><span className="text-muted-foreground">Allowance</span><span className="font-medium">{domainSummary?.domainLimit === -1 ? "Unlimited" : `${domainSummary?.usedDomains || 0}/${domainSummary?.domainLimit || 0}`}</span></div>
+                  <div className="flex items-center justify-between"><span className="text-muted-foreground">Current live URL</span><span className="font-medium">{primaryDomain ? "Custom" : "Default"}</span></div>
+                </CardContent>
+              </Card>
+              <Card className="xl:col-span-3">
+                <CardHeader>
+                  <CardTitle>Connect a custom domain</CardTitle>
+                  <CardDescription>Add a domain from the agency account. After DNS verification, super admin can complete SSL and final activation.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-4 lg:grid-cols-[1.2fr_220px_220px]">
+                  <div className="space-y-2">
+                    <Label>Domain name</Label>
+                    <Input placeholder="tourandtravels.cloud" value={domainForm.domain} onChange={(e) => setDomainForm((prev) => ({ ...prev, domain: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Redirect mode</Label>
+                    <Select value={domainForm.wwwRedirect} onValueChange={(value: "www-to-root" | "root-to-www") => setDomainForm((prev) => ({ ...prev, wwwRedirect: value }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="www-to-root">www → root</SelectItem>
+                        <SelectItem value="root-to-www">root → www</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-end">
+                    <Button className="w-full" onClick={addDomain} disabled={domainSubmitting || !domainSummary?.canAddDomain}>{domainSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}Add domain</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Connected domains</CardTitle>
+                <CardDescription>Verify and manage agency-level custom domains from this screen.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {domains.length === 0 ? (
+                  <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">No custom domains added yet. Use the form above to connect one.</div>
+                ) : domains.map((domain) => {
+                  const preferredLiveHost = domain.wwwRedirect === "root-to-www" ? `www.${domain.domain}` : domain.domain;
+                  return (
+                    <div key={domain.id} className="rounded-2xl border p-4 space-y-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="font-semibold">{domain.domain}</h3>
+                            {domain.isPrimary && <Badge>Primary</Badge>}
+                            {verificationBadge(domain)}
+                            {statusBadge(domain)}
+                            {sslBadge(domain)}
+                          </div>
+                          <p className="mt-2 text-sm text-muted-foreground">Live target: <span className="font-medium text-foreground">{preferredLiveHost}</span></p>
                         </div>
-                      )}
+                        <div className="flex flex-wrap gap-2">
+                          <Button variant="outline" size="sm" onClick={() => copyText(domain.verificationToken, "Verification token")}><Copy className="mr-2 h-4 w-4" />Token</Button>
+                          <Button variant="outline" size="sm" onClick={() => verifyDomain(domain.id)} disabled={domainActionId === domain.id}>{domainActionId === domain.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}Verify</Button>
+                          <Button variant="outline" size="sm" onClick={() => setPrimaryDomain(domain.id)} disabled={domain.isPrimary || domainActionId === domain.id}>Set primary</Button>
+                          <Button variant="ghost" size="sm" onClick={() => window.open(`https://${preferredLiveHost}`, "_blank")}><ExternalLink className="mr-2 h-4 w-4" />Open</Button>
+                          <Button variant="destructive" size="sm" onClick={() => removeDomain(domain.id)} disabled={domainActionId === domain.id}><Trash2 className="mr-2 h-4 w-4" />Remove</Button>
+                        </div>
+                      </div>
+                      <div className="grid gap-4 lg:grid-cols-3">
+                        <div className="rounded-xl bg-muted/30 p-4 text-sm">
+                          <p className="font-medium">TXT verification</p>
+                          <p className="mt-2 text-muted-foreground">Host: <span className="text-foreground">_verify</span></p>
+                          <p className="break-all text-muted-foreground">Value: <span className="text-foreground">{domain.verificationToken}</span></p>
+                        </div>
+                        <div className="rounded-xl bg-muted/30 p-4 text-sm">
+                          <p className="font-medium">Root DNS</p>
+                          <p className="mt-2 text-muted-foreground">Type: A</p>
+                          <p className="text-muted-foreground">Host: @</p>
+                          <p className="text-muted-foreground">Value: your server IP</p>
+                        </div>
+                        <div className="rounded-xl bg-muted/30 p-4 text-sm">
+                          <p className="font-medium">www DNS</p>
+                          <p className="mt-2 text-muted-foreground">Type: CNAME</p>
+                          <p className="text-muted-foreground">Host: www</p>
+                          <p className="text-muted-foreground">Value: {domain.domain}</p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-
-                {config.content.stats && config.content.stats.length > 0 && (
-                  <div className="p-6 grid grid-cols-4 gap-4 text-center border-b" style={{ backgroundColor: `hsl(${config.colors.background})` }}>
-                    {config.content.stats.slice(0, 4).map((stat, i) => (
-                      <div key={i}>
-                        <div className="text-lg font-bold" style={{ color: `hsl(${config.colors.primary})` }}>{stat.value}</div>
-                        <div className="text-xs opacity-60">{stat.label}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="p-8" style={{ backgroundColor: `hsl(${config.colors.background})` }}>
-                  <h3 className="text-lg font-bold text-center mb-4" style={{ color: `hsl(${config.colors.text})` }}>Our Services</h3>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    {config.content.services.slice(0, 4).map((service, i) => (
-                      <div key={i} className="p-3 rounded-lg border text-center" style={{ borderColor: `hsl(${config.colors.primary} / 0.2)` }}>
-                        <div className="w-8 h-8 rounded-full mx-auto mb-2 flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: `hsl(${config.colors.primary})` }}>{service.icon.charAt(0)}</div>
-                        <h4 className="font-semibold text-xs">{service.title}</h4>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="p-4 text-center text-xs" style={{ backgroundColor: `hsl(${config.colors.text})`, color: `hsl(${config.colors.background})` }}>
-                  {config.content.footerText}
-                </div>
+                  );
+                })}
               </CardContent>
             </Card>
           </TabsContent>
