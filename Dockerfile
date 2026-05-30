@@ -1,10 +1,10 @@
-# ─────────────────────────────────────────────────────────────
-# TravelAgencyWeb Frontend — Vite build → Nginx static serve
-# ─────────────────────────────────────────────────────────────
+# TravelAgencyWeb Frontend - Vite build -> Nginx static serve
 FROM node:20-alpine AS build
 WORKDIR /app
-ARG VITE_API_URL=https://api.travelagencyweb.com
+ARG VITE_API_URL=https://api.travelagencyweb.com/api
+ARG VITE_APP_DOMAIN=travelagencyweb.com
 ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_APP_DOMAIN=$VITE_APP_DOMAIN
 COPY package.json package-lock.json* bun.lockb* ./
 RUN npm ci --no-audit --no-fund
 COPY . .
