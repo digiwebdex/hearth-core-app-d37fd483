@@ -22,6 +22,42 @@ const allowedOrigins = (process.env.CORS_ORIGIN
   : defaultOrigins
 ).map(normalizeOrigin);
 
+const customDomainPlans = new Set(["pro", "business", "enterprise", "unlimited"]);
+const activeSubscriptionStatuses = new Set(["active", "trial"]);
+const customDomainCacheTtlMs = Number(process.env.CUSTOM_DOMAIN_CORS_CACHE_MS || 60000);
+let customDomainOriginCache = { expiresAt: 0, origins: new Set() };
+
+function addDomainOrigins(origins, domain) {
+  if (!domain) return;
+  const host = String(domain).toLowerCase().replace(/^www\./, "");
+  for (const protocol of ["https", "http"]) {
+    origins.add(`${protocol}://${host}`);
+    origins.add(`${protocol}://www.${host}`);
+  }
+}
+
+async function getAllowedCustomDomainOrigins() {
+  const now = Date.now();
+  if (customDomainOriginCache.expiresAt > now) return customDomainOriginCache.origins;
+
+  const origins = new Set();
+  const domains = await prismaHealth.tenantDomain.findMany({
+    where: { status: "active", verificationStatus: "verified" },
+    include: { tenant: { select: { subscriptionPlan: true, subscriptionStatus: true } } },
+  });
+
+  for (const domain of domains) {
+    const plan = String(domain.tenant?.subscriptionPlan || "").toLowerCase();
+    const status = String(domain.tenant?.subscriptionStatus || "").toLowerCase();
+    if (customDomainPlans.has(plan) && activeSubscriptionStatuses.has(status)) {
+      addDomainOrigins(origins, domain.domain);
+    }
+  }
+
+  customDomainOriginCache = { expiresAt: now + customDomainCacheTtlMs, origins };
+  return origins;
+}
+
 const isAllowedRootDomain = (origin) => {
   try {
     const { protocol, hostname } = new URL(origin);
@@ -32,14 +68,30 @@ const isAllowedRootDomain = (origin) => {
   }
 };
 
+const isAllowedCustomDomain = async (origin) => {
+  try {
+    const url = new URL(origin);
+    if (!["https:", "http:"].includes(url.protocol)) return false;
+    const origins = await getAllowedCustomDomainOrigins();
+    return origins.has(`${url.protocol}//${url.hostname.toLowerCase()}`);
+  } catch {
+    return false;
+  }
+};
+
 app.use(cors({
   origin: (origin, callback) => {
     const requestOrigin = normalizeOrigin(origin);
     if (!requestOrigin || allowedOrigins.includes("*") || allowedOrigins.includes(requestOrigin) || isAllowedRootDomain(requestOrigin)) {
-      callback(null, true);
-    } else {
-      callback(null, false);
+      return callback(null, true);
     }
+
+    isAllowedCustomDomain(requestOrigin)
+      .then((allowed) => callback(null, allowed))
+      .catch((error) => {
+        console.error("CORS custom domain check failed:", error.message);
+        callback(null, false);
+      });
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -68,6 +120,7 @@ app.use("/api/hajj", require("./routes/hajj"));
 app.use("/api/subscriptions", require("./routes/crud")("subscription"));
 app.use("/api/payment-requests", require("./routes/paymentRequests"));
 app.use("/api/audit-logs", require("./routes/auditLogs"));
+app.use("/api/website", require("./routes/website"));
 
 // Admin routes
 app.use("/api/admin", require("./routes/adminSubscriptionWorkflow"));
