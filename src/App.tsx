@@ -9,7 +9,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import Login from "./pages/Login";
 import { Navigate } from "react-router-dom";
-import { getReservedSubdomain } from "@/lib/domainResolver";
+import { getReservedSubdomain, resolveHostname } from "@/lib/domainResolver";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -77,6 +77,8 @@ import Terms from "./pages/marketing/Terms";
 
 const queryClient = new QueryClient();
 
+type SitePage = "home" | "about" | "packages" | "contact";
+
 const P = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute>{children}</ProtectedRoute>
 );
@@ -85,10 +87,35 @@ const A = ({ children }: { children: React.ReactNode }) => (
   <AdminRoute>{children}</AdminRoute>
 );
 
-const SiteSlugWrapper = ({ page }: { page: "home" | "about" | "packages" | "contact" }) => {
+const getSitePage = (page: SitePage) => (
+  page === "about" ? SiteAbout : page === "packages" ? SitePackages : page === "contact" ? SiteContact : SiteHome
+);
+
+const SiteSlugWrapper = ({ page }: { page: SitePage }) => {
   const { slug } = useParams<{ slug: string }>();
-  const Page = page === "about" ? SiteAbout : page === "packages" ? SitePackages : page === "contact" ? SiteContact : SiteHome;
+  const Page = getSitePage(page);
   return <WebsiteProvider slug={slug}><Page /></WebsiteProvider>;
+};
+
+const isTenantPublicHost = () => {
+  const resolution = resolveHostname();
+  return resolution.type === "slug" || resolution.type === "custom-domain";
+};
+
+const PublicSiteRoute = ({ page }: { page: SitePage }) => {
+  const Page = getSitePage(page);
+
+  if (isTenantPublicHost()) {
+    return <WebsiteProvider><Page /></WebsiteProvider>;
+  }
+
+  if (page === "home") {
+    return getReservedSubdomain(window.location.hostname) === "app"
+      ? <Navigate to="/login" replace />
+      : <Index />;
+  }
+
+  return <NotFound />;
 };
 
 const AppContent = () => (
@@ -98,8 +125,11 @@ const AppContent = () => (
         <Toaster />
         <Sonner />
         <Routes>
-          {/* Main landing page */}
-              <Route path="/" element={getReservedSubdomain(window.location.hostname) === "app" ? <Navigate to="/login" replace /> : <Index />} />
+          {/* Main landing page or tenant public website on custom domains/subdomains */}
+              <Route path="/" element={<PublicSiteRoute page="home" />} />
+              <Route path="/about" element={<PublicSiteRoute page="about" />} />
+              <Route path="/packages" element={<PublicSiteRoute page="packages" />} />
+              <Route path="/contact" element={<PublicSiteRoute page="contact" />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
