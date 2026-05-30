@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { adminSubscriptionWorkflowApi, type WorkflowPaymentRequest } from "@/lib/subscriptionWorkflowApi";
+import { adminSubscriptionWorkflowApi, type WorkflowPaymentMethod, type WorkflowPaymentRequest } from "@/lib/subscriptionWorkflowApi";
 import { PLANS, type BillingCycle, type PlanType } from "@/lib/plans";
 
 const statusClasses: Record<string, string> = {
@@ -26,11 +26,13 @@ const AdminPayments = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState<WorkflowPaymentRequest[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<WorkflowPaymentMethod[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selected, setSelected] = useState<WorkflowPaymentRequest | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [savingMethods, setSavingMethods] = useState(false);
   const [approvalPlan, setApprovalPlan] = useState<PlanType>("basic");
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [activationMode, setActivationMode] = useState<"activate_now" | "after_current_expiry">("activate_now");
@@ -41,8 +43,12 @@ const AdminPayments = () => {
   const loadRequests = async () => {
     setLoading(true);
     try {
-      const data = await adminSubscriptionWorkflowApi.listPaymentRequests();
-      setRequests(data);
+      const [requestData, methodData] = await Promise.all([
+        adminSubscriptionWorkflowApi.listPaymentRequests(),
+        adminSubscriptionWorkflowApi.listPaymentMethods(),
+      ]);
+      setRequests(requestData);
+      setPaymentMethods(methodData);
     } catch (err: any) {
       toast({ title: "Failed to load payment requests", description: err.message, variant: "destructive" });
     } finally {
@@ -101,6 +107,23 @@ const AdminPayments = () => {
     }
   };
 
+  const updateMethodField = (methodCode: string, field: keyof WorkflowPaymentMethod, value: string) => {
+    setPaymentMethods((prev) => prev.map((method) => method.methodCode === methodCode ? { ...method, [field]: value } : method));
+  };
+
+  const savePaymentMethods = async () => {
+    setSavingMethods(true);
+    try {
+      const saved = await adminSubscriptionWorkflowApi.savePaymentMethods(paymentMethods);
+      setPaymentMethods(saved);
+      toast({ title: "Payment receiving details saved" });
+    } catch (err: any) {
+      toast({ title: "Failed to save payment methods", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingMethods(false);
+    }
+  };
+
   const stats = useMemo(() => ({
     total: requests.length,
     pending: requests.filter((request) => request.status === "pending").length,
@@ -123,6 +146,48 @@ const AdminPayments = () => {
           <Card><CardContent className="pt-6"><p className="text-2xl font-bold">{stats.pending}</p><p className="text-sm text-muted-foreground">Pending review</p></CardContent></Card>
           <Card><CardContent className="pt-6"><p className="text-2xl font-bold">৳{stats.approvedAmount.toLocaleString()}</p><p className="text-sm text-muted-foreground">Approved amount</p></CardContent></Card>
         </div>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Receiving account details</CardTitle>
+            <Button onClick={savePaymentMethods} disabled={savingMethods}>{savingMethods ? "Saving..." : "Save payment methods"}</Button>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2">
+            {paymentMethods.map((method) => (
+              <div key={method.methodCode} className="rounded-lg border p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <h3 className="font-semibold">{method.label}</h3>
+                    <p className="text-xs text-muted-foreground">These details are shown to agency owners when they pay manually.</p>
+                  </div>
+                  <Badge variant={method.enabled ? "secondary" : "outline"}>{method.enabled ? "Enabled" : "Disabled"}</Badge>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <Label>Account name</Label>
+                    <Input value={method.accountName || ""} onChange={(e) => updateMethodField(method.methodCode, "accountName", e.target.value)} placeholder="e.g. Digi Web Dex" />
+                  </div>
+                  <div>
+                    <Label>Account number</Label>
+                    <Input value={method.accountNumber || ""} onChange={(e) => updateMethodField(method.methodCode, "accountNumber", e.target.value)} placeholder="e.g. 017xxxxxxxx" />
+                  </div>
+                  <div>
+                    <Label>Bank name</Label>
+                    <Input value={method.bankName || ""} onChange={(e) => updateMethodField(method.methodCode, "bankName", e.target.value)} placeholder="Only for bank transfer" />
+                  </div>
+                  <div>
+                    <Label>Branch</Label>
+                    <Input value={method.branchName || ""} onChange={(e) => updateMethodField(method.methodCode, "branchName", e.target.value)} placeholder="Only for bank transfer" />
+                  </div>
+                </div>
+                <div>
+                  <Label>Instructions</Label>
+                  <Textarea value={method.instructions || ""} onChange={(e) => updateMethodField(method.methodCode, "instructions", e.target.value)} placeholder="Short payment instruction for agencies" />
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader><CardTitle>Filters</CardTitle></CardHeader>
