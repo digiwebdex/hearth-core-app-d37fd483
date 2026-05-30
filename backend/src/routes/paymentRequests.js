@@ -7,10 +7,10 @@ const { authenticate, requireRole, prisma } = require("../middleware/auth");
 router.use(authenticate);
 
 const DEFAULT_PAYMENT_METHODS = [
-  { methodCode: "bkash", label: "bKash", enabled: true, accountName: process.env.BKASH_ACCOUNT_NAME || null, accountNumber: process.env.BKASH_ACCOUNT_NUMBER || null, bankName: null, branchName: null, instructions: process.env.BKASH_INSTRUCTIONS || "Send money from your bKash account and submit the transaction ID.", sortOrder: 1 },
-  { methodCode: "nagad", label: "Nagad", enabled: true, accountName: process.env.NAGAD_ACCOUNT_NAME || null, accountNumber: process.env.NAGAD_ACCOUNT_NUMBER || null, bankName: null, branchName: null, instructions: process.env.NAGAD_INSTRUCTIONS || "Send money from your Nagad account and submit the transaction ID.", sortOrder: 2 },
-  { methodCode: "rocket", label: "Rocket", enabled: true, accountName: process.env.ROCKET_ACCOUNT_NAME || null, accountNumber: process.env.ROCKET_ACCOUNT_NUMBER || null, bankName: null, branchName: null, instructions: process.env.ROCKET_INSTRUCTIONS || "Send money from your Rocket account and submit the transaction ID.", sortOrder: 3 },
-  { methodCode: "bank_transfer", label: "Bank Transfer", enabled: true, accountName: process.env.BANK_ACCOUNT_NAME || null, accountNumber: process.env.BANK_ACCOUNT_NUMBER || null, bankName: process.env.BANK_NAME || null, branchName: process.env.BANK_BRANCH || null, instructions: process.env.BANK_TRANSFER_INSTRUCTIONS || "Transfer the amount to the bank account and submit the transfer reference.", sortOrder: 4 },
+  { methodCode: "bkash", label: "bKash", enabled: true, accountName: process.env.BKASH_ACCOUNT_NAME || "Md. Iqbal Hossain", accountNumber: process.env.BKASH_ACCOUNT_NUMBER || "01674533303", bankName: null, branchName: null, instructions: process.env.BKASH_INSTRUCTIONS || "Send money to this mobile banking number from your bKash account and submit the transaction ID.", sortOrder: 1 },
+  { methodCode: "nagad", label: "Nagad", enabled: true, accountName: process.env.NAGAD_ACCOUNT_NAME || "Md. Iqbal Hossain", accountNumber: process.env.NAGAD_ACCOUNT_NUMBER || "01674533303", bankName: null, branchName: null, instructions: process.env.NAGAD_INSTRUCTIONS || "Send money to this mobile banking number from your Nagad account and submit the transaction ID.", sortOrder: 2 },
+  { methodCode: "rocket", label: "Rocket", enabled: true, accountName: process.env.ROCKET_ACCOUNT_NAME || "Md. Iqbal Hossain", accountNumber: process.env.ROCKET_ACCOUNT_NUMBER || "01674533303", bankName: null, branchName: null, instructions: process.env.ROCKET_INSTRUCTIONS || "Send money to this mobile banking number from your Rocket account and submit the transaction ID.", sortOrder: 3 },
+  { methodCode: "bank_transfer", label: "Bank Transfer", enabled: true, accountName: process.env.BANK_ACCOUNT_NAME || "Md. Iqbal Hossain", accountNumber: process.env.BANK_ACCOUNT_NUMBER || "2706101077904", bankName: process.env.BANK_NAME || "Pubali Bank Limited", branchName: process.env.BANK_BRANCH || "Asad Avenue, Mohammadpur, Dhaka-1207", instructions: process.env.BANK_TRANSFER_INSTRUCTIONS || "Transfer to the savings account and submit the transfer reference. Routing Number: 175260162.", sortOrder: 4 },
 ];
 
 const PENDING_REVIEW_STATUSES = ["pending", "submitted", "pending_review", "needs_info"];
@@ -82,6 +82,23 @@ function buildProofResponse(req, fileName) {
   };
 }
 
+function mergeWithDefaultMethodConfig(rows = []) {
+  const byCode = new Map(rows.map((row) => [String(row.methodCode).toLowerCase(), row]));
+  return DEFAULT_PAYMENT_METHODS.map((fallback) => {
+    const saved = byCode.get(fallback.methodCode);
+    if (!saved) return fallback;
+    return {
+      ...fallback,
+      ...saved,
+      accountName: saved.accountName || fallback.accountName,
+      accountNumber: saved.accountNumber || fallback.accountNumber,
+      bankName: saved.bankName || fallback.bankName,
+      branchName: saved.branchName || fallback.branchName,
+      instructions: saved.instructions || fallback.instructions,
+    };
+  }).filter((method) => method.enabled !== false);
+}
+
 async function getEnabledPaymentMethods() {
   if (!prisma.paymentMethodConfig) return DEFAULT_PAYMENT_METHODS;
   let rows = await prisma.paymentMethodConfig.findMany({ where: { enabled: true }, orderBy: { sortOrder: "asc" } });
@@ -89,7 +106,7 @@ async function getEnabledPaymentMethods() {
     await prisma.paymentMethodConfig.createMany({ data: DEFAULT_PAYMENT_METHODS }).catch(() => {});
     rows = await prisma.paymentMethodConfig.findMany({ where: { enabled: true }, orderBy: { sortOrder: "asc" } });
   }
-  return rows;
+  return mergeWithDefaultMethodConfig(rows);
 }
 
 async function writeAuditLog(req, { action, targetId, targetLabel, newValue, oldValue, metadata }) {
