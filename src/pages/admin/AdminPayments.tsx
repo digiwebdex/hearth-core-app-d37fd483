@@ -1,5 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
-import { useTranslation } from "react-i18next";
+import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,255 +6,255 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  Search, Eye, CheckCircle, XCircle, CreditCard, Clock,
-  DollarSign, Download, AlertTriangle, RefreshCw,
-} from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { adminApi, type AdminPaymentRequest } from "@/lib/api";
+import { adminSubscriptionWorkflowApi, type WorkflowPaymentRequest } from "@/lib/subscriptionWorkflowApi";
+import { PLANS, type BillingCycle, type PlanType } from "@/lib/plans";
+
+const statusClasses: Record<string, string> = {
+  pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+  approved: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+  rejected: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+  needs_info: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+  duplicate: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+  cancelled: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
+};
 
 const AdminPayments = () => {
-  const { t } = useTranslation();
-  const [requests, setRequests] = useState<AdminPaymentRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | string>("all");
-  const [selectedReq, setSelectedReq] = useState<AdminPaymentRequest | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [reviewComment, setReviewComment] = useState("");
-  const [actionLoading, setActionLoading] = useState(false);
   const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [requests, setRequests] = useState<WorkflowPaymentRequest[]>([]);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selected, setSelected] = useState<WorkflowPaymentRequest | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [approvalPlan, setApprovalPlan] = useState<PlanType>("basic");
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
+  const [activationMode, setActivationMode] = useState<"activate_now" | "after_current_expiry">("activate_now");
+  const [reviewerComment, setReviewerComment] = useState("");
+  const [adminNote, setAdminNote] = useState("");
+  const [rejectionReason, setRejectionReason] = useState("");
 
-  const fetchData = async () => {
+  const loadRequests = async () => {
     setLoading(true);
     try {
-      const data = await adminApi.getPaymentRequests();
+      const data = await adminSubscriptionWorkflowApi.listPaymentRequests();
       setRequests(data);
     } catch (err: any) {
-      toast({ title: t("adminPayments.toast.loadFailed"), description: err.message, variant: "destructive" });
+      toast({ title: "Failed to load payment requests", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { loadRequests(); }, []);
 
-  const filtered = useMemo(() => {
-    return requests.filter((r) => {
-      const matchSearch = (r.trxId || "").toLowerCase().includes(search.toLowerCase()) ||
-        (r.tenantId || "").toLowerCase().includes(search.toLowerCase());
-      const matchStatus = statusFilter === "all" || r.status === statusFilter;
-      return matchSearch && matchStatus;
-    });
-  }, [requests, search, statusFilter]);
+  const filtered = useMemo(() => requests.filter((request) => {
+    const q = search.toLowerCase();
+    const matchesSearch = !q || [
+      request.tenant?.name,
+      request.transactionId,
+      request.trxId,
+      request.senderAccountOrNumber,
+      request.requestedPlan,
+      request.plan,
+    ].some((value) => String(value || "").toLowerCase().includes(q));
+    const matchesStatus = statusFilter === "all" || request.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  }), [requests, search, statusFilter]);
 
-  const stats = useMemo(() => ({
-    total: requests.length,
-    pending: requests.filter((r) => r.status === "pending").length,
-    approved: requests.filter((r) => r.status === "approved").length,
-    rejected: requests.filter((r) => r.status === "rejected").length,
-    totalApproved: requests.filter((r) => r.status === "approved").reduce((s, r) => s + (r.amount || 0), 0),
-    totalPending: requests.filter((r) => r.status === "pending").reduce((s, r) => s + (r.amount || 0), 0),
-  }), [requests]);
+  const openDetails = (request: WorkflowPaymentRequest) => {
+    setSelected(request);
+    setApprovalPlan((request.requestedPlan || request.plan || "basic") as PlanType);
+    setBillingCycle((request.billingCycle as BillingCycle) || "monthly");
+    setActivationMode((request.activationMode as "activate_now" | "after_current_expiry") || "activate_now");
+    setReviewerComment(request.reviewerComment || "");
+    setAdminNote(request.adminNote || "");
+    setRejectionReason(request.rejectionReason || "");
+    setDialogOpen(true);
+  };
 
-  const handleAction = async (id: string, action: "approved" | "rejected") => {
+  const runAction = async (action: string) => {
+    if (!selected) return;
     setActionLoading(true);
     try {
-      await adminApi.updatePaymentRequest(id, {
-        status: action,
-        reviewerComment: reviewComment.trim() || undefined,
-      } as any);
-      setRequests((prev) => prev.map((r) =>
-        r.id === id ? { ...r, status: action, reviewerComment: reviewComment.trim() || r.reviewerComment } : r
-      ));
-      toast({
-        title: action === "approved" ? `✅ ${t("adminPayments.toast.approved")}` : `❌ ${t("adminPayments.toast.rejected")}`,
-        description: action === "approved" ? t("adminPayments.toast.approvedDesc") : t("adminPayments.toast.rejectedDesc"),
-        variant: action === "rejected" ? "destructive" : "default",
+      await adminSubscriptionWorkflowApi.updatePaymentRequest(selected.id, {
+        action,
+        targetPlan: approvalPlan,
+        billingCycle,
+        activationMode,
+        reviewerComment: reviewerComment || undefined,
+        adminNote: adminNote || undefined,
+        rejectionReason: rejectionReason || undefined,
+        endTrialNow: true,
       });
-      setDetailOpen(false);
-      setReviewComment("");
+      toast({ title: `Payment request ${action}` });
+      setDialogOpen(false);
+      await loadRequests();
     } catch (err: any) {
-      toast({ title: t("adminPayments.toast.actionFailed"), description: err.message, variant: "destructive" });
+      toast({ title: `Failed to ${action} request`, description: err.message, variant: "destructive" });
     } finally {
       setActionLoading(false);
     }
   };
 
-  const statusBadge = (status: string) => {
-    const map: Record<string, string> = {
-      pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-      approved: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-      rejected: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-    };
-    return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${map[status] || ""}`}>{t(`adminPayments.status.${status}`)}</span>;
-  };
-
-  const handleExport = () => {
-    const headers = ["Date", "Plan", "Amount", "Method", "TRX ID", "Status", "Comment"];
-    const rows = filtered.map((r) => [
-      new Date(r.createdAt).toLocaleDateString(), r.plan, r.amount, r.method, r.trxId, r.status, r.reviewerComment || ""
-    ]);
-    const csv = [headers.join(","), ...rows.map((r) => r.map((c) => `"${c}"`).join(","))].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = t("adminPayments.exportFilename");
-    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-  };
+  const stats = useMemo(() => ({
+    total: requests.length,
+    pending: requests.filter((request) => request.status === "pending").length,
+    approvedAmount: requests.filter((request) => request.status === "approved").reduce((sum, request) => sum + (request.amountSent || request.amount || 0), 0),
+  }), [requests]);
 
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">{t("adminPayments.title")}</h1>
-            <p className="text-muted-foreground">{t("adminPayments.subtitle")}</p>
+            <h1 className="text-3xl font-bold tracking-tight">Subscription payment requests</h1>
+            <p className="text-muted-foreground">Verify manual bKash, Nagad, Rocket, and bank transfer payments before activating plans.</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
-              <RefreshCw className={`mr-1 h-4 w-4 ${loading ? "animate-spin" : ""}`} /> {t("common.refresh")}
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleExport}><Download className="mr-1 h-4 w-4" /> {t("adminPayments.export")}</Button>
-          </div>
+          <Button variant="outline" onClick={loadRequests} disabled={loading}>Refresh</Button>
         </div>
 
-        {/* Stats */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-3"><CreditCard className="h-8 w-8 text-primary" /><div><p className="text-2xl font-bold">{loading ? "…" : stats.total}</p><p className="text-xs text-muted-foreground">{t("adminPayments.stats.total")}</p></div></div></CardContent></Card>
-          <Card className={stats.pending > 0 ? "border-yellow-300 dark:border-yellow-600" : ""}><CardContent className="pt-6"><div className="flex items-center gap-3"><Clock className="h-8 w-8 text-yellow-500" /><div><p className="text-2xl font-bold">{loading ? "…" : stats.pending}</p><p className="text-xs text-muted-foreground">{t("adminPayments.stats.pending")}</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-3"><CheckCircle className="h-8 w-8 text-green-500" /><div><p className="text-2xl font-bold">{loading ? "…" : stats.approved}</p><p className="text-xs text-muted-foreground">{t("adminPayments.stats.approved")}</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-3"><XCircle className="h-8 w-8 text-red-500" /><div><p className="text-2xl font-bold">{loading ? "…" : stats.rejected}</p><p className="text-xs text-muted-foreground">{t("adminPayments.stats.rejected")}</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-3"><DollarSign className="h-8 w-8 text-green-600" /><div><p className="text-2xl font-bold">৳{stats.totalApproved.toLocaleString()}</p><p className="text-xs text-muted-foreground">{t("adminPayments.stats.approvedRevenue")}</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-3"><AlertTriangle className="h-8 w-8 text-yellow-600" /><div><p className="text-2xl font-bold">৳{stats.totalPending.toLocaleString()}</p><p className="text-xs text-muted-foreground">{t("adminPayments.stats.pendingAmount")}</p></div></div></CardContent></Card>
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card><CardContent className="pt-6"><p className="text-2xl font-bold">{stats.total}</p><p className="text-sm text-muted-foreground">Total requests</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><p className="text-2xl font-bold">{stats.pending}</p><p className="text-sm text-muted-foreground">Pending review</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><p className="text-2xl font-bold">৳{stats.approvedAmount.toLocaleString()}</p><p className="text-sm text-muted-foreground">Approved amount</p></CardContent></Card>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 flex-1 min-w-[200px] max-w-sm">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <Input placeholder={t("adminPayments.filters.searchPlaceholder")} value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[150px]"><SelectValue placeholder={t("adminPayments.filters.allStatus")} /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t("adminPayments.status.all")}</SelectItem>
-              <SelectItem value="pending">{t("adminPayments.status.pending")}</SelectItem>
-              <SelectItem value="approved">{t("adminPayments.status.approved")}</SelectItem>
-              <SelectItem value="rejected">{t("adminPayments.status.rejected")}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Table */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              {t("adminPayments.table.title", { count: filtered.length })}
-              {stats.pending > 0 && <Badge variant="destructive">{t("adminPayments.table.pendingBadge", { count: stats.pending })}</Badge>}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="space-y-3">{[1,2,3,4,5].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("adminPayments.table.plan")}</TableHead>
-                    <TableHead className="text-right">{t("adminPayments.table.amount")}</TableHead>
-                    <TableHead>{t("adminPayments.table.method")}</TableHead>
-                    <TableHead>{t("adminPayments.table.trxId")}</TableHead>
-                    <TableHead>{t("adminPayments.table.status")}</TableHead>
-                    <TableHead>{t("adminPayments.table.date")}</TableHead>
-                    <TableHead className="w-[200px]">{t("adminPayments.table.actions")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">{t("adminPayments.table.empty")}</TableCell></TableRow>
-                  ) : (
-                    filtered.map((r) => (
-                      <TableRow key={r.id} className={r.status === "rejected" ? "opacity-60" : ""}>
-                        <TableCell><Badge variant="secondary" className="capitalize">{r.plan}</Badge></TableCell>
-                        <TableCell className="text-right font-semibold">৳{(r.amount || 0).toLocaleString()}</TableCell>
-                        <TableCell className="capitalize text-sm">{r.method}</TableCell>
-                        <TableCell className="font-mono text-xs">{r.trxId || "—"}</TableCell>
-                        <TableCell>{statusBadge(r.status)}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{new Date(r.createdAt).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" className="h-7 w-7" title={t("common.view")} onClick={() => { setSelectedReq(r); setDetailOpen(true); }}>
-                              <Eye className="h-3.5 w-3.5" />
-                            </Button>
-                            {r.status === "pending" && (
-                              <>
-                                <Button size="sm" className="h-7 text-xs" onClick={() => { setSelectedReq(r); setDetailOpen(true); }}>
-                                  <CheckCircle className="mr-1 h-3 w-3" /> {t("adminPayments.dialog.approve")}
-                                </Button>
-                                <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => { setSelectedReq(r); setDetailOpen(true); }}>
-                                  <XCircle className="mr-1 h-3 w-3" /> {t("adminPayments.dialog.reject")}
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            )}
+          <CardHeader><CardTitle>Filters</CardTitle></CardHeader>
+          <CardContent className="flex flex-wrap gap-3">
+            <Input className="max-w-sm" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search tenant, transaction ID, sender number" />
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                {Object.keys(statusClasses).map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </CardContent>
         </Card>
 
-        {/* Detail Dialog */}
-        <Dialog open={detailOpen} onOpenChange={(o) => { setDetailOpen(o); if (!o) setReviewComment(""); }}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader><DialogTitle>{t("adminPayments.dialog.title")}</DialogTitle></DialogHeader>
-            {selectedReq && (
+        <Card>
+          <CardHeader><CardTitle>Requests</CardTitle></CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Agency</TableHead>
+                  <TableHead>Plan</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Method</TableHead>
+                  <TableHead>Transaction</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Submitted</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.length === 0 ? (
+                  <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">No payment requests found.</TableCell></TableRow>
+                ) : filtered.map((request) => (
+                  <TableRow key={request.id}>
+                    <TableCell>{request.tenant?.name || request.tenantId}</TableCell>
+                    <TableCell className="capitalize">{request.requestedPlan || request.plan}</TableCell>
+                    <TableCell className="capitalize">{request.requestType || "activate"}</TableCell>
+                    <TableCell>৳{(request.amountSent || request.amount || 0).toLocaleString()}</TableCell>
+                    <TableCell className="capitalize">{request.paymentMethod || request.method}</TableCell>
+                    <TableCell className="font-mono text-xs">{request.transactionId || request.trxId || "—"}</TableCell>
+                    <TableCell><span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusClasses[request.status] || ""}`}>{request.status}</span></TableCell>
+                    <TableCell>{new Date(request.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-right"><Button size="sm" variant="outline" onClick={() => openDetails(request)}>Review</Button></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader><DialogTitle>Payment request review</DialogTitle></DialogHeader>
+            {selected && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
-                  <span className="text-muted-foreground">{t("adminPayments.dialog.plan")}</span>
-                  <span className="font-medium capitalize">{selectedReq.plan}</span>
-                  <span className="text-muted-foreground">{t("adminPayments.dialog.amount")}</span>
-                  <span className="font-bold">৳{(selectedReq.amount || 0).toLocaleString()}</span>
-                  <span className="text-muted-foreground">{t("adminPayments.dialog.method")}</span>
-                  <span className="capitalize">{selectedReq.method}</span>
-                  <span className="text-muted-foreground">{t("adminPayments.dialog.trxId")}</span>
-                  <span className="font-mono text-xs">{selectedReq.trxId || "—"}</span>
-                  <span className="text-muted-foreground">{t("adminPayments.dialog.status")}</span>
-                  <span>{statusBadge(selectedReq.status)}</span>
-                  <span className="text-muted-foreground">{t("adminPayments.dialog.date")}</span>
-                  <span>{new Date(selectedReq.createdAt).toLocaleDateString()}</span>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Card>
+                    <CardHeader><CardTitle className="text-base">Request details</CardTitle></CardHeader>
+                    <CardContent className="space-y-2 text-sm">
+                      <p><span className="text-muted-foreground">Agency:</span> {selected.tenant?.name || selected.tenantId}</p>
+                      <p><span className="text-muted-foreground">Current plan:</span> {selected.currentPlan || selected.tenant?.subscriptionPlan || "free"}</p>
+                      <p><span className="text-muted-foreground">Requested plan:</span> {selected.requestedPlan || selected.plan}</p>
+                      <p><span className="text-muted-foreground">Request type:</span> {selected.requestType || "activate"}</p>
+                      <p><span className="text-muted-foreground">Billing cycle:</span> {selected.billingCycle || "monthly"}</p>
+                      <p><span className="text-muted-foreground">Amount sent:</span> ৳{(selected.amountSent || selected.amount || 0).toLocaleString()}</p>
+                      <p><span className="text-muted-foreground">Expected amount:</span> ৳{(selected.expectedAmount || selected.amount || 0).toLocaleString()}</p>
+                      <p><span className="text-muted-foreground">Method:</span> {selected.paymentMethod || selected.method}</p>
+                      <p><span className="text-muted-foreground">Transaction ID:</span> {selected.transactionId || selected.trxId || "—"}</p>
+                      <p><span className="text-muted-foreground">Sender account:</span> {selected.senderAccountOrNumber || "—"}</p>
+                      <p><span className="text-muted-foreground">Payment date:</span> {selected.paymentDate || "—"}</p>
+                      <p><span className="text-muted-foreground">Status:</span> <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusClasses[selected.status] || ""}`}>{selected.status}</span></p>
+                      {selected.proofUrl && <a href={selected.proofUrl} target="_blank" rel="noreferrer" className="text-primary underline">Open proof</a>}
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader><CardTitle className="text-base">Approval controls</CardTitle></CardHeader>
+                    <CardContent className="space-y-3">
+                      <div>
+                        <Label>Target plan</Label>
+                        <Select value={approvalPlan} onValueChange={(value: PlanType) => setApprovalPlan(value)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {PLANS.map((plan) => <SelectItem key={plan.id} value={plan.id}>{plan.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Billing cycle</Label>
+                        <Select value={billingCycle} onValueChange={(value: BillingCycle) => setBillingCycle(value)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                            <SelectItem value="yearly">Yearly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Activation mode</Label>
+                        <Select value={activationMode} onValueChange={(value: "activate_now" | "after_current_expiry") => setActivationMode(value)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="activate_now">Activate now</SelectItem>
+                            <SelectItem value="after_current_expiry">After current expiry</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Reviewer comment</Label>
+                        <Textarea value={reviewerComment} onChange={(e) => setReviewerComment(e.target.value)} placeholder="Visible to agency" />
+                      </div>
+                      <div>
+                        <Label>Internal admin note</Label>
+                        <Textarea value={adminNote} onChange={(e) => setAdminNote(e.target.value)} placeholder="Internal note" />
+                      </div>
+                      <div>
+                        <Label>Rejection reason</Label>
+                        <Textarea value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)} placeholder="Why are you rejecting or asking for more info?" />
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
 
-                {selectedReq.status === "pending" && (
-                  <div className="space-y-3 pt-2 border-t">
-                    <div className="space-y-2">
-                      <Label>{t("adminPayments.dialog.reviewComment")}</Label>
-                      <Textarea value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} placeholder={t("adminPayments.dialog.reviewPlaceholder")} />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button className="flex-1" onClick={() => handleAction(selectedReq.id, "approved")} disabled={actionLoading}>
-                        <CheckCircle className="mr-2 h-4 w-4" /> {t("adminPayments.dialog.approve")}
-                      </Button>
-                      <Button variant="destructive" className="flex-1" onClick={() => handleAction(selectedReq.id, "rejected")} disabled={actionLoading}>
-                        <XCircle className="mr-2 h-4 w-4" /> {t("adminPayments.dialog.reject")}
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {selectedReq.reviewerComment && (
-                  <div className="pt-2 border-t">
-                    <p className="text-sm text-muted-foreground">{t("adminPayments.dialog.reviewLabel")}</p>
-                    <p className="text-sm">{selectedReq.reviewerComment}</p>
-                  </div>
-                )}
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button variant="outline" onClick={() => runAction("needs_info")} disabled={actionLoading}>Need info</Button>
+                  <Button variant="outline" onClick={() => runAction("duplicate")} disabled={actionLoading}>Mark duplicate</Button>
+                  <Button variant="destructive" onClick={() => runAction("rejected")} disabled={actionLoading}>Reject</Button>
+                  <Button onClick={() => runAction("approve")} disabled={actionLoading}>Approve & activate</Button>
+                </div>
               </div>
             )}
           </DialogContent>
