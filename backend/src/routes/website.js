@@ -1,5 +1,18 @@
+const fs = require("fs");
+const path = require("path");
 const router = require("express").Router();
 const { authenticate, requirePermission, prisma } = require("../middleware/auth");
+
+const ALLOWED_ASSET_TYPES = new Set(["logo", "hero", "about", "gallery"]);
+const ALLOWED_MIME_TYPES = {
+  "image/png": ".png",
+  "image/jpeg": ".jpg",
+  "image/jpg": ".jpg",
+  "image/webp": ".webp",
+  "image/svg+xml": ".svg",
+};
+const MAX_ASSET_SIZE_BYTES = 8 * 1024 * 1024;
+const WEBSITE_UPLOAD_DIR = path.join(__dirname, "../../uploads/website-assets");
 
 function parseNotes(notes) {
   if (!notes || typeof notes !== "string") return {};
@@ -26,7 +39,70 @@ function validateWebsiteConfig(config) {
   return null;
 }
 
+function parseAssetPayload(body = {}) {
+  const rawData = String(body.dataUrl || body.base64 || "").trim();
+  if (!rawData) throw new Error("Image data is required");
+
+  let mimeType = String(body.contentType || "").trim().toLowerCase();
+  let encoded = rawData;
+  const match = rawData.match(/^data:(.+?);base64,(.+)$/);
+  if (match) {
+    mimeType = mimeType || match[1].toLowerCase();
+    encoded = match[2];
+  }
+
+  const extension = ALLOWED_MIME_TYPES[mimeType];
+  if (!extension) throw new Error("Only PNG, JPG, JPEG, WEBP, or SVG images are allowed");
+
+  const buffer = Buffer.from(encoded, "base64");
+  if (!buffer.length) throw new Error("Invalid image data");
+  if (buffer.length > MAX_ASSET_SIZE_BYTES) throw new Error("Image must be 8 MB or smaller");
+
+  return { extension, buffer };
+}
+
+function sanitizeBaseName(value) {
+  return String(value || "website-asset")
+    .replace(/[^a-zA-Z0-9._-]/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 50) || "website-asset";
+}
+
+function ensureUploadDirectory(tenantId) {
+  const tenantDir = path.join(WEBSITE_UPLOAD_DIR, tenantId);
+  fs.mkdirSync(tenantDir, { recursive: true });
+  return tenantDir;
+}
+
+function buildAssetResponse(req, tenantId, fileName) {
+  const apiBase = (process.env.API_BASE_URL || `${req.protocol}://${req.get("host")}/api`).replace(/\/$/, "");
+  const origin = apiBase.endsWith("/api") ? apiBase.slice(0, -4) : apiBase;
+  return {
+    assetUrl: `${origin}/uploads/website-assets/${tenantId}/${fileName}`,
+    fileName,
+  };
+}
+
 router.use(authenticate);
+
+router.post("/upload-asset", requirePermission("website", "edit"), async (req, res) => {
+  try {
+    if (!req.tenantId) return res.status(400).json({ message: "Tenant context required" });
+    const assetType = String(req.body?.assetType || "").trim().toLowerCase();
+    if (!ALLOWED_ASSET_TYPES.has(assetType)) return res.status(400).json({ message: "Invalid asset type" });
+
+    const { extension, buffer } = parseAssetPayload(req.body || {});
+    const tenantDir = ensureUploadDirectory(req.tenantId);
+    const baseName = sanitizeBaseName(req.body?.fileName || `${assetType}-image`);
+    const fileName = `${assetType}-${Date.now()}-${baseName}${extension}`;
+    fs.writeFileSync(path.join(tenantDir, fileName), buffer);
+
+    res.status(201).json(buildAssetResponse(req, req.tenantId, fileName));
+  } catch (err) {
+    console.error("website/upload-asset POST error", err);
+    res.status(400).json({ message: err.message || "Upload failed" });
+  }
+});
 
 router.get("/config", requirePermission("website", "view"), async (req, res) => {
   try {
