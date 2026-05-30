@@ -1,12 +1,15 @@
 /**
- * Public tenant API — no auth required.
+ * Public tenant API - no auth required.
  * Used by tenant marketing sites, custom-domain landing pages,
  * and the website customizer's public preview.
  */
 const router = require("express").Router();
 const { prisma } = require("../middleware/auth");
 
-// Strip protocol, www., trailing slash, lowercase.
+const DOMAIN_ENABLED_PLANS = new Set(["pro", "business", "enterprise", "unlimited"]);
+const ACTIVE_SUBSCRIPTION_STATUSES = new Set(["active", "trial"]);
+
+// Strip protocol, www., trailing slash/path, lowercase.
 function normalizeDomain(d) {
   return String(d || "")
     .trim()
@@ -16,24 +19,47 @@ function normalizeDomain(d) {
     .replace(/\/.*$/, "");
 }
 
+function parseTenantNotes(notes) {
+  if (!notes || typeof notes !== "string" || !notes.trim().startsWith("{")) return {};
+  try { return JSON.parse(notes); }
+  catch { return {}; }
+}
+
+function tenantCanUseCustomDomain(tenant) {
+  const plan = String(tenant?.subscriptionPlan || "").toLowerCase();
+  const status = String(tenant?.subscriptionStatus || "").toLowerCase();
+  return DOMAIN_ENABLED_PLANS.has(plan) && ACTIVE_SUBSCRIPTION_STATUSES.has(status);
+}
+
+async function findReadyDomain(domain) {
+  const record = await prisma.tenantDomain.findFirst({
+    where: { domain, status: "active", verificationStatus: "verified" },
+    include: { tenant: true },
+  });
+  if (!record?.tenant || !tenantCanUseCustomDomain(record.tenant)) return null;
+  return record;
+}
+
+function getWebsiteConfig(tenant) {
+  const notes = parseTenantNotes(tenant?.notes);
+  return notes.websiteConfig || null;
+}
+
 // Map a Tenant DB row to the public-safe shape the frontend expects.
 function publicTenant(t) {
   if (!t) return null;
-  let socialLinks;
-  try {
-    socialLinks = t.notes && t.notes.startsWith("{") ? JSON.parse(t.notes)?.socialLinks : undefined;
-  } catch { socialLinks = undefined; }
+  const notes = parseTenantNotes(t.notes);
   return {
     id: t.id,
     name: t.name,
     slug: t.slug || t.id,
-    logo: undefined,
-    description: undefined,
+    logo: getWebsiteConfig(t)?.logo || undefined,
+    description: getWebsiteConfig(t)?.content?.heroSubtitle || undefined,
     phone: t.phone || undefined,
     email: undefined,
     address: [t.address, t.city, t.country].filter(Boolean).join(", ") || undefined,
     website: t.website || undefined,
-    socialLinks,
+    socialLinks: notes.socialLinks || getWebsiteConfig(t)?.socialLinks || undefined,
   };
 }
 
@@ -55,7 +81,7 @@ function publicPackage(p) {
   };
 }
 
-// ── GET /api/public/:slug — tenant by slug ──
+// GET /api/public/:slug - tenant by slug
 router.get("/:slug", async (req, res) => {
   try {
     const slug = String(req.params.slug || "").toLowerCase();
@@ -69,7 +95,7 @@ router.get("/:slug", async (req, res) => {
   }
 });
 
-// ── GET /api/public/:slug/packages — tenant packages by slug ──
+// GET /api/public/:slug/packages - tenant packages by slug
 router.get("/:slug/packages", async (req, res) => {
   try {
     const slug = String(req.params.slug || "").toLowerCase();
@@ -86,20 +112,27 @@ router.get("/:slug/packages", async (req, res) => {
   }
 });
 
-// ── GET /api/public/domain/:domain — tenant by custom domain ──
+// GET /api/public/:slug/website - saved website config by slug
+router.get("/:slug/website", async (req, res) => {
+  try {
+    const slug = String(req.params.slug || "").toLowerCase();
+    const tenant = await prisma.tenant.findFirst({ where: { slug } });
+    if (!tenant) return res.status(404).json({ message: "Tenant not found" });
+    const config = getWebsiteConfig(tenant);
+    if (!config) return res.status(404).json({ message: "Website config not found" });
+    res.json(config);
+  } catch (e) {
+    console.error("public/:slug/website error", e);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// GET /api/public/domain/:domain - tenant by custom domain
 router.get("/domain/:domain", async (req, res) => {
   try {
     const domain = normalizeDomain(req.params.domain);
     if (!domain) return res.status(400).json({ message: "Domain required" });
-    const td = await prisma.tenantDomain.findFirst({
-      where: { domain, status: "active" },
-      include: { tenant: true },
-    });
-    // Fallback: any status (so unverified domains still preview)
-    const record = td || await prisma.tenantDomain.findFirst({
-      where: { domain },
-      include: { tenant: true },
-    });
+    const record = await findReadyDomain(domain);
     if (!record?.tenant) return res.status(404).json({ message: "Domain not found" });
     res.json(publicTenant(record.tenant));
   } catch (e) {
@@ -108,22 +141,34 @@ router.get("/domain/:domain", async (req, res) => {
   }
 });
 
-// ── GET /api/public/domain/:domain/packages — packages by custom domain ──
+// GET /api/public/domain/:domain/packages - packages by custom domain
 router.get("/domain/:domain/packages", async (req, res) => {
   try {
     const domain = normalizeDomain(req.params.domain);
-    const td = await prisma.tenantDomain.findFirst({
-      where: { domain },
-      select: { tenantId: true },
-    });
-    if (!td) return res.status(404).json({ message: "Domain not found" });
+    const record = await findReadyDomain(domain);
+    if (!record) return res.status(404).json({ message: "Domain not found" });
     const packages = await prisma.hajjPackage.findMany({
-      where: { tenantId: td.tenantId, status: { not: "archived" } },
+      where: { tenantId: record.tenantId, status: { not: "archived" } },
       orderBy: { createdAt: "desc" },
     });
     res.json(packages.map(publicPackage));
   } catch (e) {
     console.error("public/domain/:domain/packages error", e);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// GET /api/public/domain/:domain/website - saved website config by custom domain
+router.get("/domain/:domain/website", async (req, res) => {
+  try {
+    const domain = normalizeDomain(req.params.domain);
+    const record = await findReadyDomain(domain);
+    if (!record?.tenant) return res.status(404).json({ message: "Domain not found" });
+    const config = getWebsiteConfig(record.tenant);
+    if (!config) return res.status(404).json({ message: "Website config not found" });
+    res.json(config);
+  } catch (e) {
+    console.error("public/domain/:domain/website error", e);
     res.status(500).json({ message: "Server error" });
   }
 });
