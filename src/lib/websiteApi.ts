@@ -1,4 +1,3 @@
-// Website customization API
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 
 function authHeaders() {
@@ -7,6 +6,15 @@ function authHeaders() {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
+}
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsDataURL(file);
+  });
 }
 
 export interface WebsiteConfig {
@@ -54,7 +62,21 @@ export interface WebsiteConfig {
   };
 }
 
-// Default configs per template
+export interface ThemePreset {
+  id: string;
+  name: string;
+  description: string;
+  template: WebsiteConfig["template"];
+  palettePreview: string[];
+  colors: WebsiteConfig["colors"];
+  sampleContent: Partial<WebsiteConfig["content"]>;
+}
+
+export interface WebsiteAssetUploadResult {
+  assetUrl: string;
+  fileName: string;
+}
+
 export const templateDefaults: Record<string, WebsiteConfig> = {
   "travel-agency": {
     template: "travel-agency",
@@ -169,8 +191,8 @@ export const templateDefaults: Record<string, WebsiteConfig> = {
         { name: "Sharia Advisor", role: "শরীয়া পরামর্শদাতা", desc: "ধর্মীয় গাইডেন্স প্রদান" },
       ],
       ctaTitle: "আপনার পবিত্র যাত্রা শুরু করতে প্রস্তুত?",
-      ctaSubtitle: "ওমরাহ ভিসার জন্য আবেদন করুন বা অনলাইনে বুকিং অনুরোধ করুন।",
-      footerText: "Serving pilgrims with dedication and trust.",
+      ctaSubtitle: "ওমরাহ ভিসার জন্য আবেদন করুন বা আজই আমাদের সাথে যোগাযোগ করুন।",
+      footerText: "আপনার পবিত্র যাত্রায় আমরা আপনার সঙ্গী।",
     },
     socialLinks: { facebook: "#", instagram: "#", youtube: "#", whatsapp: "#" },
     contactInfo: { phone: "+880 1234-567890", email: "info@hajjumrah.com", address: "Dhaka, Bangladesh" },
@@ -235,6 +257,63 @@ export const templateDefaults: Record<string, WebsiteConfig> = {
   },
 };
 
+export const themePresets: ThemePreset[] = [
+  {
+    id: "skyline-blue",
+    name: "Skyline Blue",
+    description: "Modern corporate travel theme for visa, ticket, and outbound agencies.",
+    template: "travel-agency",
+    palettePreview: ["221 83% 53%", "210 40% 96%", "25 95% 53%", "222 47% 11%"],
+    colors: { primary: "221 83% 53%", secondary: "210 40% 96%", accent: "25 95% 53%", background: "0 0% 100%", text: "222 47% 11%" },
+    sampleContent: { heroBadge: "Trusted Travel Partner", heroTitle: "Professional Travel Services For Every Journey", heroSubtitle: "Flight, visa, hotel, and holiday support from one smart agency dashboard.", ctaTitle: "Need a custom itinerary?", ctaSubtitle: "Talk to our team and get a tailored travel plan fast." },
+  },
+  {
+    id: "luxury-gold",
+    name: "Luxury Gold",
+    description: "Premium executive travel look with deeper contrast and luxury accent colors.",
+    template: "travel-agency",
+    palettePreview: ["222 47% 11%", "38 92% 50%", "0 0% 100%", "210 30% 96%"],
+    colors: { primary: "222 47% 11%", secondary: "210 30% 96%", accent: "38 92% 50%", background: "0 0% 100%", text: "222 47% 11%" },
+    sampleContent: { heroBadge: "Premium Business Travel", heroTitle: "Luxury Travel Planning With VIP Attention", heroSubtitle: "From executive flights to premium tours, deliver an elevated customer experience.", ctaTitle: "Upgrade your next trip", ctaSubtitle: "Let us design a premium package for your travelers." },
+  },
+  {
+    id: "haramain-green",
+    name: "Haramain Green",
+    description: "Elegant Hajj & Umrah theme with a calm spiritual identity.",
+    template: "hajj-umrah",
+    palettePreview: ["142 71% 45%", "45 93% 47%", "140 30% 96%", "222 47% 11%"],
+    colors: { primary: "142 71% 45%", secondary: "140 30% 96%", accent: "45 93% 47%", background: "0 0% 100%", text: "222 47% 11%" },
+    sampleContent: { heroBadge: "বিশ্বস্ত ওমরাহ সেবা", heroTitle: "আস্থা, সেবা ও সম্পূর্ণ গাইডেন্স", heroSubtitle: "হজ্জ, ওমরাহ, ভিসা ও জিয়ারত সেবা একসাথে একটি প্রিমিয়াম অভিজ্ঞতায়।", ctaTitle: "আজই প্যাকেজ বুক করুন", ctaSubtitle: "আমাদের টিম আপনার পবিত্র যাত্রা সহজ করবে।" },
+  },
+  {
+    id: "royal-maroon",
+    name: "Royal Maroon",
+    description: "A richer premium Hajj theme for luxury pilgrim service providers.",
+    template: "hajj-umrah",
+    palettePreview: ["345 78% 36%", "45 90% 52%", "15 30% 96%", "222 47% 11%"],
+    colors: { primary: "345 78% 36%", secondary: "15 30% 96%", accent: "45 90% 52%", background: "0 0% 100%", text: "222 47% 11%" },
+    sampleContent: { heroBadge: "Luxury Hajj & Umrah", heroTitle: "Premium Pilgrimage Packages With Full Support", heroSubtitle: "Offer dignified, comfortable, and spiritually focused travel for your pilgrims.", ctaTitle: "Plan a premium journey", ctaSubtitle: "Contact us for luxury accommodation and guided packages." },
+  },
+  {
+    id: "adventure-purple",
+    name: "Adventure Purple",
+    description: "Energetic tours and packages design for modern leisure brands.",
+    template: "tour-packages",
+    palettePreview: ["262 83% 58%", "340 82% 52%", "260 30% 96%", "222 47% 11%"],
+    colors: { primary: "262 83% 58%", secondary: "260 30% 96%", accent: "340 82% 52%", background: "0 0% 100%", text: "222 47% 11%" },
+    sampleContent: { heroBadge: "Adventure Awaits", heroTitle: "Weekend Tours, Holiday Packages, And Group Adventures", heroSubtitle: "Turn every trip into a memorable story with exciting, visual-first package pages.", ctaTitle: "Launch your next tour", ctaSubtitle: "Promote domestic and international experiences with one click." },
+  },
+  {
+    id: "sunset-coral",
+    name: "Sunset Coral",
+    description: "Warm and interactive theme for resort, beach, and honeymoon packages.",
+    template: "tour-packages",
+    palettePreview: ["12 88% 58%", "196 80% 50%", "24 100% 97%", "222 47% 11%"],
+    colors: { primary: "12 88% 58%", secondary: "24 100% 97%", accent: "196 80% 50%", background: "0 0% 100%", text: "222 47% 11%" },
+    sampleContent: { heroBadge: "Beach & Holiday Offers", heroTitle: "Beautiful Packages For Beach, Honeymoon, And Family Holidays", heroSubtitle: "Create a brighter travel website with warm visuals and strong booking-focused sections.", ctaTitle: "Promote your hot deals", ctaSubtitle: "Highlight trending packages with a vibrant layout." },
+  },
+];
+
 export const websiteApi = {
   getConfig: async (): Promise<WebsiteConfig> => {
     try {
@@ -254,6 +333,20 @@ export const websiteApi = {
     });
     if (!res.ok) throw new Error("Failed to save");
     return res.json();
+  },
+
+  uploadAsset: async (file: File, assetType: "logo" | "hero" | "about" | "gallery") => {
+    const dataUrl = await fileToDataUrl(file);
+    const res = await fetch(`${BASE_URL}/website/upload-asset`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ assetType, fileName: file.name, contentType: file.type, dataUrl }),
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({ message: "Upload failed" }));
+      throw new Error(error.message || "Upload failed");
+    }
+    return res.json() as Promise<WebsiteAssetUploadResult>;
   },
 
   getPublicConfig: async (slug: string): Promise<WebsiteConfig> => {
