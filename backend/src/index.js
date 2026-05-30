@@ -70,6 +70,7 @@ app.use("/api/payment-requests", require("./routes/paymentRequests"));
 app.use("/api/audit-logs", require("./routes/auditLogs"));
 
 // Admin routes
+app.use("/api/admin", require("./routes/adminSubscriptionWorkflow"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/admin/domains", require("./routes/domains"));
 app.use("/api/admin/subscription-workflow", require("./routes/adminSubscriptionWorkflow"));
