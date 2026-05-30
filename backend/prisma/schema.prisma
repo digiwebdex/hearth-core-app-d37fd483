@@ -7,57 +7,55 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ── Tenants ──
 model Tenant {
-  id                 String   @id @default(uuid())
-  name               String
-  slug               String?  @unique
-  ownerId            String?
-  phone              String?
-  whatsapp           String?
-  address            String?
-  city               String?
-  country            String?
-  website            String?
-  notes              String?
-  subscriptionPlan   String   @default("free")
-  subscriptionStatus String   @default("active")
-  subscriptionExpiry DateTime?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  users              User[]
-  clients            Client[]
-  agents             Agent[]
-  vendors            Vendor[]
-  leads              Lead[]
-  tasks              Task[]
-  bookings           Booking[]
-  invoices           Invoice[]
-  payments           Payment[]
-  quotations         Quotation[]
-  accounts           Account[]
-  transactions       Transaction[]
-  expenses           Expense[]
-  hajjPackages       HajjPackage[]
-  hajjGroups         HajjGroup[]
-  hajjPilgrims       HajjPilgrim[]
-  vendorBills        VendorBill[]
-  subscriptions      Subscription[]
-  paymentRequests    PaymentRequest[]
-  domains            TenantDomain[]
+  id                   String                @id @default(uuid())
+  name                 String
+  slug                 String?               @unique
+  ownerId              String?
+  phone                String?
+  whatsapp             String?
+  address              String?
+  city                 String?
+  country              String?
+  website              String?
+  notes                String?
+  subscriptionPlan     String                @default("free")
+  subscriptionStatus   String                @default("active")
+  subscriptionExpiry   DateTime?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  users                User[]
+  clients              Client[]
+  agents               Agent[]
+  vendors              Vendor[]
+  leads                Lead[]
+  tasks                Task[]
+  bookings             Booking[]
+  invoices             Invoice[]
+  payments             Payment[]
+  quotations           Quotation[]
+  accounts             Account[]
+  transactions         Transaction[]
+  expenses             Expense[]
+  hajjPackages         HajjPackage[]
+  hajjGroups           HajjGroup[]
+  hajjPilgrims         HajjPilgrim[]
+  vendorBills          VendorBill[]
+  subscriptions        Subscription[]
+  paymentRequests      PaymentRequest[]
+  domains              TenantDomain[]
+  subscriptionHistories SubscriptionHistory[]
 }
 
-// ── Tenant Domains ──
 model TenantDomain {
   id                 String   @id @default(uuid())
   tenantId           String
   tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   domain             String   @unique
-  wwwRedirect        String   @default("www-to-root") // "www-to-root" | "root-to-www"
-  status             String   @default("pending")     // "active" | "pending" | "error"
-  sslStatus          String   @default("none")        // "active" | "pending" | "none"
-  verificationStatus String   @default("unverified")  // "unverified" | "verifying" | "verified"
+  wwwRedirect        String   @default("www-to-root")
+  status             String   @default("pending")
+  sslStatus          String   @default("none")
+  verificationStatus String   @default("unverified")
   verificationToken  String
   isPrimary          Boolean  @default(false)
   lastDnsCheck       DateTime?
@@ -65,56 +63,53 @@ model TenantDomain {
   updatedAt          DateTime @updatedAt
 }
 
-// ── Users ──
 model User {
-  id                  String    @id @default(uuid())
-  name                String
-  email               String    @unique
-  password            String
-  role                String    @default("sales_agent")
-  status              String    @default("pending")   // "pending" | "active" | "rejected"
-  phone               String?
-  whatsapp            String?
-  resetToken          String?
-  resetTokenExpiry    DateTime?
-  emailVerified       Boolean   @default(false)
-  emailVerifyToken    String?
-  emailVerifyExpiry   DateTime?
-  approvedAt          DateTime?
-  approvedBy          String?
-  rejectionReason     String?
-  tenantId            String
-  tenant              Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdAt           DateTime  @default(now())
+  id                String   @id @default(uuid())
+  name              String
+  email             String   @unique
+  password          String
+  role              String   @default("sales_agent")
+  status            String   @default("pending")
+  phone             String?
+  whatsapp          String?
+  resetToken        String?
+  resetTokenExpiry  DateTime?
+  emailVerified     Boolean  @default(false)
+  emailVerifyToken  String?
+  emailVerifyExpiry DateTime?
+  approvedAt        DateTime?
+  approvedBy        String?
+  rejectionReason   String?
+  tenantId          String
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
 }
 
-// ── Clients ──
 model Client {
-  id              String   @id @default(uuid())
-  name            String
-  phone           String   @default("")
-  email           String   @default("")
-  alternatePhone  String?
-  address         String?
-  dateOfBirth     String?
-  passportNumber  String?
-  passportExpiry  String?
-  nidNumber       String?
-  nationality     String?
+  id               String   @id @default(uuid())
+  name             String
+  phone            String   @default("")
+  email            String   @default("")
+  alternatePhone   String?
+  address          String?
+  dateOfBirth      String?
+  passportNumber   String?
+  passportExpiry   String?
+  nidNumber        String?
+  nationality      String?
   emergencyContact String?
-  emergencyPhone  String?
-  notes           String?
-  tags            String[] @default([])
-  tenantId        String
-  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  bookings        Booking[]
-  invoices        Invoice[]
-  leads           Lead[]
-  quotations      Quotation[]
-  documents       ClientDocument[]
+  emergencyPhone   String?
+  notes            String?
+  tags             String[] @default([])
+  tenantId         String
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  bookings         Booking[]
+  invoices         Invoice[]
+  leads            Lead[]
+  quotations       Quotation[]
+  documents        ClientDocument[]
 }
 
 model ClientDocument {
@@ -127,7 +122,6 @@ model ClientDocument {
   uploadedAt DateTime @default(now())
 }
 
-// ── Agents ──
 model Agent {
   id        String   @id @default(uuid())
   name      String
@@ -136,11 +130,9 @@ model Agent {
   tenantId  String
   tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
-
   bookings  Booking[]
 }
 
-// ── Vendors ──
 model Vendor {
   id            String   @id @default(uuid())
   name          String
@@ -158,36 +150,34 @@ model Vendor {
   tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-
   bills         VendorBill[]
   vendorNotes   VendorNote[]
   expenses      Expense[]
 }
 
 model VendorBill {
-  id          String   @id @default(uuid())
+  id          String              @id @default(uuid())
   vendorId    String
-  vendor      Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendor      Vendor              @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   bookingId   String?
   segmentId   String?
   description String
-  totalAmount Float    @default(0)
-  paidAmount  Float    @default(0)
-  dueAmount   Float    @default(0)
-  status      String   @default("unpaid")
+  totalAmount Float               @default(0)
+  paidAmount  Float               @default(0)
+  dueAmount   Float               @default(0)
+  status      String              @default("unpaid")
   dueDate     String?
   invoiceRef  String?
   notes       String?
   tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
   payments    VendorBillPayment[]
 }
 
 model VendorBillPayment {
-  id        String   @id @default(uuid())
+  id        String     @id @default(uuid())
   billId    String
   bill      VendorBill @relation(fields: [billId], references: [id], onDelete: Cascade)
   amount    Float
@@ -196,7 +186,7 @@ model VendorBillPayment {
   date      String
   notes     String?
   paidBy    String?
-  createdAt DateTime @default(now())
+  createdAt DateTime   @default(now())
 }
 
 model VendorNote {
@@ -209,7 +199,6 @@ model VendorNote {
   createdAt DateTime @default(now())
 }
 
-// ── Leads ──
 model Lead {
   id             String   @id @default(uuid())
   name           String
@@ -232,7 +221,6 @@ model Lead {
   tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-
   activities     LeadActivity[]
   quotations     Quotation[]
 }
@@ -249,7 +237,6 @@ model LeadActivity {
   createdAt DateTime @default(now())
 }
 
-// ── Tasks ──
 model Task {
   id          String   @id @default(uuid())
   title       String
@@ -263,42 +250,40 @@ model Task {
   createdAt   DateTime @default(now())
 }
 
-// ── Bookings ──
 model Booking {
-  id              String   @id @default(uuid())
-  type            String   @default("package")
-  title           String?
-  clientId        String
-  client          Client   @relation(fields: [clientId], references: [id])
-  agentId         String?
-  agent           Agent?   @relation(fields: [agentId], references: [id])
-  quotationId     String?
-  destination     String?
-  travelDateFrom  String?
-  travelDateTo    String?
-  travelerCount   Int?
-  amount          Float    @default(0)
-  cost            Float    @default(0)
-  profit          Float    @default(0)
-  paidAmount      Float    @default(0)
-  dueAmount       Float    @default(0)
-  paymentStatus   String   @default("unpaid")
-  status          String   @default("pending")
-  assignedTo      String?
-  supplierName    String?
-  supplierRef     String?
-  internalNotes   String?
-  tenantId        String
-  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  segments        BookingSegment[]
-  travelers       BookingTraveler[]
-  checklist       BookingChecklistItem[]
-  timeline        BookingTimelineEvent[]
-  documents       BookingDocument[]
-  invoices        Invoice[]
+  id             String                 @id @default(uuid())
+  type           String                 @default("package")
+  title          String?
+  clientId       String
+  client         Client                 @relation(fields: [clientId], references: [id])
+  agentId        String?
+  agent          Agent?                 @relation(fields: [agentId], references: [id])
+  quotationId    String?
+  destination    String?
+  travelDateFrom String?
+  travelDateTo   String?
+  travelerCount  Int?
+  amount         Float                  @default(0)
+  cost           Float                  @default(0)
+  profit         Float                  @default(0)
+  paidAmount     Float                  @default(0)
+  dueAmount      Float                  @default(0)
+  paymentStatus  String                 @default("unpaid")
+  status         String                 @default("pending")
+  assignedTo     String?
+  supplierName   String?
+  supplierRef    String?
+  internalNotes  String?
+  tenantId       String
+  tenant         Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  segments       BookingSegment[]
+  travelers      BookingTraveler[]
+  checklist      BookingChecklistItem[]
+  timeline       BookingTimelineEvent[]
+  documents      BookingDocument[]
+  invoices       Invoice[]
 }
 
 model BookingSegment {
@@ -364,34 +349,32 @@ model BookingDocument {
   uploadedBy String?
 }
 
-// ── Invoices ──
 model Invoice {
-  id              String   @id @default(uuid())
-  invoiceNumber   String?
-  bookingId       String
-  booking         Booking  @relation(fields: [bookingId], references: [id])
-  clientId        String?
-  client          Client?  @relation(fields: [clientId], references: [id])
-  clientName      String?
-  bookingTitle    String?
-  totalAmount     Float    @default(0)
-  paidAmount      Float    @default(0)
-  dueAmount       Float    @default(0)
-  refundedAmount  Float    @default(0)
-  status          String   @default("unpaid")
-  dueDate         String?
-  issuedDate      String?
-  notes           String?
-  cancelReason    String?
-  createdBy       String?
-  tenantId        String
-  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  payments        Payment[]
-  refunds         InvoiceRefund[]
-  auditTrail      InvoiceAuditEvent[]
+  id             String             @id @default(uuid())
+  invoiceNumber  String?
+  bookingId      String
+  booking        Booking            @relation(fields: [bookingId], references: [id])
+  clientId       String?
+  client         Client?            @relation(fields: [clientId], references: [id])
+  clientName     String?
+  bookingTitle   String?
+  totalAmount    Float              @default(0)
+  paidAmount     Float              @default(0)
+  dueAmount      Float              @default(0)
+  refundedAmount Float              @default(0)
+  status         String             @default("unpaid")
+  dueDate        String?
+  issuedDate     String?
+  notes          String?
+  cancelReason   String?
+  createdBy      String?
+  tenantId       String
+  tenant         Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  payments       Payment[]
+  refunds        InvoiceRefund[]
+  auditTrail     InvoiceAuditEvent[]
 }
 
 model Payment {
@@ -435,37 +418,35 @@ model InvoiceAuditEvent {
   createdAt DateTime @default(now())
 }
 
-// ── Quotations ──
 model Quotation {
-  id                 String   @id @default(uuid())
+  id                 String             @id @default(uuid())
   title              String
   clientId           String?
-  client             Client?  @relation(fields: [clientId], references: [id])
+  client             Client?            @relation(fields: [clientId], references: [id])
   leadId             String?
-  lead               Lead?    @relation(fields: [leadId], references: [id])
+  lead               Lead?              @relation(fields: [leadId], references: [id])
   destination        String
   travelDateFrom     String?
   travelDateTo       String?
-  travelerCount      Int      @default(1)
-  status             String   @default("draft")
-  version            Int      @default(1)
-  items              Json     @default("[]")
-  itinerary          Json     @default("[]")
-  totalCost          Float    @default(0)
-  totalSelling       Float    @default(0)
-  totalProfit        Float    @default(0)
-  discountAmount     Float    @default(0)
-  taxAmount          Float    @default(0)
-  grandTotal         Float    @default(0)
+  travelerCount      Int                @default(1)
+  status             String             @default("draft")
+  version            Int                @default(1)
+  items              Json               @default("[]")
+  itinerary          Json               @default("[]")
+  totalCost          Float              @default(0)
+  totalSelling       Float              @default(0)
+  totalProfit        Float              @default(0)
+  discountAmount     Float              @default(0)
+  taxAmount          Float              @default(0)
+  grandTotal         Float              @default(0)
   validUntil         String?
   notes              String?
   termsAndConditions String?
   createdBy          String?
   tenantId           String
-  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
+  tenant             Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
   versions           QuotationVersion[]
 }
 
@@ -480,21 +461,19 @@ model QuotationVersion {
   createdAt     DateTime  @default(now())
 }
 
-// ── Accounts ──
 model Account {
-  id            String   @id @default(uuid())
+  id            String        @id @default(uuid())
   name          String
   type          String
-  balance       Float    @default(0)
+  balance       Float         @default(0)
   accountNumber String?
   bankName      String?
   notes         String?
-  status        String   @default("active")
+  status        String        @default("active")
   tenantId      String
-  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
   transactions  Transaction[]
   expenses      Expense[]
 }
@@ -545,73 +524,70 @@ model Expense {
   updatedAt     DateTime @updatedAt
 }
 
-// ── Hajj/Umrah ──
 model HajjPackage {
-  id               String   @id @default(uuid())
-  name             String
-  type             String
-  status           String   @default("upcoming")
-  duration         String   @default("")
-  makkahNights     Int      @default(0)
-  madinahNights    Int      @default(0)
-  makkahHotel      String?
-  madinahHotel     String?
-  hotelClass       String   @default("economy")
-  flightInfo       String?
-  visaIncluded     Boolean  @default(false)
-  transportIncluded Boolean @default(false)
-  mealsIncluded    Boolean  @default(false)
-  ziyaratIncluded  Boolean  @default(false)
-  packagePrice     Float    @default(0)
-  costPrice        Float    @default(0)
-  profit           Float    @default(0)
-  capacity         Int      @default(0)
-  enrolled         Int      @default(0)
-  departureDate    String?
-  returnDate       String?
-  highlights       String?
-  notes            String?
-  tenantId         String
-  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  groups           HajjGroup[]
-  pilgrims         HajjPilgrim[]
+  id                 String        @id @default(uuid())
+  name               String
+  type               String
+  status             String        @default("upcoming")
+  duration           String        @default("")
+  makkahNights       Int           @default(0)
+  madinahNights      Int           @default(0)
+  makkahHotel        String?
+  madinahHotel       String?
+  hotelClass         String        @default("economy")
+  flightInfo         String?
+  visaIncluded       Boolean       @default(false)
+  transportIncluded  Boolean       @default(false)
+  mealsIncluded      Boolean       @default(false)
+  ziyaratIncluded    Boolean       @default(false)
+  packagePrice       Float         @default(0)
+  costPrice          Float         @default(0)
+  profit             Float         @default(0)
+  capacity           Int           @default(0)
+  enrolled           Int           @default(0)
+  departureDate      String?
+  returnDate         String?
+  highlights         String?
+  notes              String?
+  tenantId           String
+  tenant             Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  groups             HajjGroup[]
+  pilgrims           HajjPilgrim[]
 }
 
 model HajjGroup {
-  id               String   @id @default(uuid())
-  packageId        String
-  package          HajjPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
-  name             String
-  leader           String
-  leaderPhone      String?
-  departureDate    String
-  returnDate       String
-  flightDetails    String?
+  id                String        @id @default(uuid())
+  packageId         String
+  package           HajjPackage   @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  name              String
+  leader            String
+  leaderPhone       String?
+  departureDate     String
+  returnDate        String
+  flightDetails     String?
   transportSchedule String?
-  notes            String?
-  tenantId         String
-  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdAt        DateTime @default(now())
-
-  pilgrims         HajjPilgrim[]
+  notes             String?
+  tenantId          String
+  tenant            Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt         DateTime      @default(now())
+  pilgrims          HajjPilgrim[]
 }
 
 model HajjPilgrim {
-  id               String   @id @default(uuid())
+  id               String               @id @default(uuid())
   packageId        String
-  package          HajjPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  package          HajjPackage          @relation(fields: [packageId], references: [id], onDelete: Cascade)
   groupId          String
-  group            HajjGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  group            HajjGroup            @relation(fields: [groupId], references: [id], onDelete: Cascade)
   clientId         String?
   name             String
-  phone            String   @default("")
+  phone            String               @default("")
   email            String?
   dateOfBirth      String?
   gender           String?
-  passportNumber   String   @default("")
+  passportNumber   String               @default("")
   passportExpiry   String?
   nidNumber        String?
   nationality      String?
@@ -621,67 +597,125 @@ model HajjPilgrim {
   roomType         String?
   roomNumber       String?
   roomPartners     String?
-  status           String   @default("registered")
-  visaStatus       String   @default("not_started")
-  departureStatus  String   @default("not_departed")
-  totalAmount      Float    @default(0)
-  paidAmount       Float    @default(0)
-  dueAmount        Float    @default(0)
-  paymentStatus    String   @default("unpaid")
+  status           String               @default("registered")
+  visaStatus       String               @default("not_started")
+  departureStatus  String               @default("not_departed")
+  totalAmount      Float                @default(0)
+  paidAmount       Float                @default(0)
+  dueAmount        Float                @default(0)
+  paymentStatus    String               @default("unpaid")
   emergencyContact String?
   emergencyPhone   String?
   medicalNotes     String?
   notes            String?
   tenantId         String
-  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
+  tenant           Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
   payments         HajjPilgrimPayment[]
 }
 
 model HajjPilgrimPayment {
-  id              String   @id @default(uuid())
-  pilgrimId       String
-  pilgrim         HajjPilgrim @relation(fields: [pilgrimId], references: [id], onDelete: Cascade)
-  amount          Float
-  method          String
-  reference       String?
-  date            String
-  note            String?
+  id               String      @id @default(uuid())
+  pilgrimId        String
+  pilgrim          HajjPilgrim @relation(fields: [pilgrimId], references: [id], onDelete: Cascade)
+  amount           Float
+  method           String
+  reference        String?
+  date             String
+  note             String?
   installmentLabel String?
-  receivedBy      String?
-  createdAt       DateTime @default(now())
+  receivedBy       String?
+  createdAt        DateTime    @default(now())
 }
 
-// ── Subscriptions & Payment Requests (Super Admin) ──
 model Subscription {
-  id        String   @id @default(uuid())
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  plan      String
-  startDate String
-  endDate   String
-  status    String   @default("active")
-  createdAt DateTime @default(now())
+  id               String   @id @default(uuid())
+  tenantId         String
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan             String
+  startDate        String
+  endDate          String
+  status           String   @default("active")
+  billingCycle     String   @default("monthly")
+  source           String   @default("manual")
+  paymentRequestId String?
+  note             String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
 model PaymentRequest {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  tenant                Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan                  String
+  amount                Float
+  method                String   @default("manual")
+  trxId                 String
+  proofUrl              String?
+  status                String   @default("pending")
+  reviewerComment       String?
+  processedAt           DateTime?
+  currentPlan           String?
+  requestedPlan         String?
+  billingCycle          String   @default("monthly")
+  requestType           String   @default("activate")
+  paymentMethod         String?
+  expectedAmount        Float?
+  amountSent            Float?
+  senderAccountOrNumber String?
+  transactionId         String?
+  paymentDate           String?
+  paymentTime           String?
+  proofFileName         String?
+  note                  String?
+  adminNote             String?
+  rejectionReason       String?
+  reviewedBy            String?
+  reviewedAt            DateTime?
+  activationMode        String   @default("activate_now")
+  activationDate        DateTime?
+  expiryDateAfterApproval DateTime?
+  requestSource         String   @default("tenant")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model SubscriptionHistory {
   id              String   @id @default(uuid())
   tenantId        String
   tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  plan            String
-  amount          Float
-  method          String   @default("manual")
-  trxId           String
-  proofUrl        String?
-  status          String   @default("pending")
-  reviewerComment String?
-  processedAt     DateTime?
+  paymentRequestId String?
+  oldPlan         String?
+  newPlan         String
+  oldStatus       String?
+  newStatus       String
+  billingCycle    String?
+  activationDate  DateTime?
+  expiryDate      DateTime?
+  actionType      String
+  source          String
+  note            String?
+  actorUserId     String?
   createdAt       DateTime @default(now())
 }
 
-// ── Demo Requests (public, no auth) ──
+model PaymentMethodConfig {
+  id            String   @id @default(uuid())
+  methodCode    String   @unique
+  label         String
+  enabled       Boolean  @default(true)
+  accountName   String?
+  accountNumber String?
+  bankName      String?
+  branchName    String?
+  instructions  String?
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
 model DemoRequest {
   id        String   @id @default(uuid())
   name      String
@@ -690,11 +724,10 @@ model DemoRequest {
   company   String?
   teamSize  String?
   message   String?
-  status    String   @default("new") // new | contacted | scheduled | completed
+  status    String   @default("new")
   createdAt DateTime @default(now())
 }
 
-// ── Contact Submissions (public, no auth) ──
 model ContactSubmission {
   id         String   @id @default(uuid())
   name       String
@@ -703,11 +736,10 @@ model ContactSubmission {
   subject    String?
   message    String
   tenantSlug String?
-  status     String   @default("new") // new | read | replied
+  status     String   @default("new")
   createdAt  DateTime @default(now())
 }
 
-// ── Audit Logs ──
 model AuditLog {
   id          String   @id @default(uuid())
   actorId     String
