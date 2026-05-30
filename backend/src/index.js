@@ -8,7 +8,6 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 const prismaHealth = new PrismaClient();
 
-
 // Middleware
 const normalizeOrigin = (value) => value?.trim().replace(/\/$/, "");
 const defaultOrigins = [
@@ -27,9 +26,7 @@ const isAllowedRootDomain = (origin) => {
   try {
     const { protocol, hostname } = new URL(origin);
     if (protocol !== "https:") return false;
-    return (
-      hostname === "travelagencyweb.com" || hostname.endsWith(".travelagencyweb.com")
-    );
+    return hostname === "travelagencyweb.com" || hostname.endsWith(".travelagencyweb.com");
   } catch {
     return false;
   }
@@ -38,12 +35,7 @@ const isAllowedRootDomain = (origin) => {
 app.use(cors({
   origin: (origin, callback) => {
     const requestOrigin = normalizeOrigin(origin);
-    if (
-      !requestOrigin ||
-      allowedOrigins.includes("*") ||
-      allowedOrigins.includes(requestOrigin) ||
-      isAllowedRootDomain(requestOrigin)
-    ) {
+    if (!requestOrigin || allowedOrigins.includes("*") || allowedOrigins.includes(requestOrigin) || isAllowedRootDomain(requestOrigin)) {
       callback(null, true);
     } else {
       callback(null, false);
@@ -74,13 +66,13 @@ app.use("/api/transactions", require("./routes/crud")("transaction"));
 app.use("/api/expenses", require("./routes/expenses"));
 app.use("/api/hajj", require("./routes/hajj"));
 app.use("/api/subscriptions", require("./routes/crud")("subscription"));
-// Payment requests — dedicated tenant-isolated route (replaces generic CRUD)
 app.use("/api/payment-requests", require("./routes/paymentRequests"));
 app.use("/api/audit-logs", require("./routes/auditLogs"));
 
 // Admin routes
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/admin/domains", require("./routes/domains"));
+app.use("/api/admin/subscription-workflow", require("./routes/adminSubscriptionWorkflow"));
 
 // Public form routes (no auth)
 app.use("/api/contact", require("./routes/contact"));
@@ -116,4 +108,3 @@ app.get("/api/health", async (_req, res) => {
 });
 
 app.listen(PORT, () => console.log(`✅ TAWSS API running on port ${PORT}`));
-
