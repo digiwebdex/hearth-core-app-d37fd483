@@ -1,212 +1,201 @@
-import { useState, useEffect, useMemo } from "react";
-import { useTranslation } from "react-i18next";
+import { useEffect, useMemo, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, Crown, Zap, Rocket, Star, Gem, AlertTriangle, ArrowUpRight, RefreshCw, Phone, Building2 } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { PLANS, type PlanType } from "@/lib/plans";
-import { usePlanAccess } from "@/hooks/usePlanAccess";
-import { paymentRequestApi, type PaymentRequest } from "@/lib/api";
+import { PLANS, type BillingCycle, type PlanType, getPlanPrice } from "@/lib/plans";
+import { tenantSubscriptionWorkflowApi, type WorkflowPaymentMethod, type WorkflowPaymentRequest } from "@/lib/subscriptionWorkflowApi";
 
-const planIcons: Record<string, React.ElementType> = {
-  free: Star, basic: Zap, pro: Crown, business: Rocket, enterprise: Gem,
+const REQUEST_STATUSES = ["pending", "approved", "rejected", "needs_info", "cancelled"];
+
+const statusClasses: Record<string, string> = {
+  trial: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  active: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+  expired: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+  suspended: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
+  pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+  approved: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+  rejected: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+  needs_info: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+  cancelled: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
 };
 
-const Subscription_Page = () => {
-  const { t } = useTranslation();
-  const [payRequests, setPayRequests] = useState<PaymentRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(null);
-  const [payForm, setPayForm] = useState({ trxId: "", method: "manual" as string });
-  const [payDialogOpen, setPayDialogOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+const emptyForm = {
+  billingCycle: "monthly" as BillingCycle,
+  paymentMethod: "bkash",
+  amountSent: "",
+  senderAccountOrNumber: "",
+  transactionId: "",
+  paymentDate: new Date().toISOString().slice(0, 10),
+  note: "",
+  proofUrl: "",
+};
+
+const Subscriptions = () => {
   const { tenant, currentPlan, refreshTenant } = useAuth();
   const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [summaryMethods, setSummaryMethods] = useState<WorkflowPaymentMethod[]>([]);
+  const [requests, setRequests] = useState<WorkflowPaymentRequest[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(null);
+  const [editingRequest, setEditingRequest] = useState<WorkflowPaymentRequest | null>(null);
+  const [form, setForm] = useState(emptyForm);
+  const [submitting, setSubmitting] = useState(false);
 
-  const access = usePlanAccess(currentPlan);
-  const selectedPlanInfo = PLANS.find((p) => p.id === selectedPlan);
-  const hasPendingRequest = payRequests.some((r) => r.status === "pending");
-
-  const fetchRequests = async () => {
+  const loadData = async () => {
     setLoading(true);
     try {
-      const data = await paymentRequestApi.list();
-      setPayRequests(data);
-    } catch {
-      // Might 404 if no requests yet
+      const [summary, paymentRequests] = await Promise.all([
+        tenantSubscriptionWorkflowApi.getSummary(),
+        tenantSubscriptionWorkflowApi.listRequests(),
+      ]);
+      setSummaryMethods(summary.paymentMethods || []);
+      setRequests(paymentRequests || []);
+    } catch (err: any) {
+      toast({ title: "Failed to load subscription", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchRequests(); }, []);
+  useEffect(() => { loadData(); }, []);
 
-  const daysUntilExpiry = useMemo(() => {
-    if (!tenant?.subscriptionExpiry) return null;
-    const diff = new Date(tenant.subscriptionExpiry).getTime() - Date.now();
-    return Math.ceil(diff / (1000 * 60 * 60 * 24));
-  }, [tenant?.subscriptionExpiry]);
+  const currentExpiry = tenant?.subscriptionExpiry ? new Date(tenant.subscriptionExpiry) : null;
+  const daysRemaining = currentExpiry ? Math.ceil((currentExpiry.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+  const pendingRequest = requests.find((item) => ["pending", "submitted", "pending_review", "needs_info"].includes(item.status));
 
-  const handleSelectPlan = (plan: PlanType) => {
-    if (plan === currentPlan) return;
-    if (plan === "enterprise") {
-      toast({ title: "Contact Sales", description: "Enterprise plans require custom pricing." });
-      return;
-    }
-    if (hasPendingRequest) {
-      toast({ title: "Pending request exists", description: "Wait for admin approval before submitting another.", variant: "destructive" });
-      return;
-    }
+  const selectedPlanMeta = useMemo(() => PLANS.find((plan) => plan.id === selectedPlan), [selectedPlan]);
+  const payableAmount = useMemo(() => selectedPlanMeta ? getPlanPrice(selectedPlanMeta.id, form.billingCycle) : 0, [selectedPlanMeta, form.billingCycle]);
+
+  const openRequestDialog = (plan: PlanType, request?: WorkflowPaymentRequest) => {
     setSelectedPlan(plan);
-    setPayDialogOpen(true);
+    setEditingRequest(request || null);
+    const method = request?.paymentMethod || request?.method || summaryMethods[0]?.methodCode || "bkash";
+    setForm({
+      billingCycle: (request?.billingCycle as BillingCycle) || "monthly",
+      paymentMethod: method,
+      amountSent: String(request?.amountSent || request?.expectedAmount || getPlanPrice(plan, "monthly") || ""),
+      senderAccountOrNumber: request?.senderAccountOrNumber || "",
+      transactionId: request?.transactionId || request?.trxId || "",
+      paymentDate: request?.paymentDate || new Date().toISOString().slice(0, 10),
+      note: request?.note || "",
+      proofUrl: request?.proofUrl || "",
+    });
+    setDialogOpen(true);
   };
 
-  const handleSubmitPayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedPlanInfo) return;
+  const closeDialog = () => {
+    setDialogOpen(false);
+    setSelectedPlan(null);
+    setEditingRequest(null);
+    setForm(emptyForm);
+  };
+
+  const selectedMethodMeta = summaryMethods.find((method) => method.methodCode === form.paymentMethod);
+
+  const submitRequest = async () => {
+    if (!selectedPlan) return;
     setSubmitting(true);
     try {
-      const newReq = await paymentRequestApi.create({
-        plan: selectedPlanInfo.id,
-        amount: selectedPlanInfo.price,
-        trxId: payForm.trxId,
-        method: payForm.method,
-        status: "pending",
-      } as any);
-      setPayRequests((prev) => [newReq, ...prev]);
-      setPayForm({ trxId: "", method: "manual" });
-      setSelectedPlan(null);
-      setPayDialogOpen(false);
-      toast({ title: "Payment submitted", description: "Waiting for admin approval to activate your plan." });
+      const payload = {
+        requestedPlan: selectedPlan,
+        billingCycle: form.billingCycle,
+        paymentMethod: form.paymentMethod,
+        amountSent: Number(form.amountSent || payableAmount),
+        expectedAmount: payableAmount,
+        senderAccountOrNumber: form.senderAccountOrNumber,
+        transactionId: form.transactionId,
+        paymentDate: form.paymentDate,
+        note: form.note,
+        proofUrl: form.proofUrl,
+      };
+      if (editingRequest) {
+        await tenantSubscriptionWorkflowApi.resubmitRequest(editingRequest.id, payload);
+        toast({ title: "Payment request resubmitted" });
+      } else {
+        await tenantSubscriptionWorkflowApi.createRequest(payload);
+        toast({ title: "Payment request submitted", description: "Super admin will review and activate your subscription." });
+      }
+      closeDialog();
+      await refreshTenant();
+      await loadData();
     } catch (err: any) {
-      toast({ title: "Submission failed", description: err.message, variant: "destructive" });
+      toast({ title: "Request failed", description: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
   };
 
-  const statusBadge = (status: string) => {
-    const map: Record<string, string> = {
-      active: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-      expired: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-      pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-      approved: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-      rejected: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-    };
-    return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${map[status] || ""}`}>{status}</span>;
+  const cancelRequest = async (requestId: string) => {
+    try {
+      await tenantSubscriptionWorkflowApi.cancelRequest(requestId, "Cancelled by agency user");
+      toast({ title: "Payment request cancelled" });
+      await loadData();
+    } catch (err: any) {
+      toast({ title: "Cancel failed", description: err.message, variant: "destructive" });
+    }
   };
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">{t("pages.subscriptionTitle")}</h1>
-            <p className="text-muted-foreground">{t("pages.subscriptionSubtitle")}</p>
+            <h1 className="text-3xl font-bold tracking-tight">Subscription</h1>
+            <p className="text-muted-foreground">Upgrade, renew, and submit your manual payment details for approval.</p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => { fetchRequests(); refreshTenant(); }} disabled={loading}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} /> {t("common.refresh")}
-          </Button>
+          <Button variant="outline" onClick={() => { refreshTenant(); loadData(); }} disabled={loading}>Refresh</Button>
         </div>
 
-        {/* Expiry Warning */}
-        {daysUntilExpiry !== null && daysUntilExpiry <= 7 && daysUntilExpiry > 0 && (
-          <div className="flex items-center gap-3 rounded-lg border border-yellow-500/30 bg-yellow-50 dark:bg-yellow-900/20 p-4">
-            <AlertTriangle className="h-5 w-5 text-yellow-600" />
-            <div>
-              <p className="font-medium text-yellow-800 dark:text-yellow-200">
-                Subscription expires in {daysUntilExpiry} day{daysUntilExpiry > 1 ? "s" : ""}
-              </p>
-              <p className="text-sm text-yellow-600 dark:text-yellow-300">Renew now to avoid service interruption.</p>
-            </div>
-          </div>
-        )}
-
-        {/* Current Plan */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Current Plan</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4 flex-wrap">
-              <Badge className="text-base px-3 py-1 capitalize">{currentPlan}</Badge>
-              {statusBadge(tenant?.subscriptionStatus || "active")}
-              {tenant?.subscriptionExpiry && (
-                <span className="text-sm text-muted-foreground">
-                  Expires: {new Date(tenant.subscriptionExpiry).toLocaleDateString()}
-                </span>
-              )}
-              <div className="ml-auto text-sm text-muted-foreground">
-                {access.canUsePaymentGateway && <Badge variant="outline" className="mr-1 text-xs">Payment Gateway</Badge>}
-                {access.canUseCustomDomain && <Badge variant="outline" className="mr-1 text-xs">Custom Domain</Badge>}
-                {access.canUseSms && <Badge variant="outline" className="mr-1 text-xs">SMS</Badge>}
-              </div>
+          <CardHeader><CardTitle>Current subscription</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center gap-3 flex-wrap">
+              <Badge variant="secondary" className="capitalize text-sm">{currentPlan}</Badge>
+              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusClasses[tenant?.subscriptionStatus || "active"] || ""}`}>
+                {tenant?.subscriptionStatus || "active"}
+              </span>
+              {tenant?.subscriptionExpiry && <span className="text-sm text-muted-foreground">Expires {new Date(tenant.subscriptionExpiry).toLocaleDateString()}</span>}
             </div>
+            {daysRemaining !== null && daysRemaining <= 7 && daysRemaining >= 0 && (
+              <p className="text-sm text-yellow-700 dark:text-yellow-300">Your subscription expires in {daysRemaining} day(s). Renew early to avoid interruption.</p>
+            )}
+            {pendingRequest && (
+              <p className="text-sm text-muted-foreground">You already have an open payment request in <strong>{pendingRequest.status}</strong> status.</p>
+            )}
           </CardContent>
         </Card>
 
-        {/* Plans Grid */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {PLANS.map((p) => {
-            const isCurrent = currentPlan === p.id;
-            const Icon = planIcons[p.id] || Star;
-            const isHighlighted = p.badge === "Most Popular" || p.badge === "Best Value";
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {PLANS.map((plan) => {
+            const isCurrent = plan.id === currentPlan;
+            const disabled = !!pendingRequest && !editingRequest;
+            const price = getPlanPrice(plan.id, "monthly");
             return (
-              <Card key={p.id} className={`relative ${isCurrent ? "border-primary ring-2 ring-primary/20" : ""} ${isHighlighted ? "shadow-lg" : ""}`}>
-                {isCurrent && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-primary text-primary-foreground">Current</Badge>
-                  </div>
-                )}
-                {p.badge && !isCurrent && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className={p.badge === "Most Popular" ? "bg-blue-600 text-white" : "bg-emerald-600 text-white"}>{p.badge}</Badge>
-                  </div>
-                )}
-                <CardHeader className="text-center pb-2 pt-6">
-                  <Icon className="mx-auto h-8 w-8 text-primary mb-2" />
-                  <CardTitle className="text-base">{p.name}</CardTitle>
-                  <CardDescription>
-                    {p.price === -1 ? (
-                      <span className="text-2xl font-bold text-foreground">Custom</span>
-                    ) : (
-                      <>
-                        <span className="text-2xl font-bold text-foreground">৳{p.price.toLocaleString()}</span>
-                        {p.price > 0 && <span className="text-muted-foreground">/মাস</span>}
-                      </>
-                    )}
-                  </CardDescription>
+              <Card key={plan.id} className={isCurrent ? "border-primary" : ""}>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>{plan.name}</span>
+                    {plan.badge && <Badge>{plan.badge}</Badge>}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <ul className="space-y-1.5">
-                    {p.features.slice(0, 4).map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-xs">
-                        <Check className="h-3.5 w-3.5 text-green-600 shrink-0" />
-                        {f}
-                      </li>
-                    ))}
-                    {p.features.length > 4 && (
-                      <li className="text-xs text-muted-foreground">+{p.features.length - 4} more</li>
-                    )}
+                  <p className="text-sm text-muted-foreground">{plan.description}</p>
+                  <p className="text-2xl font-bold">{price < 0 ? "Custom" : price === 0 ? "Free" : `৳${price.toLocaleString()}`}</p>
+                  <ul className="text-sm space-y-1 text-muted-foreground">
+                    {plan.features.slice(0, 4).map((feature) => <li key={feature}>• {feature}</li>)}
                   </ul>
-                  <Button
-                    className="w-full"
-                    size="sm"
-                    variant={isCurrent ? "outline" : isHighlighted ? "default" : "secondary"}
-                    disabled={isCurrent || hasPendingRequest}
-                    onClick={() => handleSelectPlan(p.id)}
-                  >
-                    {isCurrent ? "Current Plan" : hasPendingRequest ? "Request Pending" : p.price === -1 ? "Contact Sales" : `Select ${p.name}`}
-                    {!isCurrent && !hasPendingRequest && <ArrowUpRight className="ml-1 h-3.5 w-3.5" />}
+                  <Button className="w-full" variant={isCurrent ? "outline" : "default"} disabled={isCurrent || disabled || plan.id === "enterprise"} onClick={() => openRequestDialog(plan.id)}>
+                    {isCurrent ? "Current plan" : plan.id === currentPlan ? "Current plan" : currentPlan === plan.id ? "Renew" : `Request ${plan.name}`}
                   </Button>
                 </CardContent>
               </Card>
@@ -214,163 +203,149 @@ const Subscription_Page = () => {
           })}
         </div>
 
-        {/* Payment Methods */}
         <Card>
-          <CardHeader className="text-center">
-            <CardTitle className="text-xl">পেমেন্ট মাধ্যম / Payment Methods</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2">
-              {/* Mobile Banking */}
-              <div className="rounded-lg border bg-card p-5">
-                <div className="flex items-center gap-2 mb-4">
-                  <Phone className="h-5 w-5 text-orange-500" />
-                  <h3 className="font-semibold">মোবাইল ব্যাংকিং (Mobile Banking)</h3>
+          <CardHeader><CardTitle>Manual payment methods</CardTitle></CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2">
+            {summaryMethods.map((method) => (
+              <div key={method.methodCode} className="rounded-lg border p-4 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="font-semibold">{method.label}</h3>
+                  <Badge variant={method.enabled ? "secondary" : "outline"}>{method.enabled ? "Enabled" : "Disabled"}</Badge>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between rounded-md border bg-muted/30 p-3">
-                    <div>
-                      <p className="font-medium text-pink-600 dark:text-pink-400">bKash / Nagad (Personal)</p>
-                      <p className="text-xs text-muted-foreground">Send Money</p>
-                    </div>
-                    <p className="font-bold tracking-wide">01674533303</p>
-                  </div>
-                  <div className="flex items-center justify-between rounded-md border bg-muted/30 p-3">
-                    <div>
-                      <p className="font-medium text-purple-600 dark:text-purple-400">Rocket</p>
-                      <p className="text-xs text-muted-foreground">Send Money</p>
-                    </div>
-                    <p className="font-bold tracking-wide">016745333033</p>
-                  </div>
+                {method.accountName && <p className="text-sm"><span className="text-muted-foreground">Account name:</span> {method.accountName}</p>}
+                {method.accountNumber && <p className="text-sm"><span className="text-muted-foreground">Account no:</span> {method.accountNumber}</p>}
+                {method.bankName && <p className="text-sm"><span className="text-muted-foreground">Bank:</span> {method.bankName}</p>}
+                {method.branchName && <p className="text-sm"><span className="text-muted-foreground">Branch:</span> {method.branchName}</p>}
+                {method.instructions && <p className="text-sm text-muted-foreground">{method.instructions}</p>}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>Payment request history</CardTitle></CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Plan</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Method</TableHead>
+                  <TableHead>Transaction</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Submitted</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {requests.length === 0 ? (
+                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No payment requests yet.</TableCell></TableRow>
+                ) : requests.map((request) => (
+                  <TableRow key={request.id}>
+                    <TableCell className="capitalize">{request.requestedPlan || request.plan}</TableCell>
+                    <TableCell className="capitalize">{request.requestType || "activate"}</TableCell>
+                    <TableCell className="capitalize">{request.paymentMethod || request.method}</TableCell>
+                    <TableCell className="font-mono text-xs">{request.transactionId || request.trxId || "—"}</TableCell>
+                    <TableCell><span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusClasses[request.status] || ""}`}>{request.status}</span></TableCell>
+                    <TableCell>{new Date(request.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-right space-x-2">
+                      {["rejected", "needs_info"].includes(request.status) && (
+                        <Button size="sm" variant="outline" onClick={() => openRequestDialog((request.requestedPlan || request.plan) as PlanType, request)}>Resubmit</Button>
+                      )}
+                      {REQUEST_STATUSES.includes(request.status) && ["pending", "submitted", "pending_review", "needs_info"].includes(request.status) && (
+                        <Button size="sm" variant="ghost" onClick={() => cancelRequest(request.id)}>Cancel</Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <Dialog open={dialogOpen} onOpenChange={(open) => !open ? closeDialog() : setDialogOpen(open)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{editingRequest ? "Resubmit payment request" : `Request ${selectedPlanMeta?.name || "plan"}`}</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-3">
+                <div>
+                  <Label>Billing cycle</Label>
+                  <Select value={form.billingCycle} onValueChange={(value: BillingCycle) => setForm((prev) => ({ ...prev, billingCycle: value, amountSent: String(getPlanPrice(selectedPlan || "basic", value)) }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="yearly">Yearly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Payment method</Label>
+                  <Select value={form.paymentMethod} onValueChange={(value) => setForm((prev) => ({ ...prev, paymentMethod: value }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {summaryMethods.map((method) => <SelectItem key={method.methodCode} value={method.methodCode}>{method.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Amount sent</Label>
+                  <Input value={form.amountSent} onChange={(e) => setForm((prev) => ({ ...prev, amountSent: e.target.value }))} placeholder={String(payableAmount)} />
+                </div>
+                <div>
+                  <Label>Sender mobile/bank account</Label>
+                  <Input value={form.senderAccountOrNumber} onChange={(e) => setForm((prev) => ({ ...prev, senderAccountOrNumber: e.target.value }))} placeholder="e.g. 017xxxxxxxx" />
+                </div>
+                <div>
+                  <Label>Transaction / reference ID</Label>
+                  <Input value={form.transactionId} onChange={(e) => setForm((prev) => ({ ...prev, transactionId: e.target.value }))} placeholder="Transaction ID" />
+                </div>
+                <div>
+                  <Label>Payment date</Label>
+                  <Input type="date" value={form.paymentDate} onChange={(e) => setForm((prev) => ({ ...prev, paymentDate: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>Proof URL</Label>
+                  <Input value={form.proofUrl} onChange={(e) => setForm((prev) => ({ ...prev, proofUrl: e.target.value }))} placeholder="https://..." />
+                </div>
+                <div>
+                  <Label>Note</Label>
+                  <Textarea value={form.note} onChange={(e) => setForm((prev) => ({ ...prev, note: e.target.value }))} placeholder="Optional note for admin" />
                 </div>
               </div>
 
-              {/* Bank Transfer */}
-              <div className="rounded-lg border bg-card p-5">
-                <div className="flex items-center gap-2 mb-4">
-                  <Building2 className="h-5 w-5 text-orange-500" />
-                  <h3 className="font-semibold">ব্যাংক ট্রান্সফার (Bank Transfer)</h3>
+              <div className="space-y-4 rounded-lg border p-4 bg-muted/30">
+                <div>
+                  <p className="text-sm text-muted-foreground">Selected plan</p>
+                  <p className="font-semibold">{selectedPlanMeta?.name}</p>
                 </div>
-                <div className="space-y-2 text-sm">
-                  {[
-                    ["Account Name", "Md. Iqbal Hossain"],
-                    ["Account Type", "Savings Account"],
-                    ["A/C No.", "2706101077904"],
-                    ["Routing No.", "175260162"],
-                    ["Bank", "Pubali Bank Limited"],
-                    ["Branch", "Asad Avenue, Mohammadpur, Dhaka-1207"],
-                  ].map(([label, value]) => (
-                    <div key={label} className="flex justify-between gap-3">
-                      <span className="text-muted-foreground">{label}</span>
-                      <span className="font-semibold text-right">{value}</span>
+                <div>
+                  <p className="text-sm text-muted-foreground">Expected amount</p>
+                  <p className="font-semibold">৳{payableAmount.toLocaleString()}</p>
+                </div>
+                {selectedMethodMeta && (
+                  <>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Receiver</p>
+                      <p className="font-medium">{selectedMethodMeta.label}</p>
                     </div>
-                  ))}
-                </div>
+                    {selectedMethodMeta.accountName && <p className="text-sm"><span className="text-muted-foreground">Account name:</span> {selectedMethodMeta.accountName}</p>}
+                    {selectedMethodMeta.accountNumber && <p className="text-sm"><span className="text-muted-foreground">Account number:</span> {selectedMethodMeta.accountNumber}</p>}
+                    {selectedMethodMeta.instructions && <p className="text-sm text-muted-foreground">{selectedMethodMeta.instructions}</p>}
+                  </>
+                )}
+                {editingRequest?.rejectionReason && (
+                  <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+                    Previous rejection reason: {editingRequest.rejectionReason}
+                  </div>
+                )}
               </div>
             </div>
-            <p className="text-center text-sm text-muted-foreground mt-4">
-              পেমেন্ট করার পর অবশ্যই Transaction ID সহ আমাদের জানান
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Payment Requests */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Payment Requests</CardTitle>
-            <CardDescription>Your payment request history</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Plan</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead>Method</TableHead>
-                    <TableHead>Transaction ID</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {payRequests.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                        No payment requests yet.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    [...payRequests].reverse().map((req) => (
-                      <TableRow key={req.id}>
-                        <TableCell>{new Date(req.createdAt).toLocaleDateString()}</TableCell>
-                        <TableCell className="capitalize font-medium">{req.plan}</TableCell>
-                        <TableCell className="text-right">৳{(req.amount || 0).toLocaleString()}</TableCell>
-                        <TableCell className="capitalize">{req.method || "manual"}</TableCell>
-                        <TableCell className="font-mono text-xs">{req.trxId}</TableCell>
-                        <TableCell>{statusBadge(req.status)}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Submit Payment Dialog */}
-        <Dialog open={payDialogOpen} onOpenChange={(open) => { setPayDialogOpen(open); if (!open) setSelectedPlan(null); }}>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Submit Payment</DialogTitle></DialogHeader>
-            {selectedPlanInfo && (
-              <div className="rounded-md border p-4 mb-2 space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Plan:</span>
-                  <span className="font-medium capitalize">{selectedPlanInfo.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Amount:</span>
-                  <span className="font-bold">৳{selectedPlanInfo.price.toLocaleString()}/মাস</span>
-                </div>
-                <div className="text-xs text-muted-foreground pt-2 space-y-1">
-                  <p className="font-medium">Payment Instructions:</p>
-                  <p>• bKash: Send to 01XXXXXXXXX (Merchant)</p>
-                  <p>• Bank: Transfer to [Bank Account Details]</p>
-                  <p>• Enter your transaction ID below after payment</p>
-                </div>
-              </div>
-            )}
-            <form onSubmit={handleSubmitPayment} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Payment Method</Label>
-                <Select value={payForm.method} onValueChange={(v) => setPayForm((f) => ({ ...f, method: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="manual">Manual (Bank Transfer / Cash)</SelectItem>
-                    <SelectItem value="bkash">bKash</SelectItem>
-                    <SelectItem value="sslcommerz">SSLCommerz</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Transaction ID / Reference</Label>
-                <Input
-                  value={payForm.trxId}
-                  onChange={(e) => setPayForm((f) => ({ ...f, trxId: e.target.value }))}
-                  placeholder="e.g. TRX-123456789"
-                  required
-                  minLength={3}
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button type="submit" className="flex-1" disabled={submitting}>
-                  {submitting ? "Submitting..." : "Submit Payment"}
-                </Button>
-                <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-              </div>
-            </form>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={closeDialog}>Cancel</Button>
+              <Button onClick={submitRequest} disabled={submitting || !selectedPlan}>{submitting ? "Saving..." : editingRequest ? "Resubmit" : "Submit request"}</Button>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
@@ -378,4 +353,4 @@ const Subscription_Page = () => {
   );
 };
 
-export default Subscription_Page;
+export default Subscriptions;
