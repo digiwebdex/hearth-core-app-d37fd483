@@ -39,6 +39,7 @@ const emptyForm = {
   paymentDate: new Date().toISOString().slice(0, 10),
   note: "",
   proofUrl: "",
+  proofFileName: "",
 };
 
 const friendlyMethodName = (method?: string | null) => {
@@ -73,6 +74,7 @@ const Subscriptions = () => {
   const [editingRequest, setEditingRequest] = useState<WorkflowPaymentRequest | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
+  const [proofUploading, setProofUploading] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -113,6 +115,7 @@ const Subscriptions = () => {
       paymentDate: request?.paymentDate || new Date().toISOString().slice(0, 10),
       note: request?.note || "",
       proofUrl: request?.proofUrl || "",
+      proofFileName: request?.proofFileName || "",
     });
     setDialogOpen(true);
   };
@@ -131,6 +134,7 @@ const Subscriptions = () => {
     setSelectedPlan(null);
     setEditingRequest(null);
     setForm(emptyForm);
+    setProofUploading(false);
   };
 
   const selectedMethodMeta = summaryMethods.find((method) => method.methodCode === form.paymentMethod);
@@ -138,9 +142,27 @@ const Subscriptions = () => {
   const howToPaySteps = [
     `Choose a plan and billing cycle.${selectedMethodMeta ? ` Then select ${friendlyMethodName(selectedMethodMeta.methodCode)}.` : ""}`,
     "Send the exact amount manually from your mobile banking or bank account.",
-    "Submit sender number, transaction/reference ID, payment date, and proof screenshot link.",
+    "Submit sender number, transaction/reference ID, payment date, and upload a screenshot if you have one.",
     "Super admin verifies the payment and activates or upgrades your subscription.",
   ];
+
+  const uploadProof = async (file: File | null) => {
+    if (!file) return;
+    setProofUploading(true);
+    try {
+      const uploaded = await tenantSubscriptionWorkflowApi.uploadProof(file);
+      setForm((prev) => ({ ...prev, proofUrl: uploaded.proofUrl, proofFileName: uploaded.proofFileName }));
+      toast({ title: "Screenshot uploaded", description: "Payment screenshot attached successfully." });
+    } catch (err: any) {
+      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+    } finally {
+      setProofUploading(false);
+    }
+  };
+
+  const removeUploadedProof = () => {
+    setForm((prev) => ({ ...prev, proofUrl: "", proofFileName: "" }));
+  };
 
   const submitRequest = async () => {
     if (!selectedPlan) return;
@@ -156,7 +178,8 @@ const Subscriptions = () => {
         transactionId: form.transactionId,
         paymentDate: form.paymentDate,
         note: form.note,
-        proofUrl: form.proofUrl,
+        proofUrl: form.proofUrl || undefined,
+        proofFileName: form.proofFileName || undefined,
       };
       if (editingRequest) {
         await tenantSubscriptionWorkflowApi.resubmitRequest(editingRequest.id, payload);
@@ -365,8 +388,20 @@ const Subscriptions = () => {
                   <Input type="date" value={form.paymentDate} onChange={(e) => setForm((prev) => ({ ...prev, paymentDate: e.target.value }))} />
                 </div>
                 <div>
-                  <Label>Proof URL</Label>
-                  <Input value={form.proofUrl} onChange={(e) => setForm((prev) => ({ ...prev, proofUrl: e.target.value }))} placeholder="https://image-or-drive-link" />
+                  <Label>Payment screenshot (optional)</Label>
+                  <Input type="file" accept="image/png,image/jpeg,image/jpg,image/webp" onChange={(e) => uploadProof(e.target.files?.[0] || null)} />
+                  <p className="mt-1 text-xs text-muted-foreground">Optional. Upload a screenshot of the payment confirmation. PNG, JPG, or WEBP up to 5 MB.</p>
+                  {proofUploading && <p className="mt-2 text-xs text-primary">Uploading screenshot...</p>}
+                  {!!form.proofUrl && (
+                    <div className="mt-2 rounded-md border p-3 text-sm">
+                      <p className="font-medium">Uploaded screenshot</p>
+                      <p className="text-muted-foreground">{form.proofFileName || "payment-proof"}</p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <a href={form.proofUrl} target="_blank" rel="noreferrer" className="text-primary underline">Open screenshot</a>
+                        <Button type="button" size="sm" variant="ghost" onClick={removeUploadedProof}>Remove</Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label>Note</Label>
@@ -420,7 +455,7 @@ const Subscriptions = () => {
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={closeDialog}>Cancel</Button>
-              <Button onClick={submitRequest} disabled={submitting || !selectedPlan}>{submitting ? "Saving..." : editingRequest ? "Resubmit" : "Submit request"}</Button>
+              <Button onClick={submitRequest} disabled={submitting || proofUploading || !selectedPlan}>{submitting ? "Saving..." : editingRequest ? "Resubmit" : "Submit request"}</Button>
             </div>
           </DialogContent>
         </Dialog>
