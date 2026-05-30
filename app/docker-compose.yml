@@ -1,17 +1,14 @@
-# ═══════════════════════════════════════════════════════════════
-# TravelAgencyWeb — VPS Production Stack (Coolify / Docker)
+# TravelAgencyWeb - VPS Production Stack (Coolify / Docker)
 # Path on VPS: /srv/travelagencyweb/app/docker-compose.yml
 #
 # Public access:
-#   https://travelagencyweb.com        → travelagencyweb-frontend:80
-#   https://www.travelagencyweb.com    → travelagencyweb-frontend:80
-#   https://app.travelagencyweb.com    → travelagencyweb-frontend:80
-#   https://api.travelagencyweb.com    → travelagencyweb-api:3027
+#   https://travelagencyweb.com        -> travelagencyweb-frontend:80
+#   https://www.travelagencyweb.com    -> travelagencyweb-frontend:80
+#   https://app.travelagencyweb.com    -> travelagencyweb-frontend:80
+#   https://api.travelagencyweb.com    -> travelagencyweb-api:3027
 #
 # Coolify (or Caddy/Traefik) terminates TLS and routes by hostname.
-# When running this compose file standalone (without Coolify proxy),
-# uncomment the "ports:" blocks under api & frontend for direct testing.
-# ═══════════════════════════════════════════════════════════════
+# Custom agency domains still need a proxy route/Nginx vhost and certificate.
 name: travelagencyweb
 
 services:
@@ -32,7 +29,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-    # No "ports:" — DB is internal only. Use psql via `docker exec`.
 
   travelagencyweb-api:
     build:
@@ -83,7 +79,8 @@ services:
       context: ..
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: ${VITE_API_URL:-https://api.travelagencyweb.com}
+        VITE_API_URL: ${VITE_API_URL:-https://api.travelagencyweb.com/api}
+        VITE_APP_DOMAIN: ${VITE_APP_DOMAIN:-travelagencyweb.com}
     container_name: travelagencyweb-frontend
     restart: unless-stopped
     networks:
