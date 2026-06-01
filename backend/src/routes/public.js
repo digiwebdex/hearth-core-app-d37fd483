@@ -19,10 +19,108 @@ function normalizeDomain(d) {
     .replace(/\/.*$/, "");
 }
 
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
 function parseTenantNotes(notes) {
   if (!notes || typeof notes !== "string" || !notes.trim().startsWith("{")) return {};
   try { return JSON.parse(notes); }
   catch { return {}; }
+}
+
+function createSection(type, label, order, fields = {}, items = []) {
+  return {
+    id: `${type}-${order + 1}`,
+    type,
+    label,
+    enabled: true,
+    order,
+    fields,
+    items,
+  };
+}
+
+function ensureSectionShape(section, fallbackOrder = 0) {
+  return {
+    id: String(section?.id || `${section?.type || "section"}-${fallbackOrder + 1}`),
+    type: String(section?.type || "custom"),
+    label: String(section?.label || section?.type || "Section"),
+    enabled: section?.enabled !== false,
+    order: Number.isFinite(section?.order) ? Number(section.order) : fallbackOrder,
+    fields: section?.fields && typeof section.fields === "object" && !Array.isArray(section.fields) ? section.fields : {},
+    items: Array.isArray(section?.items) ? section.items : [],
+  };
+}
+
+function buildSectionsFromLegacy(config) {
+  const content = config?.content || {};
+  return [
+    createSection("hero", "Hero", 0, {
+      badge: content.heroBadge || "",
+      title: content.heroTitle || "",
+      subtitle: content.heroSubtitle || "",
+      image: content.heroImage || "",
+      primaryButtonText: content.packageSecondaryButtonText || "View Packages",
+      primaryButtonLink: "/site/packages",
+      secondaryButtonText: "Contact Us",
+      secondaryButtonLink: "/site/contact",
+    }),
+    createSection("about", "About", 1, {
+      title: content.aboutTitle || "",
+      text: content.aboutText || "",
+      image: content.aboutImage || "",
+      badge: "About Us",
+    }),
+    createSection("services", "Services", 2, { title: "Our Services", badge: "What We Offer" }, content.services || []),
+    createSection("featured-packages", "Featured Packages", 3, {
+      badge: content.packagesBadge || "Popular Packages",
+      title: content.packagesTitle || "Featured Packages",
+      subtitle: content.packagesSubtitle || "",
+      pageTitle: content.packagePageTitle || "Our Packages",
+      pageSubtitle: content.packagePageSubtitle || "",
+      primaryButtonText: content.packagePrimaryButtonText || "Book Now",
+      secondaryButtonText: content.packageSecondaryButtonText || "View All Packages",
+      secondaryButtonLink: "/site/packages",
+    }),
+    createSection("why-choose-us", "Why Choose Us", 4, { title: "Why Choose Us", badge: "Why Us" }, content.whyChooseUs || []),
+    createSection("testimonials", "Testimonials", 5, { title: "Testimonials", badge: "Testimonials" }, content.testimonials || []),
+    createSection("faq", "FAQ", 6, { title: "FAQ", badge: "FAQ" }, content.faq || []),
+    createSection("team", "Team", 7, { title: "Our Team", badge: "Team" }, content.team || []),
+    createSection("cta", "Call To Action", 8, {
+      title: content.ctaTitle || "",
+      subtitle: content.ctaSubtitle || "",
+      primaryButtonText: content.packageSecondaryButtonText || "View Packages",
+      primaryButtonLink: "/site/packages",
+      secondaryButtonText: "Contact Us",
+      secondaryButtonLink: "/site/contact",
+    }),
+    createSection("contact", "Contact", 9, {
+      title: "Contact Us",
+      phone: config?.contactInfo?.phone || "",
+      email: config?.contactInfo?.email || "",
+      address: config?.contactInfo?.address || "",
+      mapEmbed: config?.contactInfo?.mapEmbed || "",
+      facebook: config?.socialLinks?.facebook || "",
+      instagram: config?.socialLinks?.instagram || "",
+      twitter: config?.socialLinks?.twitter || "",
+      whatsapp: config?.socialLinks?.whatsapp || "",
+      youtube: config?.socialLinks?.youtube || "",
+    }),
+  ];
+}
+
+function normalizeWebsiteConfig(config) {
+  const next = clone(config || {});
+  next.content = next.content || {};
+  if (!next.cms || !Array.isArray(next.cms.sections) || !next.cms.sections.length) {
+    next.cms = { version: 1, sections: buildSectionsFromLegacy(next) };
+  }
+  next.cms.sections = next.cms.sections
+    .map((section, index) => ensureSectionShape(section, index))
+    .sort((a, b) => a.order - b.order)
+    .map((section, index) => ({ ...section, order: index }));
+  return next;
 }
 
 function tenantCanUseCustomDomain(tenant) {
@@ -42,7 +140,7 @@ async function findReadyDomain(domain) {
 
 function getWebsiteConfig(tenant) {
   const notes = parseTenantNotes(tenant?.notes);
-  return notes.websiteConfig || null;
+  return notes.websiteConfig ? normalizeWebsiteConfig(notes.websiteConfig) : null;
 }
 
 // Map a Tenant DB row to the public-safe shape the frontend expects.
