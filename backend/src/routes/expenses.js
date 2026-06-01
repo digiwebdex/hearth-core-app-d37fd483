@@ -1,43 +1,101 @@
 const router = require("express").Router();
-const { authenticate, prisma } = require("../middleware/auth");
+const { authenticate, requirePermission, prisma } = require("../middleware/auth");
 
 router.use(authenticate);
 
-router.get("/", async (req, res) => {
+async function getTenantExpense(id, tenantId) {
+  return prisma.expense.findFirst({ where: { id, tenantId } });
+}
+
+async function syncExpenseTransaction(expense) {
+  const existing = await prisma.transaction.findFirst({
+    where: { tenantId: expense.tenantId, referenceType: "expense", referenceId: expense.id },
+  });
+
+  if (expense.status !== "approved") {
+    if (existing) {
+      await prisma.transaction.update({ where: { id: existing.id }, data: { status: "cancelled" } }).catch(() => {});
+    }
+    return;
+  }
+
+  const payload = {
+    accountId: expense.accountId || null,
+    type: "expense",
+    category: String(expense.category || "expense"),
+    description: expense.description,
+    amount: expense.amount,
+    referenceId: expense.id,
+    referenceType: "expense",
+    vendorId: expense.vendorId || null,
+    paymentMethod: expense.paymentMethod,
+    status: "completed",
+    date: expense.date,
+    tenantId: expense.tenantId,
+    createdBy: expense.createdBy || null,
+  };
+
+  if (existing) {
+    await prisma.transaction.update({ where: { id: existing.id }, data: payload }).catch(() => {});
+  } else {
+    await prisma.transaction.create({ data: payload }).catch(() => {});
+  }
+}
+
+router.get("/", requirePermission("accounts", "view"), async (req, res) => {
   try { res.json(await prisma.expense.findMany({ where: { tenantId: req.tenantId }, orderBy: { createdAt: "desc" } })); }
   catch (err) { res.status(500).json({ message: err.message }); }
 });
-router.get("/:id", async (req, res) => {
+router.get("/:id", requirePermission("accounts", "view"), async (req, res) => {
   try {
-    const e = await prisma.expense.findFirst({ where: { id: req.params.id, tenantId: req.tenantId } });
+    const e = await getTenantExpense(req.params.id, req.tenantId);
     if (!e) return res.status(404).json({ message: "Not found" });
     res.json(e);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
-router.post("/", async (req, res) => {
-  try { res.status(201).json(await prisma.expense.create({ data: { ...req.body, createdBy: req.userId, tenantId: req.tenantId } })); }
+router.post("/", requirePermission("accounts", "create"), async (req, res) => {
+  try {
+    const expense = await prisma.expense.create({ data: { ...req.body, createdBy: req.userId, tenantId: req.tenantId } });
+    await syncExpenseTransaction(expense);
+    res.status(201).json(expense);
+  }
   catch (err) { res.status(500).json({ message: err.message }); }
 });
-router.patch("/:id", async (req, res) => {
+router.patch("/:id", requirePermission("accounts", "edit"), async (req, res) => {
   try {
-    await prisma.expense.updateMany({ where: { id: req.params.id, tenantId: req.tenantId }, data: req.body });
-    res.json(await prisma.expense.findFirst({ where: { id: req.params.id } }));
+    const result = await prisma.expense.updateMany({ where: { id: req.params.id, tenantId: req.tenantId }, data: req.body });
+    if (!result.count) return res.status(404).json({ message: "Not found" });
+    const updated = await prisma.expense.findFirst({ where: { id: req.params.id, tenantId: req.tenantId } });
+    await syncExpenseTransaction(updated);
+    res.json(updated);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
-router.delete("/:id", async (req, res) => {
-  try { await prisma.expense.deleteMany({ where: { id: req.params.id, tenantId: req.tenantId } }); res.json({ success: true }); }
+router.delete("/:id", requirePermission("accounts", "delete"), async (req, res) => {
+  try {
+    const expense = await getTenantExpense(req.params.id, req.tenantId);
+    if (!expense) return res.status(404).json({ message: "Not found" });
+    await prisma.transaction.deleteMany({ where: { tenantId: req.tenantId, referenceType: "expense", referenceId: expense.id } }).catch(() => {});
+    await prisma.expense.deleteMany({ where: { id: req.params.id, tenantId: req.tenantId } });
+    res.json({ success: true });
+  }
   catch (err) { res.status(500).json({ message: err.message }); }
 });
-router.post("/:id/approve", async (req, res) => {
+router.post("/:id/approve", requirePermission("accounts", "edit"), async (req, res) => {
   try {
-    await prisma.expense.updateMany({ where: { id: req.params.id, tenantId: req.tenantId }, data: { status: "approved", approvedBy: req.userId } });
-    res.json(await prisma.expense.findFirst({ where: { id: req.params.id } }));
+    const result = await prisma.expense.updateMany({ where: { id: req.params.id, tenantId: req.tenantId }, data: { status: "approved", approvedBy: req.userId } });
+    if (!result.count) return res.status(404).json({ message: "Not found" });
+    const updated = await prisma.expense.findFirst({ where: { id: req.params.id, tenantId: req.tenantId } });
+    await syncExpenseTransaction(updated);
+    res.json(updated);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
-router.post("/:id/reject", async (req, res) => {
+router.post("/:id/reject", requirePermission("accounts", "edit"), async (req, res) => {
   try {
-    await prisma.expense.updateMany({ where: { id: req.params.id, tenantId: req.tenantId }, data: { status: "rejected" } });
-    res.json(await prisma.expense.findFirst({ where: { id: req.params.id } }));
+    const result = await prisma.expense.updateMany({ where: { id: req.params.id, tenantId: req.tenantId }, data: { status: "rejected" } });
+    if (!result.count) return res.status(404).json({ message: "Not found" });
+    const updated = await prisma.expense.findFirst({ where: { id: req.params.id, tenantId: req.tenantId } });
+    await syncExpenseTransaction(updated);
+    res.json(updated);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
