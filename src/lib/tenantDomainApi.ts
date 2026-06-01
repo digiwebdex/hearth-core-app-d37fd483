@@ -12,7 +12,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(error.message || "Request failed");
+    const enriched: any = new Error(error.message || "Request failed");
+    Object.assign(enriched, error);
+    throw enriched;
   }
   return res.json();
 }
