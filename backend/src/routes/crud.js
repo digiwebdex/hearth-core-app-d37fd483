@@ -1,5 +1,5 @@
 // Generic CRUD factory for simple resources
-const { authenticate, prisma } = require("../middleware/auth");
+const { authenticate, requirePermission, prisma } = require("../middleware/auth");
 const router = require("express").Router;
 
 const MODEL_MAP = {
@@ -11,13 +11,23 @@ const MODEL_MAP = {
   paymentRequest: "paymentRequest",
 };
 
+const PERMISSION_MODULE_MAP = {
+  agent: "agents",
+  task: "tasks",
+  payment: "accounts",
+  transaction: "accounts",
+  subscription: "subscription",
+  paymentRequest: "subscription",
+};
+
 module.exports = function createCrudRouter(modelKey) {
   const r = router();
   const model = MODEL_MAP[modelKey] || modelKey;
+  const permissionModule = PERMISSION_MODULE_MAP[modelKey] || PERMISSION_MODULE_MAP[model] || `${model}s`;
 
   r.use(authenticate);
 
-  r.get("/", async (req, res) => {
+  r.get("/", requirePermission(permissionModule, "view"), async (req, res) => {
     try {
       const items = await prisma[model].findMany({
         where: { tenantId: req.tenantId },
@@ -27,7 +37,7 @@ module.exports = function createCrudRouter(modelKey) {
     } catch (err) { res.status(500).json({ message: err.message }); }
   });
 
-  r.get("/:id", async (req, res) => {
+  r.get("/:id", requirePermission(permissionModule, "view"), async (req, res) => {
     try {
       const item = await prisma[model].findFirst({
         where: { id: req.params.id, tenantId: req.tenantId },
@@ -37,7 +47,7 @@ module.exports = function createCrudRouter(modelKey) {
     } catch (err) { res.status(500).json({ message: err.message }); }
   });
 
-  r.post("/", async (req, res) => {
+  r.post("/", requirePermission(permissionModule, "create"), async (req, res) => {
     try {
       const item = await prisma[model].create({
         data: { ...req.body, tenantId: req.tenantId },
@@ -46,20 +56,22 @@ module.exports = function createCrudRouter(modelKey) {
     } catch (err) { res.status(500).json({ message: err.message }); }
   });
 
-  r.patch("/:id", async (req, res) => {
+  r.patch("/:id", requirePermission(permissionModule, "edit"), async (req, res) => {
     try {
-      const item = await prisma[model].updateMany({
+      const result = await prisma[model].updateMany({
         where: { id: req.params.id, tenantId: req.tenantId },
         data: req.body,
       });
-      const updated = await prisma[model].findFirst({ where: { id: req.params.id } });
+      if (!result.count) return res.status(404).json({ message: "Not found" });
+      const updated = await prisma[model].findFirst({ where: { id: req.params.id, tenantId: req.tenantId } });
       res.json(updated);
     } catch (err) { res.status(500).json({ message: err.message }); }
   });
 
-  r.delete("/:id", async (req, res) => {
+  r.delete("/:id", requirePermission(permissionModule, "delete"), async (req, res) => {
     try {
-      await prisma[model].deleteMany({ where: { id: req.params.id, tenantId: req.tenantId } });
+      const result = await prisma[model].deleteMany({ where: { id: req.params.id, tenantId: req.tenantId } });
+      if (!result.count) return res.status(404).json({ message: "Not found" });
       res.json({ success: true });
     } catch (err) { res.status(500).json({ message: err.message }); }
   });
