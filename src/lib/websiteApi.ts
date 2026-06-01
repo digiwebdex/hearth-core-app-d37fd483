@@ -8,13 +8,75 @@ function authHeaders() {
   };
 }
 
-function fileToDataUrl(file: File): Promise<string> {
+function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result || ""));
     reader.onerror = () => reject(new Error("Failed to read file"));
     reader.readAsDataURL(file);
   });
+}
+
+function loadImage(dataUrl: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Failed to process image"));
+    image.src = dataUrl;
+  });
+}
+
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [header, data] = dataUrl.split(",");
+  const mimeMatch = header.match(/data:(.*?);base64/);
+  const mimeType = mimeMatch?.[1] || "image/webp";
+  const binary = atob(data);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mimeType });
+}
+
+async function optimizeImageForUpload(file: File, assetType: "logo" | "hero" | "about" | "gallery") {
+  if (file.type === "image/svg+xml") {
+    return {
+      dataUrl: await readFileAsDataUrl(file),
+      contentType: "image/svg+xml",
+      fileName: file.name,
+    };
+  }
+
+  const originalDataUrl = await readFileAsDataUrl(file);
+  const image = await loadImage(originalDataUrl);
+
+  const maxDimension = assetType === "logo" ? 900 : 1600;
+  const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
+  const width = Math.max(1, Math.round(image.width * scale));
+  const height = Math.max(1, Math.round(image.height * scale));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas is not supported in this browser");
+
+  ctx.drawImage(image, 0, 0, width, height);
+
+  let quality = assetType === "logo" ? 0.92 : 0.84;
+  let dataUrl = canvas.toDataURL("image/webp", quality);
+  let blob = dataUrlToBlob(dataUrl);
+
+  while (blob.size > 900 * 1024 && quality > 0.55) {
+    quality -= 0.08;
+    dataUrl = canvas.toDataURL("image/webp", quality);
+    blob = dataUrlToBlob(dataUrl);
+  }
+
+  const baseName = file.name.replace(/\.[^.]+$/, "") || `${assetType}-image`;
+  return {
+    dataUrl,
+    contentType: "image/webp",
+    fileName: `${baseName}.webp`,
+  };
 }
 
 export interface WebsiteConfig {
@@ -364,12 +426,23 @@ export const websiteApi = {
   },
 
   uploadAsset: async (file: File, assetType: "logo" | "hero" | "about" | "gallery") => {
-    const dataUrl = await fileToDataUrl(file);
-    const res = await fetch(`${BASE_URL}/website/upload-asset`, {
-      method: "POST",
-      headers: authHeaders(),
-      body: JSON.stringify({ assetType, fileName: file.name, contentType: file.type, dataUrl }),
-    });
+    const optimized = await optimizeImageForUpload(file, assetType);
+    let res: Response;
+    try {
+      res = await fetch(`${BASE_URL}/website/upload-asset`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          assetType,
+          fileName: optimized.fileName,
+          contentType: optimized.contentType,
+          dataUrl: optimized.dataUrl,
+        }),
+      });
+    } catch {
+      throw new Error("Upload failed before reaching server. The image may be too large for the current server limit. Try again after deploy.");
+    }
+
     if (!res.ok) {
       const error = await res.json().catch(() => ({ message: "Upload failed" }));
       throw new Error(error.message || "Upload failed");
