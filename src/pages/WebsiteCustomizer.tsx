@@ -145,9 +145,14 @@ const WebsiteCustomizer = () => {
   }, [user?.email]);
 
   const activePreset = useMemo(() => themePresets.find((preset) => preset.template === config.template), [config.template]);
-  const primaryDomain = useMemo(() => domains.find((item) => item.isPrimary) || null, [domains]);
-  const primaryLiveUrl = primaryDomain
-    ? `https://${primaryDomain.wwwRedirect === "root-to-www" ? `www.${primaryDomain.domain}` : primaryDomain.domain}`
+  const preferredLiveDomain = useMemo(() => {
+    return domains.find((item) => item.isPrimary && item.status === "active")
+      || domains.find((item) => item.status === "active")
+      || domains.find((item) => item.isPrimary)
+      || null;
+  }, [domains]);
+  const primaryLiveUrl = preferredLiveDomain
+    ? `https://${preferredLiveDomain.wwwRedirect === "root-to-www" ? `www.${preferredLiveDomain.domain}` : preferredLiveDomain.domain}`
     : domainSummary?.defaultWebsiteUrl;
 
   const setContent = <K extends keyof ContentType>(key: K, value: ContentType[K]) => {
@@ -285,7 +290,14 @@ const WebsiteCustomizer = () => {
       await loadDomains();
       toast({ title: "Domain added", description: "Add the TXT record and verify it from this page." });
     } catch (err: any) {
-      toast({ title: "Failed to add domain", description: err.message, variant: "destructive" });
+      await loadDomains().catch(() => undefined);
+      if (err?.sameTenant) {
+        toast({ title: "Domain already added", description: "This domain is already connected to the current website account. Scroll down to manage it.", variant: "destructive" });
+      } else if (err?.existingTenantName) {
+        toast({ title: "Domain belongs to another account", description: `${err.domain?.domain || domainForm.domain} is already connected to ${err.existingTenantName}. Switch to that agency account to manage it.`, variant: "destructive" });
+      } else {
+        toast({ title: "Failed to add domain", description: err.message, variant: "destructive" });
+      }
     } finally {
       setDomainSubmitting(false);
     }
@@ -557,6 +569,11 @@ const WebsiteCustomizer = () => {
                 {primaryLiveUrl && <Button variant="outline" onClick={() => copyText(primaryLiveUrl, "Live URL")}><Copy className="mr-2 h-4 w-4" />Copy</Button>}
                 {domainSummary?.defaultWebsiteUrl && <Button variant="ghost" onClick={() => copyText(domainSummary.defaultWebsiteUrl, "Default URL")}>Default URL</Button>}
               </div>
+              {user?.role === "super_admin" && (
+                <p className="text-xs text-amber-700 dark:text-amber-300">
+                  You are editing the website for the current logged-in tenant account: <strong>{tenant?.name || "Unknown tenant"}</strong>. If a custom domain belongs to another agency account, it will not appear here.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -587,29 +604,15 @@ const WebsiteCustomizer = () => {
                       </div>
                       {activePreset?.id === preset.id && <Badge><Check className="mr-1 h-3 w-3" />Active</Badge>}
                     </div>
-                    <div className="mb-4 flex gap-2">{preset.palettePreview.map((color) => <span key={color} className="h-10 w-10 rounded-full border" style={{ backgroundColor: `hsl(${color})` }} />)}</div>
-                    <div className="rounded-xl border bg-muted/20 p-4 text-sm">
-                      <p className="font-medium">{preset.sampleContent.heroBadge}</p>
-                      <p className="mt-2 text-lg font-semibold">{preset.sampleContent.heroTitle}</p>
-                      <p className="mt-2 text-muted-foreground">{preset.sampleContent.heroSubtitle}</p>
+                    <div className="mb-4 flex gap-2">{preset.palettePreview.map((color) => <span key={color} className="h-10 w-10 rounded-full border" style={{ backgroundColor: `${color}` }} />)}</div>
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                      <p><strong>Template:</strong> {templates.find((item) => item.id === preset.template)?.name}</p>
+                      <p><strong>Hero:</strong> {preset.sampleContent.heroTitle}</p>
                     </div>
                     <div className="mt-4 flex gap-2">
-                      <Button className="flex-1" onClick={() => applyPreset(preset)}>Apply theme</Button>
-                      <Button variant="outline" onClick={() => applyTemplate(preset.template)}>Template only</Button>
+                      <Button className="flex-1" onClick={() => applyPreset(preset)}>Apply preset</Button>
+                      <Button variant="outline" onClick={() => applyTemplate(preset.template)}>Use layout</Button>
                     </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader><CardTitle>Base template layouts</CardTitle><CardDescription>Switch the full website structure by agency type.</CardDescription></CardHeader>
-              <CardContent className="grid gap-4 lg:grid-cols-3">
-                {templates.map((template) => (
-                  <div key={template.id} className={`rounded-2xl border p-4 ${config.template === template.id ? "border-primary shadow-sm" : ""}`}>
-                    <div className="mb-3 flex items-center justify-between"><h3 className="text-lg font-semibold">{template.name}</h3>{config.template === template.id && <Badge>Selected</Badge>}</div>
-                    <p className="text-sm text-muted-foreground">{template.description}</p>
-                    <Button className="mt-4 w-full" variant={config.template === template.id ? "outline" : "default"} onClick={() => applyTemplate(template.id)}>{config.template === template.id ? "Current template" : `Use ${template.name}`}</Button>
                   </div>
                 ))}
               </CardContent>
@@ -618,18 +621,28 @@ const WebsiteCustomizer = () => {
 
           <TabsContent value="branding" className="space-y-6">
             <div className="grid gap-6 xl:grid-cols-3">
-              {renderImageUploader("Logo", "Your agency logo for header and branding areas.", config.logo, "logo", logoInputRef)}
-              {renderImageUploader("Hero image", "Main visual banner for the homepage.", config.content.heroImage, "hero", heroInputRef)}
+              {renderImageUploader("Logo", "Header logo and brand mark used on the public website.", config.logo, "logo", logoInputRef)}
+              {renderImageUploader("Hero image", "Main banner image for the homepage.", config.content.heroImage, "hero", heroInputRef)}
               {renderImageUploader("About image", "Supporting image for the about section.", config.content.aboutImage, "about", aboutInputRef)}
             </div>
             <Card>
-              <CardHeader><CardTitle>Color controls</CardTitle><CardDescription>Fine-tune your theme palette after choosing a preset.</CardDescription></CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-                {(Object.keys(config.colors) as (keyof WebsiteConfig["colors"])[]).map((key) => (
+              <CardHeader>
+                <CardTitle>Color controls</CardTitle>
+                <CardDescription>Adjust the main brand colors for the website.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-4">
+                {([
+                  ["primary", "Primary"],
+                  ["secondary", "Secondary"],
+                  ["accent", "Accent"],
+                  ["background", "Background"],
+                ] as const).map(([key, label]) => (
                   <div key={key} className="space-y-2">
-                    <Label className="capitalize">{key}</Label>
-                    <Input value={config.colors[key]} onChange={(e) => setColor(key, e.target.value)} placeholder="H S% L%" />
-                    <div className="h-10 rounded-xl border" style={{ backgroundColor: `hsl(${config.colors[key]})` }} />
+                    <Label>{label}</Label>
+                    <div className="flex items-center gap-2 rounded-lg border p-2">
+                      <input type="color" value={config.colors[key]} onChange={(e) => setColor(key, e.target.value)} className="h-10 w-14 cursor-pointer rounded border-0 bg-transparent p-0" />
+                      <Input value={config.colors[key]} onChange={(e) => setColor(key, e.target.value)} />
+                    </div>
                   </div>
                 ))}
               </CardContent>
@@ -638,134 +651,122 @@ const WebsiteCustomizer = () => {
 
           <TabsContent value="content" className="space-y-6">
             <Card>
-              <CardHeader><CardTitle>Homepage content</CardTitle><CardDescription>Main public information that customers see first.</CardDescription></CardHeader>
-              <CardContent className="grid gap-4 lg:grid-cols-2">
-                <div className="space-y-2 lg:col-span-2"><Label>Hero badge</Label><Input value={config.content.heroBadge || ""} onChange={(e) => setContent("heroBadge", e.target.value)} /></div>
-                <div className="space-y-2 lg:col-span-2"><Label>Hero title</Label><Input value={config.content.heroTitle} onChange={(e) => setContent("heroTitle", e.target.value)} /></div>
-                <div className="space-y-2 lg:col-span-2"><Label>Hero subtitle</Label><Textarea value={config.content.heroSubtitle} onChange={(e) => setContent("heroSubtitle", e.target.value)} rows={3} /></div>
+              <CardHeader><CardTitle>Agency information</CardTitle><CardDescription>These details appear throughout the public website.</CardDescription></CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2"><Label>About title</Label><Input value={config.content.aboutTitle} onChange={(e) => setContent("aboutTitle", e.target.value)} /></div>
-                <div className="space-y-2"><Label>Footer text</Label><Input value={config.content.footerText} onChange={(e) => setContent("footerText", e.target.value)} /></div>
-                <div className="space-y-2 lg:col-span-2"><Label>About text</Label><Textarea value={config.content.aboutText} onChange={(e) => setContent("aboutText", e.target.value)} rows={4} /></div>
-                <div className="space-y-2"><Label>CTA title</Label><Input value={config.content.ctaTitle || ""} onChange={(e) => setContent("ctaTitle", e.target.value)} /></div>
-                <div className="space-y-2"><Label>CTA subtitle</Label><Input value={config.content.ctaSubtitle || ""} onChange={(e) => setContent("ctaSubtitle", e.target.value)} /></div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader><CardTitle>Contact & social</CardTitle><CardDescription>Business contact details shown on public pages.</CardDescription></CardHeader>
-              <CardContent className="grid gap-4 lg:grid-cols-2">
-                <div className="space-y-2"><Label>Phone</Label><Input value={config.contactInfo?.phone || ""} onChange={(e) => setContact("phone", e.target.value)} /></div>
-                <div className="space-y-2"><Label>Email</Label><Input value={config.contactInfo?.email || ""} onChange={(e) => setContact("email", e.target.value)} /></div>
-                <div className="space-y-2 lg:col-span-2"><Label>Office address</Label><Textarea value={config.contactInfo?.address || ""} onChange={(e) => setContact("address", e.target.value)} rows={2} /></div>
-                <div className="space-y-2"><Label>Facebook</Label><Input value={config.socialLinks?.facebook || ""} onChange={(e) => setSocial("facebook", e.target.value)} /></div>
-                <div className="space-y-2"><Label>Instagram</Label><Input value={config.socialLinks?.instagram || ""} onChange={(e) => setSocial("instagram", e.target.value)} /></div>
-                <div className="space-y-2"><Label>YouTube</Label><Input value={config.socialLinks?.youtube || ""} onChange={(e) => setSocial("youtube", e.target.value)} /></div>
-                <div className="space-y-2"><Label>WhatsApp</Label><Input value={config.socialLinks?.whatsapp || ""} onChange={(e) => setSocial("whatsapp", e.target.value)} /></div>
+                <div className="space-y-2"><Label>CTA title</Label><Input value={config.content.ctaTitle} onChange={(e) => setContent("ctaTitle", e.target.value)} /></div>
+                <div className="space-y-2 md:col-span-2"><Label>About description</Label><Textarea value={config.content.aboutText} onChange={(e) => setContent("aboutText", e.target.value)} rows={4} /></div>
+                <div className="space-y-2 md:col-span-2"><Label>CTA subtitle</Label><Textarea value={config.content.ctaSubtitle} onChange={(e) => setContent("ctaSubtitle", e.target.value)} rows={2} /></div>
+                <div className="space-y-2"><Label>Address</Label><Textarea value={config.contactInfo?.address || ""} onChange={(e) => setContact("address", e.target.value)} rows={3} /></div>
+                <div className="space-y-2"><Label>Google map embed URL</Label><Input value={config.contactInfo?.mapEmbed || ""} onChange={(e) => setContact("mapEmbed", e.target.value)} /></div>
+                <div className="space-y-2"><Label>Facebook URL</Label><Input value={config.socialLinks?.facebook || ""} onChange={(e) => setSocial("facebook", e.target.value)} /></div>
+                <div className="space-y-2"><Label>Instagram URL</Label><Input value={config.socialLinks?.instagram || ""} onChange={(e) => setSocial("instagram", e.target.value)} /></div>
+                <div className="space-y-2"><Label>Twitter / X URL</Label><Input value={config.socialLinks?.twitter || ""} onChange={(e) => setSocial("twitter", e.target.value)} /></div>
+                <div className="space-y-2"><Label>WhatsApp link</Label><Input value={config.socialLinks?.whatsapp || ""} onChange={(e) => setSocial("whatsapp", e.target.value)} /></div>
+                <div className="space-y-2"><Label>YouTube URL</Label><Input value={config.socialLinks?.youtube || ""} onChange={(e) => setSocial("youtube", e.target.value)} /></div>
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="packages" className="space-y-6">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Package section builder</CardTitle>
-                  <CardDescription>Configure how your real packages are presented on the homepage and packages page.</CardDescription>
-                </div>
-                <Button variant="outline" onClick={resetPackagesAndServices}>Reset package labels</Button>
+              <CardHeader>
+                <CardTitle>Package section controls</CardTitle>
+                <CardDescription>Manage package section labels and the public packages page messaging.</CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-4 lg:grid-cols-2">
-                <div className="space-y-2"><Label>Homepage package badge</Label><Input value={config.content.packagesBadge || ""} onChange={(e) => setContent("packagesBadge", e.target.value)} /></div>
-                <div className="space-y-2"><Label>Homepage package title</Label><Input value={config.content.packagesTitle || ""} onChange={(e) => setContent("packagesTitle", e.target.value)} /></div>
-                <div className="space-y-2 lg:col-span-2"><Label>Homepage package subtitle</Label><Textarea value={config.content.packagesSubtitle || ""} onChange={(e) => setContent("packagesSubtitle", e.target.value)} rows={2} /></div>
+              <CardContent className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2"><Label>Homepage badge</Label><Input value={config.content.packagesBadge || ""} onChange={(e) => setContent("packagesBadge", e.target.value)} /></div>
+                <div className="space-y-2"><Label>Homepage title</Label><Input value={config.content.packagesTitle || ""} onChange={(e) => setContent("packagesTitle", e.target.value)} /></div>
+                <div className="space-y-2 md:col-span-2"><Label>Homepage subtitle</Label><Textarea value={config.content.packagesSubtitle || ""} onChange={(e) => setContent("packagesSubtitle", e.target.value)} rows={2} /></div>
                 <div className="space-y-2"><Label>Packages page title</Label><Input value={config.content.packagePageTitle || ""} onChange={(e) => setContent("packagePageTitle", e.target.value)} /></div>
                 <div className="space-y-2"><Label>Packages page subtitle</Label><Input value={config.content.packagePageSubtitle || ""} onChange={(e) => setContent("packagePageSubtitle", e.target.value)} /></div>
-                <div className="space-y-2"><Label>Primary package button</Label><Input value={config.content.packagePrimaryButtonText || ""} onChange={(e) => setContent("packagePrimaryButtonText", e.target.value)} /></div>
-                <div className="space-y-2"><Label>Secondary package button</Label><Input value={config.content.packageSecondaryButtonText || ""} onChange={(e) => setContent("packageSecondaryButtonText", e.target.value)} /></div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader><CardTitle>Package section note</CardTitle><CardDescription>Theme Builder controls the titles and presentation. Actual package cards come from your published travel packages.</CardDescription></CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                To show packages on the public website, make sure your travel packages are added in the system. Theme Builder changes the visual presentation, while the package data comes from your real package records.
+                <div className="space-y-2"><Label>Primary button text</Label><Input value={config.content.packagePrimaryButtonText || ""} onChange={(e) => setContent("packagePrimaryButtonText", e.target.value)} /></div>
+                <div className="space-y-2"><Label>Secondary button text</Label><Input value={config.content.packageSecondaryButtonText || ""} onChange={(e) => setContent("packageSecondaryButtonText", e.target.value)} /></div>
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="sections" className="space-y-6">
-            <div className="grid gap-6 xl:grid-cols-2">
-              {renderServicesEditor()}
-              {renderStatsEditor()}
-              {renderWhyEditor()}
-              {renderTestimonialsEditor()}
-              {renderFaqEditor()}
-              {renderTeamEditor()}
-            </div>
+            {renderServicesEditor()}
+            {renderStatsEditor()}
+            {renderWhyEditor()}
+            {renderTestimonialsEditor()}
+            {renderFaqEditor()}
+            {renderTeamEditor()}
           </TabsContent>
 
           <TabsContent value="publish" className="space-y-6">
-            <div className="grid gap-4 xl:grid-cols-4">
+            <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
               <Card>
                 <CardHeader><CardTitle>Publishing summary</CardTitle></CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  <div className="flex items-center justify-between"><span className="text-muted-foreground">Plan</span><span className="font-medium capitalize">{domainSummary?.subscriptionPlan || "free"}</span></div>
+                <CardContent className="space-y-3 text-sm">
+                  <div className="flex items-center justify-between"><span className="text-muted-foreground">Website account</span><span className="font-medium">{tenant?.name || "Unknown"}</span></div>
+                  <div className="flex items-center justify-between"><span className="text-muted-foreground">Plan</span><span className="font-medium capitalize">{domainSummary?.subscriptionPlan || tenant?.subscriptionPlan || "free"}</span></div>
                   <div className="flex items-center justify-between"><span className="text-muted-foreground">Allowance</span><span className="font-medium">{domainSummary?.domainLimit === -1 ? "Unlimited" : `${domainSummary?.usedDomains || 0}/${domainSummary?.domainLimit || 0}`}</span></div>
-                  <div className="flex items-center justify-between"><span className="text-muted-foreground">Live mode</span><span className="font-medium">{primaryDomain ? "Custom domain" : "Default URL"}</span></div>
+                  <div className="flex items-center justify-between"><span className="text-muted-foreground">Live mode</span><span className="font-medium">{preferredLiveDomain ? preferredLiveDomain.domain : "Default URL"}</span></div>
+                  {user?.role === "super_admin" && (
+                    <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                      Super admin note: this builder always edits the currently logged-in tenant website. If <strong>tourandtravels.cloud</strong> belongs to another agency, open that agency account to manage its website and live URL here.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
-              <Card className="xl:col-span-3">
-                <CardHeader><CardTitle>Connect a custom domain</CardTitle><CardDescription>Add a domain from the agency account, then verify DNS so super admin can finish SSL and activation.</CardDescription></CardHeader>
-                <CardContent className="grid gap-4 lg:grid-cols-[1.2fr_220px_220px]">
-                  <div className="space-y-2"><Label>Domain name</Label><Input placeholder="tourandtravels.cloud" value={domainForm.domain} onChange={(e) => setDomainForm((prev) => ({ ...prev, domain: e.target.value }))} /></div>
-                  <div className="space-y-2">
-                    <Label>Redirect mode</Label>
-                    <Select value={domainForm.wwwRedirect} onValueChange={(value: "www-to-root" | "root-to-www") => setDomainForm((prev) => ({ ...prev, wwwRedirect: value }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="www-to-root">www → root</SelectItem>
-                        <SelectItem value="root-to-www">root → www</SelectItem>
-                      </SelectContent>
-                    </Select>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Connect a custom domain</CardTitle>
+                  <CardDescription>Add a domain from the agency account, then verify DNS so super admin can finish SSL and activation.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-[2fr_220px_auto]">
+                    <div className="space-y-2"><Label>Domain name</Label><Input value={domainForm.domain} onChange={(e) => setDomainForm((prev) => ({ ...prev, domain: e.target.value }))} placeholder="example.com" /></div>
+                    <div className="space-y-2"><Label>Redirect mode</Label><Select value={domainForm.wwwRedirect} onValueChange={(value: "www-to-root" | "root-to-www") => setDomainForm((prev) => ({ ...prev, wwwRedirect: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="www-to-root">www → root</SelectItem><SelectItem value="root-to-www">root → www</SelectItem></SelectContent></Select></div>
+                    <div className="flex items-end"><Button onClick={addDomain} disabled={domainSubmitting || !domainSummary?.canAddDomain}>{domainSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}Add domain</Button></div>
                   </div>
-                  <div className="flex items-end"><Button className="w-full" onClick={addDomain} disabled={domainSubmitting || !domainSummary?.canAddDomain}>{domainSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}Add domain</Button></div>
+                  {!domainSummary?.canAddDomain && <p className="text-sm text-amber-700 dark:text-amber-300">Your current plan or subscription status does not allow additional custom domains right now.</p>}
                 </CardContent>
               </Card>
             </div>
 
             <Card>
-              <CardHeader><CardTitle>Connected domains</CardTitle><CardDescription>Verify and manage agency-level custom domains from this screen.</CardDescription></CardHeader>
+              <CardHeader>
+                <CardTitle>Connected domains</CardTitle>
+                <CardDescription>Verify and manage agency-level custom domains from this screen.</CardDescription>
+              </CardHeader>
               <CardContent className="space-y-4">
                 {domains.length === 0 ? (
-                  <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">No custom domains added yet. Use the form above to connect one.</div>
-                ) : domains.map((domain) => {
-                  const preferredLiveHost = domain.wwwRedirect === "root-to-www" ? `www.${domain.domain}` : domain.domain;
-                  return (
-                    <div key={domain.id} className="rounded-2xl border p-4 space-y-4">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="font-semibold">{domain.domain}</h3>
-                            {domain.isPrimary && <Badge>Primary</Badge>}
-                            {statusBadge(domain)}
+                  <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">No custom domains added yet. Use the form above to connect one.</div>
+                ) : (
+                  <div className="space-y-4">
+                    {domains.map((record) => {
+                      const liveUrl = `https://${record.wwwRedirect === "root-to-www" ? `www.${record.domain}` : record.domain}`;
+                      return (
+                        <div key={record.id} className="rounded-2xl border p-4 space-y-4">
+                          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                            <div className="space-y-2">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h3 className="font-semibold">{record.domain}</h3>
+                                {record.isPrimary && <Badge>Primary</Badge>}
+                              </div>
+                              {statusBadge(record)}
+                              <div className="rounded-lg bg-muted/30 p-3 text-sm space-y-1">
+                                <p><span className="text-muted-foreground">TXT name:</span> <code className="font-mono">_verify</code></p>
+                                <p><span className="text-muted-foreground">TXT value:</span> <code className="font-mono break-all">{record.verificationToken}</code></p>
+                                <p><span className="text-muted-foreground">Live URL:</span> <span className="break-all">{liveUrl}</span></p>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2 lg:justify-end">
+                              <Button variant="outline" onClick={() => copyText(record.verificationToken, "Verification token")}><Copy className="mr-2 h-4 w-4" />Copy TXT</Button>
+                              <Button variant="outline" onClick={() => verifyDomain(record.id)} disabled={domainActionId === record.id}>{domainActionId === record.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Verify DNS</Button>
+                              {!record.isPrimary && record.verificationStatus === "verified" && <Button variant="outline" onClick={() => setPrimaryDomain(record.id)} disabled={domainActionId === record.id}>Set primary</Button>}
+                              <Button variant="ghost" onClick={() => removeDomain(record.id)} disabled={domainActionId === record.id}><Trash2 className="mr-2 h-4 w-4" />Remove</Button>
+                            </div>
                           </div>
-                          <p className="mt-2 text-sm text-muted-foreground">Live target: <span className="font-medium text-foreground">{preferredLiveHost}</span></p>
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                          <Button variant="outline" size="sm" onClick={() => copyText(domain.verificationToken, "Verification token")}><Copy className="mr-2 h-4 w-4" />Token</Button>
-                          <Button variant="outline" size="sm" onClick={() => verifyDomain(domain.id)} disabled={domainActionId === domain.id}>{domainActionId === domain.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}Verify</Button>
-                          <Button variant="outline" size="sm" onClick={() => setPrimaryDomain(domain.id)} disabled={domain.isPrimary || domainActionId === domain.id}>Set primary</Button>
-                          <Button variant="ghost" size="sm" onClick={() => window.open(`https://${preferredLiveHost}`, "_blank")}><ExternalLink className="mr-2 h-4 w-4" />Open</Button>
-                          <Button variant="destructive" size="sm" onClick={() => removeDomain(domain.id)} disabled={domainActionId === domain.id}><Trash2 className="mr-2 h-4 w-4" />Remove</Button>
-                        </div>
-                      </div>
-                      <div className="grid gap-4 lg:grid-cols-3">
-                        <div className="rounded-xl bg-muted/30 p-4 text-sm"><p className="font-medium">TXT verification</p><p className="mt-2 text-muted-foreground">Host: <span className="text-foreground">_verify</span></p><p className="break-all text-muted-foreground">Value: <span className="text-foreground">{domain.verificationToken}</span></p></div>
-                        <div className="rounded-xl bg-muted/30 p-4 text-sm"><p className="font-medium">Root DNS</p><p className="mt-2 text-muted-foreground">Type: A</p><p className="text-muted-foreground">Host: @</p><p className="text-muted-foreground">Value: your server IP</p></div>
-                        <div className="rounded-xl bg-muted/30 p-4 text-sm"><p className="font-medium">www DNS</p><p className="mt-2 text-muted-foreground">Type: CNAME</p><p className="text-muted-foreground">Host: www</p><p className="text-muted-foreground">Value: {domain.domain}</p></div>
-                      </div>
-                    </div>
-                  );
-                })}
+                      );
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
