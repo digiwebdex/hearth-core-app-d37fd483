@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
+import PermissionGate from "@/components/PermissionGate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ import EmptyState from "@/components/EmptyState";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
 import type { LucideIcon } from "lucide-react";
+import type { Module } from "@/lib/permissions";
 
 interface EntityRecord {
   id: string;
@@ -23,6 +25,7 @@ interface EntityRecord {
 interface CrudPageProps {
   title: string;
   icon: LucideIcon;
+  module?: Module;
   api?: {
     list: () => Promise<any[]>;
     create: (data: any) => Promise<any>;
@@ -31,7 +34,7 @@ interface CrudPageProps {
   };
 }
 
-const CrudPage = ({ title, icon: Icon, api }: CrudPageProps) => {
+const CrudPage = ({ title, icon: Icon, module, api }: CrudPageProps) => {
   const [items, setItems] = useState<EntityRecord[]>([]);
   const [form, setForm] = useState({ name: "", phone: "", email: "" });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -112,6 +115,44 @@ const CrudPage = ({ title, icon: Icon, api }: CrudPageProps) => {
     }
   };
 
+  const addButton = (
+    <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="mr-2 h-4 w-4" />
+          Add {singular}
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{editingId ? "Edit" : "Add"} {singular}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Name</Label>
+            <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required />
+          </div>
+          <div className="space-y-2">
+            <Label>Phone</Label>
+            <Input type="tel" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} required />
+          </div>
+          <div className="space-y-2">
+            <Label>Email</Label>
+            <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} required />
+          </div>
+          <div className="flex gap-2">
+            <Button type="submit" className="flex-1" disabled={submitting}>
+              {submitting ? "Saving…" : editingId ? "Update" : "Create"}
+            </Button>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">Cancel</Button>
+            </DialogClose>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -120,41 +161,7 @@ const CrudPage = ({ title, icon: Icon, api }: CrudPageProps) => {
             <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
             <p className="text-muted-foreground">Manage your {title.toLowerCase()}</p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Add {singular}
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{editingId ? "Edit" : "Add"} {singular}</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Name</Label>
-                  <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required />
-                </div>
-                <div className="space-y-2">
-                  <Label>Phone</Label>
-                  <Input type="tel" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} required />
-                </div>
-                <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} required />
-                </div>
-                <div className="flex gap-2">
-                  <Button type="submit" className="flex-1" disabled={submitting}>
-                    {submitting ? "Saving…" : editingId ? "Update" : "Create"}
-                  </Button>
-                  <DialogClose asChild>
-                    <Button type="button" variant="outline">Cancel</Button>
-                  </DialogClose>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+          {module ? <PermissionGate module={module} action="create">{addButton}</PermissionGate> : addButton}
         </div>
 
         {loading ? (
@@ -168,9 +175,19 @@ const CrudPage = ({ title, icon: Icon, api }: CrudPageProps) => {
                 icon={Icon}
                 title={`No ${title.toLowerCase()} yet`}
                 description={`Add your first ${singular.toLowerCase()} to get started. Click the button above or below.`}
-                actionLabel={`Add ${singular}`}
-                onAction={() => setDialogOpen(true)}
+                actionLabel={module ? undefined : `Add ${singular}`}
+                onAction={module ? undefined : () => setDialogOpen(true)}
               />
+              {module && (
+                <div className="mt-6 flex justify-center">
+                  <PermissionGate module={module} action="create">
+                    <Button onClick={() => setDialogOpen(true)}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add {singular}
+                    </Button>
+                  </PermissionGate>
+                </div>
+              )}
             </CardContent>
           </Card>
         ) : (
@@ -199,12 +216,28 @@ const CrudPage = ({ title, icon: Icon, api }: CrudPageProps) => {
                       <TableCell>{item.email}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          {module ? (
+                            <PermissionGate module={module} action="edit">
+                              <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </PermissionGate>
+                          ) : (
+                            <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {module ? (
+                            <PermissionGate module={module} action="delete">
+                              <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </PermissionGate>
+                          ) : (
+                            <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
