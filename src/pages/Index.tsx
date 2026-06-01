@@ -74,11 +74,6 @@ const Index = () => {
                 <Zap className="mr-2 h-5 w-5" />{t("landing.ctaPrimary")}
               </Button>
             </Link>
-            <Link to="/demo">
-              <Button size="lg" variant="outline" className="border-white/15 bg-white/5 text-white hover:bg-white/10 px-8 h-12 text-base">
-                {t("landing.ctaSecondary")}<ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
           </div>
 
           {/* Stats */}
@@ -250,7 +245,7 @@ const Index = () => {
             <h2 className="text-3xl md:text-4xl font-bold mb-4">{t("landing.faqTitle")}</h2>
           </div>
           <div className="max-w-2xl mx-auto space-y-2">
-            {[1,2,3,4].map((n, i) => (
+            {[1, 2, 3, 4].map((n, i) => (
               <div key={n} className="rounded-xl border border-white/8 bg-white/[0.02] overflow-hidden">
                 <button onClick={() => setOpenFaq(openFaq === i ? null : i)} className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/[0.03]">
                   <span className="font-medium text-sm pr-4">{t(`faq.q${n}`)}</span>
