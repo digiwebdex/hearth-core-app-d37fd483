@@ -104,7 +104,7 @@ router.post("/", async (req, res) => {
 
     const tenant = await prisma.tenant.findUnique({
       where: { id: req.tenantId },
-      select: { id: true, subscriptionPlan: true, subscriptionStatus: true },
+      select: { id: true, name: true, subscriptionPlan: true, subscriptionStatus: true },
     });
     if (!tenant) return res.status(404).json({ message: "Tenant not found" });
 
@@ -120,8 +120,28 @@ router.post("/", async (req, res) => {
     const domain = normalizeDomain(rawDomain);
     if (!domain || domain.includes(" ") || !domain.includes(".")) return res.status(400).json({ message: "Invalid domain" });
 
-    const existing = await prisma.tenantDomain.findUnique({ where: { domain } });
-    if (existing) return res.status(409).json({ message: "Domain already registered" });
+    const existing = await prisma.tenantDomain.findUnique({
+      where: { domain },
+      include: { tenant: { select: { id: true, name: true, slug: true } } },
+    });
+    if (existing) {
+      return res.status(409).json({
+        message: existing.tenantId === req.tenantId ? "Domain already exists in this account" : "Domain already registered in another account",
+        sameTenant: existing.tenantId === req.tenantId,
+        domain: {
+          id: existing.id,
+          domain: existing.domain,
+          status: existing.status,
+          verificationStatus: existing.verificationStatus,
+          sslStatus: existing.sslStatus,
+          isPrimary: existing.isPrimary,
+          wwwRedirect: existing.wwwRedirect,
+        },
+        existingTenantId: existing.tenantId,
+        existingTenantName: existing.tenant?.name || null,
+        existingTenantSlug: existing.tenant?.slug || null,
+      });
+    }
 
     const count = await prisma.tenantDomain.count({ where: { tenantId: req.tenantId } });
     if (maxDomains > 0 && count >= maxDomains) {
