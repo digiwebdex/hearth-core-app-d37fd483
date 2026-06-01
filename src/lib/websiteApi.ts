@@ -43,6 +43,13 @@ export interface WebsiteConfig {
     faq?: { question: string; answer: string }[];
     team?: { name: string; role: string; desc?: string }[];
     whyChooseUs?: { title: string; desc: string }[];
+    packagesBadge?: string;
+    packagesTitle?: string;
+    packagesSubtitle?: string;
+    packagePageTitle?: string;
+    packagePageSubtitle?: string;
+    packagePrimaryButtonText?: string;
+    packageSecondaryButtonText?: string;
     ctaTitle?: string;
     ctaSubtitle?: string;
     footerText: string;
@@ -129,6 +136,13 @@ export const templateDefaults: Record<string, WebsiteConfig> = {
         { name: "Rashida Khan", role: "Operations Head", desc: "Expert in tour operations" },
         { name: "Imran Hossain", role: "Visa Specialist", desc: "Handles 20+ country visas" },
       ],
+      packagesBadge: "Popular Packages",
+      packagesTitle: "Featured Packages",
+      packagesSubtitle: "Showcase your most attractive tours, visa offers, and travel products.",
+      packagePageTitle: "Our Packages",
+      packagePageSubtitle: "Browse our curated travel packages for every budget and destination.",
+      packagePrimaryButtonText: "Book Now",
+      packageSecondaryButtonText: "View All Packages",
       ctaTitle: "Ready to Start Your Journey?",
       ctaSubtitle: "Contact us today and let us plan your perfect trip.",
       footerText: "Your journey begins here.",
@@ -190,6 +204,13 @@ export const templateDefaults: Record<string, WebsiteConfig> = {
         { name: "Operations Manager", role: "অপারেশন্স ম্যানেজার", desc: "তীর্থযাত্রার লজিস্টিক পরিচালনা" },
         { name: "Sharia Advisor", role: "শরীয়া পরামর্শদাতা", desc: "ধর্মীয় গাইডেন্স প্রদান" },
       ],
+      packagesBadge: "আমাদের প্যাকেজ",
+      packagesTitle: "Featured Packages",
+      packagesSubtitle: "Highlight your Umrah, Hajj, visa, and ziyarat offers from one section.",
+      packagePageTitle: "Our Packages",
+      packagePageSubtitle: "Browse your complete Hajj, Umrah, and travel package catalog.",
+      packagePrimaryButtonText: "Book Now",
+      packageSecondaryButtonText: "View All Packages",
       ctaTitle: "আপনার পবিত্র যাত্রা শুরু করতে প্রস্তুত?",
       ctaSubtitle: "ওমরাহ ভিসার জন্য আবেদন করুন বা আজই আমাদের সাথে যোগাযোগ করুন।",
       footerText: "আপনার পবিত্র যাত্রায় আমরা আপনার সঙ্গী।",
@@ -248,6 +269,13 @@ export const templateDefaults: Record<string, WebsiteConfig> = {
         { name: "Adventure Guide", role: "Lead Guide", desc: "Expert in adventure tourism" },
         { name: "Customer Relations", role: "Support Lead", desc: "Ensures client satisfaction" },
       ],
+      packagesBadge: "Popular Tours",
+      packagesTitle: "Featured Tours",
+      packagesSubtitle: "Display the best-selling leisure, adventure, honeymoon, and family packages.",
+      packagePageTitle: "Our Packages",
+      packagePageSubtitle: "Browse our curated travel packages for every budget and destination.",
+      packagePrimaryButtonText: "Book Now",
+      packageSecondaryButtonText: "View All Tours",
       ctaTitle: "Ready for Your Next Adventure?",
       ctaSubtitle: "Browse our packages or contact us for a customized tour plan.",
       footerText: "Adventure awaits around every corner.",
@@ -301,7 +329,7 @@ export const themePresets: ThemePreset[] = [
     template: "tour-packages",
     palettePreview: ["262 83% 58%", "340 82% 52%", "260 30% 96%", "222 47% 11%"],
     colors: { primary: "262 83% 58%", secondary: "260 30% 96%", accent: "340 82% 52%", background: "0 0% 100%", text: "222 47% 11%" },
-    sampleContent: { heroBadge: "Adventure Awaits", heroTitle: "Weekend Tours, Holiday Packages, And Group Adventures", heroSubtitle: "Turn every trip into a memorable story with exciting, visual-first package pages.", ctaTitle: "Launch your next tour", ctaSubtitle: "Promote domestic and international experiences with one click." },
+    sampleContent: { heroBadge: "Adventure Awaits", heroTitle: "Weekend Tours, Holiday Packages, And Group Adventures", heroSubtitle: "Turn every trip into a memorable story with exciting, visual-first package pages.", ctaTitle: "Launch your next tour", ctaSubtitle: "Promote domestic and international experiences with one click.", packagesTitle: "Featured Tours", packagesSubtitle: "Promote trending leisure packages with engaging cards and clear calls to action." },
   },
   {
     id: "sunset-coral",
@@ -310,7 +338,7 @@ export const themePresets: ThemePreset[] = [
     template: "tour-packages",
     palettePreview: ["12 88% 58%", "196 80% 50%", "24 100% 97%", "222 47% 11%"],
     colors: { primary: "12 88% 58%", secondary: "24 100% 97%", accent: "196 80% 50%", background: "0 0% 100%", text: "222 47% 11%" },
-    sampleContent: { heroBadge: "Beach & Holiday Offers", heroTitle: "Beautiful Packages For Beach, Honeymoon, And Family Holidays", heroSubtitle: "Create a brighter travel website with warm visuals and strong booking-focused sections.", ctaTitle: "Promote your hot deals", ctaSubtitle: "Highlight trending packages with a vibrant layout." },
+    sampleContent: { heroBadge: "Beach & Holiday Offers", heroTitle: "Beautiful Packages For Beach, Honeymoon, And Family Holidays", heroSubtitle: "Create a brighter travel website with warm visuals and strong booking-focused sections.", ctaTitle: "Promote your hot deals", ctaSubtitle: "Highlight trending packages with a vibrant layout.", packagesTitle: "Best Selling Packages", packagesSubtitle: "Push your hottest seasonal tours with stronger color and conversion-focused layout." },
   },
 ];
 
