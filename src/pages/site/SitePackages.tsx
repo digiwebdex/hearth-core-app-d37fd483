@@ -11,7 +11,7 @@ import { Plane, Search, Check } from "lucide-react";
 const typeLabels: Record<string, string> = { tour: "Tour", ticket: "Ticket", hotel: "Hotel", visa: "Visa" };
 
 const SitePackages = () => {
-  const { packages } = useWebsite();
+  const { packages, websiteConfig } = useWebsite();
   const [search, setSearch] = useState("");
   const [activeType, setActiveType] = useState<string>("all");
 
@@ -28,21 +28,21 @@ const SitePackages = () => {
     });
   }, [packages, activeType, search]);
 
+  const pageTitle = websiteConfig.content.packagePageTitle || websiteConfig.content.packagesTitle || "Our Packages";
+  const pageSubtitle = websiteConfig.content.packagePageSubtitle || websiteConfig.content.packagesSubtitle || "Browse our curated travel packages for every budget and destination.";
+  const primaryButtonText = websiteConfig.content.packagePrimaryButtonText || "Book Now";
+
   return (
     <PublicLayout>
-      {/* Header */}
       <section className="bg-primary/5 py-16">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl font-extrabold tracking-tight mb-4">Our Packages</h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Browse our curated travel packages for every budget and destination.
-          </p>
+          <h1 className="text-4xl font-extrabold tracking-tight mb-4">{pageTitle}</h1>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">{pageSubtitle}</p>
         </div>
       </section>
 
       <section className="py-10">
         <div className="container mx-auto px-4">
-          {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-4 mb-8">
             <div className="flex items-center gap-2 flex-1 max-w-sm">
               <Search className="h-4 w-4 text-muted-foreground" />
@@ -63,7 +63,6 @@ const SitePackages = () => {
             </div>
           </div>
 
-          {/* Grid */}
           {filtered.length === 0 ? (
             <p className="text-center text-muted-foreground py-12">No packages found.</p>
           ) : (
@@ -92,7 +91,7 @@ const SitePackages = () => {
                     )}
                     <div className="flex items-center justify-between pt-2 border-t">
                       <span className="text-xl font-bold text-primary">৳{pkg.price.toLocaleString()}</span>
-                      <Link to="/site/contact"><Button size="sm">Book Now</Button></Link>
+                      <Link to="/site/contact"><Button size="sm">{primaryButtonText}</Button></Link>
                     </div>
                   </CardContent>
                 </Card>
