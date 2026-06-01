@@ -57,7 +57,10 @@ const Accounts = () => {
       if (expensesRes.status === "fulfilled") setExpenses(expensesRes.value);
       if (accountsRes.status === "fulfilled") setAccounts(accountsRes.value);
       if (ledgerRes.status === "fulfilled") setLedger(ledgerRes.value);
-      if (profitRes.status === "fulfilled") setProfitability(profitRes.value);
+      if (profitRes.status === "fulfilled") {
+        const value: any = profitRes.value;
+        setProfitability(Array.isArray(value) ? value : Array.isArray(value?.bookings) ? value.bookings : []);
+      }
 
       // Fallback: compute summary from loaded data if API summary failed
       if (summaryRes.status === "rejected" && invoicesRes.status === "fulfilled") {
