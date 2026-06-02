@@ -39,16 +39,16 @@ router.post("/initiate", authenticate, async (req, res) => {
     if (gateway === "cod") {
       const tran_id = `COD-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-      if (invoiceId) {
+      if (invoiceId || paymentRequestId) {
         await handlePaymentSuccess({
           transactionId: tran_id,
-          invoiceId,
-          paymentRequestId: null,
+          invoiceId: invoiceId || null,
+          paymentRequestId: paymentRequestId || null,
           amount,
           method: "cod",
           gateway: "cod",
           tenantId: req.tenantId,
-          metadata: { customerName, customerPhone },
+          metadata: { customerName, customerEmail, customerPhone },
         });
       }
 
@@ -57,10 +57,10 @@ router.post("/initiate", authenticate, async (req, res) => {
         gateway: "cod",
         transactionId: tran_id,
         amount,
-        invoiceId,
-        paymentRequestId,
+        invoiceId: invoiceId || null,
+        paymentRequestId: paymentRequestId || null,
         tenantId: req.tenantId,
-        metadata: { customerName, customerPhone },
+        metadata: { customerName, customerEmail, customerPhone },
       });
 
       return res.json({ success: true, transactionId: tran_id, message: "Cash on delivery confirmed" });
@@ -68,7 +68,6 @@ router.post("/initiate", authenticate, async (req, res) => {
 
     // SSLCommerz — proxy to SSLCommerz initiate
     if (gateway === "sslcommerz") {
-      // Forward to SSLCommerz route handler
       req.url = "/sslcommerz/initiate";
       req.body = { invoiceId, paymentRequestId, amount, customerName, customerEmail, customerPhone };
       return router.handle(req, res);
@@ -92,9 +91,9 @@ router.get("/status/:transactionId", authenticate, async (req, res) => {
   try {
     const { transactionId } = req.params;
 
-    // Look up from audit log
     const log = await prisma.auditLog.findFirst({
       where: {
+        tenantId: req.tenantId,
         module: "payment_gateway",
         targetLabel: transactionId,
         action: { in: ["payment_success", "payment_failed", "payment_cancelled", "payment_cod_confirmed", "ipn_validated"] },
@@ -103,9 +102,8 @@ router.get("/status/:transactionId", authenticate, async (req, res) => {
     });
 
     if (!log) {
-      // Check if initiated but not completed
       const initiated = await prisma.auditLog.findFirst({
-        where: { module: "payment_gateway", targetLabel: transactionId, action: "payment_initiated" },
+        where: { tenantId: req.tenantId, module: "payment_gateway", targetLabel: transactionId, action: { in: ["payment_initiated", "bkash_created"] } },
       });
       if (initiated) {
         return res.json({ transactionId, status: "pending", gateway: "unknown" });
@@ -139,10 +137,10 @@ router.get("/status/:transactionId", authenticate, async (req, res) => {
 router.post("/callback/:gateway", async (req, res) => {
   try {
     const { gateway } = req.params;
-    const { tran_id, status } = req.body;
+    const tranId = req.body?.tran_id || req.query?.tran_id || req.body?.paymentID || req.query?.paymentID || "";
 
     const log = await prisma.auditLog.findFirst({
-      where: { module: "payment_gateway", targetLabel: tran_id || "" },
+      where: { module: "payment_gateway", targetLabel: tranId },
       orderBy: { createdAt: "desc" },
     });
 
@@ -158,7 +156,7 @@ router.post("/callback/:gateway", async (req, res) => {
     };
 
     res.json({
-      transactionId: tran_id,
+      transactionId: tranId,
       invoiceId: meta.invoiceId || log.targetId,
       amount: meta.amount || 0,
       gateway,
