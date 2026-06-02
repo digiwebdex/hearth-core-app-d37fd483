@@ -12,7 +12,7 @@
  */
 const router = require("express").Router();
 const { authenticate, prisma } = require("../middleware/auth");
-const { handlePaymentSuccess, auditPaymentEvent, getCallbackUrls } = require("../services/paymentGateway");
+const { handlePaymentSuccess, auditPaymentEvent } = require("../services/paymentGateway");
 
 const BKASH_APP_KEY = () => process.env.BKASH_APP_KEY || "";
 const BKASH_APP_SECRET = () => process.env.BKASH_APP_SECRET || "";
@@ -22,6 +22,7 @@ const IS_SANDBOX = () => process.env.BKASH_SANDBOX !== "false";
 const API_URL = () => IS_SANDBOX()
   ? "https://tokenized.sandbox.bka.sh/v1.2.0-beta/tokenized/checkout"
   : "https://tokenized.pay.bka.sh/v1.2.0-beta/tokenized/checkout";
+const API_BASE_URL = () => process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 4000}/api`;
 
 // In-memory token cache (production should use Redis)
 let tokenCache = { token: null, refreshToken: null, expiresAt: 0 };
@@ -46,7 +47,7 @@ async function getToken() {
     tokenCache = {
       token: data.id_token,
       refreshToken: data.refresh_token,
-      expiresAt: Date.now() + (data.expires_in || 3600) * 1000 - 60000, // refresh 1 min early
+      expiresAt: Date.now() + (data.expires_in || 3600) * 1000 - 60000,
     };
     return data.id_token;
   }
@@ -66,21 +67,21 @@ router.post("/create", authenticate, async (req, res) => {
   try {
     const { invoiceId, paymentRequestId, amount, customerPhone } = req.body;
 
-    if (!BKASH_APP_KEY() || !BKASH_APP_SECRET()) {
-      return res.status(503).json({ message: "bKash not configured. Add BKASH_APP_KEY and BKASH_APP_SECRET to .env" });
+    if (!BKASH_APP_KEY() || !BKASH_APP_SECRET() || !BKASH_USERNAME() || !BKASH_PASSWORD()) {
+      return res.status(503).json({ message: "bKash not configured. Add BKASH_APP_KEY, BKASH_APP_SECRET, BKASH_USERNAME, and BKASH_PASSWORD to .env" });
     }
 
     const token = await getToken();
-    const urls = getCallbackUrls("bkash");
     const paymentID = `BK-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const callbackURL = `${API_BASE_URL()}/payments/bkash/callback`;
 
     const bkashRes = await fetch(`${API_URL()}/create`, {
       method: "POST",
       headers: bkashHeaders(token),
       body: JSON.stringify({
-        mode: "0011", // URL-based checkout
+        mode: "0011",
         payerReference: customerPhone || " ",
-        callbackURL: urls.success,
+        callbackURL,
         amount: String(amount),
         currency: "BDT",
         intent: "sale",
@@ -90,24 +91,31 @@ router.post("/create", authenticate, async (req, res) => {
     const data = await bkashRes.json();
 
     if (data.bkashURL) {
-      // Store payment context for callback
-      await prisma.$executeRawUnsafe(
-        `INSERT INTO "AuditLog" (id, "actorId", "actorName", "actorEmail", "actorRole", module, action, "targetType", "targetId", "targetLabel", "newValue", "createdAt")
-         VALUES (gen_random_uuid(), 'system', 'bKash Gateway', 'bkash@gateway.system', 'system', 'payment_gateway', 'bkash_created', 'payment', $1, $2, $3, NOW())`,
-        data.paymentID || paymentID,
-        `bkash-${invoiceId || paymentRequestId || "direct"}`,
-        JSON.stringify({ invoiceId, paymentRequestId, tenantId: req.tenantId, amount }),
-      ).catch(() => {});
+      await prisma.auditLog.create({
+        data: {
+          actorId: "system",
+          actorName: "bKash Gateway",
+          actorEmail: "bkash@gateway.system",
+          actorRole: "system",
+          tenantId: req.tenantId,
+          module: "payment_gateway",
+          action: "bkash_created",
+          targetType: "payment",
+          targetId: data.paymentID || paymentID,
+          targetLabel: data.paymentID || paymentID,
+          newValue: JSON.stringify({ invoiceId, paymentRequestId, tenantId: req.tenantId, amount }),
+        },
+      }).catch(() => {});
 
-      res.json({
+      return res.json({
         success: true,
         transactionId: data.paymentID || paymentID,
         redirectUrl: data.bkashURL,
         paymentID: data.paymentID,
       });
-    } else {
-      res.status(400).json({ success: false, message: data.statusMessage || "bKash payment creation failed" });
     }
+
+    res.status(400).json({ success: false, message: data.statusMessage || "bKash payment creation failed" });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -120,7 +128,6 @@ router.get("/callback", async (req, res) => {
     const FRONTEND = process.env.FRONTEND_URL || "https://travelagencyweb.com";
 
     if (status === "success" && paymentID) {
-      // Execute the payment
       const token = await getToken();
       const execRes = await fetch(`${API_URL()}/execute`, {
         method: "POST",
@@ -130,44 +137,42 @@ router.get("/callback", async (req, res) => {
       const execData = await execRes.json();
 
       if (execData.transactionStatus === "Completed") {
-        // Look up stored context from audit log
         const contextLog = await prisma.auditLog.findFirst({
-          where: { module: "payment_gateway", action: "bkash_created", targetId: paymentID },
+          where: { module: "payment_gateway", action: "bkash_created", targetId: String(paymentID) },
           orderBy: { createdAt: "desc" },
         });
         const context = contextLog?.newValue ? JSON.parse(contextLog.newValue) : {};
 
         await handlePaymentSuccess({
-          transactionId: execData.trxID || paymentID,
+          transactionId: execData.trxID || String(paymentID),
           invoiceId: context.invoiceId || null,
           paymentRequestId: context.paymentRequestId || null,
           amount: parseFloat(execData.amount || "0"),
           method: "online",
           gateway: "bkash",
           tenantId: context.tenantId || null,
-          metadata: { paymentID, trxID: execData.trxID },
+          metadata: { paymentID: String(paymentID), trxID: execData.trxID },
         });
 
         await auditPaymentEvent({
           action: "payment_success",
           gateway: "bkash",
-          transactionId: execData.trxID || paymentID,
+          transactionId: execData.trxID || String(paymentID),
           amount: parseFloat(execData.amount || "0"),
           invoiceId: context.invoiceId,
           paymentRequestId: context.paymentRequestId,
           tenantId: context.tenantId,
-          metadata: { paymentID, transactionStatus: execData.transactionStatus },
+          metadata: { paymentID: String(paymentID), transactionStatus: execData.transactionStatus },
         });
 
         return res.redirect(`${FRONTEND}/payment/callback?status=success&tran_id=${execData.trxID || paymentID}&gateway=bkash`);
-      } else {
-        await auditPaymentEvent({ action: "payment_execution_failed", gateway: "bkash", transactionId: paymentID, amount: 0, metadata: { transactionStatus: execData.transactionStatus, statusMessage: execData.statusMessage } });
-        return res.redirect(`${FRONTEND}/payment/callback?status=failed&tran_id=${paymentID}&gateway=bkash`);
       }
+
+      await auditPaymentEvent({ action: "payment_execution_failed", gateway: "bkash", transactionId: String(paymentID), amount: 0, metadata: { transactionStatus: execData.transactionStatus, statusMessage: execData.statusMessage } });
+      return res.redirect(`${FRONTEND}/payment/callback?status=failed&tran_id=${paymentID}&gateway=bkash`);
     }
 
-    // User cancelled or failed
-    await auditPaymentEvent({ action: `payment_${status || "unknown"}`, gateway: "bkash", transactionId: paymentID || "", amount: 0, metadata: { status } });
+    await auditPaymentEvent({ action: `payment_${status || "unknown"}`, gateway: "bkash", transactionId: paymentID ? String(paymentID) : "", amount: 0, metadata: { status } });
     res.redirect(`${FRONTEND}/payment/callback?status=${status === "cancel" ? "cancelled" : "failed"}&tran_id=${paymentID || ""}&gateway=bkash`);
   } catch (err) {
     console.error("[BKASH] Callback error:", err.message);
