@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const router = require("express").Router();
 const { authenticate, requireRole, prisma } = require("../middleware/auth");
+const { notifyEvent } = require("../services/notificationService");
 
 router.use(authenticate);
 
@@ -134,6 +135,19 @@ async function writeAuditLog(req, { action, targetId, targetLabel, newValue, old
   }).catch(() => {});
 }
 
+async function sendSuperAdminOrderAlert({ tenant, item }) {
+  await notifyEvent("subscription_order_alert", {
+    tenantName: tenant?.name || "Agency",
+    tenantId: tenant?.id || null,
+    plan: item.requestedPlan || item.plan,
+    amount: item.amountSent || item.amount,
+    method: item.paymentMethod || item.method || "manual",
+    trxId: item.transactionId || item.trxId || null,
+    billingCycle: item.billingCycle || "monthly",
+    requestType: item.requestType || "activate",
+  }).catch(() => {});
+}
+
 async function buildPaymentRequestInput(req, body, tenant) {
   const requestedPlan = normalizePlan(body.requestedPlan || body.plan);
   if (!requestedPlan) throw new Error("requestedPlan or plan is required");
@@ -261,6 +275,7 @@ router.post("/", requireRole("tenant_owner"), async (req, res) => {
       newValue: { plan: item.requestedPlan || item.plan, amount: item.amountSent || item.amount, method: item.paymentMethod || item.method, trxId: item.transactionId || item.trxId, proofFileName: item.proofFileName || null },
       metadata: { billingCycle: item.billingCycle, requestType: item.requestType },
     });
+    await sendSuperAdminOrderAlert({ tenant, item });
     res.status(201).json(item);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -287,6 +302,7 @@ router.post("/:id/resubmit", requireRole("tenant_owner"), async (req, res) => {
       newValue: { status: item.status, transactionId: item.transactionId || item.trxId, proofFileName: item.proofFileName || null },
       metadata: { billingCycle: item.billingCycle, requestType: item.requestType },
     });
+    await sendSuperAdminOrderAlert({ tenant, item });
     res.json(item);
   } catch (err) {
     res.status(400).json({ message: err.message });
