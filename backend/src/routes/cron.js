@@ -2,6 +2,7 @@
 // Protected by CRON_SECRET env var — not by JWT
 const router = require("express").Router();
 const { prisma } = require("../middleware/auth");
+const { notifyEvent } = require("../services/notificationService");
 
 const CRON_SECRET = process.env.CRON_SECRET || "";
 
@@ -14,10 +15,69 @@ function verifyCronSecret(req, res, next) {
 
 router.use(verifyCronSecret);
 
+async function getTenantOwnerContact(tenantId) {
+  return prisma.user.findFirst({
+    where: { tenantId, role: "tenant_owner" },
+    select: { name: true, email: true, phone: true },
+  }).catch(() => null);
+}
+
 router.post("/process-expiry", async (_req, res) => {
   try {
     const now = new Date();
     const nowIso = now.toISOString();
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0);
+    const reminderWindowEnd = new Date(now);
+    reminderWindowEnd.setDate(reminderWindowEnd.getDate() + 3);
+
+    const expiringSoonTenants = await prisma.tenant.findMany({
+      where: {
+        subscriptionExpiry: { gte: now, lte: reminderWindowEnd },
+        subscriptionStatus: { in: ["active", "trial"] },
+      },
+      select: { id: true, name: true, subscriptionPlan: true, subscriptionStatus: true, subscriptionExpiry: true },
+    });
+
+    let remindersSent = 0;
+    for (const tenant of expiringSoonTenants) {
+      const existingReminder = await prisma.auditLog.findFirst({
+        where: {
+          tenantId: tenant.id,
+          module: "subscription",
+          action: "subscription_expiring_reminder_sent",
+          createdAt: { gte: startOfDay },
+        },
+      }).catch(() => null);
+      if (existingReminder) continue;
+
+      const owner = await getTenantOwnerContact(tenant.id);
+      await notifyEvent("subscription_expiring", {
+        ownerEmail: owner?.email || null,
+        ownerPhone: owner?.phone || null,
+        ownerName: owner?.name || null,
+        plan: tenant.subscriptionPlan,
+        expiryDate: tenant.subscriptionExpiry?.toISOString().slice(0, 10),
+      }).catch(() => {});
+
+      await prisma.auditLog.create({
+        data: {
+          actorId: "system",
+          actorName: "System Cron",
+          actorEmail: "system",
+          actorRole: "system",
+          tenantId: tenant.id,
+          tenantName: tenant.name,
+          module: "subscription",
+          action: "subscription_expiring_reminder_sent",
+          targetType: "tenant",
+          targetId: tenant.id,
+          targetLabel: tenant.name,
+          newValue: JSON.stringify({ plan: tenant.subscriptionPlan, expiry: tenant.subscriptionExpiry?.toISOString() }),
+        },
+      }).catch(() => {});
+      remindersSent += 1;
+    }
 
     const expiredTenants = await prisma.tenant.findMany({
       where: {
@@ -53,7 +113,7 @@ router.post("/process-expiry", async (_req, res) => {
     }
 
     const scheduledSubscriptions = await prisma.subscription.findMany({
-      where: { status: "scheduled", startDate: { lte: nowIso } },
+      where: { status: "scheduled", startDate: { lte: now } },
       orderBy: { createdAt: "asc" },
     }).catch(() => []);
 
@@ -99,10 +159,28 @@ router.post("/process-expiry", async (_req, res) => {
           newValue: JSON.stringify({ plan: subscription.plan, status: "active", expiry: expiryDate.toISOString() }),
         },
       }).catch(() => {});
+
+      const owner = await getTenantOwnerContact(tenant.id);
+      await notifyEvent("subscription_activated", {
+        ownerEmail: owner?.email || null,
+        ownerPhone: owner?.phone || null,
+        ownerName: owner?.name || null,
+        plan: subscription.plan,
+        expiryDate: expiryDate.toISOString().slice(0, 10),
+      }).catch(() => {});
+
       scheduledActivated += 1;
     }
 
-    res.json({ processed, scheduledActivated, total: expiredTenants.length, totalScheduled: scheduledSubscriptions.length, timestamp: nowIso });
+    res.json({
+      processed,
+      remindersSent,
+      scheduledActivated,
+      total: expiredTenants.length,
+      totalScheduled: scheduledSubscriptions.length,
+      totalExpiringSoon: expiringSoonTenants.length,
+      timestamp: nowIso,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
