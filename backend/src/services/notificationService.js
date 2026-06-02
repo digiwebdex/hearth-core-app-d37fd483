@@ -8,6 +8,8 @@ const { sendEmail, sendBookingConfirmation, sendInvoiceEmail } = require("./emai
 const { sendSms, getSmsTemplate } = require("./smsService");
 const { sendWhatsApp } = require("./whatsappService");
 
+const SUPER_ADMIN_ALERT_PHONE = process.env.SUPER_ADMIN_ALERT_PHONE || "+8801674533303";
+
 /**
  * Dispatch notification for an event.
  * Each handler is fire-and-forget — errors are logged, never thrown.
@@ -62,6 +64,16 @@ const EVENT_HANDLERS = {
       if (data.clientPhone) {
         const msg = getSmsTemplate("paymentReceived", data);
         if (msg) await sendSms({ to: data.clientPhone, message: msg });
+      }
+    },
+  ],
+
+  // New subscription order → SMS to super admin
+  subscription_order_alert: [
+    async (data) => {
+      if (SUPER_ADMIN_ALERT_PHONE) {
+        const msg = getSmsTemplate("subscriptionOrderAlert", data);
+        if (msg) await sendSms({ to: SUPER_ADMIN_ALERT_PHONE, message: msg });
       }
     },
   ],
