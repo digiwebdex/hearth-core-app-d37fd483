@@ -96,6 +96,9 @@ const templates = {
   subscriptionExpiring: (data) =>
     `Your ${data.plan} plan expires on ${data.expiryDate}. Renew now to avoid interruption. — Travel Agency Web`,
 
+  subscriptionOrderAlert: (data) =>
+    `New subscription order from ${data.tenantName || "Agency"}. Plan: ${data.plan}. Amount: ৳${data.amount}. Method: ${data.method}. Trx: ${data.trxId || "N/A"}.`,
+
   passwordResetOtp: (data) =>
     `Your password reset code is ${data.otp}. Valid for 10 minutes. Do not share. — Travel Agency Web`,
 
