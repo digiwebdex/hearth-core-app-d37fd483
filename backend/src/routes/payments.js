@@ -10,6 +10,23 @@ const { handlePaymentSuccess, auditPaymentEvent } = require("../services/payment
 router.use("/sslcommerz", require("./sslcommerz"));
 router.use("/bkash", require("./bkash"));
 
+function buildGatewayLogWhere({ tenantId, transactionId, includePending = false }) {
+  const actions = includePending
+    ? ["payment_initiated", "bkash_created", "payment_success", "payment_failed", "payment_cancelled", "payment_cod_confirmed", "ipn_validated"]
+    : ["payment_success", "payment_failed", "payment_cancelled", "payment_cod_confirmed", "ipn_validated"];
+
+  return {
+    ...(tenantId ? { tenantId } : {}),
+    module: "payment_gateway",
+    action: { in: actions },
+    OR: [
+      { targetLabel: transactionId },
+      { newValue: { contains: `"paymentID":"${transactionId}"` } },
+      { newValue: { contains: `"transactionId":"${transactionId}"` } },
+    ],
+  };
+}
+
 // GET /api/payments — list all payments for current tenant
 router.get("/", authenticate, async (req, res) => {
   try {
@@ -92,18 +109,14 @@ router.get("/status/:transactionId", authenticate, async (req, res) => {
     const { transactionId } = req.params;
 
     const log = await prisma.auditLog.findFirst({
-      where: {
-        tenantId: req.tenantId,
-        module: "payment_gateway",
-        targetLabel: transactionId,
-        action: { in: ["payment_success", "payment_failed", "payment_cancelled", "payment_cod_confirmed", "ipn_validated"] },
-      },
+      where: buildGatewayLogWhere({ tenantId: req.tenantId, transactionId }),
       orderBy: { createdAt: "desc" },
     });
 
     if (!log) {
       const initiated = await prisma.auditLog.findFirst({
-        where: { tenantId: req.tenantId, module: "payment_gateway", targetLabel: transactionId, action: { in: ["payment_initiated", "bkash_created"] } },
+        where: buildGatewayLogWhere({ tenantId: req.tenantId, transactionId, includePending: true }),
+        orderBy: { createdAt: "desc" },
       });
       if (initiated) {
         return res.json({ transactionId, status: "pending", gateway: "unknown" });
@@ -140,7 +153,7 @@ router.post("/callback/:gateway", async (req, res) => {
     const tranId = req.body?.tran_id || req.query?.tran_id || req.body?.paymentID || req.query?.paymentID || "";
 
     const log = await prisma.auditLog.findFirst({
-      where: { module: "payment_gateway", targetLabel: tranId },
+      where: buildGatewayLogWhere({ transactionId: tranId, includePending: true }),
       orderBy: { createdAt: "desc" },
     });
 
