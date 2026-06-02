@@ -86,7 +86,7 @@ async function updateInvoiceAndBooking(invoiceId, tenantId) {
   return updatedInvoice;
 }
 
-async function activateSubscriptionFromPaymentRequest(paymentRequestId) {
+async function activateSubscriptionFromPaymentRequest(paymentRequestId, transactionId) {
   if (!paymentRequestId) return { subscriptionUpdated: false };
 
   const paymentRequest = await prisma.paymentRequest.findUnique({ where: { id: paymentRequestId } });
@@ -108,7 +108,13 @@ async function activateSubscriptionFromPaymentRequest(paymentRequestId) {
   if (paymentRequest.status !== "approved") {
     await prisma.paymentRequest.update({
       where: { id: paymentRequestId },
-      data: { status: "approved", processedAt: new Date(), reviewedAt: new Date(), trxId: paymentRequest.trxId || paymentRequest.transactionId || null },
+      data: {
+        status: "approved",
+        processedAt: new Date(),
+        reviewedAt: new Date(),
+        trxId: transactionId || paymentRequest.trxId || paymentRequest.transactionId || null,
+        transactionId: transactionId || paymentRequest.transactionId || paymentRequest.trxId || null,
+      },
     }).catch((e) => console.error("[PAYMENT-GATEWAY] Payment request update error:", e.message));
   }
 
@@ -235,7 +241,7 @@ async function handlePaymentSuccess({ transactionId, invoiceId, paymentRequestId
   // 2. If linked to a payment request (subscription payment)
   if (paymentRequestId) {
     try {
-      const subscriptionResult = await activateSubscriptionFromPaymentRequest(paymentRequestId);
+      const subscriptionResult = await activateSubscriptionFromPaymentRequest(paymentRequestId, transactionId);
       result.subscriptionUpdated = subscriptionResult.subscriptionUpdated;
     } catch (e) {
       console.error("[PAYMENT-GATEWAY] Subscription update error:", e.message);
