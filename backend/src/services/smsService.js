@@ -90,14 +90,26 @@ const templates = {
   paymentReceived: (data) =>
     `Dear ${data.clientName}, we received your payment of ৳${data.amount} for Invoice ${data.invoiceNumber || "N/A"}. Due: ৳${data.dueAmount || 0}. Thank you!`,
 
+  agencySignupOwner: (data) =>
+    `Welcome ${data.ownerName || "Agency Owner"}! Your agency ${data.tenantName || "account"} is ready on Travel Agency Web. Plan: ${data.plan || "trial"}.`,
+
+  agencySignupAdminAlert: (data) =>
+    `New agency signup: ${data.tenantName || "Agency"}. Owner: ${data.ownerName || "N/A"}. Email: ${data.ownerEmail || "N/A"}. Phone: ${data.ownerPhone || "N/A"}.`,
+
   subscriptionActivated: (data) =>
     `Your ${data.plan} plan is now active until ${data.expiryDate}. Enjoy full access to all features. — Travel Agency Web`,
 
   subscriptionExpiring: (data) =>
     `Your ${data.plan} plan expires on ${data.expiryDate}. Renew now to avoid interruption. — Travel Agency Web`,
 
+  subscriptionExpiringAdmin: (data) =>
+    `Renewal soon: ${data.tenantName || "Agency"} plan ${data.plan} expires on ${data.expiryDate}. Contact the agency for renewal.`,
+
   subscriptionOrderAlert: (data) =>
     `New subscription order from ${data.tenantName || "Agency"}. Plan: ${data.plan}. Amount: ৳${data.amount}. Method: ${data.method}. Trx: ${data.trxId || "N/A"}.`,
+
+  subscriptionOrderConfirmation: (data) =>
+    `We received your ${data.requestType || "subscription"} request for ${data.plan} plan. Amount: ৳${data.amount}. Method: ${data.method}. We will review it soon.`,
 
   passwordResetOtp: (data) =>
     `Your password reset code is ${data.otp}. Valid for 10 minutes. Do not share. — Travel Agency Web`,
