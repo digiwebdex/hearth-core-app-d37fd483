@@ -53,6 +53,7 @@ router.post("/process-expiry", async (_req, res) => {
 
       const owner = await getTenantOwnerContact(tenant.id);
       await notifyEvent("subscription_expiring", {
+        tenantName: tenant.name,
         ownerEmail: owner?.email || null,
         ownerPhone: owner?.phone || null,
         ownerName: owner?.name || null,
