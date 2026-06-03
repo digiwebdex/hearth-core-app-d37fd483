@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,8 @@ const AdminTenantDetails = () => {
   const { tenantId } = useParams<{ tenantId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { i18n } = useTranslation();
+  const isBn = String(i18n.resolvedLanguage || i18n.language || "en").startsWith("bn");
   const [loading, setLoading] = useState(true);
   const [tenant, setTenant] = useState<AdminTenant | null>(null);
   const [requests, setRequests] = useState<WorkflowPaymentRequest[]>([]);
@@ -41,6 +44,102 @@ const AdminTenantDetails = () => {
   const [months, setMonths] = useState("1");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const text = {
+    loadFailed: isBn ? "টেন্যান্ট লোড ব্যর্থ" : "Failed to load tenant",
+    updated: isBn ? "টেন্যান্ট সাবস্ক্রিপশন আপডেট হয়েছে" : "Tenant subscription updated",
+    actionFailed: isBn ? "অ্যাকশন ব্যর্থ হয়েছে" : "Action failed",
+    loading: isBn ? "টেন্যান্ট তথ্য লোড হচ্ছে..." : "Loading tenant details...",
+    notFound: isBn ? "টেন্যান্ট পাওয়া যায়নি।" : "Tenant not found.",
+    back: isBn ? "এজেন্সি তালিকায় ফিরে যান" : "Back to agencies",
+    tenantId: isBn ? "টেন্যান্ট আইডি:" : "Tenant ID:",
+    companyProfile: isBn ? "কোম্পানি প্রোফাইল" : "Company profile",
+    owner: isBn ? "ওনার:" : "Owner:",
+    ownerEmail: isBn ? "ওনার ইমেইল:" : "Owner email:",
+    created: isBn ? "তৈরির তারিখ:" : "Created:",
+    users: isBn ? "ব্যবহারকারী:" : "Users:",
+    bookings: isBn ? "বুকিং:" : "Bookings:",
+    subscription: isBn ? "সাবস্ক্রিপশন" : "Subscription",
+    currentPlan: isBn ? "বর্তমান প্ল্যান:" : "Current plan:",
+    expiry: isBn ? "মেয়াদ শেষ:" : "Expiry:",
+    availablePlans: isBn ? "উপলব্ধ প্ল্যান:" : "Available plans:",
+    activateChange: isBn ? "অ্যাক্টিভ / প্ল্যান পরিবর্তন" : "Activate / change plan",
+    extend: isBn ? "এক্সটেন্ড" : "Extend",
+    skipTrial: isBn ? "ট্রায়াল শেষ করুন" : "Skip trial",
+    suspend: isBn ? "সাসপেন্ড" : "Suspend",
+    customDomains: isBn ? "কাস্টম ডোমেইন" : "Custom domains",
+    openDomainManagement: isBn ? "ডোমেইন ম্যানেজমেন্ট খুলুন" : "Open domain management",
+    noDomains: isBn ? "এই এজেন্সি এখনো কোনো কাস্টম ডোমেইন সংযুক্ত করেনি।" : "This agency has not connected any custom domain yet.",
+    domain: isBn ? "ডোমেইন" : "Domain",
+    verification: isBn ? "ভেরিফিকেশন" : "Verification",
+    status: isBn ? "স্ট্যাটাস" : "Status",
+    ssl: "SSL",
+    primary: isBn ? "প্রাইমারি" : "Primary",
+    recentRequests: isBn ? "সাম্প্রতিক পেমেন্ট রিকোয়েস্ট" : "Recent payment requests",
+    requestType: isBn ? "ধরন" : "Type",
+    amount: isBn ? "পরিমাণ" : "Amount",
+    method: isBn ? "মেথড" : "Method",
+    submitted: isBn ? "জমা দেওয়া হয়েছে" : "Submitted",
+    noRequests: isBn ? "এই এজেন্সির জন্য কোনো পেমেন্ট রিকোয়েস্ট নেই।" : "No payment requests for this agency.",
+    history: isBn ? "সাবস্ক্রিপশন ইতিহাস" : "Subscription history",
+    action: isBn ? "অ্যাকশন" : "Action",
+    oldPlan: isBn ? "আগের প্ল্যান" : "Old plan",
+    newPlan: isBn ? "নতুন প্ল্যান" : "New plan",
+    noHistory: isBn ? "এখনো কোনো সাবস্ক্রিপশন ইতিহাস নেই।" : "No subscription history yet.",
+    activateTitle: isBn ? "প্ল্যান অ্যাক্টিভ বা পরিবর্তন করুন" : "Activate or change plan",
+    extendTitle: isBn ? "সাবস্ক্রিপশন এক্সটেন্ড করুন" : "Extend subscription",
+    skipTrialTitle: isBn ? "ট্রায়াল শেষ করে পেইড প্ল্যান অ্যাক্টিভ করুন" : "Skip trial and activate paid plan",
+    suspendTitle: isBn ? "সাবস্ক্রিপশন সাসপেন্ড করুন" : "Suspend subscription",
+    targetPlan: isBn ? "টার্গেট প্ল্যান" : "Target plan",
+    billingCycle: isBn ? "বিলিং সাইকেল" : "Billing cycle",
+    monthly: isBn ? "মাসিক" : "Monthly",
+    yearly: isBn ? "বার্ষিক" : "Yearly",
+    extendMonths: isBn ? "কত মাস বাড়াবেন" : "Extend by months",
+    note: isBn ? "নোট" : "Note",
+    optionalNote: isBn ? "ঐচ্ছিক অ্যাডমিন নোট" : "Optional admin note",
+    cancel: isBn ? "বাতিল" : "Cancel",
+    saving: isBn ? "সংরক্ষণ হচ্ছে..." : "Saving...",
+    confirm: isBn ? "নিশ্চিত করুন" : "Confirm",
+  };
+
+  const planLabel = (value?: string | null) => {
+    const normalized = String(value || "").toLowerCase();
+    const map: Record<string, string> = {
+      free: isBn ? "ফ্রি" : "free",
+      basic: isBn ? "বেসিক" : "basic",
+      pro: isBn ? "প্রো" : "pro",
+      business: isBn ? "বিজনেস" : "business",
+      enterprise: isBn ? "এন্টারপ্রাইজ" : "enterprise",
+    };
+    return map[normalized] || value || "—";
+  };
+
+  const requestTypeLabel = (value?: string | null) => {
+    const normalized = String(value || "activate").toLowerCase();
+    const map: Record<string, string> = {
+      activate: isBn ? "অ্যাক্টিভেশন" : "activate",
+      renew: isBn ? "নবায়ন" : "renew",
+      upgrade: isBn ? "আপগ্রেড" : "upgrade",
+      downgrade: isBn ? "ডাউনগ্রেড" : "downgrade",
+    };
+    return map[normalized] || normalized;
+  };
+
+  const statusLabel = (value?: string | null) => {
+    const normalized = String(value || "").toLowerCase();
+    const map: Record<string, string> = {
+      trial: isBn ? "ট্রায়াল" : "trial",
+      active: isBn ? "সক্রিয়" : "active",
+      expired: isBn ? "মেয়াদোত্তীর্ণ" : "expired",
+      suspended: isBn ? "সাসপেন্ড" : "suspended",
+      cancelled: isBn ? "বাতিল" : "cancelled",
+      pending: isBn ? "অপেক্ষমান" : "pending",
+      approved: isBn ? "অনুমোদিত" : "approved",
+      rejected: isBn ? "প্রত্যাখ্যাত" : "rejected",
+      needs_info: isBn ? "তথ্য প্রয়োজন" : "needs info",
+    };
+    return map[normalized] || value || "—";
+  };
 
   const loadData = async () => {
     if (!tenantId) return;
@@ -58,7 +157,7 @@ const AdminTenantDetails = () => {
       setDomains((domainData || []).filter((item) => item.tenantId === tenantId));
       setPlan((tenantData.subscriptionPlan || "basic") as PlanType);
     } catch (err: any) {
-      toast({ title: "Failed to load tenant", description: err.message, variant: "destructive" });
+      toast({ title: text.loadFailed, description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -91,22 +190,22 @@ const AdminTenantDetails = () => {
       } else if (actionType === "suspend") {
         await adminSubscriptionWorkflowApi.suspendSubscription(tenant.id, note || undefined);
       }
-      toast({ title: "Tenant subscription updated", description: tenant.name });
+      toast({ title: text.updated, description: tenant.name });
       setDialogOpen(false);
       await loadData();
     } catch (err: any) {
-      toast({ title: "Action failed", description: err.message, variant: "destructive" });
+      toast({ title: text.actionFailed, description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
   };
 
   if (loading) {
-    return <AdminLayout><p className="text-center py-12 text-muted-foreground">Loading tenant details...</p></AdminLayout>;
+    return <AdminLayout><p className="text-center py-12 text-muted-foreground">{text.loading}</p></AdminLayout>;
   }
 
   if (!tenant) {
-    return <AdminLayout><div className="space-y-4"><Button variant="outline" onClick={() => navigate("/admin/tenants")}>Back</Button><p className="text-muted-foreground">Tenant not found.</p></div></AdminLayout>;
+    return <AdminLayout><div className="space-y-4"><Button variant="outline" onClick={() => navigate("/admin/tenants")}>{text.back}</Button><p className="text-muted-foreground">{text.notFound}</p></div></AdminLayout>;
   }
 
   return (
@@ -114,35 +213,35 @@ const AdminTenantDetails = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <Button variant="ghost" size="sm" onClick={() => navigate("/admin/tenants")}>Back to agencies</Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/admin/tenants")}>{text.back}</Button>
             <h1 className="text-3xl font-bold tracking-tight">{tenant.name}</h1>
-            <p className="text-muted-foreground">Tenant ID: {tenant.id}</p>
+            <p className="text-muted-foreground">{text.tenantId} {tenant.id}</p>
           </div>
-          <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium capitalize ${statusClasses[tenant.subscriptionStatus] || ""}`}>{tenant.subscriptionStatus}</span>
+          <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium capitalize ${statusClasses[tenant.subscriptionStatus] || ""}`}>{statusLabel(tenant.subscriptionStatus)}</span>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
           <Card>
-            <CardHeader><CardTitle>Company profile</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{text.companyProfile}</CardTitle></CardHeader>
             <CardContent className="space-y-2 text-sm">
-              <p><span className="text-muted-foreground">Owner:</span> {owner?.name || "—"}</p>
-              <p><span className="text-muted-foreground">Owner email:</span> {owner?.email || "—"}</p>
-              <p><span className="text-muted-foreground">Created:</span> {new Date(tenant.createdAt).toLocaleDateString()}</p>
-              <p><span className="text-muted-foreground">Users:</span> {tenant._count?.users || tenant.users?.length || 0}</p>
-              <p><span className="text-muted-foreground">Bookings:</span> {tenant._count?.bookings || 0}</p>
+              <p><span className="text-muted-foreground">{text.owner}</span> {owner?.name || "—"}</p>
+              <p><span className="text-muted-foreground">{text.ownerEmail}</span> {owner?.email || "—"}</p>
+              <p><span className="text-muted-foreground">{text.created}</span> {new Date(tenant.createdAt).toLocaleDateString(isBn ? "bn-BD" : undefined)}</p>
+              <p><span className="text-muted-foreground">{text.users}</span> {tenant._count?.users || tenant.users?.length || 0}</p>
+              <p><span className="text-muted-foreground">{text.bookings}</span> {tenant._count?.bookings || 0}</p>
             </CardContent>
           </Card>
           <Card>
-            <CardHeader><CardTitle>Subscription</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{text.subscription}</CardTitle></CardHeader>
             <CardContent className="space-y-2 text-sm">
-              <p><span className="text-muted-foreground">Current plan:</span> <Badge variant="secondary" className="ml-1 capitalize">{tenant.subscriptionPlan}</Badge></p>
-              <p><span className="text-muted-foreground">Expiry:</span> {tenant.subscriptionExpiry ? new Date(tenant.subscriptionExpiry).toLocaleDateString() : "—"}</p>
-              <p><span className="text-muted-foreground">Available plans:</span> {PLANS.map((item) => item.name).join(", ")}</p>
+              <p><span className="text-muted-foreground">{text.currentPlan}</span> <Badge variant="secondary" className="ml-1 capitalize">{planLabel(tenant.subscriptionPlan)}</Badge></p>
+              <p><span className="text-muted-foreground">{text.expiry}</span> {tenant.subscriptionExpiry ? new Date(tenant.subscriptionExpiry).toLocaleDateString(isBn ? "bn-BD" : undefined) : "—"}</p>
+              <p><span className="text-muted-foreground">{text.availablePlans}</span> {PLANS.map((item) => item.name).join(", ")}</p>
               <div className="flex flex-wrap gap-2 pt-2">
-                <Button size="sm" variant="outline" onClick={() => openAction("activate")}>Activate / change plan</Button>
-                <Button size="sm" variant="outline" onClick={() => openAction("extend")}>Extend</Button>
-                {tenant.subscriptionStatus === "trial" && <Button size="sm" variant="outline" onClick={() => openAction("skip_trial")}>Skip trial</Button>}
-                {tenant.subscriptionStatus !== "suspended" && <Button size="sm" variant="destructive" onClick={() => openAction("suspend")}>Suspend</Button>}
+                <Button size="sm" variant="outline" onClick={() => openAction("activate")}>{text.activateChange}</Button>
+                <Button size="sm" variant="outline" onClick={() => openAction("extend")}>{text.extend}</Button>
+                {tenant.subscriptionStatus === "trial" && <Button size="sm" variant="outline" onClick={() => openAction("skip_trial")}>{text.skipTrial}</Button>}
+                {tenant.subscriptionStatus !== "suspended" && <Button size="sm" variant="destructive" onClick={() => openAction("suspend")}>{text.suspend}</Button>}
               </div>
             </CardContent>
           </Card>
@@ -150,31 +249,31 @@ const AdminTenantDetails = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Custom domains</CardTitle>
-            <Button variant="outline" onClick={() => navigate("/admin/domains")}>Open domain management</Button>
+            <CardTitle>{text.customDomains}</CardTitle>
+            <Button variant="outline" onClick={() => navigate("/admin/domains")}>{text.openDomainManagement}</Button>
           </CardHeader>
           <CardContent>
             {domains.length === 0 ? (
-              <p className="text-sm text-muted-foreground">This agency has not connected any custom domain yet.</p>
+              <p className="text-sm text-muted-foreground">{text.noDomains}</p>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Domain</TableHead>
-                    <TableHead>Verification</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>SSL</TableHead>
-                    <TableHead>Primary</TableHead>
+                    <TableHead>{text.domain}</TableHead>
+                    <TableHead>{text.verification}</TableHead>
+                    <TableHead>{text.status}</TableHead>
+                    <TableHead>{text.ssl}</TableHead>
+                    <TableHead>{text.primary}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {domains.map((domain) => (
                     <TableRow key={domain.id}>
                       <TableCell className="font-medium">{domain.domain}</TableCell>
-                      <TableCell className="capitalize">{domain.verificationStatus}</TableCell>
-                      <TableCell className="capitalize">{domain.status}</TableCell>
-                      <TableCell className="capitalize">{domain.sslStatus}</TableCell>
-                      <TableCell>{domain.isPrimary ? <Badge>Primary</Badge> : "—"}</TableCell>
+                      <TableCell className="capitalize">{statusLabel(domain.verificationStatus)}</TableCell>
+                      <TableCell className="capitalize">{statusLabel(domain.status)}</TableCell>
+                      <TableCell className="capitalize">{statusLabel(domain.sslStatus)}</TableCell>
+                      <TableCell>{domain.isPrimary ? <Badge>{text.primary}</Badge> : "—"}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -184,30 +283,30 @@ const AdminTenantDetails = () => {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Recent payment requests</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{text.recentRequests}</CardTitle></CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Plan</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Method</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Submitted</TableHead>
+                  <TableHead>{text.currentPlan}</TableHead>
+                  <TableHead>{text.requestType}</TableHead>
+                  <TableHead>{text.amount}</TableHead>
+                  <TableHead>{text.method}</TableHead>
+                  <TableHead>{text.status}</TableHead>
+                  <TableHead>{text.submitted}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {requests.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No payment requests for this agency.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">{text.noRequests}</TableCell></TableRow>
                 ) : requests.map((request) => (
                   <TableRow key={request.id}>
-                    <TableCell className="capitalize">{request.requestedPlan || request.plan}</TableCell>
-                    <TableCell className="capitalize">{request.requestType || "activate"}</TableCell>
+                    <TableCell className="capitalize">{planLabel(request.requestedPlan || request.plan)}</TableCell>
+                    <TableCell className="capitalize">{requestTypeLabel(request.requestType)}</TableCell>
                     <TableCell>৳{(request.amountSent || request.amount || 0).toLocaleString()}</TableCell>
                     <TableCell className="capitalize">{request.paymentMethod || request.method}</TableCell>
-                    <TableCell><span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusClasses[request.status] || ""}`}>{request.status}</span></TableCell>
-                    <TableCell>{new Date(request.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell><span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusClasses[request.status] || ""}`}>{statusLabel(request.status)}</span></TableCell>
+                    <TableCell>{new Date(request.createdAt).toLocaleDateString(isBn ? "bn-BD" : undefined)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -216,30 +315,30 @@ const AdminTenantDetails = () => {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Subscription history</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{text.history}</CardTitle></CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Action</TableHead>
-                  <TableHead>Old plan</TableHead>
-                  <TableHead>New plan</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Expiry</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead>{text.action}</TableHead>
+                  <TableHead>{text.oldPlan}</TableHead>
+                  <TableHead>{text.newPlan}</TableHead>
+                  <TableHead>{text.status}</TableHead>
+                  <TableHead>{text.expiry}</TableHead>
+                  <TableHead>{text.created}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {history.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No subscription history yet.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">{text.noHistory}</TableCell></TableRow>
                 ) : history.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="capitalize">{item.actionType.replace(/_/g, " ")}</TableCell>
-                    <TableCell className="capitalize">{item.oldPlan || "—"}</TableCell>
-                    <TableCell className="capitalize">{item.newPlan}</TableCell>
-                    <TableCell>{item.oldStatus || "—"} → {item.newStatus}</TableCell>
-                    <TableCell>{item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : "—"}</TableCell>
-                    <TableCell>{new Date(item.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell className="capitalize">{String(item.actionType).replace(/_/g, " ")}</TableCell>
+                    <TableCell className="capitalize">{planLabel(item.oldPlan)}</TableCell>
+                    <TableCell className="capitalize">{planLabel(item.newPlan)}</TableCell>
+                    <TableCell>{statusLabel(item.oldStatus)} → {statusLabel(item.newStatus)}</TableCell>
+                    <TableCell>{item.expiryDate ? new Date(item.expiryDate).toLocaleDateString(isBn ? "bn-BD" : undefined) : "—"}</TableCell>
+                    <TableCell>{new Date(item.createdAt).toLocaleDateString(isBn ? "bn-BD" : undefined)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -249,44 +348,37 @@ const AdminTenantDetails = () => {
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="max-w-lg">
-            <DialogHeader><DialogTitle>{actionType === "activate" ? "Activate or change plan" : actionType === "extend" ? "Extend subscription" : actionType === "skip_trial" ? "Skip trial and activate paid plan" : "Suspend subscription"}</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{actionType === "activate" ? text.activateTitle : actionType === "extend" ? text.extendTitle : actionType === "skip_trial" ? text.skipTrialTitle : text.suspendTitle}</DialogTitle></DialogHeader>
             <div className="space-y-4">
               {(actionType === "activate" || actionType === "skip_trial") && (
                 <>
                   <div>
-                    <Label>Target plan</Label>
+                    <Label>{text.targetPlan}</Label>
                     <Select value={plan} onValueChange={(value: PlanType) => setPlan(value)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {PLANS.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}
-                      </SelectContent>
+                      <SelectContent>{PLANS.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div>
-                    <Label>Billing cycle</Label>
+                    <Label>{text.billingCycle}</Label>
                     <Select value={billingCycle} onValueChange={(value: BillingCycle) => setBillingCycle(value)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                        <SelectItem value="yearly">Yearly</SelectItem>
+                        <SelectItem value="monthly">{text.monthly}</SelectItem>
+                        <SelectItem value="yearly">{text.yearly}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </>
               )}
-              {actionType === "extend" && (
-                <div>
-                  <Label>Extend by months</Label>
-                  <Input value={months} onChange={(e) => setMonths(e.target.value)} />
-                </div>
-              )}
+              {actionType === "extend" && <div><Label>{text.extendMonths}</Label><Input value={months} onChange={(e) => setMonths(e.target.value)} /></div>}
               <div>
-                <Label>Note</Label>
-                <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional admin note" />
+                <Label>{text.note}</Label>
+                <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder={text.optionalNote} />
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                <Button onClick={submitAction} disabled={saving}>{saving ? "Saving..." : "Confirm"}</Button>
+                <Button variant="outline" onClick={() => setDialogOpen(false)}>{text.cancel}</Button>
+                <Button onClick={submitAction} disabled={saving}>{saving ? text.saving : text.confirm}</Button>
               </div>
             </div>
           </DialogContent>
