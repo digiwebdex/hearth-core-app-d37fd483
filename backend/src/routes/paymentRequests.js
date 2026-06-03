@@ -136,9 +136,17 @@ async function writeAuditLog(req, { action, targetId, targetLabel, newValue, old
 }
 
 async function sendSuperAdminOrderAlert({ tenant, item }) {
+  const owner = await prisma.user.findFirst({
+    where: { tenantId: tenant?.id || null, role: "tenant_owner" },
+    select: { name: true, email: true, phone: true },
+  }).catch(() => null);
+
   await notifyEvent("subscription_order_alert", {
     tenantName: tenant?.name || "Agency",
     tenantId: tenant?.id || null,
+    ownerName: owner?.name || null,
+    ownerEmail: owner?.email || null,
+    ownerPhone: owner?.phone || tenant?.phone || null,
     plan: item.requestedPlan || item.plan,
     amount: item.amountSent || item.amount,
     method: item.paymentMethod || item.method || "manual",
