@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import AdminLayout from "@/components/AdminLayout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,12 +13,9 @@ import {
 } from "recharts";
 import {
   TrendingUp, TrendingDown, DollarSign, Building2, Users, Crown,
-  Download, UserPlus, AlertTriangle, Activity, BarChart3,
+  Download, AlertTriangle, BarChart3,
 } from "lucide-react";
 
-const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#ef4444", "#06b6d4"];
-
-// ── Mock Data ──
 const mrrData = [
   { month: "Oct", mrr: 68000, arr: 816000 }, { month: "Nov", mrr: 74000, arr: 888000 },
   { month: "Dec", mrr: 82000, arr: 984000 }, { month: "Jan", mrr: 78000, arr: 936000 },
@@ -67,6 +65,62 @@ const topTenants = [
 
 const AdminReports = () => {
   const [period, setPeriod] = useState("6m");
+  const { i18n } = useTranslation();
+  const isBn = String(i18n.resolvedLanguage || i18n.language || "en").startsWith("bn");
+
+  const text = {
+    title: isBn ? "প্ল্যাটফর্ম রিপোর্ট" : "Platform Reports",
+    subtitle: isBn ? "রাজস্ব, গ্রোথ, চার্ন এবং আর্থিক অ্যানালিটিক্স" : "Revenue, growth, churn, and financial analytics",
+    last3: isBn ? "শেষ ৩ মাস" : "Last 3 Months",
+    last6: isBn ? "শেষ ৬ মাস" : "Last 6 Months",
+    last12: isBn ? "শেষ ১২ মাস" : "Last 12 Months",
+    mrr: "MRR",
+    arr: "ARR",
+    totalAgencies: isBn ? "মোট এজেন্সি" : "Total Agencies",
+    activeSubs: isBn ? "সক্রিয় সাবস্ক্রিপশন" : "Active Subs",
+    totalUsers: isBn ? "মোট ব্যবহারকারী" : "Total Users",
+    churnRate: isBn ? "চার্ন রেট" : "Churn Rate",
+    overdue: isBn ? "বকেয়া" : "Overdue",
+    revenue: isBn ? "রাজস্ব" : "Revenue",
+    growth: isBn ? "এজেন্সি গ্রোথ" : "Agency Growth",
+    plans: isBn ? "প্ল্যান অ্যানালিটিক্স" : "Plan Analytics",
+    overdueChurn: isBn ? "বকেয়া ও চার্ন" : "Overdue & Churn",
+    export: isBn ? "এক্সপোর্ট" : "Export",
+    mrrTrend: isBn ? "এমআরআর ট্রেন্ড" : "MRR Trend",
+    collectedVsDue: isBn ? "আদায় বনাম বকেয়া" : "Collected vs Due",
+    collected: isBn ? "আদায়" : "Collected",
+    due: isBn ? "বকেয়া" : "Due",
+    revenueByPlan: isBn ? "প্ল্যানভিত্তিক রাজস্ব" : "Revenue by Plan",
+    plan: isBn ? "প্ল্যান" : "Plan",
+    agencies: isBn ? "এজেন্সি" : "Agencies",
+    monthlyRevenue: isBn ? "মাসিক রাজস্ব" : "Monthly Revenue",
+    percentMrr: isBn ? "এমআরআরের %" : "% of MRR",
+    topAgencies: isBn ? "শীর্ষ এজেন্সি" : "Top Agencies",
+    agency: isBn ? "এজেন্সি" : "Agency",
+    users: isBn ? "ব্যবহারকারী" : "Users",
+    bookings: isBn ? "বুকিং" : "Bookings",
+    planDistribution: isBn ? "প্ল্যান বন্টন" : "Plan Distribution",
+    planBreakdown: isBn ? "প্ল্যান বিভাজন" : "Plan Breakdown",
+    overduePayments: isBn ? "বকেয়া পেমেন্ট" : "Overdue Payments",
+    amount: isBn ? "পরিমাণ" : "Amount",
+    dueDate: isBn ? "বকেয়া তারিখ" : "Due",
+    daysLate: isBn ? "বিলম্বিত দিন" : "Days Late",
+    monthlyChurn: isBn ? "মাসিক চার্ন" : "Monthly Churn",
+    total: isBn ? "মোট" : "Total",
+    newLabel: isBn ? "নতুন" : "New",
+    churned: isBn ? "চার্নড" : "Churned",
+  };
+
+  const planLabel = (value: string) => {
+    const map: Record<string, string> = {
+      Free: isBn ? "ফ্রি" : "Free",
+      Basic: isBn ? "বেসিক" : "Basic",
+      Pro: isBn ? "প্রো" : "Pro",
+      Business: isBn ? "বিজনেস" : "Business",
+      Enterprise: isBn ? "এন্টারপ্রাইজ" : "Enterprise",
+    };
+    return map[value] || value;
+  };
 
   const stats = useMemo(() => {
     const latestMrr = mrrData[mrrData.length - 1].mrr;
@@ -98,58 +152,56 @@ const AdminReports = () => {
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Platform Reports</h1>
-            <p className="text-muted-foreground">Revenue, growth, churn, and financial analytics</p>
+            <h1 className="text-3xl font-bold tracking-tight">{text.title}</h1>
+            <p className="text-muted-foreground">{text.subtitle}</p>
           </div>
           <Select value={period} onValueChange={setPeriod}>
             <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="3m">Last 3 Months</SelectItem>
-              <SelectItem value="6m">Last 6 Months</SelectItem>
-              <SelectItem value="12m">Last 12 Months</SelectItem>
+              <SelectItem value="3m">{text.last3}</SelectItem>
+              <SelectItem value="6m">{text.last6}</SelectItem>
+              <SelectItem value="12m">{text.last12}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        {/* Stats */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-3"><DollarSign className="h-8 w-8 text-green-600" /><div><p className="text-2xl font-bold">৳{stats.latestMrr.toLocaleString()}</p><p className="text-xs text-muted-foreground">MRR</p><p className="text-[10px] text-green-600 flex items-center gap-0.5"><TrendingUp className="h-3 w-3" />{stats.mrrGrowth}%</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-3"><BarChart3 className="h-8 w-8 text-primary" /><div><p className="text-2xl font-bold">৳{(stats.latestMrr * 12).toLocaleString()}</p><p className="text-xs text-muted-foreground">ARR</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-3"><Building2 className="h-8 w-8 text-blue-500" /><div><p className="text-2xl font-bold">{stats.totalTenants}</p><p className="text-xs text-muted-foreground">Total Agencies</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-3"><Crown className="h-8 w-8 text-purple-500" /><div><p className="text-2xl font-bold">{stats.activeSubs}</p><p className="text-xs text-muted-foreground">Active Subs</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-3"><Users className="h-8 w-8 text-indigo-500" /><div><p className="text-2xl font-bold">{stats.totalUsers}</p><p className="text-xs text-muted-foreground">Total Users</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-3"><TrendingDown className="h-8 w-8 text-red-500" /><div><p className="text-2xl font-bold">{stats.churnRate}%</p><p className="text-xs text-muted-foreground">Churn Rate</p></div></div></CardContent></Card>
-          <Card className="border-red-300 dark:border-red-600"><CardContent className="pt-6"><div className="flex items-center gap-3"><AlertTriangle className="h-8 w-8 text-red-500" /><div><p className="text-2xl font-bold">৳{stats.totalOverdue.toLocaleString()}</p><p className="text-xs text-muted-foreground">Overdue</p></div></div></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="flex items-center gap-3"><DollarSign className="h-8 w-8 text-green-600" /><div><p className="text-2xl font-bold">৳{stats.latestMrr.toLocaleString()}</p><p className="text-xs text-muted-foreground">{text.mrr}</p><p className="text-[10px] text-green-600 flex items-center gap-0.5"><TrendingUp className="h-3 w-3" />{stats.mrrGrowth}%</p></div></div></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="flex items-center gap-3"><BarChart3 className="h-8 w-8 text-primary" /><div><p className="text-2xl font-bold">৳{(stats.latestMrr * 12).toLocaleString()}</p><p className="text-xs text-muted-foreground">{text.arr}</p></div></div></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="flex items-center gap-3"><Building2 className="h-8 w-8 text-blue-500" /><div><p className="text-2xl font-bold">{stats.totalTenants}</p><p className="text-xs text-muted-foreground">{text.totalAgencies}</p></div></div></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="flex items-center gap-3"><Crown className="h-8 w-8 text-purple-500" /><div><p className="text-2xl font-bold">{stats.activeSubs}</p><p className="text-xs text-muted-foreground">{text.activeSubs}</p></div></div></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="flex items-center gap-3"><Users className="h-8 w-8 text-indigo-500" /><div><p className="text-2xl font-bold">{stats.totalUsers}</p><p className="text-xs text-muted-foreground">{text.totalUsers}</p></div></div></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="flex items-center gap-3"><TrendingDown className="h-8 w-8 text-red-500" /><div><p className="text-2xl font-bold">{stats.churnRate}%</p><p className="text-xs text-muted-foreground">{text.churnRate}</p></div></div></CardContent></Card>
+          <Card className="border-red-300 dark:border-red-600"><CardContent className="pt-6"><div className="flex items-center gap-3"><AlertTriangle className="h-8 w-8 text-red-500" /><div><p className="text-2xl font-bold">৳{stats.totalOverdue.toLocaleString()}</p><p className="text-xs text-muted-foreground">{text.overdue}</p></div></div></CardContent></Card>
         </div>
 
         <Tabs defaultValue="revenue" className="space-y-4">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="revenue">Revenue</TabsTrigger>
-            <TabsTrigger value="growth">Agency Growth</TabsTrigger>
-            <TabsTrigger value="plans">Plan Analytics</TabsTrigger>
-            <TabsTrigger value="overdue">Overdue & Churn</TabsTrigger>
+            <TabsTrigger value="revenue">{text.revenue}</TabsTrigger>
+            <TabsTrigger value="growth">{text.growth}</TabsTrigger>
+            <TabsTrigger value="plans">{text.plans}</TabsTrigger>
+            <TabsTrigger value="overdue">{text.overdueChurn}</TabsTrigger>
           </TabsList>
 
-          {/* Revenue */}
           <TabsContent value="revenue" className="space-y-4">
-            <div className="flex justify-end"><Button variant="outline" size="sm" onClick={() => handleExport("mrr")}><Download className="mr-1 h-4 w-4" /> Export</Button></div>
+            <div className="flex justify-end"><Button variant="outline" size="sm" onClick={() => handleExport("mrr")}><Download className="mr-1 h-4 w-4" /> {text.export}</Button></div>
             <div className="grid gap-4 lg:grid-cols-2">
               <Card>
-                <CardHeader><CardTitle className="text-base">MRR Trend</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">{text.mrrTrend}</CardTitle></CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={280}>
                     <AreaChart data={mrrData}>
                       <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                       <XAxis dataKey="month" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
                       <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} tickFormatter={(v) => `৳${(v/1000).toFixed(0)}k`} />
-                      <Tooltip formatter={(v: number) => [`৳${v.toLocaleString()}`, "MRR"]} />
+                      <Tooltip formatter={(v: number) => [`৳${v.toLocaleString()}`, text.mrr]} />
                       <Area type="monotone" dataKey="mrr" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.15} strokeWidth={2} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader><CardTitle className="text-base">Collected vs Due</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">{text.collectedVsDue}</CardTitle></CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={280}>
                     <BarChart data={collectedVsDue}>
@@ -157,25 +209,24 @@ const AdminReports = () => {
                       <XAxis dataKey="month" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
                       <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} tickFormatter={(v) => `৳${(v/1000).toFixed(0)}k`} />
                       <Tooltip formatter={(v: number) => `৳${v.toLocaleString()}`} />
-                      <Bar dataKey="collected" fill="#10b981" radius={[4,4,0,0]} name="Collected" />
-                      <Bar dataKey="due" fill="#f59e0b" radius={[4,4,0,0]} name="Due" />
+                      <Bar dataKey="collected" fill="#10b981" radius={[4,4,0,0]} name={text.collected} />
+                      <Bar dataKey="due" fill="#f59e0b" radius={[4,4,0,0]} name={text.due} />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
             </div>
-            {/* Revenue by Plan */}
             <Card>
-              <CardHeader><CardTitle className="text-base">Revenue by Plan</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">{text.revenueByPlan}</CardTitle></CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader><TableRow>
-                    <TableHead>Plan</TableHead><TableHead className="text-right">Agencies</TableHead><TableHead className="text-right">Monthly Revenue</TableHead><TableHead className="text-right">% of MRR</TableHead>
+                    <TableHead>{text.plan}</TableHead><TableHead className="text-right">{text.agencies}</TableHead><TableHead className="text-right">{text.monthlyRevenue}</TableHead><TableHead className="text-right">{text.percentMrr}</TableHead>
                   </TableRow></TableHeader>
                   <TableBody>
                     {revenueByPlan.map((r) => (
                       <TableRow key={r.plan}>
-                        <TableCell><Badge variant="secondary" className="capitalize">{r.plan}</Badge></TableCell>
+                        <TableCell><Badge variant="secondary" className="capitalize">{planLabel(r.plan)}</Badge></TableCell>
                         <TableCell className="text-right">{r.tenants}</TableCell>
                         <TableCell className="text-right font-semibold">৳{r.revenue.toLocaleString()}</TableCell>
                         <TableCell className="text-right text-muted-foreground">{stats.latestMrr > 0 ? ((r.revenue/stats.latestMrr)*100).toFixed(1) : 0}%</TableCell>
@@ -187,12 +238,11 @@ const AdminReports = () => {
             </Card>
           </TabsContent>
 
-          {/* Tenant Growth */}
           <TabsContent value="growth" className="space-y-4">
-            <div className="flex justify-end"><Button variant="outline" size="sm" onClick={() => handleExport("tenants")}><Download className="mr-1 h-4 w-4" /> Export</Button></div>
+            <div className="flex justify-end"><Button variant="outline" size="sm" onClick={() => handleExport("tenants")}><Download className="mr-1 h-4 w-4" /> {text.export}</Button></div>
             <div className="grid gap-4 lg:grid-cols-2">
               <Card>
-                <CardHeader><CardTitle className="text-base">Agency Growth</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">{text.growth}</CardTitle></CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={280}>
                     <LineChart data={tenantGrowth}>
@@ -200,23 +250,23 @@ const AdminReports = () => {
                       <XAxis dataKey="month" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
                       <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
                       <Tooltip />
-                      <Line type="monotone" dataKey="totalTenants" stroke="hsl(var(--primary))" strokeWidth={2} name="Total" />
-                      <Line type="monotone" dataKey="newTenants" stroke="#10b981" strokeWidth={2} name="New" />
-                      <Line type="monotone" dataKey="churned" stroke="#ef4444" strokeWidth={2} name="Churned" />
+                      <Line type="monotone" dataKey="totalTenants" stroke="hsl(var(--primary))" strokeWidth={2} name={text.total} />
+                      <Line type="monotone" dataKey="newTenants" stroke="#10b981" strokeWidth={2} name={text.newLabel} />
+                      <Line type="monotone" dataKey="churned" stroke="#ef4444" strokeWidth={2} name={text.churned} />
                     </LineChart>
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader><CardTitle className="text-base">Top Agencies</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">{text.topAgencies}</CardTitle></CardHeader>
                 <CardContent>
                   <Table>
-                    <TableHeader><TableRow><TableHead>Agency</TableHead><TableHead>Plan</TableHead><TableHead className="text-right">Users</TableHead><TableHead className="text-right">Bookings</TableHead></TableRow></TableHeader>
+                    <TableHeader><TableRow><TableHead>{text.agency}</TableHead><TableHead>{text.plan}</TableHead><TableHead className="text-right">{text.users}</TableHead><TableHead className="text-right">{text.bookings}</TableHead></TableRow></TableHeader>
                     <TableBody>
                       {topTenants.map((t) => (
                         <TableRow key={t.name}>
                           <TableCell className="font-medium">{t.name}</TableCell>
-                          <TableCell><Badge variant="outline" className="capitalize">{t.plan}</Badge></TableCell>
+                          <TableCell><Badge variant="outline" className="capitalize">{planLabel(t.plan)}</Badge></TableCell>
                           <TableCell className="text-right">{t.users}</TableCell>
                           <TableCell className="text-right">{t.bookings}</TableCell>
                         </TableRow>
@@ -228,24 +278,23 @@ const AdminReports = () => {
             </div>
           </TabsContent>
 
-          {/* Plan Analytics */}
           <TabsContent value="plans" className="space-y-4">
             <div className="grid gap-4 lg:grid-cols-2">
               <Card>
-                <CardHeader><CardTitle className="text-base">Plan Distribution</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">{text.planDistribution}</CardTitle></CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={280}>
                     <PieChart>
-                      <Pie data={planDist} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={({ name, percent }) => `${name} ${(percent*100).toFixed(0)}%`}>
+                      <Pie data={planDist} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={({ name, percent }) => `${planLabel(String(name))} ${(percent*100).toFixed(0)}%`}>
                         {planDist.map((d, i) => <Cell key={i} fill={d.color} />)}
                       </Pie>
-                      <Tooltip />
+                      <Tooltip formatter={(_v, _n, item: any) => [`${item?.payload?.value}`, planLabel(item?.payload?.name)]} />
                     </PieChart>
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader><CardTitle className="text-base">Plan Breakdown</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">{text.planBreakdown}</CardTitle></CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     {planDist.map((p) => {
@@ -254,8 +303,8 @@ const AdminReports = () => {
                       return (
                         <div key={p.name} className="space-y-1.5">
                           <div className="flex items-center justify-between text-sm">
-                            <span className="font-medium">{p.name}</span>
-                            <span className="text-muted-foreground">{p.value} agencies ({pct}%)</span>
+                            <span className="font-medium">{planLabel(p.name)}</span>
+                            <span className="text-muted-foreground">{isBn ? `${p.value} এজেন্সি (${pct}%)` : `${p.value} agencies (${pct}%)`}</span>
                           </div>
                           <div className="h-2 rounded-full bg-muted overflow-hidden">
                             <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: p.color }} />
@@ -269,25 +318,24 @@ const AdminReports = () => {
             </div>
           </TabsContent>
 
-          {/* Overdue & Churn */}
           <TabsContent value="overdue" className="space-y-4">
-            <div className="flex justify-end"><Button variant="outline" size="sm" onClick={() => handleExport("overdue")}><Download className="mr-1 h-4 w-4" /> Export</Button></div>
+            <div className="flex justify-end"><Button variant="outline" size="sm" onClick={() => handleExport("overdue")}><Download className="mr-1 h-4 w-4" /> {text.export}</Button></div>
             <div className="grid gap-4 lg:grid-cols-2">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-red-500" /> Overdue Payments</CardTitle>
+                  <CardTitle className="text-base flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-red-500" /> {text.overduePayments}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Table>
-                    <TableHeader><TableRow><TableHead>Agency</TableHead><TableHead>Plan</TableHead><TableHead className="text-right">Amount</TableHead><TableHead>Due</TableHead><TableHead className="text-right">Days Late</TableHead></TableRow></TableHeader>
+                    <TableHeader><TableRow><TableHead>{text.agency}</TableHead><TableHead>{text.plan}</TableHead><TableHead className="text-right">{text.amount}</TableHead><TableHead>{text.dueDate}</TableHead><TableHead className="text-right">{text.daysLate}</TableHead></TableRow></TableHeader>
                     <TableBody>
                       {overduePayments.map((p, i) => (
                         <TableRow key={i}>
                           <TableCell className="font-medium">{p.tenantName}</TableCell>
-                          <TableCell><Badge variant="outline" className="capitalize">{p.plan}</Badge></TableCell>
+                          <TableCell><Badge variant="outline" className="capitalize">{planLabel(p.plan)}</Badge></TableCell>
                           <TableCell className="text-right font-semibold text-red-600">৳{p.amount.toLocaleString()}</TableCell>
                           <TableCell className="text-muted-foreground">{p.dueDate}</TableCell>
-                          <TableCell className="text-right"><Badge variant="destructive">{p.daysPastDue}d</Badge></TableCell>
+                          <TableCell className="text-right"><Badge variant="destructive">{isBn ? `${p.daysPastDue} দিন` : `${p.daysPastDue}d`}</Badge></TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -295,7 +343,7 @@ const AdminReports = () => {
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader><CardTitle className="text-base">Monthly Churn</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">{text.monthlyChurn}</CardTitle></CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={250}>
                     <BarChart data={tenantGrowth}>
@@ -303,7 +351,7 @@ const AdminReports = () => {
                       <XAxis dataKey="month" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
                       <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
                       <Tooltip />
-                      <Bar dataKey="churned" fill="#ef4444" radius={[4,4,0,0]} name="Churned" />
+                      <Bar dataKey="churned" fill="#ef4444" radius={[4,4,0,0]} name={text.churned} />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
