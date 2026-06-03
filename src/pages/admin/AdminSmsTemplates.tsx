@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,14 +34,6 @@ const TYPE_COLORS: Record<SmsTemplateType, string> = {
   custom: "bg-violet-500/15 text-violet-700 dark:text-violet-400",
 };
 
-const TYPE_LABELS: Record<SmsTemplateType, string> = {
-  booking: "Booking",
-  payment: "Payment",
-  otp: "OTP",
-  reminder: "Reminder",
-  custom: "Custom",
-};
-
 const emptyForm = {
   name: "",
   type: "booking" as SmsTemplateType,
@@ -62,6 +55,17 @@ const AdminSmsTemplates = () => {
   const [previewData, setPreviewData] = useState<Record<string, string>>({});
   const [selectedTemplate, setSelectedTemplate] = useState<SmsTemplate | null>(null);
   const { toast } = useToast();
+  const { i18n } = useTranslation();
+  const isBn = String(i18n.resolvedLanguage || i18n.language || "en").toLowerCase().startsWith("bn");
+  const tx = (en: string, bn: string) => (isBn ? bn : en);
+
+  const TYPE_LABELS: Record<SmsTemplateType, string> = {
+    booking: tx("Booking", "বুকিং"),
+    payment: tx("Payment", "পেমেন্ট"),
+    otp: "OTP",
+    reminder: tx("Reminder", "রিমাইন্ডার"),
+    custom: tx("Custom", "কাস্টম"),
+  };
 
   const fetchTemplates = useCallback(async () => {
     setLoading(true);
@@ -69,7 +73,6 @@ const AdminSmsTemplates = () => {
       const data = await smsTemplateApi.list();
       setTemplates(data);
     } catch {
-      // Use defaults as fallback for demo
       const fallback: SmsTemplate[] = DEFAULT_TEMPLATES.map((t, i) => ({
         ...t,
         id: `tpl-${i + 1}`,
@@ -102,7 +105,7 @@ const AdminSmsTemplates = () => {
 
   const handleSubmit = async () => {
     if (!form.name.trim() || !form.message.trim()) {
-      toast({ title: "Name and message are required", variant: "destructive" });
+      toast({ title: tx("Name and message are required", "নাম এবং বার্তা আবশ্যক"), variant: "destructive" });
       return;
     }
 
@@ -118,15 +121,14 @@ const AdminSmsTemplates = () => {
         const created = await smsTemplateApi.create(payload);
         setTemplates((prev) => [...prev, created]);
       }
-      toast({ title: editId ? "Template updated" : "Template created" });
+      toast({ title: editId ? tx("Template updated", "টেমপ্লেট আপডেট হয়েছে") : tx("Template created", "টেমপ্লেট তৈরি হয়েছে") });
     } catch {
-      // Offline fallback
       if (editId) {
         setTemplates((prev) => prev.map((t) => (t.id === editId ? { ...t, ...payload } : t)));
       } else {
         setTemplates((prev) => [...prev, { ...payload, id: `tpl-${Date.now()}`, createdAt: new Date().toISOString() }]);
       }
-      toast({ title: editId ? "Template updated (local)" : "Template created (local)" });
+      toast({ title: editId ? tx("Template updated", "টেমপ্লেট আপডেট হয়েছে") : tx("Template created", "টেমপ্লেট তৈরি হয়েছে") });
     } finally {
       setSaving(false);
       setDialogOpen(false);
@@ -138,7 +140,7 @@ const AdminSmsTemplates = () => {
       await smsTemplateApi.delete(id);
     } catch { /* offline */ }
     setTemplates((prev) => prev.filter((t) => t.id !== id));
-    toast({ title: "Template deleted" });
+    toast({ title: tx("Template deleted", "টেমপ্লেট মুছে ফেলা হয়েছে") });
   };
 
   const handlePreview = (template: SmsTemplate) => {
@@ -163,41 +165,41 @@ const AdminSmsTemplates = () => {
     return matchSearch && matchType;
   });
 
+  const detectedVariables = extractVariables(form.message).map((v) => `{{${v}}}`).join(", ") || tx("none", "কোনোটি নেই");
+
   return (
     <AdminLayout>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-              <MessageSquare className="h-8 w-8" /> SMS Templates
+              <MessageSquare className="h-8 w-8" /> {tx("SMS Templates", "এসএমএস টেমপ্লেট")}
             </h1>
-            <p className="text-muted-foreground">Manage SMS message templates with dynamic variables</p>
+            <p className="text-muted-foreground">{tx("Manage SMS message templates with dynamic variables", "ডাইনামিক ভ্যারিয়েবলসহ এসএমএস বার্তার টেমপ্লেট পরিচালনা করুন")}</p>
           </div>
           <Button onClick={() => handleOpen()}>
-            <Plus className="mr-2 h-4 w-4" /> New Template
+            <Plus className="mr-2 h-4 w-4" /> {tx("New Template", "নতুন টেমপ্লেট")}
           </Button>
         </div>
 
-        {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search templates..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+            <Input placeholder={tx("Search templates...", "টেমপ্লেট খুঁজুন...")} value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </div>
           <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Filter type" /></SelectTrigger>
+            <SelectTrigger className="w-[160px]"><SelectValue placeholder={tx("Filter type", "ধরন ফিল্টার")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="booking">Booking</SelectItem>
-              <SelectItem value="payment">Payment</SelectItem>
+              <SelectItem value="all">{tx("All Types", "সব ধরন")}</SelectItem>
+              <SelectItem value="booking">{TYPE_LABELS.booking}</SelectItem>
+              <SelectItem value="payment">{TYPE_LABELS.payment}</SelectItem>
               <SelectItem value="otp">OTP</SelectItem>
-              <SelectItem value="reminder">Reminder</SelectItem>
-              <SelectItem value="custom">Custom</SelectItem>
+              <SelectItem value="reminder">{TYPE_LABELS.reminder}</SelectItem>
+              <SelectItem value="custom">{TYPE_LABELS.custom}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        {/* Table */}
         <Card>
           <CardContent className="p-0">
             {loading ? (
@@ -207,19 +209,19 @@ const AdminSmsTemplates = () => {
             ) : filtered.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <MessageSquare className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                <p className="font-medium">No templates found</p>
-                <p className="text-sm">Create your first SMS template to get started.</p>
+                <p className="font-medium">{tx("No templates found", "কোনো টেমপ্লেট পাওয়া যায়নি")}</p>
+                <p className="text-sm">{tx("Create your first SMS template to get started.", "শুরু করতে আপনার প্রথম এসএমএস টেমপ্লেট তৈরি করুন।")}</p>
               </div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead className="hidden md:table-cell">Message Preview</TableHead>
-                    <TableHead>Variables</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{tx("Name", "নাম")}</TableHead>
+                    <TableHead>{tx("Type", "ধরন")}</TableHead>
+                    <TableHead className="hidden md:table-cell">{tx("Message Preview", "বার্তার প্রিভিউ")}</TableHead>
+                    <TableHead>{tx("Variables", "ভ্যারিয়েবল")}</TableHead>
+                    <TableHead>{tx("Status", "স্ট্যাটাস")}</TableHead>
+                    <TableHead className="text-right">{tx("Actions", "অ্যাকশন")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -248,18 +250,18 @@ const AdminSmsTemplates = () => {
                       </TableCell>
                       <TableCell>
                         <Badge variant={tpl.isActive ? "default" : "secondary"}>
-                          {tpl.isActive ? "Active" : "Inactive"}
+                          {tpl.isActive ? tx("Active", "সক্রিয়") : tx("Inactive", "নিষ্ক্রিয়")}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => handlePreview(tpl)} title="Preview">
+                          <Button variant="ghost" size="icon" onClick={() => handlePreview(tpl)} title={tx("Preview", "প্রিভিউ")}>
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleOpen(tpl)} title="Edit">
+                          <Button variant="ghost" size="icon" onClick={() => handleOpen(tpl)} title={tx("Edit", "এডিট")}>
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDelete(tpl.id)} title="Delete" className="text-destructive hover:text-destructive">
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(tpl.id)} title={tx("Delete", "মুছুন")} className="text-destructive hover:text-destructive">
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -272,41 +274,39 @@ const AdminSmsTemplates = () => {
           </CardContent>
         </Card>
 
-        {/* Create/Edit Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editId ? "Edit Template" : "New SMS Template"}</DialogTitle>
+              <DialogTitle>{editId ? tx("Edit Template", "টেমপ্লেট এডিট করুন") : tx("New SMS Template", "নতুন এসএমএস টেমপ্লেট")}</DialogTitle>
               <DialogDescription>
-                Use {"{{variable}}"} syntax to insert dynamic content into your messages.
+                {tx("Use {{variable}} syntax to insert dynamic content into your messages.", "আপনার বার্তায় ডাইনামিক কনটেন্ট যোগ করতে {{variable}} সিনট্যাক্স ব্যবহার করুন।")}
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-5 py-2">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Template Name</Label>
-                  <Input placeholder="e.g. Booking Confirmation" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                  <Label>{tx("Template Name", "টেমপ্লেট নাম")}</Label>
+                  <Input placeholder={tx("e.g. Booking Confirmation", "যেমন: বুকিং কনফার্মেশন")} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Type</Label>
+                  <Label>{tx("Type", "ধরন")}</Label>
                   <Select value={form.type} onValueChange={(v: SmsTemplateType) => setForm({ ...form, type: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="booking">Booking</SelectItem>
-                      <SelectItem value="payment">Payment</SelectItem>
+                      <SelectItem value="booking">{TYPE_LABELS.booking}</SelectItem>
+                      <SelectItem value="payment">{TYPE_LABELS.payment}</SelectItem>
                       <SelectItem value="otp">OTP</SelectItem>
-                      <SelectItem value="reminder">Reminder</SelectItem>
-                      <SelectItem value="custom">Custom</SelectItem>
+                      <SelectItem value="reminder">{TYPE_LABELS.reminder}</SelectItem>
+                      <SelectItem value="custom">{TYPE_LABELS.custom}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              {/* Available Variables */}
               <div className="space-y-2">
-                <Label>Available Variables</Label>
-                <p className="text-xs text-muted-foreground">Click to insert into message</p>
+                <Label>{tx("Available Variables", "উপলব্ধ ভ্যারিয়েবল")}</Label>
+                <p className="text-xs text-muted-foreground">{tx("Click to insert into message", "বার্তায় যুক্ত করতে ক্লিক করুন")}</p>
                 <div className="flex flex-wrap gap-2">
                   {(TEMPLATE_VARIABLES[form.type] || []).map((v) => (
                     <Button
@@ -326,29 +326,28 @@ const AdminSmsTemplates = () => {
               </div>
 
               <div className="space-y-2">
-                <Label>Message Template</Label>
+                <Label>{tx("Message Template", "বার্তার টেমপ্লেট")}</Label>
                 <Textarea
                   rows={4}
-                  placeholder='e.g. Dear {{name}}, your booking ({{bookingId}}) is confirmed.'
+                  placeholder={tx("e.g. Dear {{name}}, your booking ({{bookingId}}) is confirmed.", "যেমন: প্রিয় {{name}}, আপনার বুকিং ({{bookingId}}) কনফার্ম হয়েছে।")}
                   value={form.message}
                   onChange={(e) => setForm({ ...form, message: e.target.value })}
                   className="font-mono text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
-                  {form.message.length} characters · Detected variables: {extractVariables(form.message).map((v) => `{{${v}}}`).join(", ") || "none"}
+                  {form.message.length} {tx("characters", "অক্ষর")} · {tx("Detected variables", "শনাক্ত ভ্যারিয়েবল")}: {detectedVariables}
                 </p>
               </div>
 
               <div className="flex items-center gap-3">
                 <Switch checked={form.isActive} onCheckedChange={(v) => setForm({ ...form, isActive: v })} />
-                <Label>Active</Label>
+                <Label>{tx("Active", "সক্রিয়")}</Label>
               </div>
 
-              {/* Live preview */}
               {form.message && (
                 <Card className="bg-muted/50">
                   <CardHeader className="pb-2 pt-3 px-4">
-                    <CardTitle className="text-sm">Live Preview</CardTitle>
+                    <CardTitle className="text-sm">{tx("Live Preview", "লাইভ প্রিভিউ")}</CardTitle>
                   </CardHeader>
                   <CardContent className="px-4 pb-3">
                     <p className="text-sm">
@@ -365,22 +364,21 @@ const AdminSmsTemplates = () => {
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>{tx("Cancel", "বাতিল")}</Button>
               <Button onClick={handleSubmit} disabled={saving}>
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {editId ? "Update" : "Create"} Template
+                {editId ? tx("Update Template", "টেমপ্লেট আপডেট করুন") : tx("Create Template", "টেমপ্লেট তৈরি করুন")}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* Preview Dialog */}
         <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>Template Preview</DialogTitle>
+              <DialogTitle>{tx("Template Preview", "টেমপ্লেট প্রিভিউ")}</DialogTitle>
               <DialogDescription>
-                Fill in sample values to see how the SMS will look.
+                {tx("Fill in sample values to see how the SMS will look.", "এসএমএসটি কেমন দেখাবে তা দেখতে নমুনা ভ্যালু দিন।")}
               </DialogDescription>
             </DialogHeader>
             {selectedTemplate && (
@@ -411,21 +409,21 @@ const AdminSmsTemplates = () => {
 
                 <Card className="bg-muted/50">
                   <CardHeader className="pb-2 pt-3 px-4">
-                    <CardTitle className="text-sm">Rendered SMS</CardTitle>
+                    <CardTitle className="text-sm">{tx("Rendered SMS", "রেন্ডার করা এসএমএস")}</CardTitle>
                   </CardHeader>
                   <CardContent className="px-4 pb-3">
                     <p className="text-sm whitespace-pre-wrap">
                       {renderTemplate(selectedTemplate.message, previewData)}
                     </p>
                     <p className="text-xs text-muted-foreground mt-2">
-                      {renderTemplate(selectedTemplate.message, previewData).length} characters
+                      {renderTemplate(selectedTemplate.message, previewData).length} {tx("characters", "অক্ষর")}
                     </p>
                   </CardContent>
                 </Card>
               </div>
             )}
             <DialogFooter>
-              <Button variant="outline" onClick={() => setPreviewOpen(false)}>Close</Button>
+              <Button variant="outline" onClick={() => setPreviewOpen(false)}>{tx("Close", "বন্ধ করুন")}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
