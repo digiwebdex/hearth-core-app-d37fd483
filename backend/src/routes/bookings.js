@@ -7,6 +7,7 @@ const upload = multer({ dest: process.env.UPLOAD_DIR || path.join(__dirname, "..
 const BOOKING_LIST_INCLUDE = {
   client: { select: { id: true, name: true } },
   agent: { select: { id: true, name: true } },
+  travelPackage: { select: { id: true, title: true, code: true, serviceType: true } },
 };
 const BOOKING_DETAIL_INCLUDE = {
   ...BOOKING_LIST_INCLUDE,
@@ -19,11 +20,14 @@ router.use(authenticate);
 
 function formatBooking(record) {
   if (!record) return null;
-  const { client, agent, ...booking } = record;
+  const { client, agent, travelPackage, ...booking } = record;
   return {
     ...booking,
     clientName: client?.name || booking.clientName || "",
     agentName: agent?.name || booking.agentName || "",
+    packageTitleSnapshot: booking.packageTitleSnapshot || travelPackage?.title || null,
+    packageCodeSnapshot: booking.packageCodeSnapshot || travelPackage?.code || null,
+    serviceType: booking.serviceType || travelPackage?.serviceType || null,
   };
 }
 
@@ -258,20 +262,23 @@ router.patch("/:id/status", requirePermission("bookings", "edit"), async (req, r
   }
 });
 
-// Segments
 router.get("/:id/segments", requirePermission("bookings", "view"), async (req, res) => {
   try {
     const booking = await ensureBookingExists(req, res);
     if (!booking) return;
     res.json(await prisma.bookingSegment.findMany({ where: { bookingId: req.params.id } }));
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
-router.post("/:id/segments", requirePermission("bookings", "create"), async (req, res) => {
+router.post("/:id/segments", requirePermission("bookings", "edit"), async (req, res) => {
   try {
     const booking = await ensureBookingExists(req, res);
     if (!booking) return;
     res.status(201).json(await prisma.bookingSegment.create({ data: { ...req.body, bookingId: req.params.id } }));
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 router.delete("/:id/segments/:segId", requirePermission("bookings", "delete"), async (req, res) => {
   try {
@@ -280,104 +287,114 @@ router.delete("/:id/segments/:segId", requirePermission("bookings", "delete"), a
     const result = await prisma.bookingSegment.deleteMany({ where: { id: req.params.segId, bookingId: req.params.id } });
     if (!result.count) return res.status(404).json({ message: "Not found" });
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
-// Travelers
 router.get("/:id/travelers", requirePermission("bookings", "view"), async (req, res) => {
   try {
     const booking = await ensureBookingExists(req, res);
     if (!booking) return;
     res.json(await prisma.bookingTraveler.findMany({ where: { bookingId: req.params.id } }));
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
-router.post("/:id/travelers", requirePermission("bookings", "create"), async (req, res) => {
+router.post("/:id/travelers", requirePermission("bookings", "edit"), async (req, res) => {
   try {
     const booking = await ensureBookingExists(req, res);
     if (!booking) return;
     res.status(201).json(await prisma.bookingTraveler.create({ data: { ...req.body, bookingId: req.params.id } }));
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
-router.delete("/:id/travelers/:tId", requirePermission("bookings", "delete"), async (req, res) => {
+router.delete("/:id/travelers/:travId", requirePermission("bookings", "delete"), async (req, res) => {
   try {
     const booking = await ensureBookingExists(req, res);
     if (!booking) return;
-    const result = await prisma.bookingTraveler.deleteMany({ where: { id: req.params.tId, bookingId: req.params.id } });
+    const result = await prisma.bookingTraveler.deleteMany({ where: { id: req.params.travId, bookingId: req.params.id } });
     if (!result.count) return res.status(404).json({ message: "Not found" });
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
-// Checklist
 router.get("/:id/checklist", requirePermission("bookings", "view"), async (req, res) => {
   try {
     const booking = await ensureBookingExists(req, res);
     if (!booking) return;
     res.json(await prisma.bookingChecklistItem.findMany({ where: { bookingId: req.params.id } }));
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
-router.post("/:id/checklist", requirePermission("bookings", "create"), async (req, res) => {
+router.post("/:id/checklist", requirePermission("bookings", "edit"), async (req, res) => {
   try {
     const booking = await ensureBookingExists(req, res);
     if (!booking) return;
-    res.status(201).json(await prisma.bookingChecklistItem.create({ data: { ...req.body, bookingId: req.params.id } }));
-  } catch (err) { res.status(500).json({ message: err.message }); }
+    res.status(201).json(await prisma.bookingChecklistItem.create({ data: { label: req.body.label, bookingId: req.params.id } }));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 router.patch("/:id/checklist/:itemId", requirePermission("bookings", "edit"), async (req, res) => {
   try {
     const booking = await ensureBookingExists(req, res);
     if (!booking) return;
-    const data = { done: req.body.done };
-    if (req.body.done) {
-      data.doneAt = new Date();
-      data.doneBy = req.userId;
-    }
-    const result = await prisma.bookingChecklistItem.updateMany({ where: { id: req.params.itemId, bookingId: req.params.id }, data });
+    const result = await prisma.bookingChecklistItem.updateMany({
+      where: { id: req.params.itemId, bookingId: req.params.id },
+      data: { done: !!req.body.done, doneAt: req.body.done ? new Date() : null, doneBy: req.body.done ? req.userId : null },
+    });
     if (!result.count) return res.status(404).json({ message: "Not found" });
     res.json(await prisma.bookingChecklistItem.findFirst({ where: { id: req.params.itemId, bookingId: req.params.id } }));
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
-// Timeline
 router.get("/:id/timeline", requirePermission("bookings", "view"), async (req, res) => {
   try {
     const booking = await ensureBookingExists(req, res);
     if (!booking) return;
     res.json(await prisma.bookingTimelineEvent.findMany({ where: { bookingId: req.params.id }, orderBy: { createdAt: "desc" } }));
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
-router.post("/:id/timeline", requirePermission("bookings", "create"), async (req, res) => {
+router.post("/:id/timeline", requirePermission("bookings", "edit"), async (req, res) => {
   try {
     const booking = await ensureBookingExists(req, res);
     if (!booking) return;
     res.status(201).json(await prisma.bookingTimelineEvent.create({ data: { ...req.body, bookingId: req.params.id, createdBy: req.userId } }));
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
-// Documents
 router.get("/:id/documents", requirePermission("bookings", "view"), async (req, res) => {
   try {
     const booking = await ensureBookingExists(req, res);
     if (!booking) return;
-    res.json(await prisma.bookingDocument.findMany({ where: { bookingId: req.params.id } }));
-  } catch (err) { res.status(500).json({ message: err.message }); }
+    res.json(await prisma.bookingDocument.findMany({ where: { bookingId: req.params.id }, orderBy: { uploadedAt: "desc" } }));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
-router.post("/:id/documents", requirePermission("bookings", "create"), upload.single("file"), async (req, res) => {
+router.post("/:id/documents", requirePermission("bookings", "edit"), upload.single("file"), async (req, res) => {
   try {
     const booking = await ensureBookingExists(req, res);
     if (!booking) return;
-    if (!req.file) return res.status(400).json({ message: "File is required" });
-    const doc = await prisma.bookingDocument.create({
-      data: {
-        bookingId: req.params.id,
-        name: req.file.originalname,
-        type: req.file.mimetype,
-        url: `/uploads/${req.file.filename}`,
-        uploadedBy: req.userId,
-      },
-    });
-    res.status(201).json(doc);
-  } catch (err) { res.status(500).json({ message: err.message }); }
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    const url = `/uploads/${req.file.filename}`;
+    res.status(201).json(await prisma.bookingDocument.create({
+      data: { bookingId: req.params.id, name: req.file.originalname, type: req.file.mimetype, url, uploadedBy: req.userId },
+    }));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 router.delete("/:id/documents/:docId", requirePermission("bookings", "delete"), async (req, res) => {
   try {
@@ -386,7 +403,9 @@ router.delete("/:id/documents/:docId", requirePermission("bookings", "delete"), 
     const result = await prisma.bookingDocument.deleteMany({ where: { id: req.params.docId, bookingId: req.params.id } });
     if (!result.count) return res.status(404).json({ message: "Not found" });
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 module.exports = router;
