@@ -31,6 +31,7 @@ export type Module =
   | "leads"
   | "tasks"
   | "quotations"
+  | "packages"
   | "bookings"
   | "invoices"
   | "accounts"
@@ -70,6 +71,7 @@ export const DEFAULT_PERMISSIONS: Record<AppRole, PermissionMatrix> = {
     leads: ALL_ACTIONS,
     tasks: ALL_ACTIONS,
     quotations: ALL_ACTIONS,
+    packages: ALL_ACTIONS,
     bookings: ALL_ACTIONS,
     invoices: ALL_ACTIONS,
     accounts: ALL_ACTIONS,
@@ -91,6 +93,7 @@ export const DEFAULT_PERMISSIONS: Record<AppRole, PermissionMatrix> = {
     leads: ALL_ACTIONS,
     tasks: ALL_ACTIONS,
     quotations: ALL_ACTIONS,
+    packages: ALL_ACTIONS,
     bookings: ALL_ACTIONS,
     invoices: ALL_ACTIONS,
     accounts: ALL_ACTIONS,
@@ -112,6 +115,7 @@ export const DEFAULT_PERMISSIONS: Record<AppRole, PermissionMatrix> = {
     leads: ALL_ACTIONS,
     tasks: ALL_ACTIONS,
     quotations: ALL_ACTIONS,
+    packages: ALL_ACTIONS,
     bookings: ALL_ACTIONS,
     invoices: { view: true, create: true, edit: true, approve: true, export: true },
     accounts: { view: true, create: true, edit: true, export: true },
@@ -133,6 +137,7 @@ export const DEFAULT_PERMISSIONS: Record<AppRole, PermissionMatrix> = {
     leads: { view: true, create: true, edit: true, delete: true },
     tasks: VIEW_CREATE_EDIT,
     quotations: { view: true, create: true, edit: true, export: true },
+    packages: VIEW_CREATE_EDIT,
     bookings: VIEW_CREATE_EDIT,
     invoices: VIEW_ONLY,
     accounts: NONE,
@@ -154,6 +159,7 @@ export const DEFAULT_PERMISSIONS: Record<AppRole, PermissionMatrix> = {
     leads: NONE,
     tasks: VIEW_ONLY,
     quotations: { view: true, export: true },
+    packages: VIEW_ONLY,
     bookings: VIEW_ONLY,
     invoices: { view: true, create: true, edit: true, approve: true, export: true },
     accounts: { view: true, create: true, edit: true, export: true },
@@ -175,6 +181,7 @@ export const DEFAULT_PERMISSIONS: Record<AppRole, PermissionMatrix> = {
     leads: NONE,
     tasks: VIEW_CREATE_EDIT,
     quotations: VIEW_ONLY,
+    packages: VIEW_CREATE_EDIT,
     bookings: VIEW_CREATE_EDIT_EXPORT,
     invoices: VIEW_ONLY,
     accounts: NONE,
@@ -249,7 +256,7 @@ export function getAccessibleModules(
 ): Module[] {
   const allModules: Module[] = [
     "dashboard", "clients", "agents", "vendors", "leads", "tasks", "quotations",
-    "bookings", "invoices", "accounts", "reports", "hajj_umrah",
+    "packages", "bookings", "invoices", "accounts", "reports", "hajj_umrah",
     "subscription", "team", "organization", "settings", "website", "admin_panel",
   ];
   return allModules.filter((m) => canAccessModule(role, m, overrides));
@@ -339,6 +346,7 @@ export const MODULE_METADATA: ModuleMeta[] = [
   { id: "leads", label: "Leads", category: "crm" },
   { id: "tasks", label: "Tasks", category: "crm" },
   { id: "quotations", label: "Quotations", category: "crm" },
+  { id: "packages", label: "Packages", category: "operations" },
   { id: "bookings", label: "Bookings", category: "operations" },
   { id: "invoices", label: "Invoices", category: "finance" },
   { id: "accounts", label: "Accounts", category: "finance" },
