@@ -48,6 +48,7 @@ const ROLE_PERMISSIONS = {
     leads: ["view", "create", "edit", "delete", "approve", "export"],
     tasks: ["view", "create", "edit", "delete", "approve", "export"],
     quotations: ["view", "create", "edit", "delete", "approve", "export"],
+    packages: ["view", "create", "edit", "delete", "approve", "export"],
     bookings: ["view", "create", "edit", "delete", "approve", "export"],
     invoices: ["view", "create", "edit", "delete", "approve", "export"],
     accounts: ["view", "create", "edit", "delete", "approve", "export"],
@@ -67,6 +68,7 @@ const ROLE_PERMISSIONS = {
     leads: ["view", "create", "edit", "delete", "approve", "export"],
     tasks: ["view", "create", "edit", "delete", "approve", "export"],
     quotations: ["view", "create", "edit", "delete", "approve", "export"],
+    packages: ["view", "create", "edit", "delete", "approve", "export"],
     bookings: ["view", "create", "edit", "delete", "approve", "export"],
     invoices: ["view", "create", "edit", "approve", "export"],
     accounts: ["view", "create", "edit", "export"],
@@ -85,6 +87,7 @@ const ROLE_PERMISSIONS = {
     leads: ["view", "create", "edit", "delete"],
     tasks: ["view", "create", "edit"],
     quotations: ["view", "create", "edit", "export"],
+    packages: ["view", "create", "edit"],
     bookings: ["view", "create", "edit"],
     invoices: ["view"],
     hajj_umrah: ["view", "create"],
@@ -96,6 +99,7 @@ const ROLE_PERMISSIONS = {
     vendors: ["view"],
     tasks: ["view"],
     quotations: ["view", "export"],
+    packages: ["view"],
     bookings: ["view"],
     invoices: ["view", "create", "edit", "approve", "export"],
     accounts: ["view", "create", "edit", "export"],
@@ -110,6 +114,7 @@ const ROLE_PERMISSIONS = {
     vendors: ["view", "create", "edit"],
     tasks: ["view", "create", "edit"],
     quotations: ["view"],
+    packages: ["view", "create", "edit"],
     bookings: ["view", "create", "edit", "export"],
     invoices: ["view"],
     reports: ["view"],
@@ -117,7 +122,7 @@ const ROLE_PERMISSIONS = {
   },
 };
 
-// Usage: router.delete("/:id", requirePermission("bookings", "delete"), handler)
+// Usage: router.delete(":id", requirePermission("bookings", "delete"), handler)
 function requirePermission(module, action) {
   return (req, res, next) => {
     if (req.userRole === "super_admin") return next();
