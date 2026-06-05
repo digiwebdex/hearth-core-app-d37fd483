@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Settings, Building2, LogOut, UserCheck, UserCog, Store, Target, ListTodo, Plane, Receipt, Wallet, Crown, Shield, BarChart3, Moon, Globe, Lock, UserCog2, FileText, Bell, BookOpen } from "lucide-react";
+import { LayoutDashboard, Users, Settings, Building2, LogOut, UserCheck, UserCog, Store, Target, ListTodo, Plane, Receipt, Wallet, Crown, Shield, BarChart3, Moon, Globe, Lock, UserCog2, FileText, Bell, BookOpen, Package2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
@@ -43,6 +43,7 @@ const crmItems: MenuItem[] = [
   { titleKey: "sidebar.leads", url: "/leads", icon: Target, module: "leads" },
   { titleKey: "sidebar.tasks", url: "/tasks", icon: ListTodo, module: "tasks" },
   { titleKey: "sidebar.quotations", url: "/quotations", icon: FileText, module: "quotations" },
+  { titleKey: "Packages", url: "/travel-packages", icon: Package2, module: "packages" },
   { titleKey: "sidebar.bookings", url: "/bookings", icon: Plane, module: "bookings" },
   { titleKey: "sidebar.invoices", url: "/invoices", icon: Receipt, module: "invoices" },
   { titleKey: "sidebar.accounts", url: "/accounts", icon: Wallet, module: "accounts", minPlan: "basic" },
@@ -84,7 +85,7 @@ function NavGroup({ label, items, collapsed, currentPlan }: { label: string; ite
         <SidebarMenu>
           {visibleItems.map((item) => {
             const planOk = isPlanSufficient(item.minPlan, currentPlan);
-            const title = t(item.titleKey);
+            const title = item.titleKey.includes(".") ? t(item.titleKey) : item.titleKey;
 
             if (!planOk) {
               return (
