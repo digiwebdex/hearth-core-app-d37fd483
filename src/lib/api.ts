@@ -423,6 +423,10 @@ export interface Booking {
   agentId: string;
   agentName?: string;
   quotationId?: string;
+  packageId?: string;
+  serviceType?: string;
+  packageTitleSnapshot?: string;
+  packageCodeSnapshot?: string;
   destination?: string;
   travelDateFrom?: string;
   travelDateTo?: string;
@@ -518,15 +522,14 @@ export interface Invoice {
   dueAmount: number;
   refundedAmount?: number;
   bookingCost?: number;
-  bookingProfit?: number;
   status: InvoiceStatus;
   dueDate?: string;
   issuedDate?: string;
   notes?: string;
-  cancelReason?: string;
+  payments?: Payment[];
+  refunds?: InvoiceRefund[];
+  auditTrail?: InvoiceAuditEvent[];
   tenantId: string;
-  createdBy?: string;
-  createdByName?: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -536,13 +539,12 @@ export interface Payment {
   invoiceId: string;
   bookingId: string;
   amount: number;
-  method: PaymentMethod;
+  method: PaymentMethod | string;
   transactionRef?: string;
   proofUrl?: string;
   date: string;
   notes?: string;
   receivedBy?: string;
-  receivedByName?: string;
   tenantId: string;
   createdAt: string;
 }
@@ -552,152 +554,25 @@ export interface InvoiceRefund {
   invoiceId: string;
   amount: number;
   reason: string;
-  method?: string;
+  method?: PaymentMethod | string;
   processedBy?: string;
-  processedByName?: string;
   createdAt: string;
 }
 
 export interface InvoiceAuditEvent {
   id: string;
   invoiceId: string;
-  type: "created" | "payment" | "status_change" | "refund" | "cancellation" | "reminder" | "note";
+  type: "status_change" | "payment" | "refund" | "note" | "system";
   content: string;
-  oldStatus?: string;
-  newStatus?: string;
+  oldStatus?: InvoiceStatus;
+  newStatus?: InvoiceStatus;
   amount?: number;
   createdBy?: string;
-  createdByName?: string;
   createdAt: string;
 }
 
-export interface Account {
-  id: string;
-  name: string;
-  type: "cash" | "bank";
-  balance: number;
-  accountNumber?: string;
-  bankName?: string;
-  notes?: string;
-  status: "active" | "inactive";
-  tenantId: string;
-  createdAt: string;
-  updatedAt?: string;
-}
-
-export type TransactionType = "income" | "expense" | "refund" | "vendor_payment";
-
-export interface Transaction {
-  id: string;
-  accountId?: string;
-  accountName?: string;
-  type: TransactionType;
-  category: string;
-  description: string;
-  amount: number;
-  referenceId?: string;
-  referenceType?: "invoice" | "payment" | "booking" | "vendor_bill" | "expense" | "refund";
-  clientId?: string;
-  clientName?: string;
-  bookingId?: string;
-  bookingTitle?: string;
-  vendorId?: string;
-  vendorName?: string;
-  invoiceId?: string;
-  invoiceNumber?: string;
-  paymentMethod?: PaymentMethod;
-  status?: "completed" | "pending" | "failed" | "reversed";
-  date: string;
-  tenantId: string;
-  createdBy?: string;
-  createdByName?: string;
-  createdAt: string;
-}
-
-export type ExpenseCategory = "office" | "travel" | "salary" | "marketing" | "utilities" | "rent" | "insurance" | "supplies" | "commission" | "bank_charges" | "taxes" | "miscellaneous";
-
-export interface Expense {
-  id: string;
-  category: ExpenseCategory;
-  description: string;
-  amount: number;
-  date: string;
-  paymentMethod: PaymentMethod;
-  reference?: string;
-  notes?: string;
-  attachmentUrl?: string;
-  vendorId?: string;
-  vendorName?: string;
-  accountId?: string;
-  accountName?: string;
-  approvedBy?: string;
-  approvedByName?: string;
-  status: "pending" | "approved" | "rejected";
-  tenantId: string;
-  createdBy?: string;
-  createdByName?: string;
-  createdAt: string;
-  updatedAt?: string;
-}
-
-export interface AccountsSummary {
-  totalReceivable: number;
-  totalReceived: number;
-  totalPayable: number;
-  overdueReceivable: number;
-  overduePayable: number;
-  cashBankBalance: number;
-  totalExpenses: number;
-  netProfit: number;
-  receivableCount: number;
-  payableCount: number;
-  overdueReceivableCount: number;
-  overduePayableCount: number;
-}
-
-export interface BookingProfitability {
-  bookingId: string;
-  bookingTitle: string;
-  clientName: string;
-  sellingAmount: number;
-  vendorCosts: number;
-  expenses: number;
-  grossProfit: number;
-  marginPercent: number;
-  status: BookingStatus;
-  date: string;
-}
-
-export interface Subscription {
-  id: string;
-  tenantId: string;
-  plan: "free" | "basic" | "pro" | "business";
-  startDate: string;
-  endDate: string;
-  status: "active" | "expired" | "pending" | "cancelled";
-  createdAt: string;
-}
-
-export interface PaymentRequest {
-  id: string;
-  tenantId: string;
-  plan: string;
-  amount: number;
-  method: string;
-  trxId: string;
-  proofUrl?: string;
-  status: "pending" | "approved" | "rejected";
-  reviewerComment?: string;
-  processedAt?: string;
-  createdAt: string;
-}
-
-// ── Quotation Types ──
 export type QuotationStatus = "draft" | "sent" | "approved" | "rejected" | "expired";
-
-export type QuotationItemType =
-  | "hotel" | "flight" | "visa" | "transport" | "tour"
-  | "activity" | "insurance" | "service_fee" | "discount" | "tax";
+export type QuotationItemType = "hotel" | "flight" | "visa" | "transport" | "tour" | "activity" | "insurance" | "service_fee" | "discount" | "tax";
 
 export interface QuotationItem {
   id: string;
@@ -724,17 +599,6 @@ export interface ItineraryDay {
   activities?: string[];
 }
 
-export interface QuotationVersion {
-  id: string;
-  quotationId: string;
-  versionNumber: number;
-  snapshot: string;
-  changeNote?: string;
-  changedBy?: string;
-  changedByName?: string;
-  createdAt: string;
-}
-
 export interface Quotation {
   id: string;
   title: string;
@@ -742,6 +606,10 @@ export interface Quotation {
   clientName?: string;
   leadId?: string;
   leadName?: string;
+  packageId?: string;
+  serviceType?: string;
+  packageTitleSnapshot?: string;
+  packageCodeSnapshot?: string;
   destination: string;
   travelDateFrom?: string;
   travelDateTo?: string;
@@ -760,311 +628,147 @@ export interface Quotation {
   notes?: string;
   termsAndConditions?: string;
   createdBy?: string;
-  createdByName?: string;
   tenantId: string;
   createdAt: string;
   updatedAt?: string;
 }
 
-// ── Hajj/Umrah Types ──
-export type HajjPackageType = "hajj" | "umrah";
-export type HajjPackageStatus = "upcoming" | "active" | "departed" | "completed" | "closed";
-export type HajjPilgrimStatus = "registered" | "documents_pending" | "visa_processing" | "confirmed" | "departed" | "completed" | "cancelled";
-export type HajjVisaStatus = "not_started" | "documents_collected" | "submitted" | "approved" | "rejected";
-export type HajjRoomType = "single" | "double" | "triple" | "quad" | "sharing";
+export interface QuotationVersion {
+  id: string;
+  quotationId: string;
+  versionNumber: number;
+  snapshot: string;
+  changeNote?: string;
+  changedBy?: string;
+  createdAt: string;
+}
 
-export interface HajjPackage {
+export type AccountType = "cash" | "bank" | "mobile_banking" | "card" | "other";
+
+export interface Account {
   id: string;
   name: string;
-  type: HajjPackageType;
-  status: HajjPackageStatus;
-  // Duration & stays
-  duration: string;
-  makkahNights: number;
-  madinahNights: number;
-  // Accommodation
-  makkahHotel?: string;
-  madinahHotel?: string;
-  hotelClass: "economy" | "3_star" | "4_star" | "5_star" | "shifting";
-  // Inclusions
-  flightInfo?: string;
-  visaIncluded: boolean;
-  transportIncluded: boolean;
-  mealsIncluded: boolean;
-  ziyaratIncluded: boolean;
-  // Pricing
-  packagePrice: number;
-  costPrice: number;
-  profit: number;
-  // Capacity
-  capacity: number;
-  enrolled: number;
-  // Dates
-  departureDate?: string;
-  returnDate?: string;
-  // Misc
-  highlights?: string;
+  type: AccountType;
+  balance: number;
+  accountNumber?: string;
+  bankName?: string;
   notes?: string;
+  status: "active" | "inactive";
   tenantId: string;
   createdAt: string;
   updatedAt?: string;
 }
 
-export interface HajjGroup {
+export interface Transaction {
   id: string;
-  packageId: string;
-  name: string;
-  leader: string;
-  leaderPhone?: string;
-  departureDate: string;
-  returnDate: string;
-  flightDetails?: string;
-  transportSchedule?: string;
-  notes?: string;
-  tenantId: string;
-  createdAt: string;
-}
-
-export interface HajjPilgrim {
-  id: string;
-  packageId: string;
-  groupId: string;
-  clientId?: string;
-  // Personal
-  name: string;
-  phone: string;
-  email?: string;
-  dateOfBirth?: string;
-  gender?: "male" | "female";
-  // Documents
-  passportNumber: string;
-  passportExpiry?: string;
-  nidNumber?: string;
-  nationality?: string;
-  // Mahram
-  mahramName?: string;
-  mahramRelation?: string;
-  mahramPilgrimId?: string;
-  // Room
-  roomType?: HajjRoomType;
-  roomNumber?: string;
-  roomPartners?: string;
-  // Status
-  status: HajjPilgrimStatus;
-  visaStatus: HajjVisaStatus;
-  departureStatus?: "not_departed" | "departed" | "returned";
-  // Financial
-  totalAmount: number;
-  paidAmount: number;
-  dueAmount: number;
-  paymentStatus: "unpaid" | "partial" | "paid";
-  // Emergency
-  emergencyContact?: string;
-  emergencyPhone?: string;
-  medicalNotes?: string;
-  notes?: string;
-  tenantId: string;
-  createdAt: string;
-  updatedAt?: string;
-}
-
-export interface HajjPilgrimPayment {
-  id: string;
-  pilgrimId: string;
+  accountId?: string;
+  accountName?: string;
+  type: "income" | "expense" | "transfer" | "refund";
+  category: string;
+  description: string;
   amount: number;
-  method: "cash" | "bank" | "bkash" | "nagad" | "card";
-  reference?: string;
+  referenceId?: string;
+  referenceType?: string;
+  clientId?: string;
+  bookingId?: string;
+  invoiceId?: string;
+  paymentMethod?: string;
+  status?: "pending" | "completed" | "cancelled";
   date: string;
-  note?: string;
-  installmentLabel?: string;
-  receivedBy?: string;
+  tenantId: string;
+  createdBy?: string;
   createdAt: string;
 }
 
-// ── Hajj/Umrah API ──
-export const hajjApi = {
-  // Packages
-  listPackages: () => request<HajjPackage[]>("/hajj/packages"),
-  getPackage: (id: string) => request<HajjPackage>(`/hajj/packages/${id}`),
-  createPackage: (data: Omit<HajjPackage, "id" | "tenantId" | "createdAt" | "enrolled">) =>
-    request<HajjPackage>("/hajj/packages", { method: "POST", body: JSON.stringify(data) }),
-  updatePackage: (id: string, data: Partial<HajjPackage>) =>
-    request<HajjPackage>(`/hajj/packages/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
-  deletePackage: (id: string) =>
-    request<void>(`/hajj/packages/${id}`, { method: "DELETE" }),
-  // Groups
-  listGroups: (packageId?: string) =>
-    request<HajjGroup[]>(packageId ? `/hajj/groups?packageId=${packageId}` : "/hajj/groups"),
-  createGroup: (data: Omit<HajjGroup, "id" | "tenantId" | "createdAt">) =>
-    request<HajjGroup>("/hajj/groups", { method: "POST", body: JSON.stringify(data) }),
-  updateGroup: (id: string, data: Partial<HajjGroup>) =>
-    request<HajjGroup>(`/hajj/groups/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
-  deleteGroup: (id: string) =>
-    request<void>(`/hajj/groups/${id}`, { method: "DELETE" }),
-  // Pilgrims
-  listPilgrims: (packageId?: string) =>
-    request<HajjPilgrim[]>(packageId ? `/hajj/pilgrims?packageId=${packageId}` : "/hajj/pilgrims"),
-  createPilgrim: (data: Omit<HajjPilgrim, "id" | "tenantId" | "createdAt">) =>
-    request<HajjPilgrim>("/hajj/pilgrims", { method: "POST", body: JSON.stringify(data) }),
-  updatePilgrim: (id: string, data: Partial<HajjPilgrim>) =>
-    request<HajjPilgrim>(`/hajj/pilgrims/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
-  deletePilgrim: (id: string) =>
-    request<void>(`/hajj/pilgrims/${id}`, { method: "DELETE" }),
-  // Pilgrim Payments
-  getPilgrimPayments: (pilgrimId: string) =>
-    request<HajjPilgrimPayment[]>(`/hajj/pilgrims/${pilgrimId}/payments`),
-  addPilgrimPayment: (pilgrimId: string, data: Omit<HajjPilgrimPayment, "id" | "createdAt">) =>
-    request<HajjPilgrimPayment>(`/hajj/pilgrims/${pilgrimId}/payments`, { method: "POST", body: JSON.stringify(data) }),
-};
-
-// ── Admin API (Super Admin only) ──
-export interface AdminStats {
-  totalTenants: number;
-  totalUsers: number;
-  totalBookings: number;
-  totalRevenue: number;
+export interface BookingProfitability {
+  bookingId: string;
+  title?: string;
+  destination?: string;
+  amount: number;
+  cost: number;
+  profit: number;
+  marginPercent: number;
+  travelDateFrom?: string;
+  clientName?: string;
 }
 
-export interface AdminTenant {
+export interface AccountsSummary {
+  totalBalance: number;
+  totalIncome: number;
+  totalExpense: number;
+  accounts: Account[];
+  recentTransactions: Transaction[];
+}
+
+export interface Expense {
   id: string;
-  name: string;
-  slug?: string;
-  subscriptionPlan: string;
-  subscriptionStatus: string;
-  subscriptionExpiry: string | null;
-  ownerId: string | null;
+  category: string;
+  description: string;
+  amount: number;
+  date: string;
+  paymentMethod: string;
+  reference?: string;
+  notes?: string;
+  attachmentUrl?: string;
+  vendorId?: string;
+  vendorName?: string;
+  accountId?: string;
+  accountName?: string;
+  approvedBy?: string;
+  status: "pending" | "approved" | "rejected";
+  tenantId: string;
+  createdBy?: string;
   createdAt: string;
-  _count?: { users: number; bookings: number };
-  users?: { id: string; name: string; email: string; role: string; createdAt: string }[];
+  updatedAt?: string;
 }
 
-export interface AdminPaymentRequest {
+export interface Subscription {
+  id: string;
+  tenantId: string;
+  plan: string;
+  startDate: string;
+  endDate: string;
+  status: "active" | "expired" | "scheduled" | string;
+  billingCycle?: string;
+  source?: string;
+  paymentRequestId?: string;
+  note?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface PaymentRequest {
   id: string;
   tenantId: string;
   plan: string;
   amount: number;
   method: string;
   trxId: string;
-  proofUrl: string;
-  status: string;
+  proofUrl?: string;
+  status: "pending" | "approved" | "rejected" | string;
   reviewerComment?: string;
-  createdAt: string;
   processedAt?: string;
-}
-
-export const adminApi = {
-  getStats: () => request<AdminStats>("/admin/stats"),
-  getTenants: () => request<AdminTenant[]>("/admin/tenants"),
-  getTenant: (id: string) => request<AdminTenant>(`/admin/tenants/${id}`),
-  createTenant: (data: {
-    tenantName: string;
-    ownerName: string;
-    ownerEmail: string;
-    ownerPassword: string;
-    ownerPhone?: string;
-    ownerWhatsapp?: string;
-    companyPhone?: string;
-    companyWhatsapp?: string;
-    companyAddress?: string;
-    companyCity?: string;
-    companyCountry?: string;
-    companyWebsite?: string;
-    companyNotes?: string;
-    subscriptionPlan?: string;
-    subscriptionStatus?: string;
-    subscriptionMonths?: number;
-  }) => request<{ tenant: AdminTenant; user: { id: string; name: string; email: string; role: string } }>(
-    `/admin/tenants`, { method: "POST", body: JSON.stringify(data) }
-  ),
-  updateTenant: (id: string, data: Partial<AdminTenant>) =>
-    request<AdminTenant>(`/admin/tenants/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
-  updateTenantOwner: (id: string, data: { name?: string; email?: string; password?: string }) =>
-    request<{ id: string; name: string; email: string; role: string }>(
-      `/admin/tenants/${id}/owner`, { method: "PATCH", body: JSON.stringify(data) }
-    ),
-  deleteTenant: (id: string) =>
-    request<{ success: boolean }>(`/admin/tenants/${id}`, { method: "DELETE" }),
-  getPaymentRequests: () => request<AdminPaymentRequest[]>("/admin/payment-requests"),
-  updatePaymentRequest: (id: string, data: Partial<AdminPaymentRequest>) =>
-    request<AdminPaymentRequest>(`/admin/payment-requests/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
-  getPendingUsers: () => request<PendingUser[]>("/admin/pending-users"),
-  approveUser: (id: string) =>
-    request<{ id: string; status: string; approvedAt: string }>(`/admin/users/${id}/approve`, { method: "POST" }),
-  rejectUser: (id: string, reason?: string) =>
-    request<{ id: string; status: string; rejectionReason: string | null }>(
-      `/admin/users/${id}/reject`, { method: "POST", body: JSON.stringify({ reason }) }
-    ),
-};
-
-export interface PendingUser {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string | null;
-  whatsapp?: string | null;
-  role: string;
-  status: string;
+  currentPlan?: string;
+  requestedPlan?: string;
+  billingCycle?: string;
+  requestType?: string;
+  paymentMethod?: string;
+  expectedAmount?: number;
+  amountSent?: number;
+  senderAccountOrNumber?: string;
+  transactionId?: string;
+  paymentDate?: string;
+  paymentTime?: string;
+  proofFileName?: string;
+  note?: string;
+  adminNote?: string;
+  rejectionReason?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  activationMode?: string;
+  activationDate?: string;
+  expiryDateAfterApproval?: string;
+  requestSource?: string;
   createdAt: string;
-  tenantId: string;
-  tenant?: { id: string; name: string; slug: string | null };
+  updatedAt?: string;
 }
-
-// ── Domain Management API ──
-export interface TenantDomainRecord {
-  id: string;
-  tenantId: string;
-  domain: string;
-  wwwRedirect: "www-to-root" | "root-to-www";
-  status: "active" | "pending" | "error";
-  sslStatus: "active" | "pending" | "none";
-  verificationStatus: "unverified" | "verifying" | "verified";
-  verificationToken: string;
-  isPrimary: boolean;
-  lastDnsCheck?: string;
-  createdAt: string;
-  updatedAt: string;
-  tenant?: { id: string; name: string; slug?: string; subscriptionPlan: string };
-}
-
-export const domainApi = {
-  list: () => request<TenantDomainRecord[]>("/admin/domains"),
-  add: (data: { tenantId: string; domain: string; wwwRedirect?: string }) =>
-    request<TenantDomainRecord>("/admin/domains", { method: "POST", body: JSON.stringify(data) }),
-  verify: (id: string) =>
-    request<{ verified: boolean; domain: TenantDomainRecord }>(`/admin/domains/${id}/verify`, { method: "POST" }),
-  updateSsl: (id: string, sslStatus: string) =>
-    request<TenantDomainRecord>(`/admin/domains/${id}/ssl`, { method: "PATCH", body: JSON.stringify({ sslStatus }) }),
-  updateStatus: (id: string, status: string) =>
-    request<TenantDomainRecord>(`/admin/domains/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
-  setPrimary: (id: string) =>
-    request<TenantDomainRecord>(`/admin/domains/${id}/primary`, { method: "PATCH" }),
-  remove: (id: string) =>
-    request<{ message: string }>(`/admin/domains/${id}`, { method: "DELETE" }),
-};
-
-// ── Audit Log API ──
-export interface AuditLogEntry {
-  id: string;
-  actorId: string;
-  actorName: string;
-  actorEmail: string;
-  actorRole: string;
-  tenantId?: string;
-  tenantName?: string;
-  module: string;
-  action: string;
-  targetType?: string;
-  targetId?: string;
-  targetLabel?: string;
-  oldValue?: string;
-  newValue?: string;
-  metadata?: Record<string, string>;
-  ipAddress?: string;
-  createdAt: string;
-}
-
-export const auditLogApi = {
-  list: () => request<AuditLogEntry[]>("/audit-logs"),
-  create: (data: Omit<AuditLogEntry, "id" | "actorId" | "actorName" | "actorEmail" | "actorRole" | "createdAt">) =>
-    request<AuditLogEntry>("/audit-logs", { method: "POST", body: JSON.stringify(data) }),
-};
