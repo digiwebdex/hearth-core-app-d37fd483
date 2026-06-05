@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -19,13 +19,14 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import {
-  quotationApi, type Quotation, type QuotationItem, type QuotationItemType,
+  quotationApi, type QuotationItem, type QuotationItemType,
   type ItineraryDay, type QuotationStatus,
 } from "@/lib/api";
+import { travelPackageApi, type TravelPackage } from "@/lib/travelPackageApi";
+import { SERVICE_TYPES, getServiceTypeLabel, type ServiceType } from "@/lib/serviceTypes";
 import {
   ArrowLeft, Save, Plus, Trash2, Hotel, Plane, Stamp, Car, Map, Bike,
-  Shield, DollarSign, Percent, Tag, Receipt, CalendarIcon, Eye,
-  GripVertical, ChevronUp, ChevronDown, FileText,
+  Shield, DollarSign, Percent, Receipt, CalendarIcon, ChevronUp, ChevronDown, FileText,
 } from "lucide-react";
 
 const ITEM_TYPES: { value: QuotationItemType; labelKey: string; icon: any }[] = [
@@ -41,9 +42,7 @@ const ITEM_TYPES: { value: QuotationItemType; labelKey: string; icon: any }[] = 
   { value: "tax", labelKey: "tax", icon: Receipt },
 ];
 
-
 const getItemIcon = (type: QuotationItemType) => ITEM_TYPES.find((t) => t.value === type)?.icon || FileText;
-
 const makeId = () => `item-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
 const emptyItem = (day?: number): QuotationItem => ({
@@ -66,14 +65,19 @@ const QuotationBuilder = () => {
   const isEdit = !!id;
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
+  const [packagesLoading, setPackagesLoading] = useState(false);
   const { toast } = useToast();
 
-  // Form state
   const [title, setTitle] = useState("Thailand Family Tour — 5 Nights / 6 Days");
   const [destination, setDestination] = useState("Bangkok & Pattaya, Thailand");
   const [clientName, setClientName] = useState("");
   const [clientId, setClientId] = useState("");
   const [leadName, setLeadName] = useState("");
+  const [serviceType, setServiceType] = useState<ServiceType>("tour_international");
+  const [packageId, setPackageId] = useState<string>("none");
+  const [packageTitleSnapshot, setPackageTitleSnapshot] = useState("");
+  const [packageCodeSnapshot, setPackageCodeSnapshot] = useState("");
+  const [availablePackages, setAvailablePackages] = useState<TravelPackage[]>([]);
   const [travelerCount, setTravelerCount] = useState(2);
   const [travelFrom, setTravelFrom] = useState<Date | undefined>();
   const [travelTo, setTravelTo] = useState<Date | undefined>();
@@ -102,15 +106,26 @@ const QuotationBuilder = () => {
     { dayNumber: 6, title: "Departure", description: "After breakfast, check out from hotel. Private transfer to Suvarnabhumi Airport for your return flight to Dhaka. End of a memorable Thailand experience!", meals: "Breakfast", accommodation: "—" },
   ]);
 
-  // Load existing quotation
+  useEffect(() => {
+    setPackagesLoading(true);
+    travelPackageApi.list()
+      .then((data) => setAvailablePackages(data))
+      .catch(() => {})
+      .finally(() => setPackagesLoading(false));
+  }, []);
+
   useEffect(() => {
     if (!id) return;
-    quotationApi.get(id).then((q) => {
+    quotationApi.get(id).then((q: any) => {
       setTitle(q.title || "");
       setDestination(q.destination || "");
       setClientName(q.clientName || "");
       setClientId(q.clientId || "");
       setLeadName(q.leadName || "");
+      setServiceType((q.serviceType as ServiceType) || "custom");
+      setPackageId(q.packageId || "none");
+      setPackageTitleSnapshot(q.packageTitleSnapshot || "");
+      setPackageCodeSnapshot(q.packageCodeSnapshot || "");
       setTravelerCount(q.travelerCount || 2);
       setTravelFrom(q.travelDateFrom ? new Date(q.travelDateFrom) : undefined);
       setTravelTo(q.travelDateTo ? new Date(q.travelDateTo) : undefined);
@@ -124,18 +139,61 @@ const QuotationBuilder = () => {
       toast({ variant: "destructive", title: t("quotationBuilder.errorLoading") });
       setLoading(false);
     });
-  }, [id]);
+  }, [id, toast, t]);
 
-  // Recalculate
+  const filteredPackages = useMemo(() => {
+    return availablePackages.filter((item) => serviceType === "custom" || item.serviceType === serviceType);
+  }, [availablePackages, serviceType]);
+
+  const selectedPackage = useMemo(
+    () => availablePackages.find((pkg) => pkg.id === packageId) || null,
+    [availablePackages, packageId]
+  );
+
+  useEffect(() => {
+    if (!selectedPackage) return;
+    setPackageTitleSnapshot(selectedPackage.title || "");
+    setPackageCodeSnapshot(selectedPackage.code || "");
+  }, [selectedPackage]);
+
+  const handlePackageChange = async (value: string) => {
+    setPackageId(value);
+    if (value === "none") {
+      setPackageTitleSnapshot("");
+      setPackageCodeSnapshot("");
+      return;
+    }
+    const pkg = availablePackages.find((item) => item.id === value);
+    if (!pkg) return;
+    setServiceType((pkg.serviceType as ServiceType) || serviceType);
+    setPackageTitleSnapshot(pkg.title || "");
+    setPackageCodeSnapshot(pkg.code || "");
+    setTitle((prev) => prev || pkg.title || "");
+    setDestination((prev) => prev || pkg.destination || "");
+    try {
+      const full = await travelPackageApi.get(value);
+      if (Array.isArray((full as any).days) && (full as any).days.length > 0) {
+        setItinerary((full as any).days.map((day: any, index: number) => ({
+          dayNumber: Number(day.dayNumber || index + 1),
+          date: "",
+          title: day.title || `Day ${index + 1}`,
+          description: day.description || "",
+          meals: "",
+          accommodation: day.overnightLocation || "",
+          activities: [],
+        })));
+      }
+    } catch {
+      // optional enhancement only
+    }
+  };
+
   const updateItem = (itemId: string, updates: Partial<QuotationItem>) => {
     setItems((prev) => prev.map((item) => {
       if (item.id !== itemId) return item;
       const merged = { ...item, ...updates };
       if ("costPrice" in updates || "markupPercent" in updates) {
         merged.sellingPrice = calcSellingPrice(merged.costPrice, merged.markupPercent);
-      }
-      if ("sellingPrice" in updates && !("costPrice" in updates)) {
-        // Manual selling price override
       }
       merged.subtotal = calcSubtotal(merged.sellingPrice, merged.quantity * (merged.type === "hotel" ? (merged.nights || 1) : 1));
       return merged;
@@ -163,7 +221,6 @@ const QuotationBuilder = () => {
     });
   };
 
-  // Totals
   const totals = useMemo(() => {
     const lineItems = items.filter((i) => i.type !== "discount" && i.type !== "tax");
     const discounts = items.filter((i) => i.type === "discount");
@@ -180,13 +237,24 @@ const QuotationBuilder = () => {
   const handleSave = async (status?: QuotationStatus) => {
     setSaving(true);
     const payload: any = {
-      title, destination, clientId: clientId || undefined, clientName: clientName || undefined,
-      leadName: leadName || undefined, travelerCount,
+      title,
+      destination,
+      clientId: clientId || undefined,
+      clientName: clientName || undefined,
+      leadName: leadName || undefined,
+      serviceType,
+      packageId: packageId === "none" ? undefined : packageId,
+      packageTitleSnapshot: packageTitleSnapshot || undefined,
+      packageCodeSnapshot: packageCodeSnapshot || undefined,
+      travelerCount,
       travelDateFrom: travelFrom ? format(travelFrom, "yyyy-MM-dd") : undefined,
       travelDateTo: travelTo ? format(travelTo, "yyyy-MM-dd") : undefined,
       validUntil: validUntil ? format(validUntil, "yyyy-MM-dd") : undefined,
-      notes, termsAndConditions: terms,
-      items, itinerary, status: status || "draft",
+      notes,
+      termsAndConditions: terms,
+      items,
+      itinerary,
+      status: status || "draft",
       ...totals,
     };
     try {
@@ -227,7 +295,6 @@ const QuotationBuilder = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <Button variant="ghost" size="sm" onClick={() => navigate("/quotations")} className="mb-1">
@@ -253,13 +320,37 @@ const QuotationBuilder = () => {
             <TabsTrigger value="notes">{t("quotationBuilder.tabs.notes")}</TabsTrigger>
           </TabsList>
 
-
-          {/* ── DETAILS TAB ── */}
           <TabsContent value="details" className="space-y-4">
             <Card>
               <CardHeader><CardTitle className="text-sm">{t("quotationBuilder.details.section")}</CardTitle></CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Service Type</Label>
+                    <Select value={serviceType} onValueChange={(value: ServiceType) => { setServiceType(value); setPackageId("none"); }}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {SERVICE_TYPES.map((type) => (
+                          <SelectItem key={type} value={type}>{getServiceTypeLabel(type)}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Package Template</Label>
+                    <Select value={packageId} onValueChange={handlePackageChange}>
+                      <SelectTrigger><SelectValue placeholder={packagesLoading ? "Loading packages..." : "Select package (optional)"} /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No package selected</SelectItem>
+                        {filteredPackages.map((pkg) => (
+                          <SelectItem key={pkg.id} value={pkg.id}>{pkg.code} — {pkg.title}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedPackage ? (
+                      <p className="text-xs text-muted-foreground">Using package: {selectedPackage.code} • {selectedPackage.currency || "BDT"} {Number(selectedPackage.basePrice || 0).toLocaleString()}</p>
+                    ) : null}
+                  </div>
                   <div className="md:col-span-2 space-y-2">
                     <Label>{t("quotationBuilder.details.title")}</Label>
                     <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("quotationBuilder.details.titlePh")} />
@@ -286,10 +377,8 @@ const QuotationBuilder = () => {
                 </div>
               </CardContent>
             </Card>
-
           </TabsContent>
 
-          {/* ── ITINERARY TAB ── */}
           <TabsContent value="itinerary" className="space-y-4">
             {itinerary.map((day) => (
               <Card key={day.dayNumber}>
@@ -338,10 +427,8 @@ const QuotationBuilder = () => {
             <Button variant="outline" onClick={addDay} className="w-full">
               <Plus className="mr-2 h-4 w-4" /> {t("quotationBuilder.itinerary.addDay", { n: itinerary.length + 1 })}
             </Button>
-
           </TabsContent>
 
-          {/* ── PRICING TAB ── */}
           <TabsContent value="pricing" className="space-y-4">
             <Card>
               <CardHeader>
@@ -367,7 +454,6 @@ const QuotationBuilder = () => {
                   </TableHeader>
                   <TableBody>
                     {items.map((item) => {
-                      const Icon = getItemIcon(item.type);
                       return (
                         <TableRow key={item.id}>
                           <TableCell>
@@ -416,8 +502,6 @@ const QuotationBuilder = () => {
               </CardContent>
             </Card>
 
-
-            {/* Totals Card */}
             <Card>
               <CardContent className="pt-6">
                 <div className="max-w-sm ml-auto space-y-2">
@@ -459,7 +543,6 @@ const QuotationBuilder = () => {
             </Card>
           </TabsContent>
 
-          {/* ── NOTES TAB ── */}
           <TabsContent value="notes" className="space-y-4">
             <Card>
               <CardHeader><CardTitle className="text-sm">{t("quotationBuilder.notes.internal")}</CardTitle></CardHeader>
