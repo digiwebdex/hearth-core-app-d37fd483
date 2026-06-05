@@ -29,6 +29,7 @@ export interface PackagePublic {
   image?: string;
   type: string;
   highlights: string[];
+  source?: "travel_package" | "hajj";
 }
 
 /** Normalize domain — strip www prefix for consistent lookups */
