@@ -30,6 +30,7 @@ import Quotations from "./pages/Quotations";
 import QuotationBuilder from "./pages/QuotationBuilder";
 import QuotationDetails from "./pages/QuotationDetails";
 import QuotationPrint from "./pages/QuotationPrint";
+import Packages from "./pages/Packages";
 import Bookings from "./pages/Bookings";
 import BookingDetails from "./pages/BookingDetails";
 import Invoices from "./pages/Invoices";
@@ -171,6 +172,7 @@ const AppContent = () => (
               <Route path="/quotations/:id" element={<P><QuotationDetails /></P>} />
               <Route path="/quotations/:id/edit" element={<P><QuotationBuilder /></P>} />
               <Route path="/quotations/:id/print" element={<QuotationPrint />} />
+              <Route path="/travel-packages" element={<P><Packages /></P>} />
               <Route path="/bookings" element={<P><Bookings /></P>} />
               <Route path="/bookings/:id" element={<P><BookingDetails /></P>} />
               <Route path="/invoices" element={<P><Invoices /></P>} />
