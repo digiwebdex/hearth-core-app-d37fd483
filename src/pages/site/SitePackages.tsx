@@ -11,11 +11,17 @@ import { Plane, Search, Check, Pencil, Settings } from "lucide-react";
 
 const typeLabels: Record<string, string> = {
   tour: "Tour",
+  "domestic tour": "Domestic Tour",
+  "international tour": "International Tour",
   ticket: "Ticket",
+  "air ticket": "Air Ticket",
   hotel: "Hotel",
   visa: "Visa",
+  transport: "Transport",
   hajj: "Hajj",
   umrah: "Umrah",
+  "hajj / umrah": "Hajj / Umrah",
+  custom: "Custom",
 };
 
 const SitePackages = () => {
@@ -32,7 +38,8 @@ const SitePackages = () => {
   const filtered = useMemo(() => {
     return packages.filter((p) => {
       const matchType = activeType === "all" || p.type === activeType;
-      const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.description.toLowerCase().includes(search.toLowerCase());
+      const haystack = `${p.name} ${p.description} ${p.highlights.join(" ")}`.toLowerCase();
+      const matchSearch = haystack.includes(search.toLowerCase());
       return matchType && matchSearch;
     });
   }, [packages, activeType, search]);
@@ -49,7 +56,7 @@ const SitePackages = () => {
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">{pageSubtitle}</p>
           {user && (
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-              <Link to="/hajj-umrah">
+              <Link to="/travel-packages">
                 <Button>
                   <Pencil className="mr-2 h-4 w-4" />
                   Manage packages
@@ -70,7 +77,7 @@ const SitePackages = () => {
         <div className="container mx-auto px-4">
           {user && (
             <div className="mb-6 rounded-2xl border bg-muted/30 p-4 text-sm text-muted-foreground">
-              Package data is edited from the dashboard package manager. This public page only shows the published package listing for visitors.
+              Package data is edited from the dashboard package manager. This public page shows published travel packages and active Hajj/Umrah packages for visitors.
             </div>
           )}
 
@@ -98,7 +105,7 @@ const SitePackages = () => {
             <div className="py-12 text-center text-muted-foreground space-y-4">
               <p>No packages found.</p>
               {user && (
-                <Link to="/hajj-umrah">
+                <Link to="/travel-packages">
                   <Button>
                     <Pencil className="mr-2 h-4 w-4" />
                     Add your first package
@@ -110,13 +117,17 @@ const SitePackages = () => {
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map((pkg) => (
                 <Card key={pkg.id} className="overflow-hidden hover:shadow-lg transition-shadow flex flex-col">
-                  <div className="h-44 bg-primary/10 flex items-center justify-center">
-                    <Plane className="h-14 w-14 text-primary/30" />
+                  <div className="h-44 bg-primary/10 flex items-center justify-center overflow-hidden">
+                    {pkg.image ? (
+                      <img src={pkg.image} alt={pkg.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <Plane className="h-14 w-14 text-primary/30" />
+                    )}
                   </div>
                   <CardContent className="p-5 flex-1 flex flex-col">
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between mb-2 gap-3">
                       <Badge variant="secondary" className="capitalize">{typeLabels[pkg.type] || pkg.type}</Badge>
-                      <span className="text-xs text-muted-foreground">{pkg.duration}</span>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">{pkg.duration}</span>
                     </div>
                     <h3 className="font-bold text-lg mb-1">{pkg.name}</h3>
                     <p className="text-sm text-muted-foreground mb-3 flex-1">{pkg.description}</p>
