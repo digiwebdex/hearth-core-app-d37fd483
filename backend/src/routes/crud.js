@@ -9,6 +9,7 @@ const MODEL_MAP = {
   transaction: "transaction",
   subscription: "subscription",
   paymentRequest: "paymentRequest",
+  travelPackage: "travelPackage",
 };
 
 const PERMISSION_MODULE_MAP = {
@@ -18,6 +19,7 @@ const PERMISSION_MODULE_MAP = {
   transaction: "accounts",
   subscription: "subscription",
   paymentRequest: "subscription",
+  travelPackage: "packages",
 };
 
 module.exports = function createCrudRouter(modelKey) {
