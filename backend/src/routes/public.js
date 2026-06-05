@@ -161,11 +161,11 @@ function publicTenant(t) {
   };
 }
 
-function publicPackage(p) {
+function publicHajjPackage(p) {
   let highlights = [];
   if (p.highlights) {
     try { highlights = JSON.parse(p.highlights); }
-    catch { highlights = String(p.highlights).split("\n").map(s => s.trim()).filter(Boolean); }
+    catch { highlights = String(p.highlights).split("\n").map((s) => s.trim()).filter(Boolean); }
   }
   return {
     id: p.id,
@@ -176,7 +176,78 @@ function publicPackage(p) {
     image: undefined,
     type: p.type || "umrah",
     highlights,
+    source: "hajj",
   };
+}
+
+function mapTravelPackageType(value) {
+  switch (String(value || "").toLowerCase()) {
+    case "tour_domestic":
+      return "domestic tour";
+    case "tour_international":
+      return "international tour";
+    case "air_ticket":
+      return "air ticket";
+    case "hotel":
+      return "hotel";
+    case "transport":
+      return "transport";
+    case "visa":
+      return "visa";
+    case "hajj_umrah":
+      return "hajj / umrah";
+    default:
+      return String(value || "custom").replace(/_/g, " ");
+  }
+}
+
+function publicTravelPackage(p) {
+  const includedHighlights = Array.isArray(p.inclusions)
+    ? p.inclusions
+        .filter((item) => item.type === "included")
+        .slice(0, 4)
+        .map((item) => item.label)
+    : [];
+  const dayHighlights = Array.isArray(p.days)
+    ? p.days
+        .slice(0, Math.max(0, 4 - includedHighlights.length))
+        .map((item) => item.title)
+    : [];
+  const highlights = [...includedHighlights, ...dayHighlights].filter(Boolean);
+  return {
+    id: p.id,
+    name: p.title,
+    description: p.summary || "",
+    price: p.basePrice || 0,
+    duration: `${p.durationDays || 1} Days / ${p.durationNights || 0} Nights`,
+    image: p.heroImage || p.media?.[0]?.url || undefined,
+    type: mapTravelPackageType(p.serviceType),
+    highlights,
+    source: "travel_package",
+  };
+}
+
+async function getPublicPackagesByTenantId(tenantId) {
+  const [travelPackages, hajjPackages] = await Promise.all([
+    prisma.travelPackage.findMany({
+      where: { tenantId, status: "published" },
+      include: {
+        days: { orderBy: { dayNumber: "asc" } },
+        inclusions: { orderBy: { sortOrder: "asc" } },
+        media: { orderBy: { sortOrder: "asc" } },
+      },
+      orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
+    }).catch(() => []),
+    prisma.hajjPackage.findMany({
+      where: { tenantId, status: { not: "archived" } },
+      orderBy: { createdAt: "desc" },
+    }).catch(() => []),
+  ]);
+
+  return [
+    ...travelPackages.map(publicTravelPackage),
+    ...hajjPackages.map(publicHajjPackage),
+  ];
 }
 
 // GET /api/public/:slug - tenant by slug
@@ -199,11 +270,8 @@ router.get("/:slug/packages", async (req, res) => {
     const slug = String(req.params.slug || "").toLowerCase();
     const tenant = await prisma.tenant.findFirst({ where: { slug }, select: { id: true } });
     if (!tenant) return res.status(404).json({ message: "Tenant not found" });
-    const packages = await prisma.hajjPackage.findMany({
-      where: { tenantId: tenant.id, status: { not: "archived" } },
-      orderBy: { createdAt: "desc" },
-    });
-    res.json(packages.map(publicPackage));
+    const packages = await getPublicPackagesByTenantId(tenant.id);
+    res.json(packages);
   } catch (e) {
     console.error("public/:slug/packages error", e);
     res.status(500).json({ message: "Server error" });
@@ -245,11 +313,8 @@ router.get("/domain/:domain/packages", async (req, res) => {
     const domain = normalizeDomain(req.params.domain);
     const record = await findReadyDomain(domain);
     if (!record) return res.status(404).json({ message: "Domain not found" });
-    const packages = await prisma.hajjPackage.findMany({
-      where: { tenantId: record.tenantId, status: { not: "archived" } },
-      orderBy: { createdAt: "desc" },
-    });
-    res.json(packages.map(publicPackage));
+    const packages = await getPublicPackagesByTenantId(record.tenantId);
+    res.json(packages);
   } catch (e) {
     console.error("public/domain/:domain/packages error", e);
     res.status(500).json({ message: "Server error" });
