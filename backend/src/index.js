@@ -114,6 +114,7 @@ app.use("/api/bookings", require("./routes/bookings"));
 app.use("/api/invoices", require("./routes/invoices"));
 app.use("/api/payments", require("./routes/payments"));
 app.use("/api/quotations", require("./routes/quotations"));
+app.use("/api/travel-packages", require("./routes/crud")("travelPackage"));
 app.use("/api/accounts", require("./routes/accounts"));
 app.use("/api/transactions", require("./routes/crud")("transaction"));
 app.use("/api/expenses", require("./routes/expenses"));
