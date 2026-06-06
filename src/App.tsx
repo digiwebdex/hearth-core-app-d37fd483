@@ -38,6 +38,7 @@ import InvoiceReceipt from "./pages/InvoiceReceipt";
 import Accounts from "./pages/Accounts";
 import Reports from "./pages/Reports";
 import HajjUmrah from "./pages/HajjUmrah";
+import HajjOperationsLegacy from "./pages/HajjOperationsLegacy";
 import Subscriptions from "./pages/Subscriptions";
 import PaymentCallback from "./pages/PaymentCallback";
 import RoleManagement from "./pages/RoleManagement";
@@ -183,7 +184,7 @@ const AppContent = () => (
               <Route path="/accounts" element={<P><Accounts /></P>} />
               <Route path="/reports" element={<P><Reports /></P>} />
               <Route path="/hajj-umrah" element={<P><HajjUmrah /></P>} />
-              <Route path="/legacy/hajj-operations" element={<P><Navigate to="/hajj-umrah" replace /></P>} />
+              <Route path="/legacy/hajj-operations" element={<P><HajjOperationsLegacy /></P>} />
               <Route path="/subscription" element={<P><Subscriptions /></P>} />
               <Route path="/payment/callback" element={<P><PaymentCallback /></P>} />
               <Route path="/roles" element={<P><RoleManagement /></P>} />
