@@ -1,9 +1,8 @@
-import { LayoutDashboard, Users, Settings, Building2, LogOut, UserCheck, UserCog, Store, Target, ListTodo, Plane, Receipt, Wallet, Crown, Shield, BarChart3, Moon, Globe, Lock, UserCog2, FileText, Bell, BookOpen, Package2 } from "lucide-react";
+import { LayoutDashboard, Users, Settings, Building2, LogOut, UserCheck, UserCog, Store, Target, ListTodo, Plane, Receipt, Wallet, Crown, Shield, BarChart3, Globe, Lock, UserCog2, FileText, Bell, BookOpen, Package2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
-import { usePlanAccess } from "@/hooks/usePlanAccess";
 import { getRoleMeta } from "@/lib/permissions";
 import {
   Sidebar,
@@ -24,7 +23,8 @@ import type { PlanType } from "@/lib/plans";
 import type { Module } from "@/lib/permissions";
 
 interface MenuItem {
-  titleKey: string;
+  titleKey?: string;
+  title?: { bn: string; en: string };
   url: string;
   icon: any;
   module: Module;
@@ -32,32 +32,45 @@ interface MenuItem {
   minPlan?: PlanType;
 }
 
-const mainItems: MenuItem[] = [
+const overviewItems: MenuItem[] = [
   { titleKey: "sidebar.dashboard", url: "/dashboard", icon: LayoutDashboard, module: "dashboard" },
 ];
 
-const crmItems: MenuItem[] = [
+const salesItems: MenuItem[] = [
+  { titleKey: "sidebar.leads", url: "/leads", icon: Target, module: "leads" },
   { titleKey: "sidebar.clients", url: "/clients", icon: UserCheck, module: "clients" },
   { titleKey: "sidebar.agents", url: "/agents", icon: UserCog, module: "agents" },
   { titleKey: "sidebar.vendors", url: "/vendors", icon: Store, module: "vendors" },
-  { titleKey: "sidebar.leads", url: "/leads", icon: Target, module: "leads" },
-  { titleKey: "sidebar.tasks", url: "/tasks", icon: ListTodo, module: "tasks" },
   { titleKey: "sidebar.quotations", url: "/quotations", icon: FileText, module: "quotations" },
-  { titleKey: "Packages", url: "/travel-packages", icon: Package2, module: "packages" },
+];
+
+const operationItems: MenuItem[] = [
+  {
+    title: { bn: "প্যাকেজ ও সার্ভিসেস", en: "Packages & Services" },
+    url: "/travel-packages",
+    icon: Package2,
+    module: "packages",
+  },
   { titleKey: "sidebar.bookings", url: "/bookings", icon: Plane, module: "bookings" },
+  { titleKey: "sidebar.tasks", url: "/tasks", icon: ListTodo, module: "tasks" },
+];
+
+const financeItems: MenuItem[] = [
   { titleKey: "sidebar.invoices", url: "/invoices", icon: Receipt, module: "invoices" },
   { titleKey: "sidebar.accounts", url: "/accounts", icon: Wallet, module: "accounts", minPlan: "basic" },
   { titleKey: "sidebar.reports", url: "/reports", icon: BarChart3, module: "reports", requiredFeature: "hasAdvancedAnalytics", minPlan: "business" },
-  { titleKey: "sidebar.notifications", url: "/notifications", icon: Bell, module: "reports" },
-  { titleKey: "sidebar.hajjUmrah", url: "/hajj-umrah", icon: Moon, module: "hajj_umrah" },
+];
+
+const websiteItems: MenuItem[] = [
+  { titleKey: "sidebar.website", url: "/website", icon: Globe, module: "website", requiredFeature: "hasWebsiteTemplates", minPlan: "pro" },
 ];
 
 const managementItems: MenuItem[] = [
   { titleKey: "sidebar.team", url: "/team", icon: Users, module: "team" },
   { titleKey: "sidebar.roles", url: "/roles", icon: UserCog2, module: "team" },
   { titleKey: "sidebar.organization", url: "/organization", icon: Building2, module: "organization" },
-  { titleKey: "sidebar.website", url: "/website", icon: Globe, module: "website", requiredFeature: "hasWebsiteTemplates", minPlan: "pro" },
   { titleKey: "sidebar.subscription", url: "/subscription", icon: Crown, module: "subscription" },
+  { titleKey: "sidebar.notifications", url: "/notifications", icon: Bell, module: "reports" },
   { titleKey: "sidebar.settings", url: "/settings", icon: Settings, module: "settings" },
   { titleKey: "sidebar.userGuide", url: "/user-guide", icon: BookOpen, module: "dashboard" },
 ];
@@ -69,11 +82,10 @@ function isPlanSufficient(minPlan: PlanType | undefined, currentPlan: PlanType):
   return planOrder.indexOf(currentPlan) >= planOrder.indexOf(minPlan);
 }
 
-function NavGroup({ label, items, collapsed, currentPlan }: { label: string; items: MenuItem[]; collapsed: boolean; currentPlan: PlanType }) {
+function NavGroup({ label, items, collapsed, currentPlan, isBn }: { label: string; items: MenuItem[]; collapsed: boolean; currentPlan: PlanType; isBn: boolean }) {
   const { canAccess } = usePermissions();
   const { t } = useTranslation();
 
-  // Filter items by permission first
   const visibleItems = items.filter((item) => canAccess(item.module));
 
   if (visibleItems.length === 0) return null;
@@ -85,11 +97,11 @@ function NavGroup({ label, items, collapsed, currentPlan }: { label: string; ite
         <SidebarMenu>
           {visibleItems.map((item) => {
             const planOk = isPlanSufficient(item.minPlan, currentPlan);
-            const title = item.titleKey.includes(".") ? t(item.titleKey) : item.titleKey;
+            const title = item.title ? (isBn ? item.title.bn : item.title.en) : item.titleKey?.includes(".") ? t(item.titleKey) : item.titleKey || "";
 
             if (!planOk) {
               return (
-                <SidebarMenuItem key={item.titleKey}>
+                <SidebarMenuItem key={`${item.url}-${title}`}>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -113,7 +125,7 @@ function NavGroup({ label, items, collapsed, currentPlan }: { label: string; ite
             }
 
             return (
-              <SidebarMenuItem key={item.titleKey}>
+              <SidebarMenuItem key={`${item.url}-${title}`}>
                 <SidebarMenuButton asChild>
                   <NavLink
                     to={item.url}
@@ -140,7 +152,17 @@ export function AppSidebar() {
   const { user, logout, currentPlan, appRole } = useAuth();
   const { canAccessAdmin } = usePermissions();
   const roleMeta = getRoleMeta(appRole);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isBn = String(i18n.resolvedLanguage || i18n.language || "en").startsWith("bn");
+
+  const sectionLabels = {
+    overview: isBn ? "সংক্ষিপ্ত বিবরণ" : "Overview",
+    sales: isBn ? "সেলস / সিআরএম" : "Sales / CRM",
+    operations: isBn ? "সার্ভিস ও অপারেশনস" : "Services & Operations",
+    finance: isBn ? "ফাইন্যান্স" : "Finance",
+    website: isBn ? "ওয়েবসাইট" : "Website",
+    management: isBn ? "ব্যবস্থাপনা" : "Management",
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -148,9 +170,12 @@ export function AppSidebar() {
         <div className="px-3 py-3">
           {!collapsed && <span className="text-sm font-bold tracking-tight">{t("common.brand")}</span>}
         </div>
-        <NavGroup label={t("sidebar.overview")} items={mainItems} collapsed={collapsed} currentPlan={currentPlan} />
-        <NavGroup label={t("sidebar.crm")} items={crmItems} collapsed={collapsed} currentPlan={currentPlan} />
-        <NavGroup label={t("sidebar.management")} items={managementItems} collapsed={collapsed} currentPlan={currentPlan} />
+        <NavGroup label={sectionLabels.overview} items={overviewItems} collapsed={collapsed} currentPlan={currentPlan} isBn={isBn} />
+        <NavGroup label={sectionLabels.sales} items={salesItems} collapsed={collapsed} currentPlan={currentPlan} isBn={isBn} />
+        <NavGroup label={sectionLabels.operations} items={operationItems} collapsed={collapsed} currentPlan={currentPlan} isBn={isBn} />
+        <NavGroup label={sectionLabels.finance} items={financeItems} collapsed={collapsed} currentPlan={currentPlan} isBn={isBn} />
+        <NavGroup label={sectionLabels.website} items={websiteItems} collapsed={collapsed} currentPlan={currentPlan} isBn={isBn} />
+        <NavGroup label={sectionLabels.management} items={managementItems} collapsed={collapsed} currentPlan={currentPlan} isBn={isBn} />
         {canAccessAdmin && (
           <SidebarGroup>
             <SidebarGroupLabel>{!collapsed ? t("sidebar.admin") : ""}</SidebarGroupLabel>
