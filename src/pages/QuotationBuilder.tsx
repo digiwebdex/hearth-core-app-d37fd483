@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import LoadingState from "@/components/LoadingState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,7 +42,6 @@ const ITEM_TYPES: { value: QuotationItemType; labelKey: string; icon: any }[] = 
   { value: "tax", labelKey: "tax", icon: Receipt },
 ];
 
-const getItemIcon = (type: QuotationItemType) => ITEM_TYPES.find((t) => t.value === type)?.icon || FileText;
 const makeId = () => `item-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
 const emptyItem = (day?: number): QuotationItem => ({
@@ -58,15 +57,34 @@ const emptyDay = (num: number): ItineraryDay => ({
 const calcSellingPrice = (cost: number, markup: number) => Math.round(cost * (1 + markup / 100));
 const calcSubtotal = (price: number, qty: number) => price * qty;
 
+const mapServiceTypeToItemType = (serviceType: ServiceType): QuotationItemType => {
+  switch (serviceType) {
+    case "air_ticket":
+      return "flight";
+    case "visa":
+      return "visa";
+    case "hotel":
+      return "hotel";
+    case "transport":
+      return "transport";
+    default:
+      return "tour";
+  }
+};
+
 const QuotationBuilder = () => {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const isEdit = !!id;
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [packagesLoading, setPackagesLoading] = useState(false);
+  const [prefillApplied, setPrefillApplied] = useState(false);
   const { toast } = useToast();
+
+  const packagePrefillId = searchParams.get("packageId");
 
   const [title, setTitle] = useState("Thailand Family Tour — 5 Nights / 6 Days");
   const [destination, setDestination] = useState("Bangkok & Pattaya, Thailand");
@@ -156,6 +174,56 @@ const QuotationBuilder = () => {
     setPackageCodeSnapshot(selectedPackage.code || "");
   }, [selectedPackage]);
 
+  const applyPackageTemplate = (pkg: TravelPackage, full?: any) => {
+    const normalizedServiceType = (pkg.serviceType as ServiceType) || serviceType;
+    const itemType = mapServiceTypeToItemType(normalizedServiceType);
+    const suggestedTravelers = Math.max(1, Number(full?.pricing?.[0]?.travelerMin || 1));
+    const unitPrice = Number(full?.pricing?.[0]?.price || full?.basePrice || pkg.basePrice || 0);
+    const itemNights = itemType === "hotel" ? Math.max(1, Number(full?.durationNights || pkg.durationNights || 1)) : 1;
+    const itemQty = suggestedTravelers;
+
+    setServiceType(normalizedServiceType);
+    setPackageTitleSnapshot(pkg.title || "");
+    setPackageCodeSnapshot(pkg.code || "");
+    setTitle(pkg.title || "");
+    setDestination(pkg.destination || "");
+    setTravelerCount(suggestedTravelers);
+
+    if (Array.isArray(full?.days) && full.days.length > 0) {
+      setItinerary(full.days.map((day: any, index: number) => ({
+        dayNumber: Number(day.dayNumber || index + 1),
+        date: "",
+        title: day.title || `Day ${index + 1}`,
+        description: day.description || "",
+        meals: "",
+        accommodation: day.overnightLocation || "",
+        activities: [],
+      })));
+    } else {
+      const totalDays = Math.max(1, Number(full?.durationDays || pkg.durationDays || 1));
+      setItinerary(Array.from({ length: totalDays }, (_, index) => emptyDay(index + 1)));
+    }
+
+    if (unitPrice > 0) {
+      const subtotal = calcSubtotal(unitPrice, itemQty * (itemType === "hotel" ? itemNights : 1));
+      setItems([
+        {
+          id: makeId(),
+          type: itemType,
+          description: pkg.title || "",
+          details: full?.summary || pkg.summary || "",
+          supplier: "Package Template",
+          costPrice: unitPrice,
+          markupPercent: 0,
+          sellingPrice: unitPrice,
+          quantity: itemQty,
+          nights: itemType === "hotel" ? itemNights : 1,
+          subtotal,
+        },
+      ]);
+    }
+  };
+
   const handlePackageChange = async (value: string) => {
     setPackageId(value);
     if (value === "none") {
@@ -163,30 +231,23 @@ const QuotationBuilder = () => {
       setPackageCodeSnapshot("");
       return;
     }
+
     const pkg = availablePackages.find((item) => item.id === value);
     if (!pkg) return;
-    setServiceType((pkg.serviceType as ServiceType) || serviceType);
-    setPackageTitleSnapshot(pkg.title || "");
-    setPackageCodeSnapshot(pkg.code || "");
-    setTitle((prev) => prev || pkg.title || "");
-    setDestination((prev) => prev || pkg.destination || "");
+
     try {
       const full = await travelPackageApi.get(value);
-      if (Array.isArray((full as any).days) && (full as any).days.length > 0) {
-        setItinerary((full as any).days.map((day: any, index: number) => ({
-          dayNumber: Number(day.dayNumber || index + 1),
-          date: "",
-          title: day.title || `Day ${index + 1}`,
-          description: day.description || "",
-          meals: "",
-          accommodation: day.overnightLocation || "",
-          activities: [],
-        })));
-      }
+      applyPackageTemplate(pkg, full);
     } catch {
-      // optional enhancement only
+      applyPackageTemplate(pkg);
     }
   };
+
+  useEffect(() => {
+    if (isEdit || prefillApplied || !packagePrefillId || availablePackages.length === 0) return;
+    setPrefillApplied(true);
+    void handlePackageChange(packagePrefillId);
+  }, [isEdit, prefillApplied, packagePrefillId, availablePackages]);
 
   const updateItem = (itemId: string, updates: Partial<QuotationItem>) => {
     setItems((prev) => prev.map((item) => {
@@ -311,6 +372,24 @@ const QuotationBuilder = () => {
             </Button>
           </div>
         </div>
+
+        {selectedPackage ? (
+          <Card className="border-dashed">
+            <CardContent className="pt-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline">{getServiceTypeLabel(serviceType)}</Badge>
+                  {packageCodeSnapshot ? <Badge variant="secondary">{packageCodeSnapshot}</Badge> : null}
+                </div>
+                <p className="text-sm font-medium mt-2">{packageTitleSnapshot || selectedPackage.title}</p>
+                <p className="text-sm text-muted-foreground">{selectedPackage.destination || destination || t("quotationBuilder.details.destination")}</p>
+              </div>
+              <Button variant="outline" onClick={() => handlePackageChange(selectedPackage.id)}>
+                <FileText className="mr-2 h-4 w-4" /> {t("pages.fromQuotation")}
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
 
         <Tabs defaultValue="details" className="space-y-4">
           <TabsList>
@@ -454,6 +533,7 @@ const QuotationBuilder = () => {
                   </TableHeader>
                   <TableBody>
                     {items.map((item) => {
+                      const Icon = ITEM_TYPES.find((it) => it.value === item.type)?.icon || FileText;
                       return (
                         <TableRow key={item.id}>
                           <TableCell>
@@ -469,7 +549,10 @@ const QuotationBuilder = () => {
                             </Select>
                           </TableCell>
                           <TableCell>
-                            <Input className="h-8 text-xs" value={item.description} onChange={(e) => updateItem(item.id, { description: e.target.value })} placeholder={t("quotationBuilder.pricing.descriptionPh")} />
+                            <div className="flex items-center gap-2">
+                              <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                              <Input className="h-8 text-xs" value={item.description} onChange={(e) => updateItem(item.id, { description: e.target.value })} placeholder={t("quotationBuilder.pricing.descriptionPh")} />
+                            </div>
                           </TableCell>
                           <TableCell>
                             <Input type="number" className="h-8 text-xs" value={item.costPrice} onChange={(e) => updateItem(item.id, { costPrice: +e.target.value })} />
