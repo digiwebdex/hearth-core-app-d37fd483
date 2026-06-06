@@ -173,6 +173,9 @@ const AppContent = () => (
               <Route path="/quotations/:id/edit" element={<P><QuotationBuilder /></P>} />
               <Route path="/quotations/:id/print" element={<QuotationPrint />} />
               <Route path="/travel-packages" element={<P><Packages /></P>} />
+              <Route path="/packages-and-services" element={<P><Navigate to="/travel-packages" replace /></P>} />
+              <Route path="/services" element={<P><Navigate to="/travel-packages" replace /></P>} />
+              <Route path="/app-packages" element={<P><Navigate to="/travel-packages" replace /></P>} />
               <Route path="/bookings" element={<P><Bookings /></P>} />
               <Route path="/bookings/:id" element={<P><BookingDetails /></P>} />
               <Route path="/invoices" element={<P><Invoices /></P>} />
@@ -180,6 +183,7 @@ const AppContent = () => (
               <Route path="/accounts" element={<P><Accounts /></P>} />
               <Route path="/reports" element={<P><Reports /></P>} />
               <Route path="/hajj-umrah" element={<P><HajjUmrah /></P>} />
+              <Route path="/legacy/hajj-operations" element={<P><Navigate to="/hajj-umrah" replace /></P>} />
               <Route path="/subscription" element={<P><Subscriptions /></P>} />
               <Route path="/payment/callback" element={<P><PaymentCallback /></P>} />
               <Route path="/roles" element={<P><RoleManagement /></P>} />
