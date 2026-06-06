@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { adminApi, domainApi, type AdminTenant, type TenantDomainRecord } from "@/lib/api";
+import { adminApi, type AdminTenant } from "@/lib/api";
+import { domainApi, type TenantDomainRecord } from "@/lib/domainApi";
 import { adminSubscriptionWorkflowApi, type WorkflowPaymentRequest, type WorkflowSubscriptionHistory } from "@/lib/subscriptionWorkflowApi";
 import { PLANS, type BillingCycle, type PlanType } from "@/lib/plans";
 
@@ -272,8 +273,8 @@ const AdminTenantDetails = () => {
                       <TableCell className="font-medium">{domain.domain}</TableCell>
                       <TableCell className="capitalize">{statusLabel(domain.verificationStatus)}</TableCell>
                       <TableCell className="capitalize">{statusLabel(domain.status)}</TableCell>
-                      <TableCell className="capitalize">{statusLabel(domain.sslStatus)}</TableCell>
-                      <TableCell>{domain.isPrimary ? <Badge>{text.primary}</Badge> : "—"}</TableCell>
+                      <TableCell className="uppercase">{domain.sslStatus || "—"}</TableCell>
+                      <TableCell>{domain.isPrimary ? (isBn ? "হ্যাঁ" : "Yes") : (isBn ? "না" : "No")}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -285,101 +286,115 @@ const AdminTenantDetails = () => {
         <Card>
           <CardHeader><CardTitle>{text.recentRequests}</CardTitle></CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{text.currentPlan}</TableHead>
-                  <TableHead>{text.requestType}</TableHead>
-                  <TableHead>{text.amount}</TableHead>
-                  <TableHead>{text.method}</TableHead>
-                  <TableHead>{text.status}</TableHead>
-                  <TableHead>{text.submitted}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {requests.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">{text.noRequests}</TableCell></TableRow>
-                ) : requests.map((request) => (
-                  <TableRow key={request.id}>
-                    <TableCell className="capitalize">{planLabel(request.requestedPlan || request.plan)}</TableCell>
-                    <TableCell className="capitalize">{requestTypeLabel(request.requestType)}</TableCell>
-                    <TableCell>৳{(request.amountSent || request.amount || 0).toLocaleString()}</TableCell>
-                    <TableCell className="capitalize">{request.paymentMethod || request.method}</TableCell>
-                    <TableCell><span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusClasses[request.status] || ""}`}>{statusLabel(request.status)}</span></TableCell>
-                    <TableCell>{new Date(request.createdAt).toLocaleDateString(isBn ? "bn-BD" : undefined)}</TableCell>
+            {requests.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{text.noRequests}</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{text.requestType}</TableHead>
+                    <TableHead>{text.amount}</TableHead>
+                    <TableHead>{text.method}</TableHead>
+                    <TableHead>{text.status}</TableHead>
+                    <TableHead>{text.submitted}</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {requests.map((request) => (
+                    <TableRow key={request.id}>
+                      <TableCell>{requestTypeLabel(request.requestType)}</TableCell>
+                      <TableCell>৳{Number(request.amount || 0).toLocaleString()}</TableCell>
+                      <TableCell>{request.paymentMethod || request.method || "—"}</TableCell>
+                      <TableCell className="capitalize">{statusLabel(request.status)}</TableCell>
+                      <TableCell>{new Date(request.createdAt).toLocaleDateString(isBn ? "bn-BD" : undefined)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader><CardTitle>{text.history}</CardTitle></CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{text.action}</TableHead>
-                  <TableHead>{text.oldPlan}</TableHead>
-                  <TableHead>{text.newPlan}</TableHead>
-                  <TableHead>{text.status}</TableHead>
-                  <TableHead>{text.expiry}</TableHead>
-                  <TableHead>{text.created}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {history.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">{text.noHistory}</TableCell></TableRow>
-                ) : history.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="capitalize">{String(item.actionType).replace(/_/g, " ")}</TableCell>
-                    <TableCell className="capitalize">{planLabel(item.oldPlan)}</TableCell>
-                    <TableCell className="capitalize">{planLabel(item.newPlan)}</TableCell>
-                    <TableCell>{statusLabel(item.oldStatus)} → {statusLabel(item.newStatus)}</TableCell>
-                    <TableCell>{item.expiryDate ? new Date(item.expiryDate).toLocaleDateString(isBn ? "bn-BD" : undefined) : "—"}</TableCell>
-                    <TableCell>{new Date(item.createdAt).toLocaleDateString(isBn ? "bn-BD" : undefined)}</TableCell>
+            {history.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{text.noHistory}</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{text.action}</TableHead>
+                    <TableHead>{text.oldPlan}</TableHead>
+                    <TableHead>{text.newPlan}</TableHead>
+                    <TableHead>{text.note}</TableHead>
+                    <TableHead>{text.submitted}</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {history.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="capitalize">{item.actionType || item.action || "—"}</TableCell>
+                      <TableCell>{planLabel(item.oldPlan)}</TableCell>
+                      <TableCell>{planLabel(item.newPlan)}</TableCell>
+                      <TableCell>{item.note || "—"}</TableCell>
+                      <TableCell>{item.createdAt ? new Date(item.createdAt).toLocaleDateString(isBn ? "bn-BD" : undefined) : "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader><DialogTitle>{actionType === "activate" ? text.activateTitle : actionType === "extend" ? text.extendTitle : actionType === "skip_trial" ? text.skipTrialTitle : text.suspendTitle}</DialogTitle></DialogHeader>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {actionType === "activate" ? text.activateTitle : actionType === "extend" ? text.extendTitle : actionType === "skip_trial" ? text.skipTrialTitle : text.suspendTitle}
+              </DialogTitle>
+            </DialogHeader>
             <div className="space-y-4">
               {(actionType === "activate" || actionType === "skip_trial") && (
-                <>
-                  <div>
-                    <Label>{text.targetPlan}</Label>
-                    <Select value={plan} onValueChange={(value: PlanType) => setPlan(value)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>{PLANS.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>{text.billingCycle}</Label>
-                    <Select value={billingCycle} onValueChange={(value: BillingCycle) => setBillingCycle(value)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="monthly">{text.monthly}</SelectItem>
-                        <SelectItem value="yearly">{text.yearly}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </>
+                <div className="space-y-2">
+                  <Label>{text.targetPlan}</Label>
+                  <Select value={plan} onValueChange={(value: PlanType) => setPlan(value)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {PLANS.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               )}
-              {actionType === "extend" && <div><Label>{text.extendMonths}</Label><Input value={months} onChange={(e) => setMonths(e.target.value)} /></div>}
-              <div>
-                <Label>{text.note}</Label>
-                <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder={text.optionalNote} />
+
+              {(actionType === "activate" || actionType === "skip_trial") && (
+                <div className="space-y-2">
+                  <Label>{text.billingCycle}</Label>
+                  <Select value={billingCycle} onValueChange={(value: BillingCycle) => setBillingCycle(value)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="monthly">{text.monthly}</SelectItem>
+                      <SelectItem value="yearly">{text.yearly}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {actionType === "extend" && (
+                <div className="space-y-2">
+                  <Label>{text.extendMonths}</Label>
+                  <Input type="number" min="1" value={months} onChange={(e) => setMonths(e.target.value)} />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>{text.optionalNote}</Label>
+                <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={4} />
               </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setDialogOpen(false)}>{text.cancel}</Button>
-                <Button onClick={submitAction} disabled={saving}>{saving ? text.saving : text.confirm}</Button>
-              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>{text.cancel}</Button>
+              <Button onClick={submitAction} disabled={saving}>{saving ? text.saving : text.confirm}</Button>
             </div>
           </DialogContent>
         </Dialog>
