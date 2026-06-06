@@ -27,7 +27,7 @@ import {
   type HajjPackage, type HajjPackageType, type HajjPackageStatus,
   type HajjGroup, type HajjPilgrim, type HajjPilgrimStatus, type HajjVisaStatus,
   type HajjRoomType, type HajjPilgrimPayment,
-} from "@/lib/api";
+} from "@/lib/hajjApi";
 import EmptyState from "@/components/EmptyState";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
@@ -152,8 +152,8 @@ const emptyPkgForm = {
   duration: "", makkahNights: 0, madinahNights: 0,
   makkahHotel: "", madinahHotel: "", hotelClass: "3_star" as string,
   flightInfo: "", visaIncluded: true, transportIncluded: true, mealsIncluded: true, ziyaratIncluded: true,
-  packagePrice: 0, costPrice: 0,
-  capacity: 0, departureDate: "", returnDate: "", highlights: "", notes: "",
+  packagePrice: 0, costPrice: 0, capacity: 0,
+  departureDate: "", returnDate: "", highlights: "", notes: "",
 };
 
 const emptyGroupForm = {
@@ -162,8 +162,7 @@ const emptyGroupForm = {
 };
 
 const emptyPilgrimForm = {
-  packageId: "", groupId: "", name: "", phone: "", email: "", dateOfBirth: "",
-  gender: "male" as "male" | "female",
+  packageId: "", groupId: "", name: "", phone: "", email: "", dateOfBirth: "", gender: "male",
   passportNumber: "", passportExpiry: "", nidNumber: "", nationality: "Bangladeshi",
   mahramName: "", mahramRelation: "", mahramPilgrimId: "",
   roomType: "double" as HajjRoomType, roomNumber: "", roomPartners: "",
@@ -171,50 +170,41 @@ const emptyPilgrimForm = {
   emergencyContact: "", emergencyPhone: "", medicalNotes: "", notes: "",
 };
 
-const emptyPayForm = {
-  amount: 0, method: "cash" as string, reference: "",
-  date: new Date().toISOString().split("T")[0], note: "", installmentLabel: "",
-};
+const emptyPayForm = { amount: 0, method: "cash", reference: "", date: new Date().toISOString().slice(0, 10), installmentLabel: "", note: "" };
 
-// ════════════════════════════════════════
 const HajjUmrah = () => {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // State
-  const [packages, setPackages] = useState<HajjPackage[]>(DEFAULT_PACKAGES);
-  const [groups, setGroups] = useState<HajjGroup[]>(DEFAULT_GROUPS);
-  const [pilgrims, setPilgrims] = useState<HajjPilgrim[]>(DEFAULT_PILGRIMS);
-  const [payments, setPayments] = useState<HajjPilgrimPayment[]>(DEFAULT_PAYMENTS);
-  const [loading, setLoading] = useState(false);
+  const [packages, setPackages] = useState<HajjPackage[]>([]);
+  const [groups, setGroups] = useState<HajjGroup[]>([]);
+  const [pilgrims, setPilgrims] = useState<HajjPilgrim[]>([]);
+  const [payments, setPayments] = useState<HajjPilgrimPayment[]>([]);
 
-  // Dialogs
+  const [tab, setTab] = useState("packages");
+  const [searchPilgrim, setSearchPilgrim] = useState("");
+  const [filterPkgId, setFilterPkgId] = useState<string>("all");
+  const [filterVisaStatus, setFilterVisaStatus] = useState<string>("all");
+
   const [pkgDialogOpen, setPkgDialogOpen] = useState(false);
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
   const [pilgrimDialogOpen, setPilgrimDialogOpen] = useState(false);
   const [payDialogOpen, setPayDialogOpen] = useState(false);
-  const [pilgrimDetailOpen, setPilgrimDetailOpen] = useState(false);
 
-  // Forms
+  const [editingPkgId, setEditingPkgId] = useState<string | null>(null);
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+  const [selectedPilgrimId, setSelectedPilgrimId] = useState<string | null>(null);
+
   const [pkgForm, setPkgForm] = useState(emptyPkgForm);
   const [groupForm, setGroupForm] = useState(emptyGroupForm);
   const [pilgrimForm, setPilgrimForm] = useState(emptyPilgrimForm);
   const [payForm, setPayForm] = useState(emptyPayForm);
 
-  // Edit state
-  const [editingPkgId, setEditingPkgId] = useState<string | null>(null);
-  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
-
-  // View state
-  const [selectedPilgrimId, setSelectedPilgrimId] = useState<string | null>(null);
-  const [searchPilgrim, setSearchPilgrim] = useState("");
-  const [filterPkgId, setFilterPkgId] = useState("all");
-  const [filterVisaStatus, setFilterVisaStatus] = useState("all");
-
-  // Try fetch from API (fallback to mock data already set)
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
+      setLoading(true); setError(null);
       try {
         const [pkgs, grps, plgs] = await Promise.all([
           hajjApi.listPackages().catch(() => null),
@@ -261,7 +251,7 @@ const HajjUmrah = () => {
     const profit = pkgForm.packagePrice - pkgForm.costPrice;
     if (editingPkgId) {
       try {
-        const updated = await hajjApi.updatePackage(editingPkgId, { ...pkgForm, profit } as any).catch(() => null);
+        await hajjApi.updatePackage(editingPkgId, { ...pkgForm, profit } as any).catch(() => null);
         setPackages((prev) => prev.map((p) => p.id === editingPkgId ? { ...p, ...pkgForm, profit, hotelClass: pkgForm.hotelClass as HajjPackage["hotelClass"] } : p));
         toast({ title: "Package updated" });
       } catch {}
@@ -464,724 +454,476 @@ const HajjUmrah = () => {
           </Card>
         </div>
 
-        {/* Tabs */}
-        <Tabs defaultValue="packages" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="packages">Packages</TabsTrigger>
-            <TabsTrigger value="groups">Groups / Batches</TabsTrigger>
-            <TabsTrigger value="pilgrims">Pilgrim List</TabsTrigger>
-            <TabsTrigger value="payments">Payments</TabsTrigger>
-            <TabsTrigger value="profitability">Profitability</TabsTrigger>
-          </TabsList>
+        {error ? <ErrorState message={error} /> : null}
+        {!loading && packages.length === 0 && groups.length === 0 && pilgrims.length === 0 ? (
+          <EmptyState title="No Hajj / Umrah data yet" description="Create your first package, group, and pilgrim to start managing operations." />
+        ) : null}
+        {loading ? <LoadingState rows={6} /> : null}
 
-          {/* ═══ PACKAGES TAB ═══ */}
-          <TabsContent value="packages" className="space-y-4">
-            <div className="flex justify-end">
-              <PermissionGate module="hajj_umrah" action="create">
-                <Button onClick={() => { setPkgForm(emptyPkgForm); setEditingPkgId(null); setPkgDialogOpen(true); }}>
-                  <Plus className="mr-2 h-4 w-4" /> New Package
-                </Button>
-              </PermissionGate>
-            </div>
-            {packages.length === 0 ? (
-              <EmptyState icon={Moon} title="No packages yet" description="Create your first Hajj or Umrah package to start enrolling pilgrims." actionLabel="New Package" onAction={() => setPkgDialogOpen(true)} />
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {!loading && (
+          <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+            <TabsList className="grid grid-cols-4 md:w-[520px]">
+              <TabsTrigger value="packages">Packages</TabsTrigger>
+              <TabsTrigger value="groups">Groups</TabsTrigger>
+              <TabsTrigger value="pilgrims">Pilgrims</TabsTrigger>
+              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="packages" className="space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-xl font-semibold">Packages</h2>
+                  <p className="text-sm text-muted-foreground">Create and price your Hajj / Umrah packages.</p>
+                </div>
+                <PermissionGate module="hajj_umrah" action="create">
+                  <Dialog open={pkgDialogOpen} onOpenChange={setPkgDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button><Plus className="mr-2 h-4 w-4" /> Add Package</Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-3xl">
+                      <DialogHeader><DialogTitle>{editingPkgId ? "Edit Package" : "Create Package"}</DialogTitle></DialogHeader>
+                      <form onSubmit={handlePkgSubmit} className="space-y-4">
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2"><Label>Name</Label><Input value={pkgForm.name} onChange={(e) => setPkgForm((v) => ({ ...v, name: e.target.value }))} required /></div>
+                          <div className="space-y-2"><Label>Type</Label>
+                            <Select value={pkgForm.type} onValueChange={(value: HajjPackageType) => setPkgForm((v) => ({ ...v, type: value }))}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent><SelectItem value="hajj">Hajj</SelectItem><SelectItem value="umrah">Umrah</SelectItem></SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2"><Label>Status</Label>
+                            <Select value={pkgForm.status} onValueChange={(value: HajjPackageStatus) => setPkgForm((v) => ({ ...v, status: value }))}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>{PKG_STATUS_META.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2"><Label>Duration</Label><Input value={pkgForm.duration} onChange={(e) => setPkgForm((v) => ({ ...v, duration: e.target.value }))} placeholder="40 Days" /></div>
+                          <div className="space-y-2"><Label>Makkah Nights</Label><Input type="number" min={0} value={pkgForm.makkahNights} onChange={(e) => setPkgForm((v) => ({ ...v, makkahNights: Number(e.target.value || 0) }))} /></div>
+                          <div className="space-y-2"><Label>Madinah Nights</Label><Input type="number" min={0} value={pkgForm.madinahNights} onChange={(e) => setPkgForm((v) => ({ ...v, madinahNights: Number(e.target.value || 0) }))} /></div>
+                          <div className="space-y-2"><Label>Makkah Hotel</Label><Input value={pkgForm.makkahHotel} onChange={(e) => setPkgForm((v) => ({ ...v, makkahHotel: e.target.value }))} /></div>
+                          <div className="space-y-2"><Label>Madinah Hotel</Label><Input value={pkgForm.madinahHotel} onChange={(e) => setPkgForm((v) => ({ ...v, madinahHotel: e.target.value }))} /></div>
+                          <div className="space-y-2"><Label>Hotel Class</Label>
+                            <Select value={pkgForm.hotelClass} onValueChange={(value) => setPkgForm((v) => ({ ...v, hotelClass: value }))}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>{HOTEL_CLASSES.map((h) => <SelectItem key={h.value} value={h.value}>{h.label}</SelectItem>)}</SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2"><Label>Flight Info</Label><Input value={pkgForm.flightInfo} onChange={(e) => setPkgForm((v) => ({ ...v, flightInfo: e.target.value }))} /></div>
+                          <div className="space-y-2"><Label>Package Price</Label><Input type="number" min={0} value={pkgForm.packagePrice} onChange={(e) => setPkgForm((v) => ({ ...v, packagePrice: Number(e.target.value || 0) }))} /></div>
+                          <div className="space-y-2"><Label>Cost Price</Label><Input type="number" min={0} value={pkgForm.costPrice} onChange={(e) => setPkgForm((v) => ({ ...v, costPrice: Number(e.target.value || 0) }))} /></div>
+                          <div className="space-y-2"><Label>Capacity</Label><Input type="number" min={0} value={pkgForm.capacity} onChange={(e) => setPkgForm((v) => ({ ...v, capacity: Number(e.target.value || 0) }))} /></div>
+                          <div className="space-y-2"><Label>Departure Date</Label><Input type="date" value={pkgForm.departureDate} onChange={(e) => setPkgForm((v) => ({ ...v, departureDate: e.target.value }))} /></div>
+                          <div className="space-y-2"><Label>Return Date</Label><Input type="date" value={pkgForm.returnDate} onChange={(e) => setPkgForm((v) => ({ ...v, returnDate: e.target.value }))} /></div>
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-3 rounded-lg border p-4">
+                            <div className="flex items-center justify-between"><Label htmlFor="visaIncluded">Visa Included</Label><Switch id="visaIncluded" checked={pkgForm.visaIncluded} onCheckedChange={(checked) => setPkgForm((v) => ({ ...v, visaIncluded: checked }))} /></div>
+                            <div className="flex items-center justify-between"><Label htmlFor="transportIncluded">Transport Included</Label><Switch id="transportIncluded" checked={pkgForm.transportIncluded} onCheckedChange={(checked) => setPkgForm((v) => ({ ...v, transportIncluded: checked }))} /></div>
+                            <div className="flex items-center justify-between"><Label htmlFor="mealsIncluded">Meals Included</Label><Switch id="mealsIncluded" checked={pkgForm.mealsIncluded} onCheckedChange={(checked) => setPkgForm((v) => ({ ...v, mealsIncluded: checked }))} /></div>
+                            <div className="flex items-center justify-between"><Label htmlFor="ziyaratIncluded">Ziyarat Included</Label><Switch id="ziyaratIncluded" checked={pkgForm.ziyaratIncluded} onCheckedChange={(checked) => setPkgForm((v) => ({ ...v, ziyaratIncluded: checked }))} /></div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Highlights</Label>
+                            <Textarea rows={5} value={pkgForm.highlights} onChange={(e) => setPkgForm((v) => ({ ...v, highlights: e.target.value }))} placeholder="e.g. 5-Star Hotels, Private Transport" />
+                          </div>
+                        </div>
+                        <div className="space-y-2"><Label>Notes</Label><Textarea rows={3} value={pkgForm.notes} onChange={(e) => setPkgForm((v) => ({ ...v, notes: e.target.value }))} /></div>
+                        <div className="flex justify-end gap-2">
+                          <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                          <Button type="submit">{editingPkgId ? "Update Package" : "Create Package"}</Button>
+                        </div>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </PermissionGate>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {packages.map((pkg) => {
-                  const statusMeta = getStatusMeta(PKG_STATUS_META, pkg.status);
-                  const enrolled = pilgrims.filter((p) => p.packageId === pkg.id).length;
+                  const meta = getStatusMeta(PKG_STATUS_META, pkg.status);
+                  const occupancy = pkg.capacity > 0 ? Math.round((pkg.enrolled / pkg.capacity) * 100) : 0;
                   return (
-                    <Card key={pkg.id} className="flex flex-col">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
-                          <Badge className={statusMeta.color}>{statusMeta.label}</Badge>
-                          <Badge variant="outline" className="capitalize">{pkg.type}</Badge>
-                        </div>
-                        <CardTitle className="text-lg mt-2">{pkg.name}</CardTitle>
-                        <CardDescription>{pkg.duration} • {pkg.makkahNights}N Makkah + {pkg.madinahNights}N Madinah</CardDescription>
-                      </CardHeader>
-                      <CardContent className="flex-1 flex flex-col justify-between space-y-3">
-                        <div className="space-y-1 text-xs text-muted-foreground">
-                          <div className="flex items-center gap-1"><Hotel className="h-3 w-3" /> {pkg.hotelClass.replace("_", "-")} — {pkg.makkahHotel || "TBA"} / {pkg.madinahHotel || "TBA"}</div>
-                          <div className="flex items-center gap-1"><Plane className="h-3 w-3" /> {pkg.flightInfo || "TBA"}</div>
-                          <div className="flex flex-wrap gap-1.5 mt-1">
-                            {pkg.visaIncluded && <Badge variant="secondary" className="text-[10px]">Visa</Badge>}
-                            {pkg.transportIncluded && <Badge variant="secondary" className="text-[10px]">Transport</Badge>}
-                            {pkg.mealsIncluded && <Badge variant="secondary" className="text-[10px]">Meals</Badge>}
-                            {pkg.ziyaratIncluded && <Badge variant="secondary" className="text-[10px]">Ziyarat</Badge>}
-                          </div>
-                        </div>
-                        <Separator />
-                        <div className="flex items-center justify-between">
+                    <Card key={pkg.id} className="hover:shadow-md transition-shadow">
+                      <CardHeader>
+                        <div className="flex items-start justify-between gap-2">
                           <div>
-                            <span className="text-xl font-bold text-primary">৳{pkg.packagePrice.toLocaleString()}</span>
-                            <p className="text-xs text-muted-foreground">{enrolled}/{pkg.capacity} enrolled • Profit/pilgrim: ৳{(pkg.packagePrice - pkg.costPrice).toLocaleString()}</p>
+                            <CardTitle className="text-lg flex items-center gap-2">
+                              <Moon className="h-4 w-4" /> {pkg.name}
+                            </CardTitle>
+                            <CardDescription>{pkg.type.toUpperCase()} • {pkg.duration}</CardDescription>
                           </div>
-                          <div className="flex gap-1">
-                            <PermissionGate module="hajj_umrah" action="edit">
-                              <Button variant="ghost" size="icon" onClick={() => editPkg(pkg)}><Pencil className="h-4 w-4" /></Button>
-                            </PermissionGate>
-                            <PermissionGate module="hajj_umrah" action="delete">
-                              <Button variant="ghost" size="icon" onClick={() => { setPackages((p) => p.filter((x) => x.id !== pkg.id)); toast({ title: "Package deleted" }); }}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </PermissionGate>
-                          </div>
+                          <Badge className={meta.color}>{meta.label}</Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div><span className="text-muted-foreground">Price:</span><div className="font-medium">৳{pkg.packagePrice.toLocaleString()}</div></div>
+                          <div><span className="text-muted-foreground">Profit:</span><div className="font-medium text-green-600">৳{pkg.profit.toLocaleString()}</div></div>
+                          <div><span className="text-muted-foreground">Hotels:</span><div className="font-medium">{pkg.hotelClass.replace("_", "-")}</div></div>
+                          <div><span className="text-muted-foreground">Flight:</span><div className="font-medium line-clamp-1">{pkg.flightInfo || "—"}</div></div>
+                        </div>
+                        <div>
+                          <div className="flex items-center justify-between text-xs mb-1"><span>Enrollment</span><span>{pkg.enrolled}/{pkg.capacity}</span></div>
+                          <Progress value={occupancy} />
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-xs">
+                          {pkg.visaIncluded && <Badge variant="secondary">Visa</Badge>}
+                          {pkg.transportIncluded && <Badge variant="secondary">Transport</Badge>}
+                          {pkg.mealsIncluded && <Badge variant="secondary">Meals</Badge>}
+                          {pkg.ziyaratIncluded && <Badge variant="secondary">Ziyarat</Badge>}
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-xs text-muted-foreground flex items-center gap-1"><Plane className="h-3 w-3" /> {pkg.departureDate || "TBA"}</div>
+                          <PermissionGate module="hajj_umrah" action="edit">
+                            <Button variant="outline" size="sm" onClick={() => editPkg(pkg)}><Pencil className="mr-1 h-3.5 w-3.5" /> Edit</Button>
+                          </PermissionGate>
                         </div>
                       </CardContent>
                     </Card>
                   );
                 })}
               </div>
-            )}
-          </TabsContent>
+            </TabsContent>
 
-          {/* ═══ GROUPS TAB ═══ */}
-          <TabsContent value="groups" className="space-y-4">
-            <div className="flex justify-end">
-              <PermissionGate module="hajj_umrah" action="create">
-                <Button onClick={() => { setGroupForm(emptyGroupForm); setEditingGroupId(null); setGroupDialogOpen(true); }}>
-                  <Plus className="mr-2 h-4 w-4" /> New Group
-                </Button>
-              </PermissionGate>
-            </div>
-            <Card>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Group / Batch</TableHead>
-                      <TableHead>Package</TableHead>
-                      <TableHead>Leader</TableHead>
-                      <TableHead>Departure</TableHead>
-                      <TableHead>Return</TableHead>
-                      <TableHead className="text-center">Pilgrims</TableHead>
-                      <TableHead>Flight</TableHead>
-                      <TableHead className="w-[100px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {groups.length === 0 ? (
-                      <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No groups created yet.</TableCell></TableRow>
-                    ) : groups.map((g) => (
-                      <TableRow key={g.id}>
-                        <TableCell className="font-medium">{g.name}</TableCell>
-                        <TableCell><Badge variant="secondary">{getPkgName(g.packageId)}</Badge></TableCell>
-                        <TableCell>
-                          <div><p className="text-sm">{g.leader}</p><p className="text-xs text-muted-foreground">{g.leaderPhone}</p></div>
-                        </TableCell>
-                        <TableCell className="text-sm">{g.departureDate}</TableCell>
-                        <TableCell className="text-sm">{g.returnDate}</TableCell>
-                        <TableCell className="text-center font-semibold">{getPilgrimCountForGroup(g.id)}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground truncate max-w-[120px]">{g.flightDetails || "—"}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <PermissionGate module="hajj_umrah" action="edit">
-                              <Button variant="ghost" size="icon" onClick={() => {
-                                setGroupForm({ packageId: g.packageId, name: g.name, leader: g.leader, leaderPhone: g.leaderPhone || "", departureDate: g.departureDate, returnDate: g.returnDate, flightDetails: g.flightDetails || "", transportSchedule: g.transportSchedule || "", notes: g.notes || "" });
-                                setEditingGroupId(g.id);
-                                setGroupDialogOpen(true);
-                              }}><Pencil className="h-4 w-4" /></Button>
-                            </PermissionGate>
-                            <PermissionGate module="hajj_umrah" action="delete">
-                              <Button variant="ghost" size="icon" onClick={() => { setGroups((prev) => prev.filter((x) => x.id !== g.id)); toast({ title: "Group deleted" }); }}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </PermissionGate>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* ═══ PILGRIMS TAB ═══ */}
-          <TabsContent value="pilgrims" className="space-y-4">
-            <div className="flex flex-wrap gap-3 items-center justify-between">
-              <div className="flex items-center gap-2 flex-1 max-w-sm">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search name, phone, passport..." value={searchPilgrim} onChange={(e) => setSearchPilgrim(e.target.value)} />
-              </div>
-              <div className="flex gap-2">
-                <Select value={filterPkgId} onValueChange={setFilterPkgId}>
-                  <SelectTrigger className="w-[180px]"><SelectValue placeholder="All packages" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Packages</SelectItem>
-                    {packages.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Select value={filterVisaStatus} onValueChange={setFilterVisaStatus}>
-                  <SelectTrigger className="w-[160px]"><SelectValue placeholder="All visa" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Visa Status</SelectItem>
-                    {VISA_STATUS_META.map((v) => <SelectItem key={v.value} value={v.value}>{v.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+            <TabsContent value="groups" className="space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-xl font-semibold">Groups</h2>
+                  <p className="text-sm text-muted-foreground">Organize pilgrims into departure batches and assign leaders.</p>
+                </div>
                 <PermissionGate module="hajj_umrah" action="create">
-                  <Button onClick={() => { setPilgrimForm(emptyPilgrimForm); setPilgrimDialogOpen(true); }}>
-                    <UserPlus className="mr-2 h-4 w-4" /> Add Pilgrim
-                  </Button>
+                  <Dialog open={groupDialogOpen} onOpenChange={setGroupDialogOpen}>
+                    <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" /> Add Group</Button></DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader><DialogTitle>{editingGroupId ? "Edit Group" : "Create Group"}</DialogTitle></DialogHeader>
+                      <form onSubmit={handleGroupSubmit} className="space-y-4">
+                        <div className="space-y-2"><Label>Package</Label>
+                          <Select value={groupForm.packageId} onValueChange={(value) => setGroupForm((v) => ({ ...v, packageId: value }))}>
+                            <SelectTrigger><SelectValue placeholder="Select package" /></SelectTrigger>
+                            <SelectContent>{packages.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2"><Label>Group Name</Label><Input value={groupForm.name} onChange={(e) => setGroupForm((v) => ({ ...v, name: e.target.value }))} required /></div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-2"><Label>Leader</Label><Input value={groupForm.leader} onChange={(e) => setGroupForm((v) => ({ ...v, leader: e.target.value }))} /></div>
+                          <div className="space-y-2"><Label>Leader Phone</Label><Input value={groupForm.leaderPhone} onChange={(e) => setGroupForm((v) => ({ ...v, leaderPhone: e.target.value }))} /></div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-2"><Label>Departure</Label><Input type="date" value={groupForm.departureDate} onChange={(e) => setGroupForm((v) => ({ ...v, departureDate: e.target.value }))} /></div>
+                          <div className="space-y-2"><Label>Return</Label><Input type="date" value={groupForm.returnDate} onChange={(e) => setGroupForm((v) => ({ ...v, returnDate: e.target.value }))} /></div>
+                        </div>
+                        <div className="space-y-2"><Label>Flight Details</Label><Input value={groupForm.flightDetails} onChange={(e) => setGroupForm((v) => ({ ...v, flightDetails: e.target.value }))} /></div>
+                        <div className="space-y-2"><Label>Transport Schedule</Label><Input value={groupForm.transportSchedule} onChange={(e) => setGroupForm((v) => ({ ...v, transportSchedule: e.target.value }))} /></div>
+                        <div className="space-y-2"><Label>Notes</Label><Textarea value={groupForm.notes} onChange={(e) => setGroupForm((v) => ({ ...v, notes: e.target.value }))} rows={3} /></div>
+                        <div className="flex justify-end gap-2"><DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose><Button type="submit">Save Group</Button></div>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
                 </PermissionGate>
               </div>
-            </div>
 
-            <Card>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Package</TableHead>
-                      <TableHead>Group</TableHead>
-                      <TableHead>Passport</TableHead>
-                      <TableHead>Visa</TableHead>
-                      <TableHead>Room</TableHead>
-                      <TableHead>Mahram</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Due</TableHead>
-                      <TableHead>Payment</TableHead>
-                      <TableHead className="w-[100px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredPilgrims.length === 0 ? (
-                      <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">No pilgrims match your filters.</TableCell></TableRow>
-                    ) : filteredPilgrims.map((p) => {
-                      const statusMeta = getStatusMeta(PILGRIM_STATUS_META, p.status);
-                      const visaMeta = getStatusMeta(VISA_STATUS_META, p.visaStatus);
-                      return (
-                        <TableRow key={p.id}>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium text-sm">{p.name}</p>
-                              <p className="text-xs text-muted-foreground">{p.phone}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell><Badge variant="secondary" className="text-[10px]">{getPkgName(p.packageId)}</Badge></TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{getGroupName(p.groupId)}</TableCell>
-                          <TableCell className="font-mono text-xs">{p.passportNumber}</TableCell>
-                          <TableCell>
-                            <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${visaMeta.color}`}>{visaMeta.label}</span>
-                          </TableCell>
-                          <TableCell className="text-xs">{p.roomType ? `${p.roomType}${p.roomNumber ? ` #${p.roomNumber}` : ""}` : "—"}</TableCell>
-                          <TableCell className="text-xs text-muted-foreground truncate max-w-[100px]">{p.mahramName || "—"}</TableCell>
-                          <TableCell>
-                            <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${statusMeta.color}`}>{statusMeta.label}</span>
-                          </TableCell>
-                          <TableCell className="text-right text-destructive font-semibold text-sm">৳{p.dueAmount.toLocaleString()}</TableCell>
-                          <TableCell>
-                            <div className="min-w-[60px]">
-                              <Progress value={p.totalAmount > 0 ? (p.paidAmount / p.totalAmount) * 100 : 0} className="h-1.5" />
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-1">
-                              <Button variant="ghost" size="icon" title="View Details" onClick={() => { setSelectedPilgrimId(p.id); setPilgrimDetailOpen(true); }}>
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <PermissionGate module="hajj_umrah" action="edit">
-                                <Button variant="ghost" size="icon" title="Record Payment" onClick={() => { setSelectedPilgrimId(p.id); setPayForm(emptyPayForm); setPayDialogOpen(true); }}>
-                                  <CreditCard className="h-4 w-4" />
-                                </Button>
-                              </PermissionGate>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* ═══ PAYMENTS TAB ═══ */}
-          <TabsContent value="payments" className="space-y-4">
-            <Card>
-              <CardHeader><CardTitle>All Pilgrim Payments ({payments.length})</CardTitle></CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Pilgrim</TableHead>
-                      <TableHead>Installment</TableHead>
-                      <TableHead>Method</TableHead>
-                      <TableHead>Reference</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead>Note</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {payments.length === 0 ? (
-                      <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No payments recorded yet.</TableCell></TableRow>
-                    ) : [...payments].reverse().map((pay) => {
-                      const pilgrim = pilgrims.find((p) => p.id === pay.pilgrimId);
-                      return (
-                        <TableRow key={pay.id}>
-                          <TableCell className="text-sm">{pay.date}</TableCell>
-                          <TableCell className="font-medium">{pilgrim?.name || "—"}</TableCell>
-                          <TableCell><Badge variant="outline" className="text-xs">{pay.installmentLabel || "Payment"}</Badge></TableCell>
-                          <TableCell><Badge variant="secondary" className="capitalize text-xs">{pay.method}</Badge></TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{pay.reference || "—"}</TableCell>
-                          <TableCell className="text-right font-semibold text-green-600">৳{pay.amount.toLocaleString()}</TableCell>
-                          <TableCell className="text-xs text-muted-foreground truncate max-w-[120px]">{pay.note || "—"}</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* ═══ PROFITABILITY TAB ═══ */}
-          <TabsContent value="profitability" className="space-y-4">
-            <Card>
-              <CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp className="h-5 w-5" /> Package-Wise Profitability</CardTitle></CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Package</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead className="text-center">Enrolled</TableHead>
-                      <TableHead className="text-right">Price/Pilgrim</TableHead>
-                      <TableHead className="text-right">Cost/Pilgrim</TableHead>
-                      <TableHead className="text-right">Total Revenue</TableHead>
-                      <TableHead className="text-right">Total Cost</TableHead>
-                      <TableHead className="text-right">Gross Profit</TableHead>
-                      <TableHead>Margin</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pkgProfitability.map((pkg) => {
-                      const margin = pkg.revenue > 0 ? ((pkg.profit / pkg.revenue) * 100).toFixed(1) : "0";
-                      return (
-                        <TableRow key={pkg.id}>
-                          <TableCell className="font-medium">{pkg.name}</TableCell>
-                          <TableCell><Badge variant="outline" className="capitalize">{pkg.type}</Badge></TableCell>
-                          <TableCell className="text-center">{pkg.enrolled}/{pkg.capacity}</TableCell>
-                          <TableCell className="text-right">৳{pkg.packagePrice.toLocaleString()}</TableCell>
-                          <TableCell className="text-right text-muted-foreground">৳{pkg.costPrice.toLocaleString()}</TableCell>
-                          <TableCell className="text-right font-medium">৳{pkg.revenue.toLocaleString()}</TableCell>
-                          <TableCell className="text-right text-muted-foreground">৳{pkg.cost.toLocaleString()}</TableCell>
-                          <TableCell className={`text-right font-semibold ${pkg.profit >= 0 ? "text-green-600" : "text-destructive"}`}>
-                            ৳{pkg.profit.toLocaleString()}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={Number(margin) >= 20 ? "default" : "secondary"}>{margin}%</Badge>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                    {/* Totals row */}
-                    <TableRow className="bg-muted/50 font-semibold">
-                      <TableCell colSpan={2}>Total</TableCell>
-                      <TableCell className="text-center">{pkgProfitability.reduce((s, p) => s + p.enrolled, 0)}</TableCell>
-                      <TableCell />
-                      <TableCell />
-                      <TableCell className="text-right">৳{pkgProfitability.reduce((s, p) => s + p.revenue, 0).toLocaleString()}</TableCell>
-                      <TableCell className="text-right">৳{pkgProfitability.reduce((s, p) => s + p.cost, 0).toLocaleString()}</TableCell>
-                      <TableCell className="text-right text-green-600">৳{pkgProfitability.reduce((s, p) => s + p.profit, 0).toLocaleString()}</TableCell>
-                      <TableCell />
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-
-        {/* ═══ PACKAGE DIALOG ═══ */}
-        <Dialog open={pkgDialogOpen} onOpenChange={(v) => { setPkgDialogOpen(v); if (!v) { setPkgForm(emptyPkgForm); setEditingPkgId(null); } }}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>{editingPkgId ? "Edit" : "Create"} Package</DialogTitle></DialogHeader>
-            <form onSubmit={handlePkgSubmit} className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>Package Name *</Label>
-                  <Input value={pkgForm.name} onChange={(e) => setPkgForm((f) => ({ ...f, name: e.target.value }))} placeholder="e.g. Hajj Premium 2026" required />
-                </div>
-                <div className="space-y-2">
-                  <Label>Type</Label>
-                  <Select value={pkgForm.type} onValueChange={(v) => setPkgForm((f) => ({ ...f, type: v as HajjPackageType }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="hajj">Hajj</SelectItem>
-                      <SelectItem value="umrah">Umrah</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Select value={pkgForm.status} onValueChange={(v) => setPkgForm((f) => ({ ...f, status: v as HajjPackageStatus }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {PKG_STATUS_META.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label>Duration</Label>
-                  <Input value={pkgForm.duration} onChange={(e) => setPkgForm((f) => ({ ...f, duration: e.target.value }))} placeholder="e.g. 40 Days" required />
-                </div>
-                <div className="space-y-2">
-                  <Label>Makkah Nights</Label>
-                  <Input type="number" min={0} value={pkgForm.makkahNights || ""} onChange={(e) => setPkgForm((f) => ({ ...f, makkahNights: parseInt(e.target.value) || 0 }))} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Madinah Nights</Label>
-                  <Input type="number" min={0} value={pkgForm.madinahNights || ""} onChange={(e) => setPkgForm((f) => ({ ...f, madinahNights: parseInt(e.target.value) || 0 }))} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Capacity</Label>
-                  <Input type="number" min={1} value={pkgForm.capacity || ""} onChange={(e) => setPkgForm((f) => ({ ...f, capacity: parseInt(e.target.value) || 0 }))} />
-                </div>
-              </div>
-              <Separator />
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>Hotel Class</Label>
-                  <Select value={pkgForm.hotelClass} onValueChange={(v) => setPkgForm((f) => ({ ...f, hotelClass: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {HOTEL_CLASSES.map((h) => <SelectItem key={h.value} value={h.value}>{h.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Makkah Hotel</Label>
-                  <Input value={pkgForm.makkahHotel} onChange={(e) => setPkgForm((f) => ({ ...f, makkahHotel: e.target.value }))} placeholder="e.g. Hilton Suites" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Madinah Hotel</Label>
-                  <Input value={pkgForm.madinahHotel} onChange={(e) => setPkgForm((f) => ({ ...f, madinahHotel: e.target.value }))} placeholder="e.g. Oberoi Madinah" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Flight Info</Label>
-                <Input value={pkgForm.flightInfo} onChange={(e) => setPkgForm((f) => ({ ...f, flightInfo: e.target.value }))} placeholder="e.g. Biman BD — DAC→JED (Direct)" />
-              </div>
-              <div className="flex flex-wrap gap-6">
-                <div className="flex items-center gap-2"><Switch checked={pkgForm.visaIncluded} onCheckedChange={(v) => setPkgForm((f) => ({ ...f, visaIncluded: v }))} /><Label>Visa Included</Label></div>
-                <div className="flex items-center gap-2"><Switch checked={pkgForm.transportIncluded} onCheckedChange={(v) => setPkgForm((f) => ({ ...f, transportIncluded: v }))} /><Label>Transport</Label></div>
-                <div className="flex items-center gap-2"><Switch checked={pkgForm.mealsIncluded} onCheckedChange={(v) => setPkgForm((f) => ({ ...f, mealsIncluded: v }))} /><Label>Meals</Label></div>
-                <div className="flex items-center gap-2"><Switch checked={pkgForm.ziyaratIncluded} onCheckedChange={(v) => setPkgForm((f) => ({ ...f, ziyaratIncluded: v }))} /><Label>Ziyarat</Label></div>
-              </div>
-              <Separator />
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>Package Price (৳)</Label>
-                  <Input type="number" min={0} value={pkgForm.packagePrice || ""} onChange={(e) => setPkgForm((f) => ({ ...f, packagePrice: parseFloat(e.target.value) || 0 }))} required />
-                </div>
-                <div className="space-y-2">
-                  <Label>Cost Price (৳)</Label>
-                  <Input type="number" min={0} value={pkgForm.costPrice || ""} onChange={(e) => setPkgForm((f) => ({ ...f, costPrice: parseFloat(e.target.value) || 0 }))} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Profit / Pilgrim</Label>
-                  <div className={`rounded-md border px-3 py-2 text-sm font-semibold ${(pkgForm.packagePrice - pkgForm.costPrice) >= 0 ? "text-green-600" : "text-destructive"}`}>
-                    ৳{(pkgForm.packagePrice - pkgForm.costPrice).toLocaleString()}
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Departure Date</Label>
-                  <Input type="date" value={pkgForm.departureDate} onChange={(e) => setPkgForm((f) => ({ ...f, departureDate: e.target.value }))} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Return Date</Label>
-                  <Input type="date" value={pkgForm.returnDate} onChange={(e) => setPkgForm((f) => ({ ...f, returnDate: e.target.value }))} />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Highlights</Label>
-                <Input value={pkgForm.highlights} onChange={(e) => setPkgForm((f) => ({ ...f, highlights: e.target.value }))} placeholder="5-Star Hotels, VIP Transport, Full Board..." />
-              </div>
-              <div className="flex gap-2">
-                <Button type="submit" className="flex-1">{editingPkgId ? "Update Package" : "Create Package"}</Button>
-                <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* ═══ GROUP DIALOG ═══ */}
-        <Dialog open={groupDialogOpen} onOpenChange={(v) => { setGroupDialogOpen(v); if (!v) { setGroupForm(emptyGroupForm); setEditingGroupId(null); } }}>
-          <DialogContent>
-            <DialogHeader><DialogTitle>{editingGroupId ? "Edit" : "Create"} Group / Batch</DialogTitle></DialogHeader>
-            <form onSubmit={handleGroupSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Package *</Label>
-                <Select value={groupForm.packageId} onValueChange={(v) => setGroupForm((f) => ({ ...f, packageId: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Select package" /></SelectTrigger>
-                  <SelectContent>
-                    {packages.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Group Name *</Label>
-                <Input value={groupForm.name} onChange={(e) => setGroupForm((f) => ({ ...f, name: e.target.value }))} placeholder="e.g. Batch-1 (May 2026)" required />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Group Leader</Label><Input value={groupForm.leader} onChange={(e) => setGroupForm((f) => ({ ...f, leader: e.target.value }))} required /></div>
-                <div className="space-y-2"><Label>Leader Phone</Label><Input value={groupForm.leaderPhone} onChange={(e) => setGroupForm((f) => ({ ...f, leaderPhone: e.target.value }))} /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Departure</Label><Input type="date" value={groupForm.departureDate} onChange={(e) => setGroupForm((f) => ({ ...f, departureDate: e.target.value }))} required /></div>
-                <div className="space-y-2"><Label>Return</Label><Input type="date" value={groupForm.returnDate} onChange={(e) => setGroupForm((f) => ({ ...f, returnDate: e.target.value }))} required /></div>
-              </div>
-              <div className="space-y-2">
-                <Label>Flight Details</Label>
-                <Input value={groupForm.flightDetails} onChange={(e) => setGroupForm((f) => ({ ...f, flightDetails: e.target.value }))} placeholder="e.g. BG-301 DAC→JED 20 May 10:30 AM" />
-              </div>
-              <div className="space-y-2">
-                <Label>Transport Schedule</Label>
-                <Input value={groupForm.transportSchedule} onChange={(e) => setGroupForm((f) => ({ ...f, transportSchedule: e.target.value }))} placeholder="e.g. Bus pickup from hotel at 8 AM" />
-              </div>
-              <div className="flex gap-2">
-                <Button type="submit" className="flex-1">{editingGroupId ? "Update" : "Create"}</Button>
-                <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* ═══ PILGRIM DIALOG ═══ */}
-        <Dialog open={pilgrimDialogOpen} onOpenChange={(v) => { setPilgrimDialogOpen(v); if (!v) setPilgrimForm(emptyPilgrimForm); }}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Add Pilgrim</DialogTitle></DialogHeader>
-            <form onSubmit={handlePilgrimSubmit} className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>Package *</Label>
-                  <Select value={pilgrimForm.packageId} onValueChange={(v) => setPilgrimForm((f) => ({ ...f, packageId: v, groupId: "" }))}>
-                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                    <SelectContent>{packages.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Group *</Label>
-                  <Select value={pilgrimForm.groupId} onValueChange={(v) => setPilgrimForm((f) => ({ ...f, groupId: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                    <SelectContent>{groupsForPilgrimForm.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Gender</Label>
-                  <Select value={pilgrimForm.gender} onValueChange={(v) => setPilgrimForm((f) => ({ ...f, gender: v as "male" | "female" }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Full Name *</Label><Input value={pilgrimForm.name} onChange={(e) => setPilgrimForm((f) => ({ ...f, name: e.target.value }))} required /></div>
-                <div className="space-y-2"><Label>Phone *</Label><Input value={pilgrimForm.phone} onChange={(e) => setPilgrimForm((f) => ({ ...f, phone: e.target.value }))} required /></div>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2"><Label>Passport No *</Label><Input value={pilgrimForm.passportNumber} onChange={(e) => setPilgrimForm((f) => ({ ...f, passportNumber: e.target.value }))} required /></div>
-                <div className="space-y-2"><Label>Passport Expiry</Label><Input type="date" value={pilgrimForm.passportExpiry} onChange={(e) => setPilgrimForm((f) => ({ ...f, passportExpiry: e.target.value }))} /></div>
-                <div className="space-y-2"><Label>NID No</Label><Input value={pilgrimForm.nidNumber} onChange={(e) => setPilgrimForm((f) => ({ ...f, nidNumber: e.target.value }))} /></div>
-              </div>
-              <Separator />
-              <p className="text-sm font-medium">Mahram Details (for female pilgrims)</p>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2"><Label>Mahram Name</Label><Input value={pilgrimForm.mahramName} onChange={(e) => setPilgrimForm((f) => ({ ...f, mahramName: e.target.value }))} placeholder="e.g. Abdul Rahman" /></div>
-                <div className="space-y-2"><Label>Relation</Label><Input value={pilgrimForm.mahramRelation} onChange={(e) => setPilgrimForm((f) => ({ ...f, mahramRelation: e.target.value }))} placeholder="Husband / Father / Brother" /></div>
-                <div className="space-y-2">
-                  <Label>Mahram (if pilgrim)</Label>
-                  <Select value={pilgrimForm.mahramPilgrimId || "none"} onValueChange={(v) => setPilgrimForm((f) => ({ ...f, mahramPilgrimId: v === "none" ? "" : v }))}>
-                    <SelectTrigger><SelectValue placeholder="Link to pilgrim" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Not a pilgrim</SelectItem>
-                      {pilgrims.filter((p) => p.gender === "male").map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <Separator />
-              <p className="text-sm font-medium">Room Allocation</p>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>Room Type</Label>
-                  <Select value={pilgrimForm.roomType} onValueChange={(v) => setPilgrimForm((f) => ({ ...f, roomType: v as HajjRoomType }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{ROOM_TYPES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2"><Label>Room Number</Label><Input value={pilgrimForm.roomNumber} onChange={(e) => setPilgrimForm((f) => ({ ...f, roomNumber: e.target.value }))} placeholder="e.g. 301" /></div>
-                <div className="space-y-2"><Label>Room Partners</Label><Input value={pilgrimForm.roomPartners} onChange={(e) => setPilgrimForm((f) => ({ ...f, roomPartners: e.target.value }))} placeholder="e.g. Fatima, Halima" /></div>
-              </div>
-              <Separator />
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Emergency Contact</Label><Input value={pilgrimForm.emergencyContact} onChange={(e) => setPilgrimForm((f) => ({ ...f, emergencyContact: e.target.value }))} /></div>
-                <div className="space-y-2"><Label>Emergency Phone</Label><Input value={pilgrimForm.emergencyPhone} onChange={(e) => setPilgrimForm((f) => ({ ...f, emergencyPhone: e.target.value }))} /></div>
-              </div>
-              <div className="space-y-2">
-                <Label>Medical Notes</Label>
-                <Textarea value={pilgrimForm.medicalNotes} onChange={(e) => setPilgrimForm((f) => ({ ...f, medicalNotes: e.target.value }))} placeholder="Allergies, medications, mobility needs..." rows={2} />
-              </div>
-              <div className="flex gap-2">
-                <Button type="submit" className="flex-1"><UserPlus className="mr-2 h-4 w-4" /> Add Pilgrim</Button>
-                <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* ═══ PILGRIM DETAIL DIALOG ═══ */}
-        <Dialog open={pilgrimDetailOpen} onOpenChange={(v) => { setPilgrimDetailOpen(v); if (!v) setSelectedPilgrimId(null); }}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Pilgrim Details</DialogTitle></DialogHeader>
-            {selectedPilgrim && (
-              <div className="space-y-4">
-                {/* Profile */}
-                <div className="rounded-md border p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-lg">{selectedPilgrim.name}</h3>
-                    <div className="flex gap-1">
-                      <Badge className={getStatusMeta(PILGRIM_STATUS_META, selectedPilgrim.status).color}>{getStatusMeta(PILGRIM_STATUS_META, selectedPilgrim.status).label}</Badge>
-                      <Badge className={getStatusMeta(VISA_STATUS_META, selectedPilgrim.visaStatus).color}>{getStatusMeta(VISA_STATUS_META, selectedPilgrim.visaStatus).label}</Badge>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div><span className="text-muted-foreground">Phone:</span> {selectedPilgrim.phone}</div>
-                    <div><span className="text-muted-foreground">Gender:</span> {selectedPilgrim.gender || "—"}</div>
-                    <div><span className="text-muted-foreground">Passport:</span> {selectedPilgrim.passportNumber} {selectedPilgrim.passportExpiry && `(Exp: ${selectedPilgrim.passportExpiry})`}</div>
-                    <div><span className="text-muted-foreground">NID:</span> {selectedPilgrim.nidNumber || "—"}</div>
-                    <div><span className="text-muted-foreground">Package:</span> {getPkgName(selectedPilgrim.packageId)}</div>
-                    <div><span className="text-muted-foreground">Group:</span> {getGroupName(selectedPilgrim.groupId)}</div>
-                  </div>
-                </div>
-
-                {/* Mahram & Room */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="rounded-md border p-3 space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground">Mahram</p>
-                    {selectedPilgrim.mahramName ? (
-                      <div className="text-sm">
-                        <p>{selectedPilgrim.mahramName} ({selectedPilgrim.mahramRelation})</p>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {groups.map((g) => (
+                  <Card key={g.id}>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2"><Users className="h-4 w-4" /> {g.name}</CardTitle>
+                      <CardDescription>{getPkgName(g.packageId)}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3 text-sm">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><span className="text-muted-foreground">Leader:</span><div className="font-medium">{g.leader || "—"}</div></div>
+                        <div><span className="text-muted-foreground">Phone:</span><div className="font-medium">{g.leaderPhone || "—"}</div></div>
+                        <div><span className="text-muted-foreground">Departure:</span><div className="font-medium">{g.departureDate}</div></div>
+                        <div><span className="text-muted-foreground">Return:</span><div className="font-medium">{g.returnDate}</div></div>
                       </div>
-                    ) : <p className="text-sm text-muted-foreground">Not specified</p>}
-                  </div>
-                  <div className="rounded-md border p-3 space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground">Room</p>
-                    <p className="text-sm capitalize">{selectedPilgrim.roomType || "Not assigned"}{selectedPilgrim.roomNumber && ` — #${selectedPilgrim.roomNumber}`}</p>
-                    {selectedPilgrim.roomPartners && <p className="text-xs text-muted-foreground">Partners: {selectedPilgrim.roomPartners}</p>}
-                  </div>
-                </div>
+                      <div className="text-xs text-muted-foreground flex items-center gap-2">
+                        <UserPlus className="h-3.5 w-3.5" /> {getPilgrimCountForGroup(g.id)} pilgrims
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
 
-                {/* Financial */}
-                <div className="rounded-md border p-4 space-y-2">
-                  <div className="grid grid-cols-3 gap-2 text-sm text-center">
-                    <div><p className="text-muted-foreground text-xs">Total</p><p className="font-bold">৳{selectedPilgrim.totalAmount.toLocaleString()}</p></div>
-                    <div><p className="text-muted-foreground text-xs">Paid</p><p className="font-bold text-green-600">৳{selectedPilgrim.paidAmount.toLocaleString()}</p></div>
-                    <div><p className="text-muted-foreground text-xs">Due</p><p className="font-bold text-destructive">৳{selectedPilgrim.dueAmount.toLocaleString()}</p></div>
-                  </div>
-                  <Progress value={selectedPilgrim.totalAmount > 0 ? (selectedPilgrim.paidAmount / selectedPilgrim.totalAmount) * 100 : 0} className="h-2" />
-                </div>
-
-                {/* Payment History */}
+            <TabsContent value="pilgrims" className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-medium">Payment History</h4>
-                    {selectedPilgrim.dueAmount > 0 && (
-                      <Button size="sm" onClick={() => { setPayForm(emptyPayForm); setPayDialogOpen(true); }}>
-                        <CreditCard className="mr-1 h-3.5 w-3.5" /> Add Payment
-                      </Button>
-                    )}
+                  <h2 className="text-xl font-semibold">Pilgrims</h2>
+                  <p className="text-sm text-muted-foreground">Track pilgrim profile, visa status, rooming, and payments.</p>
+                </div>
+                <div className="flex gap-2">
+                  <PermissionGate module="hajj_umrah" action="create">
+                    <Dialog open={pilgrimDialogOpen} onOpenChange={setPilgrimDialogOpen}>
+                      <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" /> Add Pilgrim</Button></DialogTrigger>
+                      <DialogContent className="max-w-3xl">
+                        <DialogHeader><DialogTitle>Add Pilgrim</DialogTitle></DialogHeader>
+                        <form onSubmit={handlePilgrimSubmit} className="space-y-4">
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <div className="space-y-2"><Label>Package</Label>
+                              <Select value={pilgrimForm.packageId} onValueChange={(value) => setPilgrimForm((v) => ({ ...v, packageId: value, groupId: "" }))}>
+                                <SelectTrigger><SelectValue placeholder="Select package" /></SelectTrigger>
+                                <SelectContent>{packages.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2"><Label>Group</Label>
+                              <Select value={pilgrimForm.groupId} onValueChange={(value) => setPilgrimForm((v) => ({ ...v, groupId: value }))}>
+                                <SelectTrigger><SelectValue placeholder="Select group" /></SelectTrigger>
+                                <SelectContent>{groupsForPilgrimForm.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2"><Label>Name</Label><Input value={pilgrimForm.name} onChange={(e) => setPilgrimForm((v) => ({ ...v, name: e.target.value }))} required /></div>
+                            <div className="space-y-2"><Label>Phone</Label><Input value={pilgrimForm.phone} onChange={(e) => setPilgrimForm((v) => ({ ...v, phone: e.target.value }))} required /></div>
+                            <div className="space-y-2"><Label>Email</Label><Input value={pilgrimForm.email} onChange={(e) => setPilgrimForm((v) => ({ ...v, email: e.target.value }))} /></div>
+                            <div className="space-y-2"><Label>Date of Birth</Label><Input type="date" value={pilgrimForm.dateOfBirth} onChange={(e) => setPilgrimForm((v) => ({ ...v, dateOfBirth: e.target.value }))} /></div>
+                            <div className="space-y-2"><Label>Gender</Label>
+                              <Select value={pilgrimForm.gender} onValueChange={(value) => setPilgrimForm((v) => ({ ...v, gender: value }))}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem></SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2"><Label>Nationality</Label><Input value={pilgrimForm.nationality} onChange={(e) => setPilgrimForm((v) => ({ ...v, nationality: e.target.value }))} /></div>
+                            <div className="space-y-2"><Label>Passport Number</Label><Input value={pilgrimForm.passportNumber} onChange={(e) => setPilgrimForm((v) => ({ ...v, passportNumber: e.target.value }))} required /></div>
+                            <div className="space-y-2"><Label>Passport Expiry</Label><Input type="date" value={pilgrimForm.passportExpiry} onChange={(e) => setPilgrimForm((v) => ({ ...v, passportExpiry: e.target.value }))} /></div>
+                            <div className="space-y-2"><Label>NID Number</Label><Input value={pilgrimForm.nidNumber} onChange={(e) => setPilgrimForm((v) => ({ ...v, nidNumber: e.target.value }))} /></div>
+                            <div className="space-y-2"><Label>Room Type</Label>
+                              <Select value={pilgrimForm.roomType} onValueChange={(value: HajjRoomType) => setPilgrimForm((v) => ({ ...v, roomType: value }))}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>{ROOM_TYPES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2"><Label>Mahram Name</Label><Input value={pilgrimForm.mahramName} onChange={(e) => setPilgrimForm((v) => ({ ...v, mahramName: e.target.value }))} /></div>
+                            <div className="space-y-2"><Label>Mahram Relation</Label><Input value={pilgrimForm.mahramRelation} onChange={(e) => setPilgrimForm((v) => ({ ...v, mahramRelation: e.target.value }))} /></div>
+                            <div className="space-y-2"><Label>Emergency Contact</Label><Input value={pilgrimForm.emergencyContact} onChange={(e) => setPilgrimForm((v) => ({ ...v, emergencyContact: e.target.value }))} /></div>
+                            <div className="space-y-2"><Label>Emergency Phone</Label><Input value={pilgrimForm.emergencyPhone} onChange={(e) => setPilgrimForm((v) => ({ ...v, emergencyPhone: e.target.value }))} /></div>
+                          </div>
+                          <div className="space-y-2"><Label>Medical Notes</Label><Textarea rows={3} value={pilgrimForm.medicalNotes} onChange={(e) => setPilgrimForm((v) => ({ ...v, medicalNotes: e.target.value }))} /></div>
+                          <div className="space-y-2"><Label>Notes</Label><Textarea rows={3} value={pilgrimForm.notes} onChange={(e) => setPilgrimForm((v) => ({ ...v, notes: e.target.value }))} /></div>
+                          <div className="flex justify-end gap-2"><DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose><Button type="submit">Save Pilgrim</Button></div>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </PermissionGate>
+                </div>
+              </div>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="grid gap-3 md:grid-cols-4">
+                    <div className="relative md:col-span-2">
+                      <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input className="pl-9" placeholder="Search name / phone / passport" value={searchPilgrim} onChange={(e) => setSearchPilgrim(e.target.value)} />
+                    </div>
+                    <Select value={filterPkgId} onValueChange={setFilterPkgId}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Packages</SelectItem>
+                        {packages.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                    <Select value={filterVisaStatus} onValueChange={setFilterVisaStatus}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Visa Status</SelectItem>
+                        {VISA_STATUS_META.map((v) => <SelectItem key={v.value} value={v.value}>{v.label}</SelectItem>)}</SelectContent>
+                    </Select>
                   </div>
-                  {selectedPilgrimPayments.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">No payments recorded yet.</p>
-                  ) : (
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6 overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Package / Group</TableHead>
+                        <TableHead>Passport</TableHead>
+                        <TableHead>Visa</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Payment</TableHead>
+                        <TableHead>Room</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredPilgrims.map((p) => {
+                        const st = getStatusMeta(PILGRIM_STATUS_META, p.status);
+                        const vs = getStatusMeta(VISA_STATUS_META, p.visaStatus);
+                        const paidPct = p.totalAmount > 0 ? Math.round((p.paidAmount / p.totalAmount) * 100) : 0;
+                        return (
+                          <TableRow key={p.id}>
+                            <TableCell>
+                              <div className="font-medium">{p.name}</div>
+                              <div className="text-xs text-muted-foreground">{p.phone}</div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm">{getPkgName(p.packageId)}</div>
+                              <div className="text-xs text-muted-foreground">{getGroupName(p.groupId)}</div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm">{p.passportNumber}</div>
+                              <div className="text-xs text-muted-foreground">Exp: {p.passportExpiry || "—"}</div>
+                            </TableCell>
+                            <TableCell><Badge className={vs.color}>{vs.label}</Badge></TableCell>
+                            <TableCell><Badge className={st.color}>{st.label}</Badge></TableCell>
+                            <TableCell>
+                              <div className="text-sm font-medium">৳{p.paidAmount.toLocaleString()} / ৳{p.totalAmount.toLocaleString()}</div>
+                              <Progress value={paidPct} className="mt-2 h-2" />
+                              <div className="text-xs text-muted-foreground mt-1">Due: ৳{p.dueAmount.toLocaleString()}</div>
+                            </TableCell>
+                            <TableCell>{p.roomType || "—"}{p.roomNumber ? ` / ${p.roomNumber}` : ""}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button variant="outline" size="sm" onClick={async () => {
+                                  setSelectedPilgrimId(p.id);
+                                  const pays = await hajjApi.listPilgrimPayments(p.id).catch(() => []);
+                                  setPayments((prev) => [...prev.filter((x) => x.pilgrimId !== p.id), ...pays]);
+                                }}><Eye className="mr-1 h-3.5 w-3.5" /> View</Button>
+                                <PermissionGate module="hajj_umrah" action="create">
+                                  <Button variant="secondary" size="sm" onClick={async () => {
+                                    setSelectedPilgrimId(p.id);
+                                    const pays = await hajjApi.listPilgrimPayments(p.id).catch(() => []);
+                                    setPayments((prev) => [...prev.filter((x) => x.pilgrimId !== p.id), ...pays]);
+                                    setPayDialogOpen(true);
+                                  }}><CreditCard className="mr-1 h-3.5 w-3.5" /> Pay</Button>
+                                </PermissionGate>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+
+              {selectedPilgrim ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Pilgrim Detail — {selectedPilgrim.name}</CardTitle>
+                    <CardDescription>{getPkgName(selectedPilgrim.packageId)} • {getGroupName(selectedPilgrim.groupId)}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 text-sm">
+                      <div><div className="text-muted-foreground">Passport</div><div className="font-medium">{selectedPilgrim.passportNumber}</div></div>
+                      <div><div className="text-muted-foreground">NID</div><div className="font-medium">{selectedPilgrim.nidNumber || "—"}</div></div>
+                      <div><div className="text-muted-foreground">Mahram</div><div className="font-medium">{selectedPilgrim.mahramName || "—"}</div></div>
+                      <div><div className="text-muted-foreground">Room</div><div className="font-medium">{selectedPilgrim.roomType || "—"} {selectedPilgrim.roomNumber ? `• ${selectedPilgrim.roomNumber}` : ""}</div></div>
+                    </div>
+                    <Separator />
+                    <div>
+                      <h3 className="font-semibold mb-3">Payments</h3>
+                      <div className="space-y-2">
+                        {selectedPilgrimPayments.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">No payments recorded.</p>
+                        ) : selectedPilgrimPayments.map((pay) => (
+                          <div key={pay.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
+                            <div>
+                              <div className="font-medium">৳{pay.amount.toLocaleString()} • {pay.method}</div>
+                              <div className="text-xs text-muted-foreground">{pay.date} {pay.installmentLabel ? `• ${pay.installmentLabel}` : ""} {pay.reference ? `• ${pay.reference}` : ""}</div>
+                            </div>
+                            <Badge variant="secondary">Received</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              <Dialog open={payDialogOpen} onOpenChange={setPayDialogOpen}>
+                <DialogContent>
+                  <DialogHeader><DialogTitle>Record Payment {selectedPilgrim ? `— ${selectedPilgrim.name}` : ""}</DialogTitle></DialogHeader>
+                  <form onSubmit={handlePaySubmit} className="space-y-4">
+                    <div className="space-y-2"><Label>Amount</Label><Input type="number" min={0} value={payForm.amount} onChange={(e) => setPayForm((v) => ({ ...v, amount: Number(e.target.value || 0) }))} /></div>
+                    <div className="space-y-2"><Label>Method</Label>
+                      <Select value={payForm.method} onValueChange={(value) => setPayForm((v) => ({ ...v, method: value }))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>{PAY_METHODS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2"><Label>Reference</Label><Input value={payForm.reference} onChange={(e) => setPayForm((v) => ({ ...v, reference: e.target.value }))} /></div>
+                    <div className="space-y-2"><Label>Date</Label><Input type="date" value={payForm.date} onChange={(e) => setPayForm((v) => ({ ...v, date: e.target.value }))} /></div>
+                    <div className="space-y-2"><Label>Installment Label</Label><Input value={payForm.installmentLabel} onChange={(e) => setPayForm((v) => ({ ...v, installmentLabel: e.target.value }))} placeholder="1st Installment" /></div>
+                    <div className="space-y-2"><Label>Note</Label><Textarea rows={3} value={payForm.note} onChange={(e) => setPayForm((v) => ({ ...v, note: e.target.value }))} /></div>
+                    <div className="flex justify-end gap-2"><DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose><Button type="submit">Record Payment</Button></div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </TabsContent>
+
+            <TabsContent value="analytics" className="space-y-4">
+              <div className="grid gap-4 xl:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Package Profitability</CardTitle>
+                    <CardDescription>Revenue, cost, and profit per package</CardDescription>
+                  </CardHeader>
+                  <CardContent className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Installment</TableHead>
-                          <TableHead>Method</TableHead>
-                          <TableHead className="text-right">Amount</TableHead>
-                          <TableHead>Note</TableHead>
+                          <TableHead>Package</TableHead>
+                          <TableHead>Enrolled</TableHead>
+                          <TableHead>Revenue</TableHead>
+                          <TableHead>Cost</TableHead>
+                          <TableHead>Profit</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {selectedPilgrimPayments.map((pay) => (
-                          <TableRow key={pay.id}>
-                            <TableCell className="text-sm">{pay.date}</TableCell>
-                            <TableCell><Badge variant="outline" className="text-xs">{pay.installmentLabel || "Payment"}</Badge></TableCell>
-                            <TableCell className="capitalize text-sm">{pay.method}</TableCell>
-                            <TableCell className="text-right font-semibold text-green-600">৳{pay.amount.toLocaleString()}</TableCell>
-                            <TableCell className="text-xs text-muted-foreground">{pay.note || "—"}</TableCell>
+                        {pkgProfitability.map((row) => (
+                          <TableRow key={row.id}>
+                            <TableCell className="font-medium">{row.name}</TableCell>
+                            <TableCell>{row.enrolled}</TableCell>
+                            <TableCell>৳{row.revenue.toLocaleString()}</TableCell>
+                            <TableCell>৳{row.cost.toLocaleString()}</TableCell>
+                            <TableCell className={row.profit >= 0 ? "text-green-600 font-medium" : "text-destructive font-medium"}>৳{row.profit.toLocaleString()}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
-                  )}
-                </div>
+                  </CardContent>
+                </Card>
 
-                {/* Emergency & Medical */}
-                {(selectedPilgrim.emergencyContact || selectedPilgrim.medicalNotes) && (
-                  <div className="rounded-md border p-3 space-y-1 text-sm">
-                    {selectedPilgrim.emergencyContact && <p><span className="text-muted-foreground">Emergency:</span> {selectedPilgrim.emergencyContact} {selectedPilgrim.emergencyPhone && `(${selectedPilgrim.emergencyPhone})`}</p>}
-                    {selectedPilgrim.medicalNotes && <p><span className="text-muted-foreground">Medical:</span> {selectedPilgrim.medicalNotes}</p>}
-                  </div>
-                )}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Operational Alerts</CardTitle>
+                    <CardDescription>Actionable items that need team attention</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="rounded-lg border p-3 flex items-start gap-3">
+                      <AlertTriangle className="h-5 w-5 text-yellow-500 mt-0.5" />
+                      <div>
+                        <div className="font-medium">Documents Pending</div>
+                        <div className="text-sm text-muted-foreground">{summary.docsPending} pilgrim(s) are still waiting for complete documents.</div>
+                      </div>
+                    </div>
+                    <div className="rounded-lg border p-3 flex items-start gap-3">
+                      <Shield className="h-5 w-5 text-orange-500 mt-0.5" />
+                      <div>
+                        <div className="font-medium">Visa Pending</div>
+                        <div className="text-sm text-muted-foreground">{summary.visaPending} pilgrim(s) do not yet have approved visas.</div>
+                      </div>
+                    </div>
+                    <div className="rounded-lg border p-3 flex items-start gap-3">
+                      <CreditCard className="h-5 w-5 text-red-500 mt-0.5" />
+                      <div>
+                        <div className="font-medium">Outstanding Dues</div>
+                        <div className="text-sm text-muted-foreground">Current outstanding amount is ৳{summary.totalDue.toLocaleString()} across all pilgrims.</div>
+                      </div>
+                    </div>
+                    <div className="rounded-lg border p-3 flex items-start gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
+                      <div>
+                        <div className="font-medium">Capacity Watch</div>
+                        <div className="text-sm text-muted-foreground">{packages.filter((p) => p.capacity > 0 && p.enrolled >= p.capacity).length} package(s) are already full.</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-            )}
-          </DialogContent>
-        </Dialog>
-
-        {/* ═══ PAYMENT DIALOG ═══ */}
-        <Dialog open={payDialogOpen} onOpenChange={(v) => { setPayDialogOpen(v); if (!v) setPayForm(emptyPayForm); }}>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Record Pilgrim Payment</DialogTitle></DialogHeader>
-            {selectedPilgrim && (
-              <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1 mb-2">
-                <p className="font-medium">{selectedPilgrim.name}</p>
-                <p>Total: ৳{selectedPilgrim.totalAmount.toLocaleString()} • Paid: ৳{selectedPilgrim.paidAmount.toLocaleString()} • <span className="text-destructive font-semibold">Due: ৳{selectedPilgrim.dueAmount.toLocaleString()}</span></p>
-              </div>
-            )}
-            <form onSubmit={handlePaySubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Amount (৳) *</Label>
-                  <Input type="number" min={1} max={selectedPilgrim?.dueAmount} value={payForm.amount || ""} onChange={(e) => setPayForm((f) => ({ ...f, amount: parseFloat(e.target.value) || 0 }))} required />
-                </div>
-                <div className="space-y-2">
-                  <Label>Method</Label>
-                  <Select value={payForm.method} onValueChange={(v) => setPayForm((f) => ({ ...f, method: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{PAY_METHODS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Date</Label><Input type="date" value={payForm.date} onChange={(e) => setPayForm((f) => ({ ...f, date: e.target.value }))} required /></div>
-                <div className="space-y-2"><Label>Reference</Label><Input value={payForm.reference} onChange={(e) => setPayForm((f) => ({ ...f, reference: e.target.value }))} placeholder="TXN / Receipt no." /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Installment Label</Label><Input value={payForm.installmentLabel} onChange={(e) => setPayForm((f) => ({ ...f, installmentLabel: e.target.value }))} placeholder="e.g. 1st Installment" /></div>
-                <div className="space-y-2"><Label>Note</Label><Input value={payForm.note} onChange={(e) => setPayForm((f) => ({ ...f, note: e.target.value }))} placeholder="Optional note" /></div>
-              </div>
-              <div className="flex gap-2">
-                <Button type="submit" className="flex-1"><CreditCard className="mr-2 h-4 w-4" /> Record Payment</Button>
-                <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+            </TabsContent>
+          </Tabs>
+        )}
       </div>
     </DashboardLayout>
   );
