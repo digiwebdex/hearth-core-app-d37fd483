@@ -17,7 +17,7 @@ import {
   MODULE_LABELS, ACTION_LABELS, getActionColor,
   type AuditModule,
 } from "@/lib/auditLog";
-import { auditLogApi, type AuditLogEntry } from "@/lib/api";
+import { auditLogApi, type AuditLogEntry } from "@/lib/auditLogApi";
 import { useToast } from "@/hooks/use-toast";
 
 const AdminAuditLog = () => {
@@ -107,7 +107,6 @@ const AdminAuditLog = () => {
           </div>
         </div>
 
-        {/* Stats */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card><CardContent className="pt-6"><div className="flex items-center gap-3"><Activity className="h-8 w-8 text-primary" /><div><p className="text-2xl font-bold">{loading ? "…" : stats.total}</p><p className="text-xs text-muted-foreground">{t("adminAuditLog.stats.total")}</p></div></div></CardContent></Card>
           <Card><CardContent className="pt-6"><div className="flex items-center gap-3"><Clock className="h-8 w-8 text-blue-500" /><div><p className="text-2xl font-bold">{loading ? "…" : stats.today}</p><p className="text-xs text-muted-foreground">{t("adminAuditLog.stats.today")}</p></div></div></CardContent></Card>
@@ -115,7 +114,6 @@ const AdminAuditLog = () => {
           <Card><CardContent className="pt-6"><div className="flex items-center gap-3"><FileText className="h-8 w-8 text-green-500" /><div><p className="text-2xl font-bold">{loading ? "…" : Object.keys(stats.moduleCounts).length}</p><p className="text-xs text-muted-foreground">{t("adminAuditLog.stats.modules")}</p></div></div></CardContent></Card>
         </div>
 
-        {/* Filters */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 flex-1 min-w-[200px] max-w-sm">
             <Search className="h-4 w-4 text-muted-foreground" />
@@ -139,7 +137,6 @@ const AdminAuditLog = () => {
           </Select>
         </div>
 
-        {/* Log Table */}
         <Card>
           <CardHeader><CardTitle>{t("adminAuditLog.table.title", { count: filtered.length })}</CardTitle></CardHeader>
           <CardContent>
@@ -182,7 +179,7 @@ const AdminAuditLog = () => {
                             {ACTION_LABELS[log.action as keyof typeof ACTION_LABELS] || log.action}
                           </span>
                         </TableCell>
-                        <TableCell className="text-xs max-w-[200px] truncate" title={log.targetLabel}>
+                        <TableCell className="text-xs max-w-[200px] truncate" title={log.targetLabel || undefined}>
                           {log.targetLabel || "—"}
                         </TableCell>
                         <TableCell className="text-xs">
@@ -210,7 +207,6 @@ const AdminAuditLog = () => {
           </CardContent>
         </Card>
 
-        {/* Detail Dialog */}
         <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
           <DialogContent className="max-w-lg">
             <DialogHeader><DialogTitle>{t("adminAuditLog.detail.title")}</DialogTitle></DialogHeader>
@@ -243,53 +239,30 @@ const AdminAuditLog = () => {
                       <span>{selectedLog.targetLabel}</span>
                     </>
                   )}
-                  {selectedLog.targetType && (
-                    <>
-                      <span className="text-muted-foreground">{t("adminAuditLog.detail.targetType")}:</span>
-                      <span className="capitalize">{selectedLog.targetType}</span>
-                    </>
-                  )}
-                  {selectedLog.targetId && (
-                    <>
-                      <span className="text-muted-foreground">{t("adminAuditLog.detail.targetId")}:</span>
-                      <span className="font-mono text-xs">{selectedLog.targetId}</span>
-                    </>
-                  )}
                   {selectedLog.oldValue && (
                     <>
                       <span className="text-muted-foreground">{t("adminAuditLog.detail.oldValue")}:</span>
-                      <span className="line-through text-destructive">{selectedLog.oldValue}</span>
+                      <span className="break-words">{selectedLog.oldValue}</span>
                     </>
                   )}
                   {selectedLog.newValue && (
                     <>
                       <span className="text-muted-foreground">{t("adminAuditLog.detail.newValue")}:</span>
-                      <span className="font-medium text-green-600">{selectedLog.newValue}</span>
+                      <span className="break-words">{selectedLog.newValue}</span>
                     </>
                   )}
                   {selectedLog.ipAddress && (
                     <>
-                      <span className="text-muted-foreground">{t("adminAuditLog.detail.ip")}:</span>
-                      <span className="font-mono text-xs">{selectedLog.ipAddress}</span>
+                      <span className="text-muted-foreground">IP:</span>
+                      <span>{selectedLog.ipAddress}</span>
                     </>
                   )}
                 </div>
-                {selectedLog.metadata && Object.keys(selectedLog.metadata).length > 0 && (
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">{t("adminAuditLog.detail.additional")}</p>
-                    <div className="rounded-md border p-3 text-xs space-y-1">
-                      {Object.entries(selectedLog.metadata).map(([k, v]) => (
-                        <div key={k} className="flex gap-2">
-                          <span className="text-muted-foreground capitalize">{k.replace(/([A-Z])/g, " $1")}:</span>
-                          <span>{String(v)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <div className="flex justify-end">
+                  <DialogClose asChild><Button variant="outline">{t("adminAuditLog.detail.close")}</Button></DialogClose>
+                </div>
               </div>
             )}
-            <DialogClose asChild><Button variant="outline" className="w-full">{t("adminAuditLog.detail.close")}</Button></DialogClose>
           </DialogContent>
         </Dialog>
       </div>
