@@ -772,3 +772,70 @@ export interface PaymentRequest {
   createdAt: string;
   updatedAt?: string;
 }
+
+// ── Admin types and API ──
+export interface PendingUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+  phone?: string;
+  whatsapp?: string;
+  tenantId: string;
+  tenant?: { id: string; name: string; slug?: string };
+  createdAt: string;
+  rejectionReason?: string | null;
+}
+
+export interface AdminStats {
+  totalTenants: number;
+  totalUsers: number;
+  totalBookings: number;
+  totalRevenue: number;
+}
+
+export interface AdminTenant {
+  id: string;
+  name: string;
+  slug?: string | null;
+  ownerId?: string | null;
+  phone?: string | null;
+  whatsapp?: string | null;
+  address?: string | null;
+  city?: string | null;
+  country?: string | null;
+  website?: string | null;
+  notes?: string | null;
+  subscriptionPlan?: string;
+  subscriptionStatus?: string;
+  subscriptionExpiry?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+  users?: Array<{ id: string; name: string; email: string; role: string; createdAt?: string }>;
+  _count?: { users?: number; bookings?: number; clients?: number; invoices?: number };
+}
+
+export interface AdminPaymentRequest extends PaymentRequest {
+  tenant?: { name?: string };
+}
+
+export const adminApi = {
+  getStats: () => request<AdminStats>("/admin/stats"),
+  getTenants: () => request<AdminTenant[]>("/admin/tenants"),
+  getTenant: (id: string) => request<AdminTenant>(`/admin/tenants/${id}`),
+  createTenant: (data: Record<string, unknown>) =>
+    request<{ tenant: AdminTenant }>("/admin/tenants", { method: "POST", body: JSON.stringify(data) }),
+  updateTenant: (id: string, data: Record<string, unknown>) =>
+    request<AdminTenant>(`/admin/tenants/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  updateTenantOwner: (id: string, data: { name?: string; email?: string; password?: string }) =>
+    request<{ id: string; name: string; email: string; role: string }>(`/admin/tenants/${id}/owner`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteTenant: (id: string) =>
+    request<{ success: boolean }>(`/admin/tenants/${id}`, { method: "DELETE" }),
+  getPaymentRequests: () => request<AdminPaymentRequest[]>("/admin/payment-requests"),
+  updatePaymentRequest: (id: string, data: { status: string; reviewerComment?: string }) =>
+    request<AdminPaymentRequest>(`/admin/payment-requests/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  getPendingUsers: () => request<PendingUser[]>("/admin/pending-users"),
+  approveUser: (id: string) => request<{ success: boolean }>(`/admin/pending-users/${id}/approve`, { method: "POST" }),
+  rejectUser: (id: string, reason?: string) => request<{ success: boolean }>(`/admin/pending-users/${id}/reject`, { method: "POST", body: JSON.stringify({ reason }) }),
+};
