@@ -21,7 +21,7 @@ import {
   type TravelPackagePricing,
 } from "@/lib/travelPackageApi";
 import { SERVICE_TYPES, getServiceTypeLabel, type ServiceType } from "@/lib/serviceTypes";
-import { ArrowRight, Loader2, Moon, Package2, Plus, Save, Trash2 } from "lucide-react";
+import { ArrowRight, Globe, Loader2, Moon, Package2, Plus, Save, Trash2 } from "lucide-react";
 
 const emptyForm = {
   code: "",
@@ -106,6 +106,8 @@ const Packages = () => {
     migrationTitle: isBn ? "নেভিগেশন মার্জ আপডেট" : "Navigation merge update",
     migrationText: isBn ? "বাম পাশের মেনুতে এখন আলাদা Hajj & Umrah item দেখানো হচ্ছে না। Hajj/Umrah package template এখানেই ম্যানেজ করুন। পুরনো pilgrim/group/payment operations এখনো legacy page-এ আছে।" : "The separate Hajj & Umrah sidebar item is now hidden. Manage Hajj/Umrah package templates here. The old pilgrim/group/payment operations are still available on the legacy page.",
     legacyButton: isBn ? "লেগেসি হজ্জ অপারেশনস" : "Legacy Hajj Operations",
+    publicButton: isBn ? "পাবলিক প্যাকেজ পেজ" : "Public Packages Page",
+    publicText: isBn ? "যে প্যাকেজ Published করবেন, সেগুলো website package page-এ দেখা যাবে।" : "Published packages will appear automatically on the website packages page.",
     newPackage: isBn ? "নতুন সার্ভিস" : "New Service",
     filterPlaceholder: isBn ? "সার্ভিস টাইপ ফিল্টার" : "Filter by service type",
     allTypes: isBn ? "সব সার্ভিস টাইপ" : "All service types",
@@ -336,8 +338,11 @@ const Packages = () => {
                 ))}
               </SelectContent>
             </Select>
+            <Link to="/site/packages">
+              <Button variant="outline"><Globe className="mr-2 h-4 w-4" />{text.publicButton}</Button>
+            </Link>
             <Button variant="outline" onClick={resetForm}><Plus className="mr-2 h-4 w-4" />{text.newPackage}</Button>
-            <Link to="/hajj-umrah">
+            <Link to="/legacy/hajj-operations">
               <Button variant="secondary"><Moon className="mr-2 h-4 w-4" />{text.legacyButton}</Button>
             </Link>
           </div>
@@ -348,10 +353,16 @@ const Packages = () => {
             <div>
               <p className="font-medium">{text.migrationTitle}</p>
               <p className="text-sm text-muted-foreground">{text.migrationText}</p>
+              <p className="text-sm text-muted-foreground mt-1">{text.publicText}</p>
             </div>
-            <Link to="/hajj-umrah">
-              <Button variant="outline"><span>{text.legacyButton}</span><ArrowRight className="ml-2 h-4 w-4" /></Button>
-            </Link>
+            <div className="flex gap-2 flex-wrap">
+              <Link to="/legacy/hajj-operations">
+                <Button variant="outline"><span>{text.legacyButton}</span><ArrowRight className="ml-2 h-4 w-4" /></Button>
+              </Link>
+              <Link to="/site/packages">
+                <Button variant="outline"><span>{text.publicButton}</span><ArrowRight className="ml-2 h-4 w-4" /></Button>
+              </Link>
+            </div>
           </CardContent>
         </Card>
 
