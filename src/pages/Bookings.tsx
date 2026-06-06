@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import PermissionGate from "@/components/PermissionGate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,21 +13,20 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { format, isAfter, isBefore, addDays, parseISO } from "date-fns";
 import {
-  Plus, Pencil, Trash2, Plane, Mail, Search, Eye, DollarSign,
-  CalendarIcon, MapPin, Users, AlertTriangle, Clock, CheckCircle2, XCircle,
+  Plus, Pencil, Trash2, Plane, Search, Eye, DollarSign,
+  CalendarIcon, MapPin, AlertTriangle, Clock, CheckCircle2, XCircle,
   Ticket, Hotel, Stamp, Package, Filter, FileText,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { emailApi } from "@/lib/emailApi";
 import { bookingApi, quotationApi, type Booking, type BookingStatus, type BookingType, type Quotation } from "@/lib/api";
 import { sendBookingSms } from "@/lib/smsAutomation";
 import EmptyState from "@/components/EmptyState";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
+import { getServiceTypeLabel } from "@/lib/serviceTypes";
 
 const STATUS_META: { value: BookingStatus; color: string; icon: any }[] = [
   { value: "pending", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200", icon: Clock },
@@ -39,15 +38,29 @@ const STATUS_META: { value: BookingStatus; color: string; icon: any }[] = [
 ];
 
 const TYPE_ICONS: Record<BookingType, any> = {
-  tour: MapPin, ticket: Ticket, hotel: Hotel, visa: Stamp, package: Package,
+  tour: MapPin,
+  ticket: Ticket,
+  hotel: Hotel,
+  visa: Stamp,
+  package: Package,
 };
 
 const getStatusMeta = (s: BookingStatus) => STATUS_META.find((x) => x.value === s) || STATUS_META[0];
 
 const emptyForm = {
-  type: "tour" as BookingType, title: "", clientId: "", clientName: "", agentId: "",
-  destination: "", travelerCount: 1, amount: 0, cost: 0, status: "pending" as BookingStatus,
-  travelDateFrom: "", travelDateTo: "", internalNotes: "",
+  type: "tour" as BookingType,
+  title: "",
+  clientId: "",
+  clientName: "",
+  agentId: "",
+  destination: "",
+  travelerCount: 1,
+  amount: 0,
+  cost: 0,
+  status: "pending" as BookingStatus,
+  travelDateFrom: "",
+  travelDateTo: "",
+  internalNotes: "",
 };
 
 const Bookings = () => {
@@ -84,10 +97,15 @@ const Bookings = () => {
     }
   }, []);
 
-  useEffect(() => { fetchBookings(); }, [fetchBookings]);
+  useEffect(() => {
+    fetchBookings();
+  }, [fetchBookings]);
 
   const profit = useMemo(() => form.amount - form.cost, [form.amount, form.cost]);
-  const resetForm = () => { setForm(emptyForm); setEditingId(null); };
+  const resetForm = () => {
+    setForm(emptyForm);
+    setEditingId(null);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,10 +122,16 @@ const Bookings = () => {
         setItems((prev) => [...prev, created]);
         toast({ title: t("bookingsForm.bookingCreated") });
         sendBookingSms({
-          bookingId: created.id, bookingType: created.type, bookingStatus: created.status,
-          bookingAmount: created.amount, clientName: created.clientName || created.clientId,
-          clientPhone: "", company: "Travel Agency",
-        }).then((res) => { if (res.sent) toast({ title: t("bookingsForm.smsSent") }); }).catch(() => {});
+          bookingId: created.id,
+          bookingType: created.type,
+          bookingStatus: created.status,
+          bookingAmount: created.amount,
+          clientName: created.clientName || created.clientId,
+          clientPhone: "",
+          company: "Travel Agency",
+        }).then((res) => {
+          if (res.sent) toast({ title: t("bookingsForm.smsSent") });
+        }).catch(() => {});
       }).catch((err: any) => {
         toast({ title: t("bookingsForm.createFailed"), description: err.message, variant: "destructive" });
       });
@@ -118,10 +142,18 @@ const Bookings = () => {
 
   const handleEdit = (b: Booking) => {
     setForm({
-      type: b.type, title: b.title || "", clientId: b.clientId, clientName: b.clientName || "",
-      agentId: b.agentId, destination: b.destination || "", travelerCount: b.travelerCount || 1,
-      amount: b.amount, cost: b.cost, status: b.status,
-      travelDateFrom: b.travelDateFrom || "", travelDateTo: b.travelDateTo || "",
+      type: b.type,
+      title: b.title || "",
+      clientId: b.clientId,
+      clientName: b.clientName || "",
+      agentId: b.agentId,
+      destination: b.destination || "",
+      travelerCount: b.travelerCount || 1,
+      amount: b.amount,
+      cost: b.cost,
+      status: b.status,
+      travelDateFrom: b.travelDateFrom || "",
+      travelDateTo: b.travelDateTo || "",
       internalNotes: b.internalNotes || "",
     });
     setEditingId(b.id);
@@ -137,7 +169,6 @@ const Bookings = () => {
     });
   };
 
-  // Fetch approved quotations for "Create from Quotation" flow
   const handleOpenQuotationDialog = async () => {
     setQuotationDialogOpen(true);
     setLoadingQuotations(true);
@@ -156,21 +187,25 @@ const Bookings = () => {
       const booking = await quotationApi.convertToBooking(quotation.id);
       setItems((prev) => [booking, ...prev]);
       setQuotationDialogOpen(false);
-      toast({ title: t("bookingsForm.convertedTitle"), description: t("bookingsForm.convertedDesc", { name: quotation.title || quotation.destination }) });
+      toast({
+        title: t("bookingsForm.convertedTitle"),
+        description: t("bookingsForm.convertedDesc", { name: quotation.title || quotation.destination }),
+      });
       navigate(`/bookings/${booking.id}`);
     } catch (err: any) {
       toast({ variant: "destructive", title: t("bookingsForm.conversionFailed"), description: err.message });
     }
   };
 
-  // Filters
   const filtered = useMemo(() => {
     return items.filter((b) => {
       const matchSearch = !search ||
         b.title?.toLowerCase().includes(search.toLowerCase()) ||
         b.clientName?.toLowerCase().includes(search.toLowerCase()) ||
         b.destination?.toLowerCase().includes(search.toLowerCase()) ||
-        b.clientId?.toLowerCase().includes(search.toLowerCase());
+        b.clientId?.toLowerCase().includes(search.toLowerCase()) ||
+        b.packageTitleSnapshot?.toLowerCase().includes(search.toLowerCase()) ||
+        b.packageCodeSnapshot?.toLowerCase().includes(search.toLowerCase());
       const matchStatus = statusFilter === "all" || b.status === statusFilter;
       const matchPayment = paymentFilter === "all" || b.paymentStatus === paymentFilter;
       const matchDest = !destinationFilter || (b.destination || "").toLowerCase().includes(destinationFilter.toLowerCase());
@@ -188,16 +223,16 @@ const Bookings = () => {
     return count;
   }, [destinationFilter, travelDateFrom, travelDateTo]);
 
-  // Dashboard widgets
   const now = new Date();
-  const upcomingTravel = useMemo(() =>
-    items.filter((b) => b.travelDateFrom && isAfter(parseISO(b.travelDateFrom), now) &&
-      isBefore(parseISO(b.travelDateFrom), addDays(now, 14)) &&
-      b.status !== "cancelled" && b.status !== "completed"
-    ).length, [items]);
+  const upcomingTravel = useMemo(
+    () => items.filter((b) => b.travelDateFrom && isAfter(parseISO(b.travelDateFrom), now) && isBefore(parseISO(b.travelDateFrom), addDays(now, 14)) && b.status !== "cancelled" && b.status !== "completed").length,
+    [items]
+  );
 
-  const unpaidBookings = useMemo(() =>
-    items.filter((b) => (b.paymentStatus === "unpaid" || b.paymentStatus === "partial") && b.status !== "cancelled").length, [items]);
+  const unpaidBookings = useMemo(
+    () => items.filter((b) => (b.paymentStatus === "unpaid" || b.paymentStatus === "partial") && b.status !== "cancelled").length,
+    [items]
+  );
 
   const totals = useMemo(() => {
     const totalAmount = items.reduce((s, b) => s + b.amount, 0);
@@ -208,14 +243,15 @@ const Bookings = () => {
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = { all: items.length };
-    STATUS_META.forEach((s) => { counts[s.value] = items.filter((b) => b.status === s.value).length; });
+    STATUS_META.forEach((s) => {
+      counts[s.value] = items.filter((b) => b.status === s.value).length;
+    });
     return counts;
   }, [items]);
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
@@ -234,101 +270,100 @@ const Bookings = () => {
                 <DialogTrigger asChild>
                   <Button><Plus className="mr-2 h-4 w-4" />{t("pages.newBooking")}</Button>
                 </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>{editingId ? t("bookingsForm.editBooking") : t("bookingsForm.newBooking")}</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>{t("bookingsForm.bookingTitle")}</Label>
-                    <Input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder={t("bookingsForm.titlePlaceholder")} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{editingId ? t("bookingsForm.editBooking") : t("bookingsForm.newBooking")}</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-2">
-                      <Label>{t("bookingsForm.type")}</Label>
-                      <Select value={form.type} onValueChange={(v) => setForm((f) => ({ ...f, type: v as BookingType }))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="tour">{t("bookingsForm.types.tour")}</SelectItem>
-                          <SelectItem value="ticket">{t("bookingsForm.types.ticket")}</SelectItem>
-                          <SelectItem value="hotel">{t("bookingsForm.types.hotel")}</SelectItem>
-                          <SelectItem value="visa">{t("bookingsForm.types.visa")}</SelectItem>
-                          <SelectItem value="package">{t("bookingsForm.types.package")}</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label>{t("bookingsForm.bookingTitle")}</Label>
+                      <Input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder={t("bookingsForm.titlePlaceholder")} />
                     </div>
-                    <div className="space-y-2">
-                      <Label>{t("bookingsForm.status")}</Label>
-                      <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v as BookingStatus }))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {STATUS_META.map((s) => <SelectItem key={s.value} value={s.value}>{t(`bookingsForm.statuses.${s.value}`)}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>{t("bookingsForm.clientName")}</Label>
-                      <Input value={form.clientName} onChange={(e) => setForm((f) => ({ ...f, clientName: e.target.value }))} placeholder={t("bookingsForm.clientPlaceholder")} required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>{t("bookingsForm.agentStaff")}</Label>
-                      <Input value={form.agentId} onChange={(e) => setForm((f) => ({ ...f, agentId: e.target.value }))} placeholder={t("bookingsForm.agentPlaceholder")} />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>{t("bookingsForm.destination")}</Label>
-                      <Input value={form.destination} onChange={(e) => setForm((f) => ({ ...f, destination: e.target.value }))} placeholder={t("bookingsForm.destinationFormPlaceholder")} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>{t("bookingsForm.travelers")}</Label>
-                      <Input type="number" min={1} value={form.travelerCount} onChange={(e) => setForm((f) => ({ ...f, travelerCount: +e.target.value }))} />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>{t("bookingsForm.travelFrom")}</Label>
-                      <Input type="date" value={form.travelDateFrom} onChange={(e) => setForm((f) => ({ ...f, travelDateFrom: e.target.value }))} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>{t("bookingsForm.travelTo")}</Label>
-                      <Input type="date" value={form.travelDateTo} onChange={(e) => setForm((f) => ({ ...f, travelDateTo: e.target.value }))} />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label>{t("bookingsForm.sellingAmount")}</Label>
-                      <Input type="number" min={0} step={0.01} value={form.amount || ""} onChange={(e) => setForm((f) => ({ ...f, amount: parseFloat(e.target.value) || 0 }))} required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>{t("bookingsForm.cost")}</Label>
-                      <Input type="number" min={0} step={0.01} value={form.cost || ""} onChange={(e) => setForm((f) => ({ ...f, cost: parseFloat(e.target.value) || 0 }))} required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>{t("bookingsForm.profit")}</Label>
-                      <div className={`flex h-10 items-center rounded-md border px-3 text-sm font-semibold ${profit >= 0 ? "text-green-600" : "text-destructive"}`}>
-                        ৳{profit.toLocaleString()}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>{t("bookingsForm.type")}</Label>
+                        <Select value={form.type} onValueChange={(v) => setForm((f) => ({ ...f, type: v as BookingType }))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="tour">{t("bookingsForm.types.tour")}</SelectItem>
+                            <SelectItem value="ticket">{t("bookingsForm.types.ticket")}</SelectItem>
+                            <SelectItem value="hotel">{t("bookingsForm.types.hotel")}</SelectItem>
+                            <SelectItem value="visa">{t("bookingsForm.types.visa")}</SelectItem>
+                            <SelectItem value="package">{t("bookingsForm.types.package")}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{t("bookingsForm.status")}</Label>
+                        <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v as BookingStatus }))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {STATUS_META.map((s) => <SelectItem key={s.value} value={s.value}>{t(`bookingsForm.statuses.${s.value}`)}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>{t("bookingsForm.internalNotes")}</Label>
-                    <Input value={form.internalNotes} onChange={(e) => setForm((f) => ({ ...f, internalNotes: e.target.value }))} placeholder={t("bookingsForm.notesPlaceholder")} />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button type="submit" className="flex-1">{editingId ? t("bookingsForm.update") : t("bookingsForm.create")}</Button>
-                    <DialogClose asChild><Button type="button" variant="outline">{t("bookingsForm.cancel")}</Button></DialogClose>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </PermissionGate>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>{t("bookingsForm.clientName")}</Label>
+                        <Input value={form.clientName} onChange={(e) => setForm((f) => ({ ...f, clientName: e.target.value }))} placeholder={t("bookingsForm.clientPlaceholder")} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{t("bookingsForm.agentStaff")}</Label>
+                        <Input value={form.agentId} onChange={(e) => setForm((f) => ({ ...f, agentId: e.target.value }))} placeholder={t("bookingsForm.agentPlaceholder")} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>{t("bookingsForm.destination")}</Label>
+                        <Input value={form.destination} onChange={(e) => setForm((f) => ({ ...f, destination: e.target.value }))} placeholder={t("bookingsForm.destinationFormPlaceholder")} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{t("bookingsForm.travelers")}</Label>
+                        <Input type="number" min={1} value={form.travelerCount} onChange={(e) => setForm((f) => ({ ...f, travelerCount: +e.target.value }))} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>{t("bookingsForm.travelFrom")}</Label>
+                        <Input type="date" value={form.travelDateFrom} onChange={(e) => setForm((f) => ({ ...f, travelDateFrom: e.target.value }))} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{t("bookingsForm.travelTo")}</Label>
+                        <Input type="date" value={form.travelDateTo} onChange={(e) => setForm((f) => ({ ...f, travelDateTo: e.target.value }))} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>{t("bookingsForm.sellingAmount")}</Label>
+                        <Input type="number" min={0} step={0.01} value={form.amount || ""} onChange={(e) => setForm((f) => ({ ...f, amount: parseFloat(e.target.value) || 0 }))} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{t("bookingsForm.cost")}</Label>
+                        <Input type="number" min={0} step={0.01} value={form.cost || ""} onChange={(e) => setForm((f) => ({ ...f, cost: parseFloat(e.target.value) || 0 }))} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{t("bookingsForm.profit")}</Label>
+                        <div className={`flex h-10 items-center rounded-md border px-3 text-sm font-semibold ${profit >= 0 ? "text-green-600" : "text-destructive"}`}>
+                          ৳{profit.toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{t("bookingsForm.internalNotes")}</Label>
+                      <Input value={form.internalNotes} onChange={(e) => setForm((f) => ({ ...f, internalNotes: e.target.value }))} placeholder={t("bookingsForm.notesPlaceholder")} />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="submit" className="flex-1">{editingId ? t("bookingsForm.update") : t("bookingsForm.create")}</Button>
+                      <DialogClose asChild><Button type="button" variant="outline">{t("bookingsForm.cancel")}</Button></DialogClose>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </PermissionGate>
           </div>
         </div>
 
-        {/* Dashboard Widgets */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <Card>
             <CardContent className="pt-6">
@@ -377,7 +412,6 @@ const Bookings = () => {
           </Card>
         </div>
 
-        {/* Filters */}
         <div className="space-y-3">
           <div className="flex flex-wrap gap-2">
             <Button variant={statusFilter === "all" ? "default" : "outline"} size="sm" onClick={() => setStatusFilter("all")}>
@@ -417,7 +451,6 @@ const Bookings = () => {
           </div>
         </div>
 
-        {/* Advanced Filter Bar */}
         {showFilters && (
           <Card>
             <CardContent className="p-3">
@@ -459,7 +492,6 @@ const Bookings = () => {
           </Card>
         )}
 
-        {/* Table */}
         {loading ? (
           <LoadingState rows={6} />
         ) : error ? (
@@ -496,8 +528,13 @@ const Bookings = () => {
                             <div className="flex items-center gap-2">
                               <TypeIcon className="h-4 w-4 text-muted-foreground" />
                               <div>
-                                <p className="font-medium text-sm truncate max-w-[180px]">{b.title || t("bookingsForm.bookingTypeFallback", { type: t(`bookingsForm.types.${b.type}`) })}</p>
-                                <p className="text-xs text-muted-foreground">{t(`bookingsForm.types.${b.type}`)}</p>
+                                <p className="font-medium text-sm truncate max-w-[220px]">{b.title || t("bookingsForm.bookingTypeFallback", { type: t(`bookingsForm.types.${b.type}`) })}</p>
+                                <div className="flex flex-wrap items-center gap-1 mt-1">
+                                  <p className="text-xs text-muted-foreground">{t(`bookingsForm.types.${b.type}`)}</p>
+                                  {b.serviceType ? <Badge variant="outline" className="text-[10px]">{getServiceTypeLabel(b.serviceType)}</Badge> : null}
+                                  {b.packageCodeSnapshot ? <Badge variant="secondary" className="text-[10px]">{b.packageCodeSnapshot}</Badge> : null}
+                                </div>
+                                {b.packageTitleSnapshot ? <p className="text-[10px] text-muted-foreground truncate max-w-[220px] mt-1">{b.packageTitleSnapshot}</p> : null}
                               </div>
                             </div>
                           </TableCell>
@@ -514,7 +551,8 @@ const Bookings = () => {
                           </TableCell>
                           <TableCell>
                             {b.paymentStatus ? (
-                              <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+                              <span className={cn(
+                                "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
                                 b.paymentStatus === "paid" ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" :
                                 b.paymentStatus === "partial" ? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200" :
                                 "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
@@ -552,7 +590,6 @@ const Bookings = () => {
         )}
       </div>
 
-      {/* Create from Quotation Dialog */}
       <Dialog open={quotationDialogOpen} onOpenChange={setQuotationDialogOpen}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -581,6 +618,13 @@ const Bookings = () => {
                       {q.destination && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{q.destination}</span>}
                       <span>{t("bookingsForm.travelersCount", { count: q.travelerCount })}</span>
                     </div>
+                    {(q.serviceType || q.packageTitleSnapshot) ? (
+                      <div className="flex flex-wrap items-center gap-1 mt-2">
+                        {q.serviceType ? <Badge variant="outline" className="text-[10px]">{getServiceTypeLabel(q.serviceType)}</Badge> : null}
+                        {q.packageCodeSnapshot ? <Badge variant="secondary" className="text-[10px]">{q.packageCodeSnapshot}</Badge> : null}
+                        {q.packageTitleSnapshot ? <p className="text-[10px] text-muted-foreground truncate">{q.packageTitleSnapshot}</p> : null}
+                      </div>
+                    ) : null}
                   </div>
                   <div className="text-right ml-3">
                     <p className="text-sm font-medium">৳{q.grandTotal?.toLocaleString()}</p>
