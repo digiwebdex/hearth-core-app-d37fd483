@@ -18,6 +18,7 @@ import Team from "./pages/Team";
 import Organization from "./pages/Organization";
 import SettingsPage from "./pages/SettingsPage";
 import WebsiteCustomizer from "./pages/WebsiteCustomizer";
+import WebsitePublishGuide from "./pages/WebsitePublishGuide";
 import Clients from "./pages/Clients";
 import Agents from "./pages/Agents";
 import Vendors from "./pages/Vendors";
@@ -81,17 +82,11 @@ const queryClient = new QueryClient();
 
 type SitePage = "home" | "about" | "packages" | "contact";
 
-const P = ({ children }: { children: React.ReactNode }) => (
-  <ProtectedRoute>{children}</ProtectedRoute>
-);
+const P = ({ children }: { children: React.ReactNode }) => <ProtectedRoute>{children}</ProtectedRoute>;
+const A = ({ children }: { children: React.ReactNode }) => <AdminRoute>{children}</AdminRoute>;
 
-const A = ({ children }: { children: React.ReactNode }) => (
-  <AdminRoute>{children}</AdminRoute>
-);
-
-const getSitePage = (page: SitePage) => (
-  page === "about" ? SiteAbout : page === "packages" ? SitePackages : page === "contact" ? SiteContact : SiteHome
-);
+const getSitePage = (page: SitePage) =>
+  page === "about" ? SiteAbout : page === "packages" ? SitePackages : page === "contact" ? SiteContact : SiteHome;
 
 const SiteSlugWrapper = ({ page }: { page: SitePage }) => {
   const { slug } = useParams<{ slug: string }>();
@@ -106,17 +101,10 @@ const isTenantPublicHost = () => {
 
 const PublicSiteRoute = ({ page }: { page: SitePage }) => {
   const Page = getSitePage(page);
-
-  if (isTenantPublicHost()) {
-    return <WebsiteProvider><Page /></WebsiteProvider>;
-  }
-
+  if (isTenantPublicHost()) return <WebsiteProvider><Page /></WebsiteProvider>;
   if (page === "home") {
-    return getReservedSubdomain(window.location.hostname) === "app"
-      ? <Navigate to="/login" replace />
-      : <Index />;
+    return getReservedSubdomain(window.location.hostname) === "app" ? <Navigate to="/login" replace /> : <Index />;
   }
-
   return <NotFound />;
 };
 
@@ -181,6 +169,7 @@ const AppContent = () => (
           <Route path="/accounts" element={<P><Accounts /></P>} />
           <Route path="/reports" element={<P><Reports /></P>} />
           <Route path="/hajj-umrah" element={<P><HajjUmrah /></P>} />
+          <Route path="/hajj-umrah/operations" element={<P><HajjUmrah /></P>} />
           <Route path="/legacy/hajj-operations" element={<P><HajjOperationsLegacy /></P>} />
           <Route path="/subscription" element={<P><Subscriptions /></P>} />
           <Route path="/payment/callback" element={<P><PaymentCallback /></P>} />
@@ -191,8 +180,8 @@ const AppContent = () => (
           <Route path="/settings" element={<P><SettingsPage /></P>} />
           <Route path="/settings/billing" element={<P><SettingsBilling /></P>} />
           <Route path="/website" element={<P><WebsiteCustomizer /></P>} />
-          <Route path="/website/publish" element={<P><WebsiteCustomizer /></P>} />
-          <Route path="/website/domains" element={<P><WebsiteCustomizer /></P>} />
+          <Route path="/website/publish" element={<P><WebsitePublishGuide /></P>} />
+          <Route path="/website/domains" element={<P><WebsitePublishGuide /></P>} />
           <Route path="/user-guide" element={<P><UserGuide /></P>} />
 
           <Route path="/admin" element={<A><AdminDashboard /></A>} />
@@ -227,9 +216,7 @@ const AppWithRouter = () => (
 const App = () => {
   try {
     const inRouterContext = useInRouterContext();
-    if (inRouterContext) {
-      return <AppContent />;
-    }
+    if (inRouterContext) return <AppContent />;
   } catch {
     // Not in a router context
   }
