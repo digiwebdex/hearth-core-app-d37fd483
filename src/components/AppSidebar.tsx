@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Settings, Building2, LogOut, UserCheck, UserCog, Store, Target, ListTodo, Plane, Receipt, Wallet, Crown, Shield, BarChart3, Globe, Lock, UserCog2, FileText, Bell, BookOpen, Package2 } from "lucide-react";
+import { LayoutDashboard, Users, Settings, Building2, LogOut, UserCheck, UserCog, Store, Target, ListTodo, Plane, Receipt, Wallet, Crown, Shield, BarChart3, Globe, Lock, UserCog2, FileText, Bell, BookOpen, Package2, CreditCard, UploadCloud } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
@@ -57,12 +57,33 @@ const operationItems: MenuItem[] = [
 
 const financeItems: MenuItem[] = [
   { titleKey: "sidebar.invoices", url: "/invoices", icon: Receipt, module: "invoices" },
+  {
+    title: { bn: "পেমেন্টস", en: "Payments" },
+    url: "/payments",
+    icon: CreditCard,
+    module: "invoices",
+  },
   { titleKey: "sidebar.accounts", url: "/accounts", icon: Wallet, module: "accounts", minPlan: "basic" },
   { titleKey: "sidebar.reports", url: "/reports", icon: BarChart3, module: "reports", requiredFeature: "hasAdvancedAnalytics", minPlan: "business" },
 ];
 
 const websiteItems: MenuItem[] = [
-  { titleKey: "sidebar.website", url: "/website", icon: Globe, module: "website", requiredFeature: "hasWebsiteTemplates", minPlan: "pro" },
+  {
+    title: { bn: "ওয়েবসাইট বিল্ডার", en: "Website Builder" },
+    url: "/website",
+    icon: Globe,
+    module: "website",
+    requiredFeature: "hasWebsiteTemplates",
+    minPlan: "pro",
+  },
+  {
+    title: { bn: "পাবলিশ ও ডোমেইন", en: "Publish & Domain" },
+    url: "/website/publish",
+    icon: UploadCloud,
+    module: "website",
+    requiredFeature: "hasWebsiteTemplates",
+    minPlan: "pro",
+  },
 ];
 
 const managementItems: MenuItem[] = [
@@ -79,7 +100,7 @@ const planOrder: PlanType[] = ["free", "basic", "pro", "business", "enterprise"]
 
 function isPlanSufficient(minPlan: PlanType | undefined, currentPlan: PlanType): boolean {
   if (!minPlan) return true;
-  return planOrder.indexOf(currentPlan) >= planOrder.indexOf(minPlan);
+  return planOrder.indexOf(minPlan) <= planOrder.indexOf(currentPlan);
 }
 
 function NavGroup({ label, items, collapsed, currentPlan, isBn }: { label: string; items: MenuItem[]; collapsed: boolean; currentPlan: PlanType; isBn: boolean }) {
@@ -160,7 +181,7 @@ export function AppSidebar() {
     sales: isBn ? "সেলস / সিআরএম" : "Sales / CRM",
     operations: isBn ? "সার্ভিস ও অপারেশনস" : "Services & Operations",
     finance: isBn ? "ফাইন্যান্স" : "Finance",
-    website: isBn ? "ওয়েবসাইট" : "Website",
+    website: isBn ? "ওয়েবসাইট ও পাবলিশ" : "Website & Publish",
     management: isBn ? "ব্যবস্থাপনা" : "Management",
   };
 
