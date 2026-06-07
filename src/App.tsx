@@ -127,93 +127,91 @@ const AppContent = () => (
         <Toaster />
         <Sonner />
         <Routes>
-          {/* Main landing page or tenant public website on custom domains/subdomains */}
-              <Route path="/" element={<PublicSiteRoute page="home" />} />
-              <Route path="/about" element={<PublicSiteRoute page="about" />} />
-              <Route path="/packages" element={<PublicSiteRoute page="packages" />} />
-              <Route path="/contact" element={<PublicSiteRoute page="contact" />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/verify-email" element={<VerifyEmail />} />
-              <Route path="/features" element={<Features />} />
-              <Route path="/pricing" element={<Pricing />} />
-              <Route path="/demo" element={<Demo />} />
-              <Route path="/contact-us" element={<ContactUs />} />
-              <Route path="/faq" element={<FAQ />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/onboarding" element={<P><Onboarding /></P>} />
+          <Route path="/" element={<PublicSiteRoute page="home" />} />
+          <Route path="/about" element={<PublicSiteRoute page="about" />} />
+          <Route path="/packages" element={<PublicSiteRoute page="packages" />} />
+          <Route path="/contact" element={<PublicSiteRoute page="contact" />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/features" element={<Features />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/demo" element={<Demo />} />
+          <Route path="/contact-us" element={<ContactUs />} />
+          <Route path="/faq" element={<FAQ />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/onboarding" element={<P><Onboarding /></P>} />
 
-              {/* Public website (no auth required) */}
-              <Route path="/site" element={<WebsiteProvider><SiteHome /></WebsiteProvider>} />
-              <Route path="/site/about" element={<WebsiteProvider><SiteAbout /></WebsiteProvider>} />
-              <Route path="/site/packages" element={<WebsiteProvider><SitePackages /></WebsiteProvider>} />
-              <Route path="/site/contact" element={<WebsiteProvider><SiteContact /></WebsiteProvider>} />
-              <Route path="/site/pricing" element={<SitePricing />} />
-              {/* Slug-based public website (e.g. /site/al-safa-travel-agency) */}
-              <Route path="/site/:slug" element={<SiteSlugWrapper page="home" />} />
-              <Route path="/site/:slug/about" element={<SiteSlugWrapper page="about" />} />
-              <Route path="/site/:slug/packages" element={<SiteSlugWrapper page="packages" />} />
-              <Route path="/site/:slug/contact" element={<SiteSlugWrapper page="contact" />} />
+          <Route path="/site" element={<WebsiteProvider><SiteHome /></WebsiteProvider>} />
+          <Route path="/site/about" element={<WebsiteProvider><SiteAbout /></WebsiteProvider>} />
+          <Route path="/site/packages" element={<WebsiteProvider><SitePackages /></WebsiteProvider>} />
+          <Route path="/site/contact" element={<WebsiteProvider><SiteContact /></WebsiteProvider>} />
+          <Route path="/site/pricing" element={<SitePricing />} />
+          <Route path="/site/:slug" element={<SiteSlugWrapper page="home" />} />
+          <Route path="/site/:slug/about" element={<SiteSlugWrapper page="about" />} />
+          <Route path="/site/:slug/packages" element={<SiteSlugWrapper page="packages" />} />
+          <Route path="/site/:slug/contact" element={<SiteSlugWrapper page="contact" />} />
 
-              {/* App routes (protected) */}
-              <Route path="/dashboard" element={<P><Dashboard /></P>} />
-              <Route path="/clients" element={<P><Clients /></P>} />
-              <Route path="/clients/:id" element={<P><ClientProfile /></P>} />
-              <Route path="/agents" element={<P><Agents /></P>} />
-              <Route path="/vendors" element={<P><Vendors /></P>} />
-              <Route path="/vendors/:id" element={<P><VendorDetails /></P>} />
-              <Route path="/leads" element={<P><Leads /></P>} />
-              <Route path="/leads/:id" element={<P><LeadDetails /></P>} />
-              <Route path="/tasks" element={<P><Tasks /></P>} />
-              <Route path="/quotations" element={<P><Quotations /></P>} />
-              <Route path="/quotations/new" element={<P><QuotationBuilder /></P>} />
-              <Route path="/quotations/:id" element={<P><QuotationDetails /></P>} />
-              <Route path="/quotations/:id/edit" element={<P><QuotationBuilder /></P>} />
-              <Route path="/quotations/:id/print" element={<QuotationPrint />} />
-              <Route path="/travel-packages" element={<P><Packages /></P>} />
-              <Route path="/packages-and-services" element={<P><Navigate to="/travel-packages" replace /></P>} />
-              <Route path="/services" element={<P><Navigate to="/travel-packages" replace /></P>} />
-              <Route path="/app-packages" element={<P><Navigate to="/travel-packages" replace /></P>} />
-              <Route path="/bookings" element={<P><Bookings /></P>} />
-              <Route path="/bookings/:id" element={<P><BookingDetails /></P>} />
-              <Route path="/invoices" element={<P><Invoices /></P>} />
-              <Route path="/invoices/:id/receipt" element={<P><InvoiceReceipt /></P>} />
-              <Route path="/accounts" element={<P><Accounts /></P>} />
-              <Route path="/reports" element={<P><Reports /></P>} />
-              <Route path="/hajj-umrah" element={<P><HajjUmrah /></P>} />
-              <Route path="/legacy/hajj-operations" element={<P><HajjOperationsLegacy /></P>} />
-              <Route path="/subscription" element={<P><Subscriptions /></P>} />
-              <Route path="/payment/callback" element={<P><PaymentCallback /></P>} />
-              <Route path="/roles" element={<P><RoleManagement /></P>} />
-              <Route path="/notifications" element={<P><NotificationLog /></P>} />
-              <Route path="/team" element={<P><Team /></P>} />
-              <Route path="/organization" element={<P><Organization /></P>} />
-              <Route path="/settings" element={<P><SettingsPage /></P>} />
-              <Route path="/settings/billing" element={<P><SettingsBilling /></P>} />
-              <Route path="/website" element={<P><WebsiteCustomizer /></P>} />
-              <Route path="/user-guide" element={<P><UserGuide /></P>} />
+          <Route path="/dashboard" element={<P><Dashboard /></P>} />
+          <Route path="/clients" element={<P><Clients /></P>} />
+          <Route path="/clients/:id" element={<P><ClientProfile /></P>} />
+          <Route path="/agents" element={<P><Agents /></P>} />
+          <Route path="/vendors" element={<P><Vendors /></P>} />
+          <Route path="/vendors/:id" element={<P><VendorDetails /></P>} />
+          <Route path="/leads" element={<P><Leads /></P>} />
+          <Route path="/leads/:id" element={<P><LeadDetails /></P>} />
+          <Route path="/tasks" element={<P><Tasks /></P>} />
+          <Route path="/quotations" element={<P><Quotations /></P>} />
+          <Route path="/quotations/new" element={<P><QuotationBuilder /></P>} />
+          <Route path="/quotations/:id" element={<P><QuotationDetails /></P>} />
+          <Route path="/quotations/:id/edit" element={<P><QuotationBuilder /></P>} />
+          <Route path="/quotations/:id/print" element={<QuotationPrint />} />
+          <Route path="/travel-packages" element={<P><Packages /></P>} />
+          <Route path="/packages-and-services" element={<P><Navigate to="/travel-packages" replace /></P>} />
+          <Route path="/services" element={<P><Navigate to="/travel-packages" replace /></P>} />
+          <Route path="/app-packages" element={<P><Navigate to="/travel-packages" replace /></P>} />
+          <Route path="/bookings" element={<P><Bookings /></P>} />
+          <Route path="/bookings/:id" element={<P><BookingDetails /></P>} />
+          <Route path="/invoices" element={<P><Invoices /></P>} />
+          <Route path="/payments" element={<P><Invoices /></P>} />
+          <Route path="/invoices/:id/receipt" element={<P><InvoiceReceipt /></P>} />
+          <Route path="/accounts" element={<P><Accounts /></P>} />
+          <Route path="/reports" element={<P><Reports /></P>} />
+          <Route path="/hajj-umrah" element={<P><HajjUmrah /></P>} />
+          <Route path="/legacy/hajj-operations" element={<P><HajjOperationsLegacy /></P>} />
+          <Route path="/subscription" element={<P><Subscriptions /></P>} />
+          <Route path="/payment/callback" element={<P><PaymentCallback /></P>} />
+          <Route path="/roles" element={<P><RoleManagement /></P>} />
+          <Route path="/notifications" element={<P><NotificationLog /></P>} />
+          <Route path="/team" element={<P><Team /></P>} />
+          <Route path="/organization" element={<P><Organization /></P>} />
+          <Route path="/settings" element={<P><SettingsPage /></P>} />
+          <Route path="/settings/billing" element={<P><SettingsBilling /></P>} />
+          <Route path="/website" element={<P><WebsiteCustomizer /></P>} />
+          <Route path="/website/publish" element={<P><WebsiteCustomizer /></P>} />
+          <Route path="/website/domains" element={<P><WebsiteCustomizer /></P>} />
+          <Route path="/user-guide" element={<P><UserGuide /></P>} />
 
-              {/* Admin routes */}
-              <Route path="/admin" element={<A><AdminDashboard /></A>} />
-              <Route path="/admin/tenants" element={<A><AdminTenants /></A>} />
-              <Route path="/admin/pending-users" element={<A><AdminPendingUsers /></A>} />
-              <Route path="/admin/tenants/:tenantId" element={<A><AdminTenantDetails /></A>} />
-              <Route path="/admin/payments" element={<A><AdminPayments /></A>} />
-              <Route path="/admin/plans" element={<A><AdminPlans /></A>} />
-              <Route path="/admin/domains" element={<A><AdminDomains /></A>} />
-              <Route path="/admin/subscriptions" element={<A><AdminSubscriptions /></A>} />
-              <Route path="/admin/settings" element={<A><AdminSettings /></A>} />
-              <Route path="/admin/features" element={<A><AdminFeatures /></A>} />
-              <Route path="/admin/roles" element={<A><AdminRoles /></A>} />
-              <Route path="/admin/sms-templates" element={<A><AdminSmsTemplates /></A>} />
-              <Route path="/admin/sms-logs" element={<A><AdminSmsLogs /></A>} />
-              <Route path="/admin/audit-log" element={<A><AdminAuditLog /></A>} />
-              <Route path="/admin/reports" element={<A><AdminReports /></A>} />
+          <Route path="/admin" element={<A><AdminDashboard /></A>} />
+          <Route path="/admin/tenants" element={<A><AdminTenants /></A>} />
+          <Route path="/admin/pending-users" element={<A><AdminPendingUsers /></A>} />
+          <Route path="/admin/tenants/:tenantId" element={<A><AdminTenantDetails /></A>} />
+          <Route path="/admin/payments" element={<A><AdminPayments /></A>} />
+          <Route path="/admin/plans" element={<A><AdminPlans /></A>} />
+          <Route path="/admin/domains" element={<A><AdminDomains /></A>} />
+          <Route path="/admin/subscriptions" element={<A><AdminSubscriptions /></A>} />
+          <Route path="/admin/settings" element={<A><AdminSettings /></A>} />
+          <Route path="/admin/features" element={<A><AdminFeatures /></A>} />
+          <Route path="/admin/roles" element={<A><AdminRoles /></A>} />
+          <Route path="/admin/sms-templates" element={<A><AdminSmsTemplates /></A>} />
+          <Route path="/admin/sms-logs" element={<A><AdminSmsLogs /></A>} />
+          <Route path="/admin/audit-log" element={<A><AdminAuditLog /></A>} />
+          <Route path="/admin/reports" element={<A><AdminReports /></A>} />
 
-              <Route path="*" element={<NotFound />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </AuthProvider>
     </TooltipProvider>
