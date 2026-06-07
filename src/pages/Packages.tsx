@@ -21,7 +21,7 @@ import {
   type TravelPackagePricing,
 } from "@/lib/travelPackageApi";
 import { SERVICE_TYPES, getServiceTypeLabel, type ServiceType } from "@/lib/serviceTypes";
-import { ArrowRight, FileText, Globe, Loader2, Moon, Package2, Plus, Save, Trash2 } from "lucide-react";
+import { ArrowRight, FileText, Globe, Loader2, Moon, Package2, Plus, Save, Trash2, UploadCloud, Wand2 } from "lucide-react";
 
 const emptyForm = {
   code: "",
@@ -102,11 +102,14 @@ const Packages = () => {
     updated: isBn ? "প্যাকেজ আপডেট হয়েছে" : "Package updated",
     deleted: isBn ? "প্যাকেজ ডিলিট হয়েছে" : "Package deleted",
     pageTitle: isBn ? "প্যাকেজ ও সার্ভিসেস" : "Packages & Services",
-    pageSubtitle: isBn ? "ট্যুর, হজ্জ-উমরাহ, ভিসা, টিকেট এবং অন্যান্য সার্ভিসের reusable template এখানে ম্যানেজ করুন।" : "Manage reusable templates for tours, Hajj/Umrah, visa, tickets, and other travel services here.",
-    migrationTitle: isBn ? "নেভিগেশন মার্জ আপডেট" : "Navigation merge update",
-    migrationText: isBn ? "বাম পাশের মেনুতে এখন আলাদা Hajj & Umrah item দেখানো হচ্ছে না। Hajj/Umrah package template এখানেই ম্যানেজ করুন। পুরনো pilgrim/group/payment operations এখনো legacy page-এ আছে।" : "The separate Hajj & Umrah sidebar item is now hidden. Manage Hajj/Umrah package templates here. The old pilgrim/group/payment operations are still available on the legacy page.",
-    legacyButton: isBn ? "লেগেসি হজ্জ অপারেশনস" : "Legacy Hajj Operations",
+    pageSubtitle: isBn ? "ট্যুর, হজ্জ-উমরাহ, ভিসা, টিকেট, হোটেল ও অন্যান্য ট্রাভেল সার্ভিসের reusable template এখানে ম্যানেজ করুন।" : "Manage reusable templates for tours, Hajj/Umrah, visa, tickets, hotels, and other travel services here.",
+    migrationTitle: isBn ? "ইউনিফায়েড সার্ভিস সেন্টার" : "Unified service center",
+    migrationText: isBn ? "এখন ট্যুর, হজ্জ-উমরাহ, ভিসা, টিকেটসহ সব service template এক জায়গা থেকে ম্যানেজ করুন। আলাদা Hajj sidebar item আর দেখানো হচ্ছে না।" : "Manage tour, Hajj/Umrah, visa, ticket, and other service templates from one place. The separate Hajj sidebar item is no longer shown.",
+    operationsHint: isBn ? "পুরনো pilgrim, group, rooming, payment operations এখনো legacy screen-এ আছে, তাই বর্তমান testing data safe থাকবে।" : "Legacy pilgrim, group, rooming, and payment operations still remain in the legacy screen, so current testing data stays safe.",
+    legacyButton: isBn ? "লেগেসি হাজী অপারেশনস" : "Legacy Pilgrim Operations",
     publicButton: isBn ? "পাবলিক প্যাকেজ পেজ" : "Public Packages Page",
+    builderButton: isBn ? "ওয়েবসাইট বিল্ডার" : "Website Builder",
+    publishButton: isBn ? "পাবলিশ ও ডোমেইন" : "Publish & Domain",
     quotationButton: isBn ? "কোটেশন তৈরি করুন" : "Create Quotation",
     quotationHint: isBn ? "নির্বাচিত template থেকে quotation builder prefill হবে।" : "Quotation builder will be prefilled from the selected template.",
     publicText: isBn ? "যে প্যাকেজ Published করবেন, সেগুলো website package page-এ দেখা যাবে।" : "Published packages will appear automatically on the website packages page.",
@@ -345,6 +348,12 @@ const Packages = () => {
                 <Button><FileText className="mr-2 h-4 w-4" />{text.quotationButton}</Button>
               </Link>
             ) : null}
+            <Link to="/website">
+              <Button variant="outline"><Wand2 className="mr-2 h-4 w-4" />{text.builderButton}</Button>
+            </Link>
+            <Link to="/website/publish">
+              <Button variant="outline"><UploadCloud className="mr-2 h-4 w-4" />{text.publishButton}</Button>
+            </Link>
             <Link to="/site/packages">
               <Button variant="outline"><Globe className="mr-2 h-4 w-4" />{text.publicButton}</Button>
             </Link>
@@ -361,6 +370,7 @@ const Packages = () => {
               <p className="font-medium">{text.migrationTitle}</p>
               <p className="text-sm text-muted-foreground">{text.migrationText}</p>
               <p className="text-sm text-muted-foreground mt-1">{text.publicText}</p>
+              <p className="text-sm text-muted-foreground mt-1">{text.operationsHint}</p>
               {selected ? <p className="text-sm text-muted-foreground mt-1">{text.quotationHint}</p> : null}
             </div>
             <div className="flex gap-2 flex-wrap">
@@ -369,8 +379,11 @@ const Packages = () => {
                   <Button><span>{text.quotationButton}</span><ArrowRight className="ml-2 h-4 w-4" /></Button>
                 </Link>
               ) : null}
-              <Link to="/legacy/hajj-operations">
-                <Button variant="outline"><span>{text.legacyButton}</span><ArrowRight className="ml-2 h-4 w-4" /></Button>
+              <Link to="/website">
+                <Button variant="outline"><span>{text.builderButton}</span><ArrowRight className="ml-2 h-4 w-4" /></Button>
+              </Link>
+              <Link to="/website/publish">
+                <Button variant="outline"><span>{text.publishButton}</span><ArrowRight className="ml-2 h-4 w-4" /></Button>
               </Link>
               <Link to="/site/packages">
                 <Button variant="outline"><span>{text.publicButton}</span><ArrowRight className="ml-2 h-4 w-4" /></Button>
@@ -423,197 +436,122 @@ const Packages = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>{selectedId ? text.editService : text.createService}</CardTitle>
+              <CardTitle>{selected ? text.editService : text.createService}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {detailLoading ? (
-                <div className="py-10 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>
-              ) : (
-                <Tabs defaultValue="basic" className="space-y-4">
-                  <TabsList className="flex flex-wrap h-auto gap-2">
-                    <TabsTrigger value="basic">{text.basic}</TabsTrigger>
-                    <TabsTrigger value="days">{text.itinerary} ({days.length})</TabsTrigger>
-                    <TabsTrigger value="inclusions">{text.inclusions} ({inclusions.length})</TabsTrigger>
-                    <TabsTrigger value="pricing">{text.pricing} ({pricing.length})</TabsTrigger>
-                    <TabsTrigger value="media">{text.media} ({media.length})</TabsTrigger>
-                  </TabsList>
+              {detailLoading ? <div className="py-10 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div> : (
+                <>
+                  <Tabs defaultValue="basic" className="space-y-4">
+                    <TabsList className="grid grid-cols-4 md:grid-cols-5">
+                      <TabsTrigger value="basic">{text.basic}</TabsTrigger>
+                      <TabsTrigger value="itinerary">{text.itinerary}</TabsTrigger>
+                      <TabsTrigger value="inclusions">{text.inclusions}</TabsTrigger>
+                      <TabsTrigger value="pricing">{text.pricing}</TabsTrigger>
+                      <TabsTrigger value="media">{text.media}</TabsTrigger>
+                    </TabsList>
 
-                  <TabsContent value="basic" className="space-y-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label>{text.packageCode}</Label>
-                        <Input value={form.code} onChange={(e) => setForm((prev) => ({ ...prev, code: e.target.value.toUpperCase() }))} placeholder="TH-6D-001" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>{text.serviceType}</Label>
-                        <Select value={form.serviceType} onValueChange={(value: ServiceType) => setForm((prev) => ({ ...prev, serviceType: value }))}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {SERVICE_TYPES.map((type) => (
-                              <SelectItem key={type} value={type}>{getServiceTypeLabel(type)}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>{text.packageTitle}</Label>
-                      <Input value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value, slug: prev.slug || slugify(e.target.value) }))} placeholder={isBn ? "থাইল্যান্ড ফ্যামিলি ট্যুর" : "Thailand Family Tour"} />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Slug</Label>
-                      <Input value={form.slug} onChange={(e) => setForm((prev) => ({ ...prev, slug: slugify(e.target.value) }))} placeholder="thailand-family-tour" />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>{text.summary}</Label>
-                      <Textarea rows={3} value={form.summary} onChange={(e) => setForm((prev) => ({ ...prev, summary: e.target.value }))} placeholder={isBn ? "সেলস ও ওয়েবসাইটের জন্য ছোট সারাংশ" : "Short summary for sales and website use"} />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label>{text.destination}</Label>
-                        <Input value={form.destination} onChange={(e) => setForm((prev) => ({ ...prev, destination: e.target.value }))} placeholder={isBn ? "ব্যাংকক ও পাতায়া" : "Bangkok & Pattaya"} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>{text.country}</Label>
-                        <Input value={form.country} onChange={(e) => setForm((prev) => ({ ...prev, country: e.target.value }))} placeholder={isBn ? "থাইল্যান্ড" : "Thailand"} />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label>{text.days}</Label>
-                        <Input type="number" min={1} value={form.durationDays} onChange={(e) => setForm((prev) => ({ ...prev, durationDays: Number(e.target.value || 1) }))} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>{text.nights}</Label>
-                        <Input type="number" min={0} value={form.durationNights} onChange={(e) => setForm((prev) => ({ ...prev, durationNights: Number(e.target.value || 0) }))} />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="space-y-2 col-span-2">
-                        <Label>{text.basePrice}</Label>
-                        <Input type="number" min={0} value={form.basePrice} onChange={(e) => setForm((prev) => ({ ...prev, basePrice: Number(e.target.value || 0) }))} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>{isBn ? "কারেন্সি" : "Currency"}</Label>
-                        <Input value={form.currency} onChange={(e) => setForm((prev) => ({ ...prev, currency: e.target.value.toUpperCase() }))} />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label>{text.status}</Label>
-                        <Select value={form.status} onValueChange={(value) => setForm((prev) => ({ ...prev, status: value }))}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="draft">{isBn ? "ড্রাফট" : "Draft"}</SelectItem>
-                            <SelectItem value="published">{isBn ? "পাবলিশড" : "Published"}</SelectItem>
-                            <SelectItem value="archived">{isBn ? "আর্কাইভ" : "Archived"}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>{isBn ? "হিরো ইমেজ URL" : "Hero Image URL"}</Label>
-                        <Input value={form.heroImage} onChange={(e) => setForm((prev) => ({ ...prev, heroImage: e.target.value }))} placeholder="https://..." />
-                      </div>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="days" className="space-y-3">
-                    {days.map((day, index) => (
-                      <div key={day.id || `day-${index}`} className="rounded-md border p-3 space-y-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <Badge variant="outline">{isBn ? `দিন ${index + 1}` : `Day ${index + 1}`}</Badge>
-                          <Button variant="ghost" size="sm" onClick={() => setDays((prev) => prev.filter((_, i) => i !== index))}><Trash2 className="mr-2 h-4 w-4" />{text.delete}</Button>
+                    <TabsContent value="basic" className="space-y-4">
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2"><Label>{text.packageCode}</Label><Input value={form.code} onChange={(e) => setForm((prev) => ({ ...prev, code: e.target.value }))} /></div>
+                        <div className="space-y-2"><Label>{text.serviceType}</Label>
+                          <Select value={form.serviceType} onValueChange={(value) => setForm((prev) => ({ ...prev, serviceType: value as ServiceType }))}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>{SERVICE_TYPES.map((type) => <SelectItem key={type} value={type}>{getServiceTypeLabel(type)}</SelectItem>)}</SelectContent>
+                          </Select>
                         </div>
-                        <Input value={day.title} onChange={(e) => setDays((prev) => prev.map((item, i) => i === index ? { ...item, title: e.target.value } : item))} placeholder={isBn ? `দিন ${index + 1} শিরোনাম` : `Day ${index + 1} title`} />
-                        <Textarea rows={3} value={day.description || ""} onChange={(e) => setDays((prev) => prev.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} placeholder={isBn ? "এই দিনের পরিকল্পনা লিখুন" : "Describe this day itinerary"} />
-                        <Input value={day.overnightLocation || ""} onChange={(e) => setDays((prev) => prev.map((item, i) => i === index ? { ...item, overnightLocation: e.target.value } : item))} placeholder={isBn ? "রাত্রিযাপনের জায়গা / হোটেল" : "Overnight location / hotel"} />
-                      </div>
-                    ))}
-                    <Button variant="outline" onClick={() => setDays((prev) => [...prev, blankDay(prev.length + 1)])}><Plus className="mr-2 h-4 w-4" />{text.addDay}</Button>
-                  </TabsContent>
-
-                  <TabsContent value="inclusions" className="space-y-3">
-                    {inclusions.map((item, index) => (
-                      <div key={item.id || `inc-${index}`} className="grid grid-cols-[140px_1fr_auto] gap-3 items-center rounded-md border p-3">
-                        <Select value={item.type} onValueChange={(value: "included" | "excluded") => setInclusions((prev) => prev.map((row, i) => i === index ? { ...row, type: value } : row))}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="included">{isBn ? "Included" : "Included"}</SelectItem>
-                            <SelectItem value="excluded">{isBn ? "Excluded" : "Excluded"}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Input value={item.label} onChange={(e) => setInclusions((prev) => prev.map((row, i) => i === index ? { ...row, label: e.target.value } : row))} placeholder={isBn ? "যেমন: হোটেল, ভিসা, মিল" : "e.g. Hotel stay / Visa fee / Meals"} />
-                        <Button variant="ghost" size="sm" onClick={() => setInclusions((prev) => prev.filter((_, i) => i !== index))}><Trash2 className="h-4 w-4" /></Button>
-                      </div>
-                    ))}
-                    <div className="flex gap-2 flex-wrap">
-                      <Button variant="outline" onClick={() => setInclusions((prev) => [...prev, blankInclusion("included", prev.length)])}><Plus className="mr-2 h-4 w-4" />{text.addIncluded}</Button>
-                      <Button variant="outline" onClick={() => setInclusions((prev) => [...prev, blankInclusion("excluded", prev.length)])}><Plus className="mr-2 h-4 w-4" />{text.addExcluded}</Button>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="pricing" className="space-y-3">
-                    {pricing.map((item, index) => (
-                      <div key={item.id || `price-${index}`} className="rounded-md border p-3 space-y-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <Input value={item.label} onChange={(e) => setPricing((prev) => prev.map((row, i) => i === index ? { ...row, label: e.target.value } : row))} placeholder={isBn ? "প্রাইসিং লেবেল" : "Pricing label"} />
-                          <Button variant="ghost" size="sm" onClick={() => setPricing((prev) => prev.filter((_, i) => i !== index))}><Trash2 className="h-4 w-4" /></Button>
-                        </div>
-                        <div className="grid grid-cols-4 gap-3">
-                          <div className="space-y-2">
-                            <Label>{isBn ? "মিন ট্রাভেলার" : "Min Traveler"}</Label>
-                            <Input type="number" min={1} value={item.travelerMin} onChange={(e) => setPricing((prev) => prev.map((row, i) => i === index ? { ...row, travelerMin: Number(e.target.value || 1) } : row))} />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>{isBn ? "ম্যাক্স ট্রাভেলার" : "Max Traveler"}</Label>
-                            <Input type="number" min={1} value={item.travelerMax ?? ""} onChange={(e) => setPricing((prev) => prev.map((row, i) => i === index ? { ...row, travelerMax: e.target.value ? Number(e.target.value) : null } : row))} />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>{isBn ? "মূল্য" : "Price"}</Label>
-                            <Input type="number" min={0} value={item.price} onChange={(e) => setPricing((prev) => prev.map((row, i) => i === index ? { ...row, price: Number(e.target.value || 0) } : row))} />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>{isBn ? "কারেন্সি" : "Currency"}</Label>
-                            <Input value={item.currency || form.currency} onChange={(e) => setPricing((prev) => prev.map((row, i) => i === index ? { ...row, currency: e.target.value.toUpperCase() } : row))} />
-                          </div>
+                        <div className="space-y-2 md:col-span-2"><Label>{text.packageTitle}</Label><Input value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value, slug: slugify(e.target.value) }))} /></div>
+                        <div className="space-y-2 md:col-span-2"><Label>{text.summary}</Label><Textarea value={form.summary} rows={4} onChange={(e) => setForm((prev) => ({ ...prev, summary: e.target.value }))} /></div>
+                        <div className="space-y-2"><Label>{text.destination}</Label><Input value={form.destination} onChange={(e) => setForm((prev) => ({ ...prev, destination: e.target.value }))} /></div>
+                        <div className="space-y-2"><Label>{text.country}</Label><Input value={form.country} onChange={(e) => setForm((prev) => ({ ...prev, country: e.target.value }))} /></div>
+                        <div className="space-y-2"><Label>{text.days}</Label><Input type="number" min={1} value={form.durationDays} onChange={(e) => setForm((prev) => ({ ...prev, durationDays: Number(e.target.value || 1) }))} /></div>
+                        <div className="space-y-2"><Label>{text.nights}</Label><Input type="number" min={0} value={form.durationNights} onChange={(e) => setForm((prev) => ({ ...prev, durationNights: Number(e.target.value || 0) }))} /></div>
+                        <div className="space-y-2"><Label>{text.basePrice}</Label><Input type="number" min={0} value={form.basePrice} onChange={(e) => setForm((prev) => ({ ...prev, basePrice: Number(e.target.value || 0) }))} /></div>
+                        <div className="space-y-2"><Label>{text.status}</Label>
+                          <Select value={form.status} onValueChange={(value) => setForm((prev) => ({ ...prev, status: value }))}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="draft">Draft</SelectItem>
+                              <SelectItem value="published">Published</SelectItem>
+                              <SelectItem value="archived">Archived</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
-                    ))}
-                    <Button variant="outline" onClick={() => setPricing((prev) => [...prev, blankPricing()])}><Plus className="mr-2 h-4 w-4" />{text.addPricing}</Button>
-                  </TabsContent>
+                    </TabsContent>
 
-                  <TabsContent value="media" className="space-y-3">
-                    {media.map((item, index) => (
-                      <div key={item.id || `media-${index}`} className="rounded-md border p-3 space-y-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <Badge variant="outline">{isBn ? `মিডিয়া ${index + 1}` : `Media ${index + 1}`}</Badge>
-                          <Button variant="ghost" size="sm" onClick={() => setMedia((prev) => prev.filter((_, i) => i !== index))}><Trash2 className="h-4 w-4" /></Button>
-                        </div>
-                        <Input value={item.url} onChange={(e) => setMedia((prev) => prev.map((row, i) => i === index ? { ...row, url: e.target.value } : row))} placeholder={isBn ? "ইমেজ URL" : "Image URL"} />
-                        <Input value={item.altText || ""} onChange={(e) => setMedia((prev) => prev.map((row, i) => i === index ? { ...row, altText: e.target.value } : row))} placeholder={isBn ? "ক্যাপশন / alt text" : "Alt text / caption"} />
+                    <TabsContent value="itinerary" className="space-y-3">
+                      <div className="flex justify-end"><Button variant="outline" size="sm" onClick={() => setDays((prev) => [...prev, blankDay(prev.length + 1)])}>{text.addDay}</Button></div>
+                      <div className="space-y-3">
+                        {days.length === 0 ? <p className="text-sm text-muted-foreground">{isBn ? "এখনো কোনো itinerary day যোগ করা হয়নি" : "No itinerary days added yet"}</p> : null}
+                        {days.map((day, index) => (
+                          <div key={`${day.dayNumber}-${index}`} className="rounded-lg border p-3 space-y-3">
+                            <div className="flex items-center justify-between"><p className="font-medium">Day {index + 1}</p><Button variant="ghost" size="icon" onClick={() => setDays((prev) => prev.filter((_, itemIndex) => itemIndex !== index))}><Trash2 className="h-4 w-4" /></Button></div>
+                            <Input placeholder="Title" value={day.title} onChange={(e) => setDays((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, title: e.target.value } : item))} />
+                            <Textarea placeholder="Description" rows={3} value={day.description || ""} onChange={(e) => setDays((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, description: e.target.value } : item))} />
+                            <Input placeholder="Overnight location" value={day.overnightLocation || ""} onChange={(e) => setDays((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, overnightLocation: e.target.value } : item))} />
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                    <Button variant="outline" onClick={() => setMedia((prev) => [...prev, blankMedia(prev.length)])}><Plus className="mr-2 h-4 w-4" />{text.addMedia}</Button>
-                  </TabsContent>
-                </Tabs>
+                    </TabsContent>
+
+                    <TabsContent value="inclusions" className="space-y-3">
+                      <div className="flex gap-2 justify-end">
+                        <Button variant="outline" size="sm" onClick={() => setInclusions((prev) => [...prev, blankInclusion("included", prev.length)])}>{text.addIncluded}</Button>
+                        <Button variant="outline" size="sm" onClick={() => setInclusions((prev) => [...prev, blankInclusion("excluded", prev.length)])}>{text.addExcluded}</Button>
+                      </div>
+                      <div className="space-y-3">
+                        {inclusions.length === 0 ? <p className="text-sm text-muted-foreground">{isBn ? "এখনো কোনো inclusion/exclusion যোগ করা হয়নি" : "No inclusions or exclusions added yet"}</p> : null}
+                        {inclusions.map((item, index) => (
+                          <div key={`${item.type}-${index}`} className="rounded-lg border p-3 flex items-center gap-3">
+                            <Badge variant={item.type === "included" ? "default" : "secondary"}>{item.type}</Badge>
+                            <Input value={item.label} placeholder="Label" onChange={(e) => setInclusions((prev) => prev.map((row, rowIndex) => rowIndex === index ? { ...row, label: e.target.value } : row))} />
+                            <Button variant="ghost" size="icon" onClick={() => setInclusions((prev) => prev.filter((_, rowIndex) => rowIndex !== index))}><Trash2 className="h-4 w-4" /></Button>
+                          </div>
+                        ))}
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="pricing" className="space-y-3">
+                      <div className="flex justify-end"><Button variant="outline" size="sm" onClick={() => setPricing((prev) => [...prev, blankPricing()])}>{text.addPricing}</Button></div>
+                      <div className="space-y-3">
+                        {pricing.length === 0 ? <p className="text-sm text-muted-foreground">{isBn ? "এখনো কোনো pricing slab যোগ করা হয়নি" : "No pricing slabs added yet"}</p> : null}
+                        {pricing.map((item, index) => (
+                          <div key={`${item.label}-${index}`} className="rounded-lg border p-3 grid gap-3 md:grid-cols-4">
+                            <Input placeholder="Label" value={item.label} onChange={(e) => setPricing((prev) => prev.map((row, rowIndex) => rowIndex === index ? { ...row, label: e.target.value } : row))} />
+                            <Input type="number" min={1} placeholder="Min" value={item.travelerMin} onChange={(e) => setPricing((prev) => prev.map((row, rowIndex) => rowIndex === index ? { ...row, travelerMin: Number(e.target.value || 1) } : row))} />
+                            <Input type="number" min={0} placeholder="Max" value={item.travelerMax ?? ""} onChange={(e) => setPricing((prev) => prev.map((row, rowIndex) => rowIndex === index ? { ...row, travelerMax: e.target.value ? Number(e.target.value) : null } : row))} />
+                            <div className="flex gap-2">
+                              <Input type="number" min={0} placeholder="Price" value={item.price} onChange={(e) => setPricing((prev) => prev.map((row, rowIndex) => rowIndex === index ? { ...row, price: Number(e.target.value || 0) } : row))} />
+                              <Button variant="ghost" size="icon" onClick={() => setPricing((prev) => prev.filter((_, rowIndex) => rowIndex !== index))}><Trash2 className="h-4 w-4" /></Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="media" className="space-y-3">
+                      <div className="flex justify-end"><Button variant="outline" size="sm" onClick={() => setMedia((prev) => [...prev, blankMedia(prev.length)])}>{text.addMedia}</Button></div>
+                      <div className="space-y-3">
+                        {media.length === 0 ? <p className="text-sm text-muted-foreground">{isBn ? "এখনো কোনো media item যোগ করা হয়নি" : "No media items added yet"}</p> : null}
+                        {media.map((item, index) => (
+                          <div key={`${item.url}-${index}`} className="rounded-lg border p-3 grid gap-3 md:grid-cols-[1fr_220px_auto]">
+                            <Input placeholder="https://..." value={item.url} onChange={(e) => setMedia((prev) => prev.map((row, rowIndex) => rowIndex === index ? { ...row, url: e.target.value } : row))} />
+                            <Input placeholder="Alt text" value={item.altText || ""} onChange={(e) => setMedia((prev) => prev.map((row, rowIndex) => rowIndex === index ? { ...row, altText: e.target.value } : row))} />
+                            <Button variant="ghost" size="icon" onClick={() => setMedia((prev) => prev.filter((_, rowIndex) => rowIndex !== index))}><Trash2 className="h-4 w-4" /></Button>
+                          </div>
+                        ))}
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+
+                  <div className="flex items-center justify-between pt-2">
+                    <div>
+                      {selectedId ? <Button variant="destructive" onClick={handleDelete}><Trash2 className="mr-2 h-4 w-4" />{text.delete}</Button> : null}
+                    </div>
+                    <Button onClick={handleSave} disabled={saving}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}{selectedId ? text.update : text.create}</Button>
+                  </div>
+                </>
               )}
-
-              <div className="flex gap-2 pt-2">
-                <Button onClick={handleSave} disabled={saving || detailLoading} className="flex-1">
-                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                  {selectedId ? text.update : text.create}
-                </Button>
-                {selectedId ? (
-                  <Button variant="destructive" onClick={handleDelete}><Trash2 className="mr-2 h-4 w-4" />{text.delete}</Button>
-                ) : null}
-              </div>
             </CardContent>
           </Card>
         </div>
