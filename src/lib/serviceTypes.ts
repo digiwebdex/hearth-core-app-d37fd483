@@ -25,34 +25,38 @@ export function normalizeServiceType(value?: string | null): ServiceType {
 }
 
 export function getServiceTypeLabel(value?: string | null): string {
+  return getLocalizedServiceTypeLabel(value, false);
+}
+
+export function getLocalizedServiceTypeLabel(value?: string | null, isBn = false): string {
   switch (normalizeServiceType(value)) {
     case "hajj_umrah":
-      return "Hajj / Umrah";
+      return isBn ? "হজ্জ / উমরাহ" : "Hajj / Umrah";
     case "tour_domestic":
-      return "Domestic Tour";
+      return isBn ? "ডোমেস্টিক ট্যুর" : "Domestic Tour";
     case "tour_international":
-      return "International Tour";
+      return isBn ? "ইন্টারন্যাশনাল ট্যুর" : "International Tour";
     case "visa":
-      return "Visa";
+      return isBn ? "ভিসা" : "Visa";
     case "air_ticket":
-      return "Air Ticket";
+      return isBn ? "এয়ার টিকেট" : "Air Ticket";
     case "hotel":
-      return "Hotel";
+      return isBn ? "হোটেল" : "Hotel";
     case "transport":
-      return "Transport / Car Rental";
+      return isBn ? "ট্রান্সপোর্ট / কার রেন্টাল" : "Transport / Car Rental";
     case "cruise":
-      return "Cruise / Launch";
+      return isBn ? "ক্রুজ / লঞ্চ" : "Cruise / Launch";
     case "study_abroad":
-      return "Study Abroad";
+      return isBn ? "স্টাডি অ্যাবরড" : "Study Abroad";
     case "medical_tourism":
-      return "Medical Tourism";
+      return isBn ? "মেডিকেল ট্যুরিজম" : "Medical Tourism";
     case "corporate_travel":
-      return "Corporate Travel";
+      return isBn ? "কর্পোরেট ট্রাভেল" : "Corporate Travel";
     case "mice_event":
-      return "MICE / Event Travel";
+      return isBn ? "মাইস / ইভেন্ট ট্রাভেল" : "MICE / Event Travel";
     case "b2b_agent":
-      return "B2B Agent / Sub-Agent";
+      return isBn ? "বি টু বি এজেন্ট / সাব-এজেন্ট" : "B2B Agent / Sub-Agent";
     default:
-      return "Custom";
+      return isBn ? "কাস্টম" : "Custom";
   }
 }
