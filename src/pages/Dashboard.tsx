@@ -9,13 +9,36 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
-  Users, Plane, DollarSign, RefreshCw, FileText, Clock, AlertTriangle,
-  TrendingUp, CreditCard, MapPin, CalendarDays, UserPlus, CheckCircle2,
-  ArrowRight, Send, Briefcase, ReceiptText, Building2,
+  Plane,
+  DollarSign,
+  RefreshCw,
+  FileText,
+  AlertTriangle,
+  TrendingUp,
+  CreditCard,
+  MapPin,
+  CalendarDays,
+  UserPlus,
+  CheckCircle2,
+  ArrowRight,
+  Send,
+  Briefcase,
+  ReceiptText,
+  Building2,
+  Package2,
+  UploadCloud,
 } from "lucide-react";
 import {
-  dashboardApi, type DashboardStats, type Booking, type Payment,
-  clientApi, bookingApi, paymentApi, tenantApi, leadApi, quotationApi, invoiceApi, vendorApi,
+  dashboardApi,
+  type DashboardStats,
+  clientApi,
+  bookingApi,
+  paymentApi,
+  tenantApi,
+  leadApi,
+  quotationApi,
+  invoiceApi,
+  vendorApi,
 } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import EmptyState from "@/components/EmptyState";
@@ -37,7 +60,57 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isBn = String(i18n.resolvedLanguage || i18n.language || "en").startsWith("bn");
+
+  const text = {
+    packagesServices: isBn ? "প্যাকেজ ও সার্ভিসেস" : "Packages & Services",
+    payments: isBn ? "পেমেন্টস" : "Payments",
+    publishDomain: isBn ? "পাবলিশ ও ডোমেইন" : "Publish & Domain",
+    setupServiceCatalog: isBn ? "সার্ভিস ক্যাটালগ সেটআপ করুন" : "Set up service catalog",
+    startCollectingPayments: isBn ? "পেমেন্ট সংগ্রহ শুরু করুন" : "Start collecting payments",
+    serviceHub: isBn ? "সার্ভিস হাব" : "Service hub",
+    businessFlow: isBn ? "নতুন নেভিগেশন অনুযায়ী দ্রুত শুরু করুন" : "Quick start with the new business flow",
+  };
+
+  const quickActions = [
+    {
+      label: t("sidebar.leads"),
+      icon: UserPlus,
+      path: "/leads",
+      variant: "outline" as const,
+    },
+    {
+      label: text.packagesServices,
+      icon: Package2,
+      path: "/travel-packages",
+      variant: "outline" as const,
+    },
+    {
+      label: t("sidebar.quotations"),
+      icon: Send,
+      path: "/quotations/new",
+      variant: "outline" as const,
+    },
+    {
+      label: t("sidebar.bookings"),
+      icon: Plane,
+      path: "/bookings",
+      variant: "outline" as const,
+    },
+    {
+      label: text.payments,
+      icon: CreditCard,
+      path: "/payments",
+      variant: "outline" as const,
+    },
+    {
+      label: text.publishDomain,
+      icon: UploadCloud,
+      path: "/website/publish",
+      variant: "outline" as const,
+    },
+  ];
 
   const fetchData = async () => {
     setLoading(true);
@@ -45,7 +118,6 @@ const Dashboard = () => {
       const data = await dashboardApi.getStats();
       setStats(data);
     } catch {
-      // Fallback: fetch individual resources and compute stats
       try {
         const today = new Date().toISOString().split("T")[0];
         const thisMonth = new Date().toISOString().slice(0, 7);
@@ -68,20 +140,25 @@ const Dashboard = () => {
         const quotationsAwaitingApproval = quotations.filter((q: any) => q.status === "sent").length;
         const confirmedBookings = bookings.filter((b: any) => b.status === "confirmed").length;
         const upcomingDepartures = bookings.filter((b: any) =>
-          b.travelDateFrom && b.travelDateFrom >= today && b.travelDateFrom <= next7Days &&
-          ["confirmed", "ticketed"].includes(b.status)
+          b.travelDateFrom && b.travelDateFrom >= today && b.travelDateFrom <= next7Days && ["confirmed", "ticketed"].includes(b.status)
         ).length;
         const overdueInvoicesList = invoices.filter((i: any) => i.status === "overdue" || (i.status !== "paid" && i.status !== "cancelled" && i.dueDate && i.dueDate < today));
         const overdueInvoices = overdueInvoicesList.length;
         const overdueInvoiceAmount = (overdueInvoicesList as any[]).reduce((s: number, i: any) => s + (i.dueAmount || 0), 0);
         const vendorDues = (vendorBills as any[]).reduce((s: number, b: any) => s + (b.dueAmount || 0), 0);
-        const salesThisMonth = (payments as any[]).filter((p: any) => p.date?.startsWith(thisMonth) || p.createdAt?.startsWith(thisMonth)).reduce((s: number, p: any) => s + (p.amount || 0), 0);
+        const salesThisMonth = (payments as any[])
+          .filter((p: any) => p.date?.startsWith(thisMonth) || p.createdAt?.startsWith(thisMonth))
+          .reduce((s: number, p: any) => s + (p.amount || 0), 0);
         const totalRevenue = (bookings as any[]).reduce((s: number, b: any) => s + (b.amount || 0), 0);
 
-        // Top destinations
         const destMap: Record<string, number> = {};
-        bookings.forEach((b: any) => { if (b.destination) destMap[b.destination] = (destMap[b.destination] || 0) + 1; });
-        const topDestinations = Object.entries(destMap).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([destination, count]) => ({ destination, count }));
+        bookings.forEach((b: any) => {
+          if (b.destination) destMap[b.destination] = (destMap[b.destination] || 0) + 1;
+        });
+        const topDestinations = Object.entries(destMap)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([destination, count]) => ({ destination, count }));
 
         setStats({
           totalUsers: members.length,
@@ -110,14 +187,15 @@ const Dashboard = () => {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const hasAnyData = stats && (stats.totalBookings > 0 || stats.totalClients > 0 || stats.activeLeads > 0);
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{t("dashboard.title")}</h1>
@@ -129,7 +207,6 @@ const Dashboard = () => {
           </Button>
         </div>
 
-        {/* First-time empty state */}
         {!loading && !hasAnyData && (
           <Card className="border-dashed">
             <CardContent className="py-12">
@@ -137,77 +214,94 @@ const Dashboard = () => {
                 <Briefcase className="h-12 w-12 text-muted-foreground mx-auto" />
                 <div>
                   <h2 className="text-xl font-semibold">{t("dashboard.welcomeTitle")}</h2>
-                  <p className="text-muted-foreground mt-1 max-w-lg mx-auto">
-                    {t("dashboard.welcomeDesc")}
-                  </p>
+                  <p className="text-muted-foreground mt-1 max-w-lg mx-auto">{t("dashboard.welcomeDesc")}</p>
                 </div>
                 <div className="flex flex-wrap justify-center gap-3 pt-2">
                   <Button onClick={() => navigate("/leads")}><UserPlus className="mr-2 h-4 w-4" /> {t("dashboard.addLead")}</Button>
+                  <Button variant="outline" onClick={() => navigate("/travel-packages")}><Package2 className="mr-2 h-4 w-4" /> {text.setupServiceCatalog}</Button>
                   <Button variant="outline" onClick={() => navigate("/quotations/new")}><Send className="mr-2 h-4 w-4" /> {t("dashboard.createQuotation")}</Button>
-                  <Button variant="outline" onClick={() => navigate("/bookings")}><Plane className="mr-2 h-4 w-4" /> {t("dashboard.newBooking")}</Button>
-                  <Button variant="outline" onClick={() => navigate("/invoices")}><ReceiptText className="mr-2 h-4 w-4" /> {t("dashboard.createInvoice")}</Button>
+                  <Button variant="outline" onClick={() => navigate("/payments")}><CreditCard className="mr-2 h-4 w-4" /> {text.startCollectingPayments}</Button>
                 </div>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* ── KPI Row 1: Pipeline ── */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <WidgetCard
-            title={t("dashboard.activeLeads")} value={stats?.activeLeads ?? 0} icon={UserPlus}
-            color="text-blue-600" loading={loading}
+            title={t("dashboard.activeLeads")}
+            value={stats?.activeLeads ?? 0}
+            icon={UserPlus}
+            color="text-blue-600"
+            loading={loading}
             onClick={() => navigate("/leads")}
             subtitle={stats?.followUpsDueToday ? `${stats.followUpsDueToday} ${t("dashboard.followUpsDue")}` : undefined}
             subtitleColor={stats?.followUpsDueToday ? "text-orange-600 dark:text-orange-400" : undefined}
           />
           <WidgetCard
-            title={t("dashboard.quotationsSent")} value={stats?.quotationsSentThisMonth ?? 0} icon={Send}
-            color="text-indigo-600" loading={loading}
+            title={t("dashboard.quotationsSent")}
+            value={stats?.quotationsSentThisMonth ?? 0}
+            icon={Send}
+            color="text-indigo-600"
+            loading={loading}
             onClick={() => navigate("/quotations")}
             subtitle={stats?.quotationsAwaitingApproval ? `${stats.quotationsAwaitingApproval} ${t("dashboard.awaitingApproval")}` : undefined}
           />
           <WidgetCard
-            title={t("dashboard.confirmedBookings")} value={stats?.confirmedBookings ?? 0} icon={CheckCircle2}
-            color="text-emerald-600" loading={loading}
+            title={t("dashboard.confirmedBookings")}
+            value={stats?.confirmedBookings ?? 0}
+            icon={CheckCircle2}
+            color="text-emerald-600"
+            loading={loading}
             onClick={() => navigate("/bookings")}
           />
           <WidgetCard
-            title={t("dashboard.upcomingDepartures")} value={stats?.upcomingDepartures ?? 0} icon={Plane}
-            color="text-violet-600" loading={loading}
+            title={t("dashboard.upcomingDepartures")}
+            value={stats?.upcomingDepartures ?? 0}
+            icon={Plane}
+            color="text-violet-600"
+            loading={loading}
             onClick={() => navigate("/bookings")}
             subtitle={t("dashboard.next7Days")}
           />
         </div>
 
-        {/* ── KPI Row 2: Financial ── */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <WidgetCard
-            title={t("dashboard.salesThisMonth")} value={`৳${(stats?.salesThisMonth ?? 0).toLocaleString()}`}
-            icon={TrendingUp} color="text-emerald-600" loading={loading}
+            title={t("dashboard.salesThisMonth")}
+            value={`৳${(stats?.salesThisMonth ?? 0).toLocaleString()}`}
+            icon={TrendingUp}
+            color="text-emerald-600"
+            loading={loading}
           />
           <WidgetCard
-            title={t("dashboard.overdueInvoices")} value={stats?.overdueInvoices ?? 0}
-            icon={AlertTriangle} color="text-destructive" loading={loading}
+            title={t("dashboard.overdueInvoices")}
+            value={stats?.overdueInvoices ?? 0}
+            icon={AlertTriangle}
+            color="text-destructive"
+            loading={loading}
             onClick={() => navigate("/invoices")}
             subtitle={stats?.overdueInvoiceAmount ? `৳${stats.overdueInvoiceAmount.toLocaleString()} ${t("dashboard.outstanding")}` : undefined}
             subtitleColor="text-destructive"
           />
           <WidgetCard
-            title={t("dashboard.vendorDues")} value={`৳${(stats?.vendorDues ?? 0).toLocaleString()}`}
-            icon={Building2} color="text-orange-600" loading={loading}
+            title={t("dashboard.vendorDues")}
+            value={`৳${(stats?.vendorDues ?? 0).toLocaleString()}`}
+            icon={Building2}
+            color="text-orange-600"
+            loading={loading}
             onClick={() => navigate("/vendors")}
           />
           <WidgetCard
-            title={t("dashboard.totalRevenue")} value={`৳${(stats?.totalRevenue ?? 0).toLocaleString()}`}
-            icon={DollarSign} color="text-amber-600" loading={loading}
+            title={t("dashboard.totalRevenue")}
+            value={`৳${(stats?.totalRevenue ?? 0).toLocaleString()}`}
+            icon={DollarSign}
+            color="text-amber-600"
+            loading={loading}
           />
         </div>
 
-
-        {/* ── Main Content ── */}
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* Recent Bookings */}
           <Card className="lg:col-span-2">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-lg"><Plane className="h-5 w-5" /> {t("dashboard.recentBookings")}</CardTitle>
@@ -256,7 +350,6 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Top Destinations */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg"><MapPin className="h-5 w-5" /> {t("dashboard.topDestinations")}</CardTitle>
@@ -269,7 +362,7 @@ const Dashboard = () => {
                 <p className="text-sm text-muted-foreground text-center py-6">{t("dashboard.destinationHint")}</p>
               ) : (
                 <div className="space-y-3">
-                  {stats.topDestinations.map((d, i) => {
+                  {stats.topDestinations.map((d) => {
                     const maxCount = stats.topDestinations[0]?.count || 1;
                     return (
                       <div key={d.destination} className="space-y-1">
@@ -287,19 +380,17 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* ── Bottom Row ── */}
         <div className="grid gap-6 lg:grid-cols-2">
-          {/* Recent Payments */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-lg"><CreditCard className="h-5 w-5" /> {t("dashboard.recentPayments")}</CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => navigate("/invoices")}>{t("common.viewAll")} <ArrowRight className="ml-1 h-4 w-4" /></Button>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/payments")}>{t("common.viewAll")} <ArrowRight className="ml-1 h-4 w-4" /></Button>
             </CardHeader>
             <CardContent>
               {loading ? (
                 <div className="space-y-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
               ) : !stats?.recentPayments?.length ? (
-                <EmptyState icon={CreditCard} title={t("dashboard.noPayments")} description="" actionLabel={t("sidebar.invoices")} onAction={() => navigate("/invoices")} />
+                <EmptyState icon={CreditCard} title={t("dashboard.noPayments")} description="" actionLabel={text.payments} onAction={() => navigate("/payments")} />
               ) : (
                 <Table>
                   <TableHeader>
@@ -325,10 +416,10 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Quick Actions & Stats */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg"><CalendarDays className="h-5 w-5" /> {t("dashboard.quickSummary")}</CardTitle>
+              <CardDescription>{text.businessFlow}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
@@ -337,13 +428,22 @@ const Dashboard = () => {
                 <MiniStat label={t("dashboard.teamMembers")} value={stats?.totalUsers ?? 0} loading={loading} />
                 <MiniStat label={t("dashboard.followUpsToday")} value={stats?.followUpsDueToday ?? 0} loading={loading} highlight={!!stats?.followUpsDueToday} />
               </div>
-              <div className="pt-2 space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">{t("dashboard.quickActions")}</p>
+
+              <div className="rounded-lg border bg-muted/20 p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Package2 className="h-4 w-4 text-primary" />
+                  <p className="text-sm font-medium">{text.serviceHub}</p>
+                </div>
+                <p className="text-xs text-muted-foreground">{text.businessFlow}</p>
                 <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="outline" onClick={() => navigate("/leads")}><UserPlus className="mr-1 h-3.5 w-3.5" /> {t("sidebar.leads")}</Button>
-                  <Button size="sm" variant="outline" onClick={() => navigate("/quotations/new")}><Send className="mr-1 h-3.5 w-3.5" /> {t("sidebar.quotations")}</Button>
-                  <Button size="sm" variant="outline" onClick={() => navigate("/bookings")}><Plane className="mr-1 h-3.5 w-3.5" /> {t("sidebar.bookings")}</Button>
-                  <Button size="sm" variant="outline" onClick={() => navigate("/invoices")}><FileText className="mr-1 h-3.5 w-3.5" /> {t("sidebar.invoices")}</Button>
+                  {quickActions.map((action) => {
+                    const Icon = action.icon;
+                    return (
+                      <Button key={action.path} size="sm" variant={action.variant} onClick={() => navigate(action.path)}>
+                        <Icon className="mr-1 h-3.5 w-3.5" /> {action.label}
+                      </Button>
+                    );
+                  })}
                 </div>
               </div>
             </CardContent>
@@ -354,27 +454,38 @@ const Dashboard = () => {
   );
 };
 
-// ── Widget Card ──
 function WidgetCard({
-  title, value, icon: Icon, color, loading, onClick, subtitle, subtitleColor,
+  title,
+  value,
+  icon: Icon,
+  color,
+  loading,
+  onClick,
+  subtitle,
+  subtitleColor,
 }: {
-  title: string; value: string | number; icon: any; color: string; loading: boolean;
-  onClick?: () => void; subtitle?: string; subtitleColor?: string;
+  title: string;
+  value: string | number;
+  icon: any;
+  color: string;
+  loading: boolean;
+  onClick?: () => void;
+  subtitle?: string;
+  subtitleColor?: string;
 }) {
   return (
-    <Card
-      className={onClick ? "cursor-pointer hover:shadow-md transition-shadow" : ""}
-      onClick={onClick}
-    >
+    <Card className={onClick ? "cursor-pointer hover:shadow-md transition-shadow" : ""} onClick={onClick}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         <Icon className={`h-4 w-4 ${color}`} />
       </CardHeader>
       <CardContent>
-        {loading ? <Skeleton className="h-8 w-24" /> : (
+        {loading ? (
+          <Skeleton className="h-8 w-24" />
+        ) : (
           <>
             <div className="text-2xl font-bold">{value}</div>
-            {subtitle && <p className={`text-xs mt-0.5 ${subtitleColor || "text-muted-foreground"}`}>{subtitle}</p>}
+            {subtitle ? <p className={`text-xs mt-0.5 ${subtitleColor || "text-muted-foreground"}`}>{subtitle}</p> : null}
           </>
         )}
       </CardContent>
@@ -382,12 +493,13 @@ function WidgetCard({
   );
 }
 
-// ── Mini Stat ──
 function MiniStat({ label, value, loading, highlight }: { label: string; value: number; loading: boolean; highlight?: boolean }) {
   return (
     <div className={`rounded-lg border p-3 ${highlight ? "border-orange-300 dark:border-orange-600" : ""}`}>
       <p className="text-xs text-muted-foreground">{label}</p>
-      {loading ? <Skeleton className="h-6 w-12 mt-1" /> : (
+      {loading ? (
+        <Skeleton className="h-6 w-12 mt-1" />
+      ) : (
         <p className={`text-lg font-bold ${highlight ? "text-orange-600 dark:text-orange-400" : ""}`}>{value}</p>
       )}
     </div>
