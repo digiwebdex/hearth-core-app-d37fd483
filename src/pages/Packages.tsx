@@ -20,7 +20,7 @@ import {
   type TravelPackageMedia,
   type TravelPackagePricing,
 } from "@/lib/travelPackageApi";
-import { SERVICE_TYPES, getServiceTypeLabel, type ServiceType } from "@/lib/serviceTypes";
+import { SERVICE_TYPES, getLocalizedServiceTypeLabel, type ServiceType } from "@/lib/serviceTypes";
 import { ArrowRight, FileText, Globe, Loader2, Moon, Package2, Plus, Save, Trash2, UploadCloud, Wand2 } from "lucide-react";
 
 const emptyForm = {
@@ -106,7 +106,7 @@ const Packages = () => {
     migrationTitle: isBn ? "ইউনিফায়েড সার্ভিস সেন্টার" : "Unified service center",
     migrationText: isBn ? "এখন ট্যুর, হজ্জ-উমরাহ, ভিসা, টিকেটসহ সব service template এক জায়গা থেকে ম্যানেজ করুন। আলাদা Hajj sidebar item আর দেখানো হচ্ছে না।" : "Manage tour, Hajj/Umrah, visa, ticket, and other service templates from one place. The separate Hajj sidebar item is no longer shown.",
     operationsHint: isBn ? "পুরনো pilgrim, group, rooming, payment operations এখনো legacy screen-এ আছে, তাই বর্তমান testing data safe থাকবে।" : "Legacy pilgrim, group, rooming, and payment operations still remain in the legacy screen, so current testing data stays safe.",
-    legacyButton: isBn ? "লেগেসি হাজী অপারেশনস" : "Legacy Pilgrim Operations",
+    legacyButton: isBn ? "লেগেসি হাজী অপারেশনস চালু করুন" : "Open Legacy Pilgrim Operations",
     publicButton: isBn ? "পাবলিক প্যাকেজ পেজ" : "Public Packages Page",
     builderButton: isBn ? "ওয়েবসাইট বিল্ডার" : "Website Builder",
     publishButton: isBn ? "পাবলিশ ও ডোমেইন" : "Publish & Domain",
@@ -147,10 +147,7 @@ const Packages = () => {
     delete: isBn ? "ডিলিট" : "Delete",
   };
 
-  const selected = useMemo(
-    () => items.find((item) => item.id === selectedId) || null,
-    [items, selectedId]
-  );
+  const selected = useMemo(() => items.find((item) => item.id === selectedId) || null, [items, selectedId]);
 
   const load = async () => {
     setLoading(true);
@@ -184,14 +181,8 @@ const Packages = () => {
         isFeatured: !!full.isFeatured,
         heroImage: full.heroImage || "",
       });
-      setDays((full.days || []).map((item, index) => ({
-        ...item,
-        dayNumber: Number(item.dayNumber || index + 1),
-      })));
-      setInclusions((full.inclusions || []).map((item, index) => ({
-        ...item,
-        sortOrder: Number(item.sortOrder ?? index),
-      })));
+      setDays((full.days || []).map((item, index) => ({ ...item, dayNumber: Number(item.dayNumber || index + 1) })));
+      setInclusions((full.inclusions || []).map((item, index) => ({ ...item, sortOrder: Number(item.sortOrder ?? index) })));
       setPricing((full.pricing || []).map((item) => ({
         ...item,
         travelerMin: Number(item.travelerMin || 1),
@@ -199,10 +190,7 @@ const Packages = () => {
         price: Number(item.price || 0),
         currency: item.currency || full.currency || "BDT",
       })));
-      setMedia((full.media || []).map((item, index) => ({
-        ...item,
-        sortOrder: Number(item.sortOrder ?? index),
-      })));
+      setMedia((full.media || []).map((item, index) => ({ ...item, sortOrder: Number(item.sortOrder ?? index) })));
     } catch (err: any) {
       toast({ title: text.loadDetailsFailed, description: err.message, variant: "destructive" });
     } finally {
@@ -211,15 +199,9 @@ const Packages = () => {
   };
 
   useEffect(() => { load(); }, []);
+  useEffect(() => { if (selectedId) loadDetails(selectedId); }, [selectedId]);
 
-  useEffect(() => {
-    if (!selectedId) return;
-    loadDetails(selectedId);
-  }, [selectedId]);
-
-  const visibleItems = useMemo(() => {
-    return items.filter((item) => filterType === "all" || item.serviceType === filterType);
-  }, [items, filterType]);
+  const visibleItems = useMemo(() => items.filter((item) => filterType === "all" || item.serviceType === filterType), [items, filterType]);
 
   const resetForm = () => {
     setSelectedId(null);
@@ -230,55 +212,16 @@ const Packages = () => {
     setMedia([]);
   };
 
-  const normalizeDays = () =>
-    days
-      .map((item, index) => ({
-        ...item,
-        dayNumber: index + 1,
-        title: String(item.title || `Day ${index + 1}`).trim(),
-        description: item.description || "",
-        overnightLocation: item.overnightLocation || "",
-      }))
-      .filter((item) => item.title);
-
-  const normalizeInclusions = () =>
-    inclusions
-      .map((item, index) => ({
-        ...item,
-        type: item.type === "excluded" ? "excluded" : "included",
-        label: String(item.label || "").trim(),
-        sortOrder: index,
-      }))
-      .filter((item) => item.label);
-
-  const normalizePricing = () =>
-    pricing
-      .map((item) => ({
-        ...item,
-        label: String(item.label || "Standard").trim(),
-        travelerMin: Math.max(1, Number(item.travelerMin || 1)),
-        travelerMax: item.travelerMax ? Number(item.travelerMax) : null,
-        price: Number(item.price || 0),
-        currency: String(item.currency || form.currency || "BDT").toUpperCase(),
-      }))
-      .filter((item) => item.label);
-
-  const normalizeMedia = () =>
-    media
-      .map((item, index) => ({
-        ...item,
-        url: String(item.url || "").trim(),
-        altText: item.altText || "",
-        sortOrder: index,
-      }))
-      .filter((item) => item.url);
+  const normalizeDays = () => days.map((item, index) => ({ ...item, dayNumber: index + 1, title: String(item.title || `Day ${index + 1}`).trim(), description: item.description || "", overnightLocation: item.overnightLocation || "" })).filter((item) => item.title);
+  const normalizeInclusions = () => inclusions.map((item, index) => ({ ...item, type: item.type === "excluded" ? "excluded" : "included", label: String(item.label || "").trim(), sortOrder: index })).filter((item) => item.label);
+  const normalizePricing = () => pricing.map((item) => ({ ...item, label: String(item.label || "Standard").trim(), travelerMin: Math.max(1, Number(item.travelerMin || 1)), travelerMax: item.travelerMax ? Number(item.travelerMax) : null, price: Number(item.price || 0), currency: String(item.currency || form.currency || "BDT").toUpperCase() })).filter((item) => item.label);
+  const normalizeMedia = () => media.map((item, index) => ({ ...item, url: String(item.url || "").trim(), altText: item.altText || "", sortOrder: index })).filter((item) => item.url);
 
   const handleSave = async () => {
     if (!form.code.trim() || !form.title.trim()) {
       toast({ title: text.required, variant: "destructive" });
       return;
     }
-
     setSaving(true);
     const payload = {
       ...form,
@@ -293,7 +236,6 @@ const Packages = () => {
       pricing: normalizePricing(),
       media: normalizeMedia(),
     };
-
     try {
       if (selectedId) {
         const updated = await travelPackageApi.update(selectedId, payload);
@@ -338,29 +280,15 @@ const Packages = () => {
               <SelectTrigger className="w-[210px]"><SelectValue placeholder={text.filterPlaceholder} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{text.allTypes}</SelectItem>
-                {SERVICE_TYPES.map((type) => (
-                  <SelectItem key={type} value={type}>{getServiceTypeLabel(type)}</SelectItem>
-                ))}
+                {SERVICE_TYPES.map((type) => <SelectItem key={type} value={type}>{getLocalizedServiceTypeLabel(type, isBn)}</SelectItem>)}
               </SelectContent>
             </Select>
-            {selected ? (
-              <Link to={`/quotations/new?packageId=${selected.id}&source=packages`}>
-                <Button><FileText className="mr-2 h-4 w-4" />{text.quotationButton}</Button>
-              </Link>
-            ) : null}
-            <Link to="/website">
-              <Button variant="outline"><Wand2 className="mr-2 h-4 w-4" />{text.builderButton}</Button>
-            </Link>
-            <Link to="/website/publish">
-              <Button variant="outline"><UploadCloud className="mr-2 h-4 w-4" />{text.publishButton}</Button>
-            </Link>
-            <Link to="/site/packages">
-              <Button variant="outline"><Globe className="mr-2 h-4 w-4" />{text.publicButton}</Button>
-            </Link>
+            {selected ? <Link to={`/quotations/new?packageId=${selected.id}&source=packages`}><Button><FileText className="mr-2 h-4 w-4" />{text.quotationButton}</Button></Link> : null}
+            <Link to="/website"><Button variant="outline"><Wand2 className="mr-2 h-4 w-4" />{text.builderButton}</Button></Link>
+            <Link to="/website/publish"><Button variant="outline"><UploadCloud className="mr-2 h-4 w-4" />{text.publishButton}</Button></Link>
+            <Link to="/site/packages"><Button variant="outline"><Globe className="mr-2 h-4 w-4" />{text.publicButton}</Button></Link>
             <Button variant="outline" onClick={resetForm}><Plus className="mr-2 h-4 w-4" />{text.newPackage}</Button>
-            <Link to="/legacy/hajj-operations">
-              <Button variant="secondary"><Moon className="mr-2 h-4 w-4" />{text.legacyButton}</Button>
-            </Link>
+            <Link to="/hajj-umrah"><Button variant="secondary"><Moon className="mr-2 h-4 w-4" />{text.legacyButton}</Button></Link>
           </div>
         </div>
 
@@ -374,33 +302,19 @@ const Packages = () => {
               {selected ? <p className="text-sm text-muted-foreground mt-1">{text.quotationHint}</p> : null}
             </div>
             <div className="flex gap-2 flex-wrap">
-              {selected ? (
-                <Link to={`/quotations/new?packageId=${selected.id}&source=packages`}>
-                  <Button><span>{text.quotationButton}</span><ArrowRight className="ml-2 h-4 w-4" /></Button>
-                </Link>
-              ) : null}
-              <Link to="/website">
-                <Button variant="outline"><span>{text.builderButton}</span><ArrowRight className="ml-2 h-4 w-4" /></Button>
-              </Link>
-              <Link to="/website/publish">
-                <Button variant="outline"><span>{text.publishButton}</span><ArrowRight className="ml-2 h-4 w-4" /></Button>
-              </Link>
-              <Link to="/site/packages">
-                <Button variant="outline"><span>{text.publicButton}</span><ArrowRight className="ml-2 h-4 w-4" /></Button>
-              </Link>
+              {selected ? <Link to={`/quotations/new?packageId=${selected.id}&source=packages`}><Button><span>{text.quotationButton}</span><ArrowRight className="ml-2 h-4 w-4" /></Button></Link> : null}
+              <Link to="/website"><Button variant="outline"><span>{text.builderButton}</span><ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
+              <Link to="/website/publish"><Button variant="outline"><span>{text.publishButton}</span><ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
+              <Link to="/site/packages"><Button variant="outline"><span>{text.publicButton}</span><ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
             </div>
           </CardContent>
         </Card>
 
         <div className="grid gap-6 xl:grid-cols-[1.05fr_1.15fr]">
           <Card>
-            <CardHeader>
-              <CardTitle>{text.catalog}</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>{text.catalog}</CardTitle></CardHeader>
             <CardContent className="p-0">
-              {loading ? (
-                <div className="py-10 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>
-              ) : (
+              {loading ? <div className="py-10 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div> : (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -412,18 +326,11 @@ const Packages = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {visibleItems.length === 0 ? (
-                      <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">{text.noPackages}</TableCell></TableRow>
-                    ) : visibleItems.map((item) => (
+                    {visibleItems.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">{text.noPackages}</TableCell></TableRow> : visibleItems.map((item) => (
                       <TableRow key={item.id} className="cursor-pointer" onClick={() => setSelectedId(item.id)}>
                         <TableCell className="font-medium">{item.code}</TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div>{item.title}</div>
-                            {selectedId === item.id ? <Badge variant="secondary">{text.selected}</Badge> : null}
-                          </div>
-                        </TableCell>
-                        <TableCell><Badge variant="outline">{getServiceTypeLabel(item.serviceType)}</Badge></TableCell>
+                        <TableCell><div className="space-y-1"><div>{item.title}</div>{selectedId === item.id ? <Badge variant="secondary">{text.selected}</Badge> : null}</div></TableCell>
+                        <TableCell><Badge variant="outline">{getLocalizedServiceTypeLabel(item.serviceType, isBn)}</Badge></TableCell>
                         <TableCell><Badge variant="secondary" className="capitalize">{item.status || text.draft}</Badge></TableCell>
                         <TableCell className="text-right">{item.currency || "BDT"} {Number(item.basePrice || 0).toLocaleString()}</TableCell>
                       </TableRow>
@@ -435,9 +342,7 @@ const Packages = () => {
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>{selected ? text.editService : text.createService}</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>{selected ? text.editService : text.createService}</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               {detailLoading ? <div className="py-10 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div> : (
                 <>
@@ -453,12 +358,7 @@ const Packages = () => {
                     <TabsContent value="basic" className="space-y-4">
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2"><Label>{text.packageCode}</Label><Input value={form.code} onChange={(e) => setForm((prev) => ({ ...prev, code: e.target.value }))} /></div>
-                        <div className="space-y-2"><Label>{text.serviceType}</Label>
-                          <Select value={form.serviceType} onValueChange={(value) => setForm((prev) => ({ ...prev, serviceType: value as ServiceType }))}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>{SERVICE_TYPES.map((type) => <SelectItem key={type} value={type}>{getServiceTypeLabel(type)}</SelectItem>)}</SelectContent>
-                          </Select>
-                        </div>
+                        <div className="space-y-2"><Label>{text.serviceType}</Label><Select value={form.serviceType} onValueChange={(value) => setForm((prev) => ({ ...prev, serviceType: value as ServiceType }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{SERVICE_TYPES.map((type) => <SelectItem key={type} value={type}>{getLocalizedServiceTypeLabel(type, isBn)}</SelectItem>)}</SelectContent></Select></div>
                         <div className="space-y-2 md:col-span-2"><Label>{text.packageTitle}</Label><Input value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value, slug: slugify(e.target.value) }))} /></div>
                         <div className="space-y-2 md:col-span-2"><Label>{text.summary}</Label><Textarea value={form.summary} rows={4} onChange={(e) => setForm((prev) => ({ ...prev, summary: e.target.value }))} /></div>
                         <div className="space-y-2"><Label>{text.destination}</Label><Input value={form.destination} onChange={(e) => setForm((prev) => ({ ...prev, destination: e.target.value }))} /></div>
@@ -466,16 +366,7 @@ const Packages = () => {
                         <div className="space-y-2"><Label>{text.days}</Label><Input type="number" min={1} value={form.durationDays} onChange={(e) => setForm((prev) => ({ ...prev, durationDays: Number(e.target.value || 1) }))} /></div>
                         <div className="space-y-2"><Label>{text.nights}</Label><Input type="number" min={0} value={form.durationNights} onChange={(e) => setForm((prev) => ({ ...prev, durationNights: Number(e.target.value || 0) }))} /></div>
                         <div className="space-y-2"><Label>{text.basePrice}</Label><Input type="number" min={0} value={form.basePrice} onChange={(e) => setForm((prev) => ({ ...prev, basePrice: Number(e.target.value || 0) }))} /></div>
-                        <div className="space-y-2"><Label>{text.status}</Label>
-                          <Select value={form.status} onValueChange={(value) => setForm((prev) => ({ ...prev, status: value }))}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="draft">Draft</SelectItem>
-                              <SelectItem value="published">Published</SelectItem>
-                              <SelectItem value="archived">Archived</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                        <div className="space-y-2"><Label>{text.status}</Label><Select value={form.status} onValueChange={(value) => setForm((prev) => ({ ...prev, status: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="draft">Draft</SelectItem><SelectItem value="published">Published</SelectItem><SelectItem value="archived">Archived</SelectItem></SelectContent></Select></div>
                       </div>
                     </TabsContent>
 
@@ -495,10 +386,7 @@ const Packages = () => {
                     </TabsContent>
 
                     <TabsContent value="inclusions" className="space-y-3">
-                      <div className="flex gap-2 justify-end">
-                        <Button variant="outline" size="sm" onClick={() => setInclusions((prev) => [...prev, blankInclusion("included", prev.length)])}>{text.addIncluded}</Button>
-                        <Button variant="outline" size="sm" onClick={() => setInclusions((prev) => [...prev, blankInclusion("excluded", prev.length)])}>{text.addExcluded}</Button>
-                      </div>
+                      <div className="flex gap-2 justify-end"><Button variant="outline" size="sm" onClick={() => setInclusions((prev) => [...prev, blankInclusion("included", prev.length)])}>{text.addIncluded}</Button><Button variant="outline" size="sm" onClick={() => setInclusions((prev) => [...prev, blankInclusion("excluded", prev.length)])}>{text.addExcluded}</Button></div>
                       <div className="space-y-3">
                         {inclusions.length === 0 ? <p className="text-sm text-muted-foreground">{isBn ? "এখনো কোনো inclusion/exclusion যোগ করা হয়নি" : "No inclusions or exclusions added yet"}</p> : null}
                         {inclusions.map((item, index) => (
@@ -520,10 +408,7 @@ const Packages = () => {
                             <Input placeholder="Label" value={item.label} onChange={(e) => setPricing((prev) => prev.map((row, rowIndex) => rowIndex === index ? { ...row, label: e.target.value } : row))} />
                             <Input type="number" min={1} placeholder="Min" value={item.travelerMin} onChange={(e) => setPricing((prev) => prev.map((row, rowIndex) => rowIndex === index ? { ...row, travelerMin: Number(e.target.value || 1) } : row))} />
                             <Input type="number" min={0} placeholder="Max" value={item.travelerMax ?? ""} onChange={(e) => setPricing((prev) => prev.map((row, rowIndex) => rowIndex === index ? { ...row, travelerMax: e.target.value ? Number(e.target.value) : null } : row))} />
-                            <div className="flex gap-2">
-                              <Input type="number" min={0} placeholder="Price" value={item.price} onChange={(e) => setPricing((prev) => prev.map((row, rowIndex) => rowIndex === index ? { ...row, price: Number(e.target.value || 0) } : row))} />
-                              <Button variant="ghost" size="icon" onClick={() => setPricing((prev) => prev.filter((_, rowIndex) => rowIndex !== index))}><Trash2 className="h-4 w-4" /></Button>
-                            </div>
+                            <div className="flex gap-2"><Input type="number" min={0} placeholder="Price" value={item.price} onChange={(e) => setPricing((prev) => prev.map((row, rowIndex) => rowIndex === index ? { ...row, price: Number(e.target.value || 0) } : row))} /><Button variant="ghost" size="icon" onClick={() => setPricing((prev) => prev.filter((_, rowIndex) => rowIndex !== index))}><Trash2 className="h-4 w-4" /></Button></div>
                           </div>
                         ))}
                       </div>
@@ -545,9 +430,7 @@ const Packages = () => {
                   </Tabs>
 
                   <div className="flex items-center justify-between pt-2">
-                    <div>
-                      {selectedId ? <Button variant="destructive" onClick={handleDelete}><Trash2 className="mr-2 h-4 w-4" />{text.delete}</Button> : null}
-                    </div>
+                    <div>{selectedId ? <Button variant="destructive" onClick={handleDelete}><Trash2 className="mr-2 h-4 w-4" />{text.delete}</Button> : null}</div>
                     <Button onClick={handleSave} disabled={saving}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}{selectedId ? text.update : text.create}</Button>
                   </div>
                 </>
