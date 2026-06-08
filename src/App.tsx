@@ -182,6 +182,7 @@ const AppContent = () => (
           <Route path="/settings/billing" element={<P><SettingsBilling /></P>} />
           <Route path="/website" element={<P><WebsiteBuilderHome /></P>} />
           <Route path="/website/builder" element={<P><WebsiteCustomizer /></P>} />
+          <Route path="/website/theme-builder" element={<P><Navigate to="/website/builder" replace /></P>} />
           <Route path="/website/publish" element={<P><WebsitePublishGuide /></P>} />
           <Route path="/website/domains" element={<P><WebsitePublishGuide /></P>} />
           <Route path="/user-guide" element={<P><UserGuide /></P>} />
