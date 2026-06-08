@@ -32,6 +32,8 @@ const WebsiteBuilderHome = () => {
     primaryDomain: isBn ? "প্রাইমারি ডোমেইন" : "Primary domain",
     domainUsage: isBn ? "ডোমেইন ব্যবহার" : "Domain usage",
     quickFlow: isBn ? "দ্রুত কাজের ধাপ" : "Quick workflow",
+    workflowTitle: isBn ? "কোন স্ক্রিনে কী কাজ করবেন" : "Which screen does what",
+    workflowDesc: isBn ? "`/website` overview screen, `/website/builder` direct theme builder, আর `/website/publish` publish ও domain management screen হিসেবে কাজ করবে।" : "`/website` works as the overview screen, `/website/builder` is the direct theme builder, and `/website/publish` is the publish and domain management screen.",
     step1: isBn ? "থিম বিল্ডার থেকে branding ও homepage section update করুন" : "Update branding and homepage sections from Theme Builder",
     step2: isBn ? "প্যাকেজ ও সার্ভিসেস থেকে published package তৈরি করুন" : "Create published packages from Packages & Services",
     step3: isBn ? "পাবলিশ ও ডোমেইন থেকে live URL ও custom domain check করুন" : "Check live URL and custom domains from Publish & Domain",
@@ -46,6 +48,10 @@ const WebsiteBuilderHome = () => {
     openPublish: isBn ? "পাবলিশ স্ক্রিন খুলুন" : "Open Publish Screen",
     openPublicSite: isBn ? "লাইভ সাইট খুলুন" : "Open Live Site",
     copyLiveUrl: isBn ? "লাইভ URL কপি" : "Copy Live URL",
+    manageBuilder: isBn ? "বিল্ডার ম্যানেজ করুন" : "Manage Builder",
+    managePublish: isBn ? "পাবলিশ ম্যানেজ করুন" : "Manage Publish",
+    managePackages: isBn ? "প্যাকেজ ম্যানেজ করুন" : "Manage Packages",
+    previewSite: isBn ? "সাইট প্রিভিউ" : "Preview Site",
   };
 
   useEffect(() => {
@@ -93,6 +99,13 @@ const WebsiteBuilderHome = () => {
           </div>
         </div>
 
+        <Card className="border-dashed">
+          <CardHeader>
+            <CardTitle>{text.workflowTitle}</CardTitle>
+            <CardDescription>{text.workflowDesc}</CardDescription>
+          </CardHeader>
+        </Card>
+
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader><CardTitle>{text.defaultUrl}</CardTitle></CardHeader>
@@ -128,7 +141,7 @@ const WebsiteBuilderHome = () => {
               <CardDescription>{text.themeBuilderDesc}</CardDescription>
             </CardHeader>
             <CardContent>
-              <Link to="/website/builder"><Button className="w-full"><Wand2 className="mr-2 h-4 w-4" />{text.open}</Button></Link>
+              <Link to="/website/builder"><Button className="w-full"><Wand2 className="mr-2 h-4 w-4" />{text.manageBuilder}</Button></Link>
             </CardContent>
           </Card>
           <Card>
@@ -137,7 +150,7 @@ const WebsiteBuilderHome = () => {
               <CardDescription>{text.publishDomainDesc}</CardDescription>
             </CardHeader>
             <CardContent>
-              <Link to="/website/publish"><Button className="w-full" variant="outline">{text.open}</Button></Link>
+              <Link to="/website/publish"><Button className="w-full" variant="outline">{text.managePublish}</Button></Link>
             </CardContent>
           </Card>
           <Card>
@@ -146,7 +159,7 @@ const WebsiteBuilderHome = () => {
               <CardDescription>{text.packagesServicesDesc}</CardDescription>
             </CardHeader>
             <CardContent>
-              <Link to="/travel-packages"><Button className="w-full" variant="outline">{text.open}</Button></Link>
+              <Link to="/travel-packages"><Button className="w-full" variant="outline">{text.managePackages}</Button></Link>
             </CardContent>
           </Card>
           <Card>
@@ -155,7 +168,7 @@ const WebsiteBuilderHome = () => {
               <CardDescription>{text.publicSiteDesc}</CardDescription>
             </CardHeader>
             <CardContent>
-              <a href={primaryLiveUrl || "/site/packages"} target="_blank" rel="noreferrer"><Button className="w-full" variant="outline">{text.open}</Button></a>
+              <a href={primaryLiveUrl || "/site/packages"} target="_blank" rel="noreferrer"><Button className="w-full" variant="outline">{text.previewSite}</Button></a>
             </CardContent>
           </Card>
         </div>
