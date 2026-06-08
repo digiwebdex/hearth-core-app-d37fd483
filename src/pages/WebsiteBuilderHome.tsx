@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { tenantDomainApi, type TenantDomainRecord, type TenantDomainSummary } from "@/lib/tenantDomainApi";
-import { ExternalLink, Globe, LayoutTemplate, Loader2, Package2, UploadCloud, Wand2 } from "lucide-react";
+import { Copy, ExternalLink, Globe, LayoutTemplate, Loader2, Package2, UploadCloud, Wand2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 const WebsiteBuilderHome = () => {
@@ -37,10 +37,15 @@ const WebsiteBuilderHome = () => {
     step3: isBn ? "পাবলিশ ও ডোমেইন থেকে live URL ও custom domain check করুন" : "Check live URL and custom domains from Publish & Domain",
     step4: isBn ? "পাবলিক ওয়েবসাইট খুলে final output দেখে নিন" : "Open the public website to review the final output",
     open: isBn ? "ওপেন" : "Open",
+    copy: isBn ? "কপি" : "Copy",
     noUrl: isBn ? "এখনো live URL পাওয়া যায়নি" : "No live URL available yet",
     loadFailed: isBn ? "ওয়েবসাইট তথ্য লোড করা যায়নি" : "Failed to load website data",
     active: isBn ? "সক্রিয়" : "Active",
     pending: isBn ? "পেন্ডিং" : "Pending",
+    openBuilder: isBn ? "থিম বিল্ডার খুলুন" : "Open Theme Builder",
+    openPublish: isBn ? "পাবলিশ স্ক্রিন খুলুন" : "Open Publish Screen",
+    openPublicSite: isBn ? "লাইভ সাইট খুলুন" : "Open Live Site",
+    copyLiveUrl: isBn ? "লাইভ URL কপি" : "Copy Live URL",
   };
 
   useEffect(() => {
@@ -66,25 +71,46 @@ const WebsiteBuilderHome = () => {
     ? `https://${primaryDomain.wwwRedirect === "root-to-www" ? `www.${primaryDomain.domain}` : primaryDomain.domain}`
     : summary?.defaultWebsiteUrl || "";
 
+  const copyText = async (value: string) => {
+    await navigator.clipboard.writeText(value);
+    toast({ title: text.copy, description: value });
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2"><Globe className="h-7 w-7" /> {text.title}</h1>
-          <p className="text-muted-foreground mt-2">{text.subtitle}</p>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2"><Globe className="h-7 w-7" /> {text.title}</h1>
+            <p className="text-muted-foreground mt-2">{text.subtitle}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link to="/website/builder"><Button><Wand2 className="mr-2 h-4 w-4" />{text.openBuilder}</Button></Link>
+            <Link to="/website/publish"><Button variant="outline"><UploadCloud className="mr-2 h-4 w-4" />{text.openPublish}</Button></Link>
+            {primaryLiveUrl ? (
+              <a href={primaryLiveUrl} target="_blank" rel="noreferrer"><Button variant="outline"><ExternalLink className="mr-2 h-4 w-4" />{text.openPublicSite}</Button></a>
+            ) : null}
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader><CardTitle>{text.defaultUrl}</CardTitle></CardHeader>
-            <CardContent>
+            <CardContent className="space-y-3">
               {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <p className="text-sm break-all">{summary?.defaultWebsiteUrl || text.noUrl}</p>}
+              {summary?.defaultWebsiteUrl ? <Button variant="outline" size="sm" onClick={() => copyText(summary.defaultWebsiteUrl)}><Copy className="mr-2 h-4 w-4" />{text.copy}</Button> : null}
             </CardContent>
           </Card>
           <Card>
             <CardHeader><CardTitle>{text.primaryDomain}</CardTitle></CardHeader>
-            <CardContent>
-              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <div className="space-y-2"><p className="text-sm break-all">{primaryLiveUrl || text.noUrl}</p>{primaryDomain ? <Badge variant={primaryDomain.status === "active" ? "default" : "secondary"}>{primaryDomain.status === "active" ? text.active : text.pending}</Badge> : null}</div>}
+            <CardContent className="space-y-2">
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>
+                <p className="text-sm break-all">{primaryLiveUrl || text.noUrl}</p>
+                <div className="flex gap-2 flex-wrap">
+                  {primaryDomain ? <Badge variant={primaryDomain.status === "active" ? "default" : "secondary"}>{primaryDomain.status === "active" ? text.active : text.pending}</Badge> : null}
+                  {primaryLiveUrl ? <Button variant="outline" size="sm" onClick={() => copyText(primaryLiveUrl)}><Copy className="mr-2 h-4 w-4" />{text.copyLiveUrl}</Button> : null}
+                </div>
+              </>}
             </CardContent>
           </Card>
           <Card>
