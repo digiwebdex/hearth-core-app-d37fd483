@@ -18,6 +18,7 @@ import Team from "./pages/Team";
 import Organization from "./pages/Organization";
 import SettingsPage from "./pages/SettingsPage";
 import WebsiteCustomizer from "./pages/WebsiteCustomizer";
+import WebsiteBuilderHome from "./pages/WebsiteBuilderHome";
 import WebsitePublishGuide from "./pages/WebsitePublishGuide";
 import Clients from "./pages/Clients";
 import Agents from "./pages/Agents";
@@ -179,7 +180,8 @@ const AppContent = () => (
           <Route path="/organization" element={<P><Organization /></P>} />
           <Route path="/settings" element={<P><SettingsPage /></P>} />
           <Route path="/settings/billing" element={<P><SettingsBilling /></P>} />
-          <Route path="/website" element={<P><WebsiteCustomizer /></P>} />
+          <Route path="/website" element={<P><WebsiteBuilderHome /></P>} />
+          <Route path="/website/builder" element={<P><WebsiteCustomizer /></P>} />
           <Route path="/website/publish" element={<P><WebsitePublishGuide /></P>} />
           <Route path="/website/domains" element={<P><WebsitePublishGuide /></P>} />
           <Route path="/user-guide" element={<P><UserGuide /></P>} />
