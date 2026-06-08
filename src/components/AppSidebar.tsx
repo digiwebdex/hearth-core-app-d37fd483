@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Settings, Building2, LogOut, UserCheck, UserCog, Store, Target, ListTodo, Plane, Receipt, Wallet, Crown, Shield, BarChart3, Globe, Lock, UserCog2, FileText, Bell, BookOpen, Package2, CreditCard, UploadCloud } from "lucide-react";
+import { LayoutDashboard, Users, Settings, Building2, LogOut, UserCheck, UserCog, Store, Target, ListTodo, Plane, Receipt, Wallet, Crown, Shield, BarChart3, Globe, Lock, UserCog2, FileText, Bell, BookOpen, Package2, CreditCard, UploadCloud, Wand2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
@@ -69,9 +69,17 @@ const financeItems: MenuItem[] = [
 
 const websiteItems: MenuItem[] = [
   {
-    title: { bn: "ওয়েবসাইট বিল্ডার", en: "Website Builder" },
+    title: { bn: "ওয়েবসাইট সেন্টার", en: "Website Center" },
     url: "/website",
     icon: Globe,
+    module: "website",
+    requiredFeature: "hasWebsiteTemplates",
+    minPlan: "pro",
+  },
+  {
+    title: { bn: "থিম বিল্ডার", en: "Theme Builder" },
+    url: "/website/builder",
+    icon: Wand2,
     module: "website",
     requiredFeature: "hasWebsiteTemplates",
     minPlan: "pro",
