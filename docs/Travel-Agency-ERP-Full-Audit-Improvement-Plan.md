@@ -1060,7 +1060,7 @@ Keep compose minimal—postgres service only.
 
 ## Module build prompts — next code to write
 
-Focused instructions for the seven core sales/operations modules. Each prompt assumes the existing React + Vite + TypeScript + Express + Prisma stack. Run one module per PR when possible.
+Focused instructions for core sales, operations, finance, and platform modules. Each prompt assumes the existing React + Vite + TypeScript + Express + Prisma stack. Run one module per PR when possible.
 
 ---
 
@@ -1228,6 +1228,255 @@ Do not delete HajjUmrah.tsx. Optional: add nullable travelPackageId on HajjPacka
 
 ---
 
+### Bookings
+
+**Current:** `Bookings.tsx` (~35 KB) and `BookingDetails.tsx` (~37 KB). Booking model supports `type` (tour/ticket/hotel/visa/package), `serviceType`, segments, travelers, checklist, timeline, documents. List has client-side filters (status, payment, destination, date range) but loads **all** bookings via `bookingApi.list()`. Create dialog uses one generic form — `TYPE_ICONS` exist but no type-specific fields (PNR, visa embassy, hotel nights, etc.).
+
+**Write next:** Server-side list filters + conditional create/edit fields per booking type.
+
+#### Cursor AI build prompt
+
+```
+@codebase
+Add booking type-specific forms and server-side list filters:
+
+BACKEND:
+1. Extend GET /api/bookings in backend/src/routes/bookings.js with query params: status, paymentStatus, type, serviceType, destination (contains), travelDateFrom, travelDateTo, clientId, page (default 1), limit (default 25). Return { items, total, page, limit }.
+2. Add nullable serviceDetails Json? on Booking in schema.prisma for type-specific payload (e.g. { pnr, airline, sectors } for ticket; { embassy, visaType } for visa; { hotelName, nights } for hotel).
+
+FRONTEND:
+3. Create src/components/bookings/BookingTypeFields.tsx — switch on form.type renders extra fields into serviceDetails JSON.
+4. In src/pages/Bookings.tsx replace client-side-only filtering with query params to bookingApi.list(filters); keep filter UI (status, payment, type, serviceType, destination, date range).
+5. On create/edit submit merge serviceDetails into payload; map serviceType from SERVICE_TYPES when package selected.
+
+Update src/lib/api.ts bookingApi.list signature. Tenant isolation unchanged. Bangla labels via getLocalizedServiceTypeLabel where shown.
+```
+
+---
+
+### Tasks
+
+**Current:** `Task` model; generic CRUD at `/api/tasks`. `Tasks.tsx` (~10 KB) — simple table + dialog (title, description, status, priority, dueDate, assignedTo as free text). No link to bookings/leads/clients; `assignedTo` is not a user FK.
+
+**Write next:** Link tasks to CRM/booking records and assign to team members by user ID.
+
+#### Cursor AI build prompt
+
+```
+@codebase
+Upgrade tasks into operational follow-ups:
+
+1. Add to Task in schema.prisma (nullable): relatedType String? (lead|client|booking), relatedId String?, assignedUserId String? (FK User optional).
+2. Update crud.js task POST/PATCH to accept these fields with tenant validation on relatedId lookups.
+3. Add GET /api/tasks?status=&assignedUserId=&relatedType=&relatedId= filters.
+4. In src/pages/Tasks.tsx replace assignedTo text input with Select from tenantApi.getMembers(); add optional link picker (search lead or booking by id/title).
+5. On LeadDetails.tsx and BookingDetails.tsx add "Add task" button pre-filling relatedType/relatedId.
+
+Additive migration. Keep existing tasks working with null related fields.
+```
+
+---
+
+### Invoices
+
+**Current:** `Invoices.tsx` (~51 KB) — largest finance page; also serves `/payments` route. Full invoice API: payments, refunds, audit trail, proof upload. No installments; list likely loads all invoices.
+
+**Write next:** Installment schedule on invoices + paginated list.
+
+#### Cursor AI build prompt
+
+```
+@codebase
+Add invoice installments and pagination:
+
+1. Add model InvoiceInstallment (id, invoiceId, label, amount, dueDate, paidAmount, status, tenantId) with relation to Invoice.
+2. GET /api/invoices?page&limit&status&clientId returning paginated list.
+3. GET/POST /api/invoices/:id/installments CRUD scoped to tenant.
+4. In src/pages/Invoices.tsx add installments sub-table in invoice detail drawer; show progress bar paid vs total.
+5. When recording payment allow allocating amount across installments (simple: apply to oldest due first).
+
+Match existing invoice permission checks. BDT formatting as on current page.
+```
+
+---
+
+### Payments
+
+**Current:** `Payment` model; invoice-linked payments; gateways via `/api/payments` (SSLCommerz, bKash, COD). `PaymentCallback.tsx` handles redirects. `sendPaymentSms` in Invoices UI calls missing SMS API. Manual subscription proofs separate in `payment-requests`.
+
+**Write next:** Unified payment recording with gateway audit + fix SMS hook after notifications module.
+
+#### Cursor AI build prompt
+
+```
+@codebase
+Strengthen invoice payment recording and gateway audit:
+
+1. In backend/src/routes/invoices.js POST /:id/payments wrap payment create + invoice balance update + InvoiceAuditEvent + optional Transaction create in prisma.$transaction.
+2. Add paymentGatewayMeta Json? on Payment (gateway, tran_id, val_id) when initiated via /api/payments/initiate.
+3. GET /api/payments?invoiceId=&from=&to=&method= paginated for tenant.
+4. In src/pages/Invoices.tsx payment dialog show gateway status when paymentGatewayMeta present.
+5. Replace direct sendPaymentSms calls with notifyEvent("payment_received", ...) from notificationService once Notification routes exist; until then keep console SMS.
+
+Do not change SSLCommerz/bKash callback URLs.
+```
+
+---
+
+### Accounts
+
+**Current:** `Account`, `Transaction`, `Expense` models. `Accounts.tsx` (~10 KB) with tabs: overview, ledger, receivables, payables, profitability, expenses, cash/bank (`src/components/accounts/*`). APIs: `/api/accounts`, `/api/transactions`, `/api/expenses` with summary, ledger, profitability endpoints.
+
+**Write next:** Auto-post transactions from invoice payments + CSV export.
+
+#### Cursor AI build prompt
+
+```
+@codebase
+Automate ledger entries from payments and add export:
+
+1. After successful invoice payment in invoices.js ensure a Transaction row exists (referenceType payment, referenceId payment.id, type income) — idempotent check by referenceId.
+2. Add GET /api/accounts/export?from=&to=&format=csv streaming tenant transactions joined with account name.
+3. In src/components/accounts/LedgerTab.tsx add Export CSV button using fetch + blob download with auth header.
+4. In AccountsOverview.tsx show warning card when receivables from GET /api/accounts/summary diverges from invoice due totals (optional sanity check query).
+
+Use existing requirePermission accounts view/export.
+```
+
+---
+
+### Reports
+
+**Current:** `Reports.tsx` (~12 KB) with six report components under `src/components/reports/`. Dashboard has `GET /api/dashboard/stats`. Reports mostly aggregate data client-side from full list APIs — won't scale.
+
+**Write next:** Dedicated `/api/reports/*` endpoints per report type.
+
+#### Cursor AI build prompt
+
+```
+@codebase
+Move reports to server-side aggregation:
+
+1. Create backend/src/routes/reports.js mounted at /api/reports with authenticate + requirePermission("reports","view"):
+   - GET /sales?from=&to=
+   - GET /profitability?from=&to=
+   - GET /leads-quotations?from=&to=
+   - GET /payments?from=&to=
+   - GET /vendors?from=&to=
+   - GET /staff-performance?from=&to=
+2. Each returns JSON shaped for its matching component in src/components/reports/.
+3. Refactor Reports.tsx to pass date range state and fetch from new endpoints instead of bookingApi.list() etc.
+4. Add shared DateRangeFilter component used by all report tabs.
+
+Tenant-scope all queries. Register route in index.js.
+```
+
+---
+
+### Website & Publish
+
+**Current:** `WebsiteCustomizer.tsx` (~49 KB), `WebsiteBuilderHome.tsx`, `WebsitePublishGuide.tsx`. CMS via `/api/website` sections + config. Public site reads `/api/public/:slug/packages` (already merges `TravelPackage` + `HajjPackage`). `SiteContact.tsx` posts to `/api/contact` → `ContactSubmission` only — **does not create a Lead**. Website sections are manually edited; featured packages not auto-synced into section items.
+
+**Write next:** ERP auto-sync for website sections + enquiry-to-lead pipeline.
+
+#### Cursor AI build prompt
+
+```
+@codebase
+Website ERP auto-sync and enquiry-to-lead:
+
+AUTO-SYNC:
+1. Add POST /api/website/sync-from-erp (requirePermission website edit) that:
+   - Pulls published TravelPackage where isFeatured=true and status=published
+   - Pulls tenant phone, address, name from Tenant
+   - Updates website sections: featured-packages items, contact-info fields, hero subtitle if empty
+   - Returns { updatedSections: string[] }
+2. In WebsiteCustomizer.tsx add "Sync from ERP" button calling sync endpoint then reload sections.
+3. On Packages.tsx when status changes to published show toast: "Sync website to show on public site" linking to /website/builder.
+
+ENQUIRY → LEAD:
+4. Add POST /api/public/:slug/inquiry (no auth) body { name, email, phone?, message, packageId?, source? } that:
+   - Resolves tenant by slug
+   - Creates Lead with status new, source website (or package_page), notes = message
+   - Still creates ContactSubmission for audit OR replace contact flow for tenant sites only
+5. Update SiteContact.tsx and SitePackages.tsx "Contact/Inquire" buttons to call public inquiry endpoint with tenant slug from WebsiteContext.
+6. On Leads.tsx show source=website badge.
+
+Rate-limit public inquiry 5/hour per IP. Do not break platform marketing /contact-us route.
+```
+
+---
+
+### Team & Roles
+
+**Current:** `Team.tsx` (~8 KB) uses real `tenantApi.getMembers()` / `inviteMember()`. `RoleManagement.tsx` (~18 KB) uses **mock team data** and local permission matrix edits — not persisted. Backend RBAC in `auth.js` `ROLE_PERMISSIONS`; frontend mirror in `permissions.ts`. Invite still sets password `changeme123` on backend.
+
+**Write next:** Wire RoleManagement to real team API; read-only permission matrix with tenant role assignment.
+
+#### Cursor AI build prompt
+
+```
+@codebase
+Fix Team & Roles to use live data:
+
+1. In src/pages/RoleManagement.tsx remove MOCK_TEAM_MEMBERS; load tenantApi.getMembers() like Team.tsx.
+2. Add PATCH /api/tenants/me/members/:userId body { role } in backend/src/routes/tenants.js (tenant_owner only; disallow promoting to super_admin or tenant_owner via this route).
+3. RoleManagement: allow changing member role via Select → PATCH; permission matrix tab is read-only display of DEFAULT_PERMISSIONS for selected role (remove fake Save that mutates global matrix).
+4. Fix team invite: use random temp password + sendPasswordReset email (from auth hardening task) in POST /me/members.
+5. Link Team.tsx row actions to RoleManagement with ?member=userId query for role edit.
+
+Do not implement custom per-tenant roles yet—fixed enum only.
+```
+
+---
+
+### Notifications
+
+**Current:** Backend has `emailService.js`, `smsService.js`, `whatsappService.js` (Twilio + Meta providers, console fallback), and `notificationService.js` event dispatcher — but **no HTTP routes** for `/api/sms/*`, `/api/notifications/*`, or `/api/admin/notifications/*`. Frontend: `smsApi.ts`, `smsTemplateApi.ts`, `notificationApi.ts`, `notificationEngine.ts` (client-only), `AdminSmsTemplates.tsx`, `AdminSmsLogs.tsx`, `NotificationBell.tsx`, `AdminNotificationBell.tsx`, `SmtpSettings.tsx`, SMS automation on bookings/invoices. No Prisma models for `Notification`, `SmsLog`, `SmsTemplate`, or tenant communication settings.
+
+**Write next:** Full communications stack — models, APIs, template system, tenant settings UI, logs, WhatsApp Business API wiring.
+
+#### Cursor AI build prompt
+
+```
+@codebase
+Build the full Notifications & Communications module (SMS + Email + WhatsApp + templates + settings + logs):
+
+PRISMA (additive):
+1. TenantCommunicationSettings (tenantId unique, smsProvider, smsApiKey encrypted optional store as plain for now, smsSenderId, smsEnabled, whatsappProvider meta|twilio|console, whatsappToken, whatsappPhoneId, whatsappEnabled, emailFromName, notifyOnBooking, notifyOnPayment, notifyOnLead — booleans default true)
+2. SmsTemplate (id, tenantId nullable for global admin templates, type enum booking_confirmed|payment_received|invoice_due|lead_followup|custom, name, body with {{placeholders}}, isActive)
+3. SmsLog (id, tenantId, phone, message, status, provider, errorMessage, templateId, relatedType, relatedId, createdAt)
+4. Notification (id, tenantId, userId nullable, type, title, message, read, link, createdAt)
+5. WhatsAppLog (id, tenantId, phone, message, status, provider, errorMessage, templateId, createdAt) — mirror SmsLog
+
+BACKEND ROUTES — mount in index.js:
+6. backend/src/routes/sms.js matching src/lib/smsApi.ts: GET/PUT /config, POST /send, /send-bulk, /test, GET /logs, GET /logs/stats, GET /logs/:id
+7. backend/src/routes/smsTemplates.js or nested: CRUD /sms/templates per smsTemplateApi.ts
+8. backend/src/routes/notifications.js: GET /, GET /unread-count, PATCH /:id/read, PATCH /read-all, DELETE /:id
+9. backend/src/routes/adminNotifications.js under /api/admin/notifications (super_admin)
+10. backend/src/routes/communications.js: GET/PATCH /api/tenants/me/communication-settings (tenant_owner)
+
+SERVICES:
+11. Refactor smsService.js to read tenant settings when tenantId passed; fall back to env then console.
+12. Wire whatsappService.js Meta Business API (META_WHATSAPP_TOKEN, META_WHATSAPP_PHONE_ID) and Twilio paths; log every send to WhatsAppLog.
+13. Extend notificationService.js notifyEvent handlers to: create Notification row for tenant_owner, send SMS via template if enabled, send WhatsApp if enabled, send email via existing emailService.
+14. Add template render helper {{clientName}}, {{amount}}, {{bookingTitle}}, {{dueDate}}.
+
+FRONTEND:
+15. Create src/pages/SettingsNotifications.tsx (or extend SettingsPage tabs): SMS toggle, WhatsApp toggle, provider fields, test send buttons.
+16. Wire AdminSmsTemplates.tsx and AdminSmsLogs.tsx to live APIs (remove any mock data).
+17. Wire NotificationBell.tsx and AdminNotificationBell.tsx to /api/notifications and /api/admin/notifications.
+18. Move SmtpSettings.tsx to use GET/POST /api/email/config (already exists) under same settings area.
+19. Delete or gut client-only persistence in notificationEngine.ts — fetch from API on load.
+
+AUTOMATION HOOKS:
+20. Call notifyEvent on: booking create (bookings.js), payment received (invoices.js), lead create from website inquiry (new public route), invoice overdue (cron.js stub).
+
+Default SMS_PROVIDER=console and WHATSAPP_PROVIDER=console for dev. Super-admin templates have tenantId=null. Tenant-scope all logs and settings.
+```
+
+---
+
 ## Phased rollout (recommended order)
 
 Aligns with `docs/final-travel-saas-scenario.md` and audit severity.
@@ -1267,5 +1516,5 @@ Aligns with `docs/final-travel-saas-scenario.md` and audit severity.
 | Phase completed | Check off regression list |
 | Plan limits change | Reseed `PlatformPlan` and regenerate permissions doc |
 
-**Last updated:** 2026-06-09 (module build prompts added)  
+**Last updated:** 2026-06-09 (module build prompts: sales, ops, finance, website, notifications)  
 **Next review:** After Phase 0 completion or first production cutover.
