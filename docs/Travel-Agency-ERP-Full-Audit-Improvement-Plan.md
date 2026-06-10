@@ -1058,6 +1058,176 @@ Keep compose minimal—postgres service only.
 
 ---
 
+## Module build prompts — next code to write
+
+Focused instructions for the seven core sales/operations modules. Each prompt assumes the existing React + Vite + TypeScript + Express + Prisma stack. Run one module per PR when possible.
+
+---
+
+### Dashboard
+
+**Current:** `GET /api/dashboard/stats` aggregates tenant KPIs; `Dashboard.tsx` (~22 KB) also imports `clientApi`, `bookingApi`, `leadApi`, etc., causing redundant fetches. Backend loads full booking/invoice/lead arrays into memory per request.
+
+**Write next:** Single-source dashboard data path + follow-up action strip.
+
+#### Cursor AI build prompt
+
+```
+@codebase
+Optimize the agency dashboard data flow:
+
+1. Refactor backend/src/routes/dashboard.js GET /stats to use Prisma aggregations (count, sum, groupBy) instead of loading all bookings/invoices/leads into memory. Keep the exact DashboardStats JSON shape expected by src/lib/api.ts.
+2. Add followUpsDueList: top 5 leads where nextFollowUp <= today and status not in won|lost (id, name, phone, nextFollowUp only).
+3. In src/pages/Dashboard.tsx remove direct clientApi/bookingApi/leadApi/quotationApi calls; use only dashboardApi.getStats().
+4. Add a "Follow-ups today" card listing followUpsDueList with click → /leads/:id.
+
+Do not change routes or auth. Add Bangla strings via existing i18n keys or inline isBn pattern used on the page.
+```
+
+---
+
+### Leads
+
+**Current:** Full CRUD at `/api/leads` with activities, convert, duplicate check. `Leads.tsx` (~30 KB) list + filters; no pipeline summary API; `nextFollowUp` not surfaced prominently.
+
+**Write next:** Pipeline counts API + overdue follow-up filters on the list page.
+
+#### Cursor AI build prompt
+
+```
+@codebase
+Add lead pipeline summary and follow-up filters:
+
+1. In backend/src/routes/leads.js add GET /pipeline-summary (before /:id routes) returning { new, qualified, proposal, negotiation, won, lost, total, overdueFollowUps } counts for req.tenantId.
+2. In src/lib/api.ts extend leadApi with getPipelineSummary().
+3. In src/pages/Leads.tsx add status filter chips at the top driven by pipeline summary counts; add "Overdue follow-up" toggle filtering leads where nextFollowUp < today and status not won|lost.
+4. Show a red badge on rows with overdue nextFollowUp.
+
+Tenant-scope all queries. Match existing requirePermission("leads", "view") pattern.
+```
+
+---
+
+### Clients
+
+**Current:** `Client` + `ClientDocument` models; `ClientProfile.tsx` (~15 KB) with passport/NID fields. `clientApi.uploadDocument()` POSTs to `/clients/:id/documents` but **backend route is missing**.
+
+**Write next:** End-to-end client document upload (highest-impact fix for this module).
+
+#### Cursor AI build prompt
+
+```
+@codebase
+Implement client document upload (frontend already calls it):
+
+1. In backend/src/routes/clients.js add:
+   - GET /:id/documents → list ClientDocument for tenant-scoped client
+   - POST /:id/documents → multer.single("file") using shared upload middleware (pdf/jpeg/png, 5MB), save to UPLOAD_DIR/clients/{clientId}/
+   - DELETE /:id/documents/:docId → tenant-scoped delete
+2. Reuse ensure-client-tenant pattern from existing getTenantClient().
+3. In src/pages/ClientProfile.tsx wire document list + upload form to clientApi.uploadDocument and new list/delete methods in src/lib/api.ts.
+4. Display uploaded files with download link via /uploads/ path.
+
+Mirror backend/src/routes/bookings.js document routes. No schema change required.
+```
+
+---
+
+### Agents
+
+**Current:** `Agents.tsx` is a 6-line `CrudPage` wrapper (~243 bytes). Generic CRUD at `/api/agents` only — no commission, no performance stats, no detail page.
+
+**Write next:** Agent commission field + list columns + booking stats on detail drawer.
+
+#### Cursor AI build prompt
+
+```
+@codebase
+Extend the agents module beyond bare CRUD:
+
+1. Add nullable commissionRate Float and notes String? to Agent in backend/prisma/schema.prisma (additive migration).
+2. Allow commissionRate in PATCH/POST /api/agents via crud.js (field passes through req.body on agent model only).
+3. Replace src/pages/Agents.tsx thin wrapper with a dedicated page (or extend CrudPage props) showing table columns: name, phone, email, commissionRate (%), active booking count.
+4. Add GET /api/agents/:id/summary returning { bookingCount, totalSales, totalCommission } for bookings where agentId matches and tenantId matches.
+5. Click row opens a Sheet/Dialog with summary stats and edit form.
+
+Keep CrudPage for other resources unchanged. Use existing UI components from src/components/ui.
+```
+
+---
+
+### Vendors
+
+**Current:** Rich vendor module — bills, payments, notes, payables report. `Vendors.tsx` + `VendorDetails.tsx` (~28 KB each). Booking segments use free-text `supplier` more often than `vendorId`.
+
+**Write next:** Link booking segments to vendors + payables aging on vendor detail.
+
+#### Cursor AI build prompt
+
+```
+@codebase
+Strengthen vendor ↔ booking linkage and payables UX:
+
+1. Add optional vendorId String? FK on BookingSegment in schema.prisma (relation to Vendor, onDelete SetNull).
+2. In backend/src/routes/bookings.js segment POST/PATCH validate vendorId belongs to req.tenantId.
+3. In src/pages/BookingDetails.tsx segment form add Vendor select (vendorApi.list()) storing vendorId; show vendor name when set.
+4. In src/pages/VendorDetails.tsx add "Payables aging" card: buckets 0-30, 31-60, 61-90, 90+ days from vendor bills dueDate vs today using existing bills data.
+
+Additive migration only. Do not break existing segments without vendorId.
+```
+
+---
+
+### Quotations
+
+**Current:** Builder (`QuotationBuilder.tsx` ~37 KB), versions, convert-to-booking, print view. No customer share/approve link.
+
+**Write next:** Public share token flow so customers can accept quotations without agency login.
+
+#### Cursor AI build prompt
+
+```
+@codebase
+Add quotation customer share and accept flow:
+
+1. Add shareToken String? @unique and shareExpiresAt DateTime? to Quotation in schema.prisma.
+2. POST /api/quotations/:id/share (requirePermission quotations edit) generates crypto token, 7-day expiry, returns { url: FRONTEND_URL + "/q/" + token }.
+3. GET /api/public/quotation/:token (no auth) returns quotation with items/itinerary/grandTotal/client name — exclude totalCost, totalProfit, internal notes.
+4. POST /api/public/quotation/:token/respond body { action: "accept"|"reject" } updates status and writes audit log.
+5. Add public route in src/App.tsx /q/:token read-only page QuotationPublic.tsx and "Copy customer link" on QuotationDetails.tsx.
+
+Register public routes in backend/src/routes/public.js or new publicQuotation.js mounted under /api/public.
+```
+
+---
+
+### Packages & Hajj
+
+**Current:** `TravelPackage` catalog with nested days/inclusions/pricing/media (`Packages.tsx` ~31 KB). Separate `HajjUmrah.tsx` (~62 KB) and `/api/hajj/*`. **P0:** Hajj pilgrim payment routes lack `tenantId` check. Scenario doc wants unified "Packages & Services" with service-type filters.
+
+**Write next:** Security fix first, then navigation bridge between Packages and Hajj without merging pages yet.
+
+#### Cursor AI build prompt
+
+```
+@codebase
+Fix Hajj security and connect Packages ↔ Hajj UX:
+
+SECURITY (do first):
+1. In backend/src/routes/hajj.js add async function ensurePilgrim(req, res) that finds HajjPilgrim by id AND tenantId req.tenantId; return 404 if missing.
+2. Use it on GET/POST /pilgrims/:id/payments and any pilgrim/:id route missing tenant check.
+
+UX (same PR or follow-up):
+3. In src/pages/Packages.tsx add serviceType filter tabs using src/lib/serviceTypes.ts including hajj_umrah.
+4. When filter is hajj_umrah show a banner card: "Manage pilgrims, groups, and installments in Hajj & Umrah Operations" with Button → /hajj-umrah.
+5. On HajjUmrah.tsx header add link back to /travel-packages filtered to hajj_umrah.
+6. Redirect /legacy/hajj-operations → /hajj-umrah in App.tsx.
+
+Do not delete HajjUmrah.tsx. Optional: add nullable travelPackageId on HajjPackage in a follow-up migration only if needed—skip if timeboxed.
+```
+
+---
+
 ## Phased rollout (recommended order)
 
 Aligns with `docs/final-travel-saas-scenario.md` and audit severity.
@@ -1097,5 +1267,5 @@ Aligns with `docs/final-travel-saas-scenario.md` and audit severity.
 | Phase completed | Check off regression list |
 | Plan limits change | Reseed `PlatformPlan` and regenerate permissions doc |
 
-**Last updated:** 2026-06-09  
+**Last updated:** 2026-06-09 (module build prompts added)  
 **Next review:** After Phase 0 completion or first production cutover.
