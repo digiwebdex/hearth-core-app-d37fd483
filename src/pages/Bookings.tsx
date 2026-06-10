@@ -22,7 +22,6 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { bookingApi, quotationApi, type Booking, type BookingStatus, type BookingType, type Quotation } from "@/lib/api";
-import { sendBookingSms } from "@/lib/smsAutomation";
 import EmptyState from "@/components/EmptyState";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
@@ -121,17 +120,6 @@ const Bookings = () => {
       bookingApi.create(booking).then((created: any) => {
         setItems((prev) => [...prev, created]);
         toast({ title: t("bookingsForm.bookingCreated") });
-        sendBookingSms({
-          bookingId: created.id,
-          bookingType: created.type,
-          bookingStatus: created.status,
-          bookingAmount: created.amount,
-          clientName: created.clientName || created.clientId,
-          clientPhone: "",
-          company: "Travel Agency",
-        }).then((res) => {
-          if (res.sent) toast({ title: t("bookingsForm.smsSent") });
-        }).catch(() => {});
       }).catch((err: any) => {
         toast({ title: t("bookingsForm.createFailed"), description: err.message, variant: "destructive" });
       });
