@@ -35,7 +35,7 @@ Copy `backend/.env.example` → `backend/.env` and set at minimum:
 - `CORS_ORIGIN=http://localhost:8080,http://localhost:5173`
 - `UPLOAD_DIR=/workspace/backend/uploads` and `LOG_DIR=/workspace/backend/logs`
 
-Then run `cd backend && npm run setup` (installs deps, `prisma db push`, seeds demo data).
+Then run `cd backend && npm run setup` (installs deps, `prisma db push`, seeds demo data). For migration-based deploys use `npx prisma migrate deploy` instead of `db push`.
 
 ### Starting services
 
@@ -53,12 +53,12 @@ Health check: `curl http://localhost:4000/api/health`
 
 ### Seeded credentials
 
-From `backend/prisma/seed.js`:
+Configure via `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_DEMO_EMAIL`, `SEED_DEMO_PASSWORD` in `backend/.env`. Defaults match the historical demo accounts; passwords are **not** printed by the seed script.
 
-| Role | Email | Password |
-|------|-------|----------|
-| Super admin | `digiwebdex@gmail.com` | `KeyaIq11151000@#` |
-| Demo tenant owner | `user@demo.com` | `demo123` |
+| Role | Default email |
+|------|----------------|
+| Super admin | `digiwebdex@gmail.com` |
+| Demo tenant owner | `user@demo.com` |
 
 Login UI: http://localhost:8080/login → redirects to `/dashboard` on success.
 

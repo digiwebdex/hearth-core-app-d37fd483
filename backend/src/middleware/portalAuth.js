@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
+const { getJwtSecret } = require("./jwtSecret");
 
-const SECRET = process.env.JWT_SECRET || "dev-secret";
+const SECRET = getJwtSecret();
 const PORTAL_AUDIENCE = "portal";
 
 /**

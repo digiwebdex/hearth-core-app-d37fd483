@@ -1,4 +1,7 @@
 require("dotenv").config();
+const { assertJwtSecretAtBoot } = require("./middleware/jwtSecret");
+assertJwtSecretAtBoot();
+
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
@@ -140,6 +143,10 @@ app.use("/api/portal", require("./routes/portal"));
 
 // Email routes (authenticated)
 app.use("/api/email", require("./routes/email"));
+
+// SMS & notifications (authenticated)
+app.use("/api/sms", require("./routes/sms"));
+app.use("/api/notifications", require("./routes/notifications"));
 
 // Cron routes (protected by CRON_SECRET, not JWT)
 app.use("/api/cron", require("./routes/cron"));
