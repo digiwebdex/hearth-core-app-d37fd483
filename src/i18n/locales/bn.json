@@ -219,6 +219,76 @@
       "visa": "ভিসা",
       "package": "প্যাকেজ"
     },
+    "ticketFields": {
+      "flightNumber": "ফ্লাইট নম্বর",
+      "airline": "এয়ারলাইন",
+      "fromCity": "যাত্রা শুরু শহর",
+      "toCity": "গন্তব্য শহর",
+      "departureDate": "যাত্রার তারিখ",
+      "returnDate": "ফেরার তারিখ",
+      "isRoundTrip": "রাউন্ড ট্রিপ",
+      "cabinClass": "কেবিন ক্লাস",
+      "cabinEconomy": "ইকোনমি",
+      "cabinBusiness": "বিজনেস",
+      "cabinFirst": "ফার্স্ট",
+      "pnrNumber": "পিএনআর নম্বর",
+      "ticketDeadline": "টিকেট ডেডলাইন",
+      "travelerCount": "যাত্রী সংখ্যা"
+    },
+    "tourFields": {
+      "destination": "গন্তব্য",
+      "tourOperator": "ট্যুর অপারেটর",
+      "itinerary": "ভ্রমণসূচি",
+      "includesHotel": "হোটেল অন্তর্ভুক্ত",
+      "includesTransfer": "ট্রান্সফার অন্তর্ভুক্ত"
+    },
+    "hotelFields": {
+      "hotelName": "হোটেলের নাম",
+      "hotelCity": "শহর",
+      "hotelCountry": "দেশ",
+      "checkInDate": "চেক-ইন তারিখ",
+      "checkOutDate": "চেক-আউট তারিখ",
+      "roomType": "রুমের ধরন",
+      "roomCount": "রুম সংখ্যা",
+      "guestCount": "অতিথি সংখ্যা",
+      "confirmationNumber": "কনফার্মেশন নম্বর",
+      "roomTypes": {
+        "single": "সিঙ্গেল",
+        "double": "ডাবল",
+        "twin": "টুইন",
+        "triple": "ট্রিপল",
+        "suite": "স্যুট",
+        "other": "অন্যান্য"
+      }
+    },
+    "visaFields": {
+      "visaCountry": "ভিসার দেশ",
+      "visaType": "ভিসার ধরন",
+      "passportNumber": "পাসপোর্ট নম্বর",
+      "passportExpiry": "পাসপোর্ট মেয়াদ",
+      "applicationDate": "আবেদনের তারিখ",
+      "appointmentDate": "অ্যাপয়েন্টমেন্ট তারিখ",
+      "submissionDate": "জমা দেওয়ার তারিখ",
+      "expectedApprovalDate": "প্রত্যাশিত অনুমোদন তারিখ",
+      "visaFee": "ভিসা ফি (৳)",
+      "serviceFee": "সেবা ফি (৳)",
+      "visaTypes": {
+        "tourist": "পর্যটক",
+        "business": "ব্যবসায়িক",
+        "transit": "ট্রানজিট",
+        "work": "কর্ম",
+        "student": "ছাত্র",
+        "other": "অন্যান্য"
+      }
+    },
+    "packageFields": {
+      "packageId": "ট্রাভেল প্যাকেজ",
+      "selectPackage": "প্যাকেজ নির্বাচন করুন",
+      "noPackage": "কোনো প্যাকেজ নেই",
+      "packageTitleSnapshot": "প্যাকেজ শিরোনাম",
+      "packageCodeSnapshot": "প্যাকেজ কোড",
+      "customizations": "কাস্টমাইজেশন"
+    },
     "payments": {
       "all": "সব পেমেন্ট",
       "unpaid": "অপরিশোধিত",
