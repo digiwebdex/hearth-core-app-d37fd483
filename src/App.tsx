@@ -22,6 +22,7 @@ import WebsiteBuilderHome from "./pages/WebsiteBuilderHome";
 import WebsitePublishGuide from "./pages/WebsitePublishGuide";
 import Clients from "./pages/Clients";
 import Agents from "./pages/Agents";
+import AgentProfile from "./pages/AgentProfile";
 import Vendors from "./pages/Vendors";
 import VendorDetails from "./pages/VendorDetails";
 import Leads from "./pages/Leads";
@@ -148,6 +149,7 @@ const AppContent = () => (
           <Route path="/clients" element={<P><Clients /></P>} />
           <Route path="/clients/:id" element={<P><ClientProfile /></P>} />
           <Route path="/agents" element={<P><Agents /></P>} />
+          <Route path="/agents/:id" element={<P><AgentProfile /></P>} />
           <Route path="/vendors" element={<P><Vendors /></P>} />
           <Route path="/vendors/:id" element={<P><VendorDetails /></P>} />
           <Route path="/leads" element={<P><Leads /></P>} />

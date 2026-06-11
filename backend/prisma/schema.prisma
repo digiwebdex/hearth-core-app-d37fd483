@@ -84,7 +84,8 @@ model User {
   rejectionReason   String?
   tenantId          String
   tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdAt         DateTime @default(now())
+  createdAt              DateTime                @default(now())
+  agentCommissionProfile AgentCommissionProfile?
 }
 
 model Client {
@@ -125,14 +126,32 @@ model ClientDocument {
 }
 
 model Agent {
-  id        String   @id @default(uuid())
-  name      String
-  phone     String   @default("")
-  email     String   @default("")
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  bookings  Booking[]
+  id                String                  @id @default(uuid())
+  name              String
+  phone             String                  @default("")
+  email             String                  @default("")
+  tenantId          String
+  tenant            Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt         DateTime                @default(now())
+  bookings          Booking[]
+  commissionProfile AgentCommissionProfile?
+}
+
+model AgentCommissionProfile {
+  agentId        String   @id
+  agent          Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  commissionRate Float    @default(0)
+  status         String   @default("active")
+  userId         String?  @unique
+  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  updatedAt      DateTime @updatedAt
+}
+
+model BookingAgentCommission {
+  bookingId             String  @id
+  booking               Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  agentCommissionAmount Float?
+  agentCommissionStatus String? @default("pending")
 }
 
 model Vendor {
@@ -291,6 +310,7 @@ model Booking {
   timeline             BookingTimelineEvent[]
   documents            BookingDocument[]
   invoices             Invoice[]
+  agentCommission      BookingAgentCommission?
 }
 
 model BookingSegment {

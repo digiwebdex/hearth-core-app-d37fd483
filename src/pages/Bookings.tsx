@@ -31,6 +31,7 @@ import { TourFields } from "@/components/bookings/TourFields";
 import { HotelFields } from "@/components/bookings/HotelFields";
 import { VisaFields } from "@/components/bookings/VisaFields";
 import { PackageFields } from "@/components/bookings/PackageFields";
+import { AgentSelect } from "@/components/bookings/AgentSelect";
 import { emptyForm, type BookingFormState } from "@/components/bookings/types";
 
 const STATUS_META: { value: BookingStatus; color: string; icon: any }[] = [
@@ -456,10 +457,10 @@ const Bookings = () => {
                         <Label>{t("bookingsForm.clientName")}</Label>
                         <Input value={form.clientName} onChange={(e) => setForm((f) => ({ ...f, clientName: e.target.value }))} placeholder={t("bookingsForm.clientPlaceholder")} required />
                       </div>
-                      <div className="space-y-2">
-                        <Label>{t("bookingsForm.agentStaff")}</Label>
-                        <Input value={form.agentId} onChange={(e) => setForm((f) => ({ ...f, agentId: e.target.value }))} placeholder={t("bookingsForm.agentPlaceholder")} />
-                      </div>
+                      <AgentSelect
+                        value={form.agentId}
+                        onChange={(agentId) => setForm((f) => ({ ...f, agentId }))}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label>{t("bookingsForm.travelers")}</Label>
