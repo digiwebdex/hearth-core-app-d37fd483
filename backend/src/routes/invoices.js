@@ -1,4 +1,5 @@
 const router = require("express").Router();
+const { dispatchTenantAutomation } = require("../services/tenantAutomationService");
 const multer = require("multer");
 const path = require("path");
 const { authenticate, requirePermission, prisma } = require("../middleware/auth");
@@ -140,6 +141,28 @@ router.post("/:id/payments", requirePermission("invoices", "create"), async (req
         newValue: JSON.stringify({ amount: payment.amount, method: payment.method, paymentId: payment.id }),
       },
     }).catch(() => {});
+
+    const client = await prisma.client.findFirst({
+      where: { id: refreshedInvoice.clientId, tenantId: req.tenantId },
+      select: { name: true, phone: true },
+    }).catch(() => null);
+
+    dispatchTenantAutomation("payment_received", {
+      tenantId: req.tenantId,
+      actorUserId: req.userId,
+      payload: {
+        relatedType: "payment",
+        relatedId: payment.id,
+        invoiceId: refreshedInvoice.id,
+        invoiceNumber: refreshedInvoice.invoiceNumber,
+        amount: payment.amount,
+        paymentMethod: payment.method,
+        balance: Math.max(0, refreshedInvoice.totalAmount - paid),
+        clientName: client?.name || refreshedInvoice.clientName || "",
+        clientPhone: client?.phone || "",
+        tenantName: tenant?.name || "",
+      },
+    }).catch((err) => console.error("[automation] payment_received:", err.message));
 
     res.status(201).json(payment);
   } catch (err) { res.status(500).json({ message: err.message }); }

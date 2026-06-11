@@ -45,6 +45,13 @@ Live routes are mounted in `backend/src/index.js`. JWT required unless marked Pu
 - `GET /api/notifications/unread-count`
 - `PATCH /api/notifications/:id/read`, `PATCH /api/notifications/read-all`
 - `DELETE /api/notifications/:id`
+- `GET/PATCH /api/notifications/automation` — per-event channel toggles (`sms`, `in_app`)
+- `GET /api/notifications/automation/logs` — paginated delivery log (`messagePreview` in list)
+- `GET /api/notifications/automation/logs/stats`
+- `GET /api/notifications/automation/logs/:id`
+
+## Tenant notification settings
+- `GET/PATCH /api/tenants/me/notification-settings` — `SmsSettings` toggles (non-secret; `tenant_owner` for PATCH)
 
 ## Client documents
 - `GET/POST /api/clients/:id/documents` — multipart field `files[]`

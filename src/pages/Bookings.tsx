@@ -22,11 +22,16 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { bookingApi, quotationApi, type Booking, type BookingStatus, type BookingType, type Quotation } from "@/lib/api";
-import { sendBookingSms } from "@/lib/smsAutomation";
 import EmptyState from "@/components/EmptyState";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
 import { getServiceTypeLabel } from "@/lib/serviceTypes";
+import { TicketFields } from "@/components/bookings/TicketFields";
+import { TourFields } from "@/components/bookings/TourFields";
+import { HotelFields } from "@/components/bookings/HotelFields";
+import { VisaFields } from "@/components/bookings/VisaFields";
+import { PackageFields } from "@/components/bookings/PackageFields";
+import { emptyForm, type BookingFormState } from "@/components/bookings/types";
 
 const STATUS_META: { value: BookingStatus; color: string; icon: any }[] = [
   { value: "pending", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200", icon: Clock },
@@ -47,32 +52,186 @@ const TYPE_ICONS: Record<BookingType, any> = {
 
 const getStatusMeta = (s: BookingStatus) => STATUS_META.find((x) => x.value === s) || STATUS_META[0];
 
-const emptyForm = {
-  type: "tour" as BookingType,
-  title: "",
-  clientId: "",
-  clientName: "",
-  agentId: "",
-  destination: "",
-  travelerCount: 1,
-  amount: 0,
-  cost: 0,
-  status: "pending" as BookingStatus,
-  travelDateFrom: "",
-  travelDateTo: "",
-  internalNotes: "",
-};
+function Tab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <Button type="button" variant={active ? "default" : "outline"} size="sm" onClick={onClick}>
+      {children}
+    </Button>
+  );
+}
+
+function maskPassport(passport: string): string {
+  const p = passport.trim();
+  if (!p) return "";
+  if (p.length === 1) return `${p}****`;
+  return `${p[0]}****${p[p.length - 1]}`;
+}
+
+function getBookingTypeInfo(b: Booking): string {
+  switch (b.type) {
+    case "ticket": {
+      const flight = b.flightNumber || "";
+      const airline = b.airline || b.supplierName || "";
+      const pnr = b.pnrNumber || b.supplierRef || "";
+      return [flight, airline, pnr].filter(Boolean).join(" · ");
+    }
+    case "hotel": {
+      const name = b.hotelName || b.supplierName || "";
+      const inDate = b.checkInDate || b.travelDateFrom || "";
+      const outDate = b.checkOutDate || b.travelDateTo || "";
+      return [name, inDate, outDate].filter(Boolean).join(" · ");
+    }
+    case "visa": {
+      const country = b.visaCountry || b.destination || "";
+      const passport = b.passportNumber ? maskPassport(b.passportNumber) : "";
+      return [country, passport].filter(Boolean).join(" · ");
+    }
+    case "tour": {
+      const dest = b.destination || "";
+      const op = b.tourOperator || b.supplierName || "";
+      return [dest, op].filter(Boolean).join(" · ");
+    }
+    case "package": {
+      const code = b.packageCodeSnapshot || "";
+      const title = b.packageTitleSnapshot || "";
+      return [code, title].filter(Boolean).join(" · ");
+    }
+    default:
+      return "";
+  }
+}
+
+function formTypeDetails(form: BookingFormState): Partial<Booking> {
+  return {
+    flightNumber: form.flightNumber || undefined,
+    airline: form.airline || undefined,
+    pnrNumber: form.pnrNumber || undefined,
+    tourOperator: form.tourOperator || undefined,
+    hotelName: form.hotelName || undefined,
+    checkInDate: form.checkInDate || undefined,
+    checkOutDate: form.checkOutDate || undefined,
+    visaCountry: form.visaCountry || undefined,
+    passportNumber: form.passportNumber || undefined,
+    packageTitleSnapshot: form.packageTitleSnapshot || undefined,
+    packageCodeSnapshot: form.packageCodeSnapshot || undefined,
+    destination: form.destination || undefined,
+  };
+}
+
+function formToApiPayload(form: BookingFormState) {
+  const profit = form.amount - form.cost;
+  const base = {
+    type: form.type,
+    title: form.title,
+    clientId: form.clientId,
+    clientName: form.clientName,
+    agentId: form.agentId,
+    amount: form.amount,
+    cost: form.cost,
+    profit,
+    status: form.status,
+    travelerCount: form.travelerCount,
+    internalNotes: form.internalNotes,
+    packageId: form.packageId || undefined,
+    packageTitleSnapshot: form.packageTitleSnapshot || undefined,
+    packageCodeSnapshot: form.packageCodeSnapshot || undefined,
+  };
+
+  switch (form.type) {
+    case "ticket":
+      return {
+        ...base,
+        destination: form.toCity || form.destination || undefined,
+        travelDateFrom: form.departureDate || form.travelDateFrom || undefined,
+        travelDateTo: form.returnDate || form.travelDateTo || undefined,
+        supplierName: form.airline || undefined,
+        supplierRef: form.pnrNumber || form.flightNumber || undefined,
+      };
+    case "hotel":
+      return {
+        ...base,
+        destination: form.hotelCity || form.hotelName || form.destination || undefined,
+        travelDateFrom: form.checkInDate || form.travelDateFrom || undefined,
+        travelDateTo: form.checkOutDate || form.travelDateTo || undefined,
+        supplierName: form.hotelName || undefined,
+        supplierRef: form.confirmationNumber || undefined,
+      };
+    case "visa":
+      return {
+        ...base,
+        destination: form.visaCountry || form.destination || undefined,
+      };
+    case "tour":
+      return {
+        ...base,
+        destination: form.destination || undefined,
+        travelDateFrom: form.travelDateFrom || undefined,
+        travelDateTo: form.travelDateTo || undefined,
+        supplierName: form.tourOperator || undefined,
+      };
+    case "package":
+      return {
+        ...base,
+        destination: form.destination || undefined,
+        travelDateFrom: form.travelDateFrom || undefined,
+        travelDateTo: form.travelDateTo || undefined,
+        packageId: form.packageId || undefined,
+      };
+    default:
+      return {
+        ...base,
+        destination: form.destination || undefined,
+        travelDateFrom: form.travelDateFrom || undefined,
+        travelDateTo: form.travelDateTo || undefined,
+      };
+  }
+}
+
+function bookingToForm(b: Booking): BookingFormState {
+  return {
+    ...emptyForm,
+    id: b.id,
+    type: b.type,
+    title: b.title || "",
+    clientId: b.clientId,
+    clientName: b.clientName || "",
+    agentId: b.agentId || "",
+    amount: b.amount,
+    cost: b.cost,
+    status: b.status,
+    travelDateFrom: b.travelDateFrom || "",
+    travelDateTo: b.travelDateTo || "",
+    travelerCount: b.travelerCount || 1,
+    internalNotes: b.internalNotes || "",
+    packageId: b.packageId || "",
+    packageTitleSnapshot: b.packageTitleSnapshot || "",
+    packageCodeSnapshot: b.packageCodeSnapshot || "",
+    destination: b.destination || "",
+    flightNumber: b.flightNumber || b.supplierRef || "",
+    airline: b.airline || b.supplierName || "",
+    pnrNumber: b.pnrNumber || b.supplierRef || "",
+    departureDate: b.travelDateFrom || "",
+    returnDate: b.travelDateTo || "",
+    tourOperator: b.tourOperator || b.supplierName || "",
+    hotelName: b.hotelName || b.supplierName || "",
+    checkInDate: b.checkInDate || b.travelDateFrom || "",
+    checkOutDate: b.checkOutDate || b.travelDateTo || "",
+    visaCountry: b.visaCountry || b.destination || "",
+    passportNumber: b.passportNumber || "",
+  };
+}
 
 const Bookings = () => {
   const { t } = useTranslation();
   const [items, setItems] = useState<Booking[]>([]);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState<BookingFormState>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [paymentFilter, setPaymentFilter] = useState("all");
   const [destinationFilter, setDestinationFilter] = useState("");
   const [travelDateFrom, setTravelDateFrom] = useState<Date | undefined>();
@@ -109,29 +268,19 @@ const Bookings = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const booking = { ...form, profit: form.amount - form.cost };
+    const payload = formToApiPayload(form);
+    const typeDetails = formTypeDetails(form);
     if (editingId) {
-      bookingApi.update(editingId, booking).then(() => {
-        setItems((prev) => prev.map((b) => b.id === editingId ? { ...b, ...booking } : b));
+      bookingApi.update(editingId, payload).then((updated: Booking) => {
+        setItems((prev) => prev.map((b) => (b.id === editingId ? { ...b, ...updated, ...typeDetails } : b)));
         toast({ title: t("bookingsForm.bookingUpdated") });
       }).catch((err: any) => {
         toast({ title: t("bookingsForm.updateFailed"), description: err.message, variant: "destructive" });
       });
     } else {
-      bookingApi.create(booking).then((created: any) => {
-        setItems((prev) => [...prev, created]);
+      bookingApi.create(payload).then((created: Booking) => {
+        setItems((prev) => [...prev, { ...created, ...typeDetails }]);
         toast({ title: t("bookingsForm.bookingCreated") });
-        sendBookingSms({
-          bookingId: created.id,
-          bookingType: created.type,
-          bookingStatus: created.status,
-          bookingAmount: created.amount,
-          clientName: created.clientName || created.clientId,
-          clientPhone: "",
-          company: "Travel Agency",
-        }).then((res) => {
-          if (res.sent) toast({ title: t("bookingsForm.smsSent") });
-        }).catch(() => {});
       }).catch((err: any) => {
         toast({ title: t("bookingsForm.createFailed"), description: err.message, variant: "destructive" });
       });
@@ -141,21 +290,7 @@ const Bookings = () => {
   };
 
   const handleEdit = (b: Booking) => {
-    setForm({
-      type: b.type,
-      title: b.title || "",
-      clientId: b.clientId,
-      clientName: b.clientName || "",
-      agentId: b.agentId,
-      destination: b.destination || "",
-      travelerCount: b.travelerCount || 1,
-      amount: b.amount,
-      cost: b.cost,
-      status: b.status,
-      travelDateFrom: b.travelDateFrom || "",
-      travelDateTo: b.travelDateTo || "",
-      internalNotes: b.internalNotes || "",
-    });
+    setForm(bookingToForm(b));
     setEditingId(b.id);
     setDialogOpen(true);
   };
@@ -207,13 +342,14 @@ const Bookings = () => {
         b.packageTitleSnapshot?.toLowerCase().includes(search.toLowerCase()) ||
         b.packageCodeSnapshot?.toLowerCase().includes(search.toLowerCase());
       const matchStatus = statusFilter === "all" || b.status === statusFilter;
+      const matchType = typeFilter === "all" || b.type === typeFilter;
       const matchPayment = paymentFilter === "all" || b.paymentStatus === paymentFilter;
       const matchDest = !destinationFilter || (b.destination || "").toLowerCase().includes(destinationFilter.toLowerCase());
       const matchTravelFrom = !travelDateFrom || (b.travelDateFrom && new Date(b.travelDateFrom) >= travelDateFrom);
       const matchTravelTo = !travelDateTo || (b.travelDateFrom && new Date(b.travelDateFrom) <= travelDateTo);
-      return matchSearch && matchStatus && matchPayment && matchDest && matchTravelFrom && matchTravelTo;
+      return matchSearch && matchStatus && matchType && matchPayment && matchDest && matchTravelFrom && matchTravelTo;
     });
-  }, [items, search, statusFilter, paymentFilter, destinationFilter, travelDateFrom, travelDateTo]);
+  }, [items, search, statusFilter, typeFilter, paymentFilter, destinationFilter, travelDateFrom, travelDateTo]);
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -248,6 +384,13 @@ const Bookings = () => {
     });
     return counts;
   }, [items]);
+
+  const totalCount = items.length;
+  const tourCount = useMemo(() => items.filter((b) => b.type === "tour").length, [items]);
+  const ticketCount = useMemo(() => items.filter((b) => b.type === "ticket").length, [items]);
+  const hotelCount = useMemo(() => items.filter((b) => b.type === "hotel").length, [items]);
+  const visaCount = useMemo(() => items.filter((b) => b.type === "visa").length, [items]);
+  const packageCount = useMemo(() => items.filter((b) => b.type === "package").length, [items]);
 
   return (
     <DashboardLayout>
@@ -303,6 +446,11 @@ const Bookings = () => {
                         </Select>
                       </div>
                     </div>
+                    {form.type === "ticket" && <TicketFields form={form} setForm={setForm} />}
+                    {form.type === "tour" && <TourFields form={form} setForm={setForm} />}
+                    {form.type === "hotel" && <HotelFields form={form} setForm={setForm} />}
+                    {form.type === "visa" && <VisaFields form={form} setForm={setForm} />}
+                    {form.type === "package" && <PackageFields form={form} setForm={setForm} />}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>{t("bookingsForm.clientName")}</Label>
@@ -313,26 +461,22 @@ const Bookings = () => {
                         <Input value={form.agentId} onChange={(e) => setForm((f) => ({ ...f, agentId: e.target.value }))} placeholder={t("bookingsForm.agentPlaceholder")} />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>{t("bookingsForm.destination")}</Label>
-                        <Input value={form.destination} onChange={(e) => setForm((f) => ({ ...f, destination: e.target.value }))} placeholder={t("bookingsForm.destinationFormPlaceholder")} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>{t("bookingsForm.travelers")}</Label>
-                        <Input type="number" min={1} value={form.travelerCount} onChange={(e) => setForm((f) => ({ ...f, travelerCount: +e.target.value }))} />
-                      </div>
+                    <div className="space-y-2">
+                      <Label>{t("bookingsForm.travelers")}</Label>
+                      <Input type="number" min={1} value={form.travelerCount} onChange={(e) => setForm((f) => ({ ...f, travelerCount: +e.target.value }))} />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>{t("bookingsForm.travelFrom")}</Label>
-                        <Input type="date" value={form.travelDateFrom} onChange={(e) => setForm((f) => ({ ...f, travelDateFrom: e.target.value }))} />
+                    {(form.type === "tour" || form.type === "package") && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>{t("bookingsForm.travelFrom")}</Label>
+                          <Input type="date" value={form.travelDateFrom} onChange={(e) => setForm((f) => ({ ...f, travelDateFrom: e.target.value }))} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>{t("bookingsForm.travelTo")}</Label>
+                          <Input type="date" value={form.travelDateTo} onChange={(e) => setForm((f) => ({ ...f, travelDateTo: e.target.value }))} />
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label>{t("bookingsForm.travelTo")}</Label>
-                        <Input type="date" value={form.travelDateTo} onChange={(e) => setForm((f) => ({ ...f, travelDateTo: e.target.value }))} />
-                      </div>
-                    </div>
+                    )}
                     <div className="grid grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label>{t("bookingsForm.sellingAmount")}</Label>
@@ -422,6 +566,14 @@ const Bookings = () => {
                 {t(`bookingsForm.statuses.${s.value}`)} ({statusCounts[s.value] || 0})
               </Button>
             ))}
+          </div>
+          <div className="flex gap-2 mt-2 flex-wrap">
+            <Tab active={typeFilter === "all"} onClick={() => setTypeFilter("all")}>{t("bookingsForm.all")} ({totalCount})</Tab>
+            <Tab active={typeFilter === "tour"} onClick={() => setTypeFilter("tour")}>{t("bookingsForm.types.tour")} ({tourCount})</Tab>
+            <Tab active={typeFilter === "ticket"} onClick={() => setTypeFilter("ticket")}>{t("bookingsForm.types.ticket")} ({ticketCount})</Tab>
+            <Tab active={typeFilter === "hotel"} onClick={() => setTypeFilter("hotel")}>{t("bookingsForm.types.hotel")} ({hotelCount})</Tab>
+            <Tab active={typeFilter === "visa"} onClick={() => setTypeFilter("visa")}>{t("bookingsForm.types.visa")} ({visaCount})</Tab>
+            <Tab active={typeFilter === "package"} onClick={() => setTypeFilter("package")}>{t("bookingsForm.types.package")} ({packageCount})</Tab>
           </div>
           <div className="flex flex-wrap gap-3">
             <div className="flex items-center gap-2 max-w-sm flex-1">
@@ -532,9 +684,10 @@ const Bookings = () => {
                                 <div className="flex flex-wrap items-center gap-1 mt-1">
                                   <p className="text-xs text-muted-foreground">{t(`bookingsForm.types.${b.type}`)}</p>
                                   {b.serviceType ? <Badge variant="outline" className="text-[10px]">{getServiceTypeLabel(b.serviceType)}</Badge> : null}
-                                  {b.packageCodeSnapshot ? <Badge variant="secondary" className="text-[10px]">{b.packageCodeSnapshot}</Badge> : null}
                                 </div>
-                                {b.packageTitleSnapshot ? <p className="text-[10px] text-muted-foreground truncate max-w-[220px] mt-1">{b.packageTitleSnapshot}</p> : null}
+                                {getBookingTypeInfo(b) ? (
+                                  <p className="text-[10px] text-muted-foreground truncate max-w-[220px] mt-1">{getBookingTypeInfo(b)}</p>
+                                ) : null}
                               </div>
                             </div>
                           </TableCell>

@@ -2,6 +2,7 @@ const router = require("express").Router();
 const multer = require("multer");
 const path = require("path");
 const { authenticate, requirePermission, checkPlanLimit, prisma } = require("../middleware/auth");
+const { dispatchTenantAutomation } = require("../services/tenantAutomationService");
 
 const upload = multer({ dest: process.env.UPLOAD_DIR || path.join(__dirname, "../../uploads") });
 const BOOKING_LIST_INCLUDE = {
@@ -185,6 +186,30 @@ router.post("/", requirePermission("bookings", "create"), checkPlanLimit("bookin
         targetLabel: hydratedBooking?.title || hydratedBooking?.client?.name || hydratedBooking?.destination || booking.id,
       },
     }).catch(() => {});
+
+    const client = hydratedBooking?.clientId
+      ? await prisma.client.findFirst({
+        where: { id: hydratedBooking.clientId, tenantId: req.tenantId },
+        select: { name: true, phone: true },
+      })
+      : null;
+
+    dispatchTenantAutomation("booking_created", {
+      tenantId: req.tenantId,
+      actorUserId: req.userId,
+      payload: {
+        relatedType: "booking",
+        relatedId: booking.id,
+        bookingId: booking.id,
+        bookingTitle: hydratedBooking?.title || booking.title,
+        bookingType: hydratedBooking?.type || booking.type,
+        bookingStatus: hydratedBooking?.status || booking.status,
+        amount: hydratedBooking?.amount ?? booking.amount,
+        clientName: client?.name || hydratedBooking?.clientName || "",
+        clientPhone: client?.phone || "",
+        tenantName: tenant?.name || "",
+      },
+    }).catch((err) => console.error("[automation] booking_created:", err.message));
 
     res.status(201).json(formatBooking(hydratedBooking));
   } catch (err) {
