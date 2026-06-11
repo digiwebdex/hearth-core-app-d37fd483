@@ -219,7 +219,9 @@
       "ticket": "টিকেট",
       "hotel": "হোটেল",
       "visa": "ভিসা",
-      "package": "প্যাকেজ"
+      "package": "প্যাকেজ",
+      "student": "স্টুডেন্ট",
+      "manpower": "ম্যানপাওয়ার"
     },
     "ticketFields": {
       "flightNumber": "ফ্লাইট নম্বর",
@@ -290,6 +292,32 @@
       "packageTitleSnapshot": "প্যাকেজ শিরোনাম",
       "packageCodeSnapshot": "প্যাকেজ কোড",
       "customizations": "কাস্টমাইজেশন"
+    },
+    "studentFields": {
+      "instituteName": "ইনস্টিটিউটের নাম",
+      "courseProgram": "কোর্স / প্রোগ্রাম",
+      "visaCountry": "ভিসার দেশ",
+      "visaType": "ভিসার ধরন",
+      "passportNumber": "পাসপোর্ট নম্বর",
+      "passportExpiry": "পাসপোর্ট মেয়াদ",
+      "enrollmentDate": "ভর্তির তারিখ"
+    },
+    "manpowerFields": {
+      "workCountry": "কর্মদেশ",
+      "employer": "নিয়োগকর্তা",
+      "jobTitle": "পদবি",
+      "contractDuration": "চুক্তির মেয়াদ",
+      "contractDurationPh": "যেমন: ২ বছর",
+      "passportNumber": "পাসপোর্ট নম্বর",
+      "passportExpiry": "পাসপোর্ট মেয়াদ",
+      "medicalStatus": "মেডিকেল স্ট্যাটাস",
+      "bmetRegistration": "বিএমইটি নিবন্ধন",
+      "medicalStatuses": {
+        "pending": "বাকি",
+        "cleared": "ক্লিয়ার",
+        "failed": "ব্যর্থ",
+        "not_required": "প্রয়োজন নেই"
+      }
     },
     "payments": {
       "all": "সব পেমেন্ট",

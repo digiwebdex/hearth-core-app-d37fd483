@@ -18,7 +18,7 @@ import { format, isAfter, isBefore, addDays, parseISO } from "date-fns";
 import {
   Plus, Pencil, Trash2, Plane, Search, Eye, DollarSign,
   CalendarIcon, MapPin, AlertTriangle, Clock, CheckCircle2, XCircle,
-  Ticket, Hotel, Stamp, Package, Filter, FileText,
+  Ticket, Hotel, Stamp, Package, Filter, FileText, GraduationCap, HardHat,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { bookingApi, quotationApi, type Booking, type BookingStatus, type BookingType, type Quotation } from "@/lib/api";
@@ -31,6 +31,8 @@ import { TourFields } from "@/components/bookings/TourFields";
 import { HotelFields } from "@/components/bookings/HotelFields";
 import { VisaFields } from "@/components/bookings/VisaFields";
 import { PackageFields } from "@/components/bookings/PackageFields";
+import { StudentFields } from "@/components/bookings/StudentFields";
+import { ManpowerFields } from "@/components/bookings/ManpowerFields";
 import { AgentSelect } from "@/components/bookings/AgentSelect";
 import { emptyForm, type BookingFormState } from "@/components/bookings/types";
 
@@ -43,12 +45,14 @@ const STATUS_META: { value: BookingStatus; color: string; icon: any }[] = [
   { value: "cancelled", color: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200", icon: XCircle },
 ];
 
-const TYPE_ICONS: Record<BookingType, any> = {
+const TYPE_ICONS: Record<BookingType, typeof MapPin> = {
   tour: MapPin,
   ticket: Ticket,
   hotel: Hotel,
   visa: Stamp,
   package: Package,
+  student: GraduationCap,
+  manpower: HardHat,
 };
 
 const getStatusMeta = (s: BookingStatus) => STATUS_META.find((x) => x.value === s) || STATUS_META[0];
@@ -97,6 +101,18 @@ function getBookingTypeInfo(b: Booking): string {
       const title = b.packageTitleSnapshot || "";
       return [code, title].filter(Boolean).join(" · ");
     }
+    case "student": {
+      const institute = b.instituteName || b.supplierName || "";
+      const program = b.courseProgram || b.supplierRef || "";
+      const country = b.visaCountry || b.destination || "";
+      return [institute, program, country].filter(Boolean).join(" · ");
+    }
+    case "manpower": {
+      const country = b.workCountry || b.destination || "";
+      const employer = b.employer || b.supplierName || "";
+      const job = b.jobTitle || b.supplierRef || "";
+      return [country, employer, job].filter(Boolean).join(" · ");
+    }
     default:
       return "";
   }
@@ -116,6 +132,16 @@ function formTypeDetails(form: BookingFormState): Partial<Booking> {
     packageTitleSnapshot: form.packageTitleSnapshot || undefined,
     packageCodeSnapshot: form.packageCodeSnapshot || undefined,
     destination: form.destination || undefined,
+    passportExpiry: form.passportExpiry || undefined,
+    instituteName: form.instituteName || undefined,
+    courseProgram: form.courseProgram || undefined,
+    enrollmentDate: form.enrollmentDate || undefined,
+    workCountry: form.workCountry || undefined,
+    employer: form.employer || undefined,
+    jobTitle: form.jobTitle || undefined,
+    contractDuration: form.contractDuration || undefined,
+    medicalStatus: form.medicalStatus || undefined,
+    bmetRegistration: form.bmetRegistration || undefined,
   };
 }
 
@@ -178,6 +204,21 @@ function formToApiPayload(form: BookingFormState) {
         travelDateTo: form.travelDateTo || undefined,
         packageId: form.packageId || undefined,
       };
+    case "student":
+      return {
+        ...base,
+        destination: form.visaCountry || undefined,
+        supplierName: form.instituteName || undefined,
+        supplierRef: form.courseProgram || undefined,
+        travelDateFrom: form.enrollmentDate || undefined,
+      };
+    case "manpower":
+      return {
+        ...base,
+        destination: form.workCountry || undefined,
+        supplierName: form.employer || undefined,
+        supplierRef: form.jobTitle || undefined,
+      };
     default:
       return {
         ...base,
@@ -219,6 +260,16 @@ function bookingToForm(b: Booking): BookingFormState {
     checkOutDate: b.checkOutDate || b.travelDateTo || "",
     visaCountry: b.visaCountry || b.destination || "",
     passportNumber: b.passportNumber || "",
+    passportExpiry: b.passportExpiry || "",
+    instituteName: b.instituteName || (b.type === "student" ? b.supplierName || "" : ""),
+    courseProgram: b.courseProgram || (b.type === "student" ? b.supplierRef || "" : ""),
+    enrollmentDate: b.enrollmentDate || (b.type === "student" ? b.travelDateFrom || "" : ""),
+    workCountry: b.workCountry || (b.type === "manpower" ? b.destination || "" : ""),
+    employer: b.employer || (b.type === "manpower" ? b.supplierName || "" : ""),
+    jobTitle: b.jobTitle || (b.type === "manpower" ? b.supplierRef || "" : ""),
+    contractDuration: b.contractDuration || "",
+    medicalStatus: (b.medicalStatus as BookingFormState["medicalStatus"]) || "pending",
+    bmetRegistration: b.bmetRegistration || "",
   };
 }
 
@@ -392,6 +443,8 @@ const Bookings = () => {
   const hotelCount = useMemo(() => items.filter((b) => b.type === "hotel").length, [items]);
   const visaCount = useMemo(() => items.filter((b) => b.type === "visa").length, [items]);
   const packageCount = useMemo(() => items.filter((b) => b.type === "package").length, [items]);
+  const studentCount = useMemo(() => items.filter((b) => b.type === "student").length, [items]);
+  const manpowerCount = useMemo(() => items.filter((b) => b.type === "manpower").length, [items]);
 
   return (
     <DashboardLayout>
@@ -434,6 +487,8 @@ const Bookings = () => {
                             <SelectItem value="hotel">{t("bookingsForm.types.hotel")}</SelectItem>
                             <SelectItem value="visa">{t("bookingsForm.types.visa")}</SelectItem>
                             <SelectItem value="package">{t("bookingsForm.types.package")}</SelectItem>
+                            <SelectItem value="student">{t("bookingsForm.types.student")}</SelectItem>
+                            <SelectItem value="manpower">{t("bookingsForm.types.manpower")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -452,6 +507,8 @@ const Bookings = () => {
                     {form.type === "hotel" && <HotelFields form={form} setForm={setForm} />}
                     {form.type === "visa" && <VisaFields form={form} setForm={setForm} />}
                     {form.type === "package" && <PackageFields form={form} setForm={setForm} />}
+                    {form.type === "student" && <StudentFields form={form} setForm={setForm} />}
+                    {form.type === "manpower" && <ManpowerFields form={form} setForm={setForm} />}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>{t("bookingsForm.clientName")}</Label>
@@ -575,6 +632,8 @@ const Bookings = () => {
             <Tab active={typeFilter === "hotel"} onClick={() => setTypeFilter("hotel")}>{t("bookingsForm.types.hotel")} ({hotelCount})</Tab>
             <Tab active={typeFilter === "visa"} onClick={() => setTypeFilter("visa")}>{t("bookingsForm.types.visa")} ({visaCount})</Tab>
             <Tab active={typeFilter === "package"} onClick={() => setTypeFilter("package")}>{t("bookingsForm.types.package")} ({packageCount})</Tab>
+            <Tab active={typeFilter === "student"} onClick={() => setTypeFilter("student")}>{t("bookingsForm.types.student")} ({studentCount})</Tab>
+            <Tab active={typeFilter === "manpower"} onClick={() => setTypeFilter("manpower")}>{t("bookingsForm.types.manpower")} ({manpowerCount})</Tab>
           </div>
           <div className="flex flex-wrap gap-3">
             <div className="flex items-center gap-2 max-w-sm flex-1">
