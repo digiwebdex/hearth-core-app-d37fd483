@@ -277,7 +277,7 @@ export interface Lead { id: string; name: string; phone: string; email: string; 
 export interface LeadActivity { id: string; leadId: string; type: "note" | "status_change" | "follow_up" | "call" | "email" | "meeting"; content: string; oldStatus?: LeadStatus; newStatus?: LeadStatus; createdBy?: string; createdByName?: string; createdAt: string; }
 export interface Task { id: string; title: string; description: string; status: "todo" | "in_progress" | "done"; priority: "low" | "medium" | "high"; dueDate?: string; assignedTo?: string; tenantId: string; createdAt: string; }
 export type BookingStatus = "pending" | "confirmed" | "ticketed" | "traveling" | "completed" | "cancelled";
-export type BookingType = "tour" | "ticket" | "hotel" | "visa" | "package";
+export type BookingType = "tour" | "ticket" | "hotel" | "visa" | "package" | "student" | "manpower";
 export interface Booking {
   id: string;
   type: BookingType;
@@ -321,6 +321,16 @@ export interface Booking {
   checkOutDate?: string;
   visaCountry?: string;
   passportNumber?: string;
+  passportExpiry?: string;
+  instituteName?: string;
+  courseProgram?: string;
+  enrollmentDate?: string;
+  workCountry?: string;
+  employer?: string;
+  jobTitle?: string;
+  contractDuration?: string;
+  medicalStatus?: string;
+  bmetRegistration?: string;
 }
 export interface BookingSegment { id: string; bookingId?: string; type: "hotel" | "flight" | "transfer" | "visa" | "activity" | "package"; description: string; supplier?: string; supplierRef?: string; startDate?: string; endDate?: string; details?: string; cost: number; sellingPrice: number; status?: "pending" | "confirmed" | "cancelled"; }
 export interface BookingTraveler { id: string; bookingId?: string; name: string; passportNumber?: string; passportExpiry?: string; nationality?: string; dateOfBirth?: string; phone?: string; email?: string; notes?: string; }

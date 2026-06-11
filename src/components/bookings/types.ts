@@ -6,6 +6,8 @@ export type RoomType = "single" | "double" | "twin" | "triple" | "suite" | "othe
 
 export type VisaType = "tourist" | "business" | "transit" | "work" | "student" | "other";
 
+export type MedicalStatus = "pending" | "cleared" | "failed" | "not_required";
+
 export interface BookingFormState {
   // Common
   id: string;
@@ -69,6 +71,19 @@ export interface BookingFormState {
   packageTitleSnapshot: string;
   packageCodeSnapshot: string;
   customizations: string;
+
+  // Student
+  instituteName: string;
+  courseProgram: string;
+  enrollmentDate: string;
+
+  // Manpower
+  workCountry: string;
+  employer: string;
+  jobTitle: string;
+  contractDuration: string;
+  medicalStatus: MedicalStatus;
+  bmetRegistration: string;
 }
 
 export const emptyForm: BookingFormState = {
@@ -128,4 +143,15 @@ export const emptyForm: BookingFormState = {
   packageTitleSnapshot: "",
   packageCodeSnapshot: "",
   customizations: "",
+
+  instituteName: "",
+  courseProgram: "",
+  enrollmentDate: "",
+
+  workCountry: "",
+  employer: "",
+  jobTitle: "",
+  contractDuration: "",
+  medicalStatus: "pending",
+  bmetRegistration: "",
 };

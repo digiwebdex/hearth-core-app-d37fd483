@@ -219,7 +219,9 @@
       "ticket": "Ticket",
       "hotel": "Hotel",
       "visa": "Visa",
-      "package": "Package"
+      "package": "Package",
+      "student": "Student",
+      "manpower": "Manpower"
     },
     "ticketFields": {
       "flightNumber": "Flight Number",
@@ -290,6 +292,32 @@
       "packageTitleSnapshot": "Package Title",
       "packageCodeSnapshot": "Package Code",
       "customizations": "Customizations"
+    },
+    "studentFields": {
+      "instituteName": "Institute Name",
+      "courseProgram": "Course / Program",
+      "visaCountry": "Visa Country",
+      "visaType": "Visa Type",
+      "passportNumber": "Passport Number",
+      "passportExpiry": "Passport Expiry",
+      "enrollmentDate": "Enrollment Date"
+    },
+    "manpowerFields": {
+      "workCountry": "Work Country",
+      "employer": "Employer",
+      "jobTitle": "Job Title",
+      "contractDuration": "Contract Duration",
+      "contractDurationPh": "e.g. 2 years",
+      "passportNumber": "Passport Number",
+      "passportExpiry": "Passport Expiry",
+      "medicalStatus": "Medical Status",
+      "bmetRegistration": "BMET Registration",
+      "medicalStatuses": {
+        "pending": "Pending",
+        "cleared": "Cleared",
+        "failed": "Failed",
+        "not_required": "Not Required"
+      }
     },
     "payments": {
       "all": "All Payments",
