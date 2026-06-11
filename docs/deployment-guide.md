@@ -76,6 +76,23 @@ pm2 stop hearth-api
 pm2 save
 ```
 
+## PM2 production deploy (current live stack)
+
+Until Docker/Coolify cutover, production runs at **`/var/www/hearth-core-app`** with PM2 process **`hearth-api`**.
+
+After `main` is updated (e.g. PR merges):
+
+```bash
+ssh root@YOUR_VPS_IP
+bash /var/www/hearth-core-app/scripts/vps-pm2-deploy.sh
+```
+
+Or manually: pull `main`, `npm run build`, `cd backend && npx prisma migrate deploy`, `pm2 restart hearth-api`.
+
+See also `docs/sidebar-routes-implementation-plan.md` §8 and root `deploy.sh` (uses `PM2_NAME=hearth-api`).
+
+**GitHub Actions:** `.github/workflows/deploy.yml` targets `/opt/projects/hearth-core` and requires repo secrets `VPS_HOST` + `VPS_SSH_KEY`. It does not deploy the PM2 path until secrets and script path are aligned.
+
 ## Acceptance checklist (31 items)
 
 - [ ]  1. Repo cloned to `/srv/travelagencyweb/app`
