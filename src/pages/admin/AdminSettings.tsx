@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -68,6 +68,8 @@ interface SmsSettings {
   senderId: string;
   baseUrl: string;
   enabled: boolean;
+  apiKeyConfigured?: boolean;
+  envManagedMessage?: string;
 }
 
 // ── Defaults ──
@@ -139,11 +141,54 @@ const AdminSettings = () => {
 
   const togglePass = (key: string) => setShowPasswords((p) => ({ ...p, [key]: !p[key] }));
 
+  useEffect(() => {
+    smsApi.getConfig()
+      .then((config) => setSms((prev) => ({
+        ...prev,
+        provider: config.provider,
+        senderId: config.senderId,
+        baseUrl: config.baseUrl,
+        enabled: config.enabled,
+        apiKeyConfigured: config.apiKeyConfigured,
+        apiKey: "",
+        envManagedMessage: config.message,
+      })))
+      .catch(() => {});
+  }, []);
+
   const handleSave = async (section: string) => {
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setSaving(false);
-    toast({ title: t("adminSettings.toast.saved", { section }), description: t("adminSettings.toast.savedDesc") });
+    try {
+      if (section === t("adminSettings.tabs.sms")) {
+        const updated = await smsApi.updateConfig({
+          provider: sms.provider,
+          senderId: sms.senderId,
+          baseUrl: sms.baseUrl,
+          enabled: sms.enabled,
+        });
+        setSms((prev) => ({
+          ...prev,
+          provider: updated.provider,
+          senderId: updated.senderId,
+          baseUrl: updated.baseUrl,
+          enabled: updated.enabled,
+          apiKeyConfigured: updated.apiKeyConfigured,
+          envManagedMessage: updated.message,
+        }));
+        toast({
+          title: t("adminSettings.toast.saved", { section }),
+          description: updated.message || t("adminSettings.toast.savedDesc"),
+        });
+      } else {
+        await new Promise((r) => setTimeout(r, 800));
+        toast({ title: t("adminSettings.toast.saved", { section }), description: t("adminSettings.toast.savedDesc") });
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Save failed";
+      toast({ title: t("adminSettings.toast.saveFailed", { defaultValue: "Save failed" }), description: message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleTestEmail = async () => {
@@ -590,20 +635,20 @@ const AdminSettings = () => {
                   </div>
                 </div>
 
+                {sms.envManagedMessage && (
+                  <p className="text-sm text-muted-foreground rounded-lg border border-dashed p-3">{sms.envManagedMessage}</p>
+                )}
+
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label>{t("adminSettings.sms.apiKey")}</Label>
-                    <div className="relative">
-                      <Input
-                        type={showPasswords.smsApi ? "text" : "password"}
-                        placeholder="••••••••"
-                        value={sms.apiKey}
-                        onChange={(e) => setSms({ ...sms, apiKey: e.target.value })}
-                      />
-                      <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => togglePass("smsApi")}>
-                        {showPasswords.smsApi ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                      </Button>
-                    </div>
+                    <Input
+                      readOnly
+                      disabled
+                      placeholder={sms.apiKeyConfigured ? "Configured via environment" : "Not configured"}
+                      value={sms.apiKeyConfigured ? "••••••••" : ""}
+                    />
+                    <p className="text-xs text-muted-foreground">Set SMS_API_KEY or TWILIO_* in server environment variables.</p>
                   </div>
                   <div className="space-y-2">
                     <Label>{t("adminSettings.sms.baseUrl")}</Label>

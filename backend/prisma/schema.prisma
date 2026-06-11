@@ -841,3 +841,56 @@ model AuditLog {
   ipAddress   String?
   createdAt   DateTime @default(now())
 }
+
+model SmsTemplate {
+  id        String   @id @default(uuid())
+  tenantId  String?
+  name      String
+  type      String
+  message   String
+  variables String[] @default([])
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([type])
+}
+
+model SmsLog {
+  id                String    @id @default(uuid())
+  tenantId          String?
+  phone             String
+  message           String
+  status            String    @default("pending")
+  provider          String
+  errorMessage      String?
+  providerMessageId String?
+  templateId        String?
+  templateType      String?
+  createdByUserId   String?
+  sentAt            DateTime?
+  createdAt         DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([phone])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  tenantId    String
+  userId      String?
+  actorUserId String?
+  type        String
+  title       String
+  message     String
+  read        Boolean  @default(false)
+  link        String?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, userId])
+  @@index([tenantId, read])
+  @@index([createdAt])
+}

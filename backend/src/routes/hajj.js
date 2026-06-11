@@ -90,17 +90,28 @@ router.delete("/pilgrims/:id", async (req, res) => {
 
 // Pilgrim Payments
 router.get("/pilgrims/:id/payments", async (req, res) => {
-  try { res.json(await prisma.hajjPilgrimPayment.findMany({ where: { pilgrimId: req.params.id }, orderBy: { createdAt: "desc" } })); }
-  catch (err) { res.status(500).json({ message: err.message }); }
+  try {
+    const pilgrim = await prisma.hajjPilgrim.findFirst({ where: { id: req.params.id, tenantId: req.tenantId } });
+    if (!pilgrim) return res.status(404).json({ message: "Not found" });
+    res.json(await prisma.hajjPilgrimPayment.findMany({ where: { pilgrimId: req.params.id }, orderBy: { createdAt: "desc" } }));
+  } catch (err) { res.status(500).json({ message: err.message }); }
 });
 router.post("/pilgrims/:id/payments", async (req, res) => {
   try {
+    const pilgrim = await prisma.hajjPilgrim.findFirst({ where: { id: req.params.id, tenantId: req.tenantId } });
+    if (!pilgrim) return res.status(404).json({ message: "Not found" });
+
     const payment = await prisma.hajjPilgrimPayment.create({ data: { ...req.body, pilgrimId: req.params.id, receivedBy: req.userId } });
-    // Update pilgrim paid/due
     const payments = await prisma.hajjPilgrimPayment.findMany({ where: { pilgrimId: req.params.id } });
     const paid = payments.reduce((s, p) => s + p.amount, 0);
-    const pilgrim = await prisma.hajjPilgrim.findUnique({ where: { id: req.params.id } });
-    await prisma.hajjPilgrim.update({ where: { id: req.params.id }, data: { paidAmount: paid, dueAmount: pilgrim.totalAmount - paid, paymentStatus: paid >= pilgrim.totalAmount ? "paid" : paid > 0 ? "partial" : "unpaid" } });
+    await prisma.hajjPilgrim.update({
+      where: { id: req.params.id },
+      data: {
+        paidAmount: paid,
+        dueAmount: pilgrim.totalAmount - paid,
+        paymentStatus: paid >= pilgrim.totalAmount ? "paid" : paid > 0 ? "partial" : "unpaid",
+      },
+    });
     res.status(201).json(payment);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

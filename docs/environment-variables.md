@@ -8,7 +8,8 @@ Single source of truth: `/srv/travelagencyweb/app/.env` (used by `docker compose
 | `POSTGRES_DB` | compose | `travelagencyweb_db` |
 | `POSTGRES_USER` | compose | `travelagencyweb_user` |
 | `POSTGRES_PASSWORD` | compose, api | strong random |
-| `JWT_SECRET` | api | 64-char random |
+| `JWT_SECRET` | api | 64-char random (min 32 chars; boot fails in production if missing/short) |
+| `ALLOW_DEV_JWT` | api (dev) | `true` to allow dev fallback when `JWT_SECRET` unset locally |
 | `CORS_ORIGIN` | api | `https://travelagencyweb.com,https://www.travelagencyweb.com,https://app.travelagencyweb.com,https://portal.travelagencyweb.com` |
 | `VITE_API_URL` | frontend build-arg | `https://api.travelagencyweb.com` |
 
@@ -25,8 +26,12 @@ Single source of truth: `/srv/travelagencyweb/app/.env` (used by `docker compose
 - `SSLCOMMERZ_STORE_ID`, `SSLCOMMERZ_STORE_PASSWORD`, `SSLCOMMERZ_SANDBOX`
 - `BKASH_APP_KEY`, `BKASH_APP_SECRET`, `BKASH_USERNAME`, `BKASH_PASSWORD`, `BKASH_SANDBOX`
 
+## Seed (development / controlled production re-seed)
+- `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_DEMO_EMAIL`, `SEED_DEMO_PASSWORD`
+- `ALLOW_SEED_PASSWORD_RESET=true` — allow seed script to reset passwords in production
+
 ## SMS / WhatsApp (only if used)
-- `SMS_PROVIDER`, `TWILIO_*`, `SMS_API_KEY`, `SMS_SENDER_ID`
+- `SMS_PROVIDER`, `SMS_ENABLED`, `TWILIO_*`, `SMS_API_KEY`, `SMS_SENDER_ID`
 - `WHATSAPP_PROVIDER`, `META_WHATSAPP_TOKEN`, `META_WHATSAPP_PHONE_ID`
 
 **Never commit `.env`.** `backend/.gitignore` and `.dockerignore` already exclude it.

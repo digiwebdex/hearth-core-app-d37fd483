@@ -237,7 +237,7 @@ const AdminSmsLogs = () => {
                       <TableRow key={log.id}>
                         <TableCell className="font-mono text-sm">{log.phone}</TableCell>
                         <TableCell className="hidden md:table-cell max-w-[280px]">
-                          <p className="text-sm text-muted-foreground truncate">{log.message}</p>
+                          <p className="text-sm text-muted-foreground truncate">{log.messagePreview || log.message}</p>
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="text-xs capitalize">{log.provider}</Badge>

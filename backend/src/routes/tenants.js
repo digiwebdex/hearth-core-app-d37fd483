@@ -48,20 +48,52 @@ router.get("/me/members", requirePermission("team", "view"), async (req, res) =>
 
 router.post("/me/members", requireRole("tenant_owner"), checkPlanLimit("users"), async (req, res) => {
   try {
+    const crypto = require("crypto");
     const bcrypt = require("bcryptjs");
+    const { sendPasswordReset } = require("../services/emailService");
     const { email, role, name } = req.body;
     if (!email) return res.status(400).json({ message: "Email is required" });
-    // Prevent creating super_admin or tenant_owner via this route
+
     const allowedRoles = ["manager", "sales_agent", "accountant", "operations"];
     const safeRole = allowedRoles.includes(role) ? role : "sales_agent";
     const exists = await prisma.user.findUnique({ where: { email } });
     if (exists) return res.status(400).json({ message: "Email already registered" });
-    const hashed = await bcrypt.hash("changeme123", 10);
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
+    const placeholderPassword = crypto.randomBytes(32).toString("hex");
+    const hashed = await bcrypt.hash(placeholderPassword, 10);
+
     const user = await prisma.user.create({
-      data: { name: name || email.split("@")[0], email, password: hashed, role: safeRole, tenantId: req.tenantId },
+      data: {
+        name: name || email.split("@")[0],
+        email,
+        password: hashed,
+        role: safeRole,
+        status: "active",
+        tenantId: req.tenantId,
+        resetToken,
+        resetTokenExpiry,
+      },
     });
 
-    // Audit log
+    const emailSent = await sendPasswordReset(email, resetToken);
+
+    const response = { message: "If email delivery succeeded, the new member will receive a password setup link." };
+    if (!emailSent && req.userRole === "tenant_owner") {
+      const temporaryPassword = crypto.randomBytes(9).toString("base64url");
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          password: await bcrypt.hash(temporaryPassword, 10),
+          resetToken: null,
+          resetTokenExpiry: null,
+        },
+      });
+      response.temporaryPassword = temporaryPassword;
+      response.message = "SMTP is unavailable. Share this one-time temporary password securely with the new member.";
+    }
+
     const actor = await prisma.user.findUnique({ where: { id: req.userId }, select: { name: true, email: true, role: true } });
     const tenant = await prisma.tenant.findUnique({ where: { id: req.tenantId }, select: { name: true } });
     await prisma.auditLog.create({
@@ -74,8 +106,8 @@ router.post("/me/members", requireRole("tenant_owner"), checkPlanLimit("users"),
       },
     }).catch(() => {});
 
-    const { password: _, ...safe } = user;
-    res.status(201).json(safe);
+    const { password: _, resetToken: _rt, resetTokenExpiry: _rte, ...safe } = user;
+    res.status(201).json({ ...safe, ...response });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

@@ -30,6 +30,26 @@ Live routes are mounted in `backend/src/index.js`. JWT required unless marked Pu
 - `/api/email/*` (auth) — send / templates
 - `/api/cron/*` (CRON_SECRET header) — subscription-expiry, reminders
 
+## SMS (authenticated; super_admin for config/logs/bulk/test)
+- `GET/PUT /api/sms/config` — env-derived masked config (`apiKeyConfigured`; PUT rejects secret fields)
+- `POST /api/sms/send` — tenant-scoped send
+- `POST /api/sms/send-bulk`, `POST /api/sms/test` — super_admin
+- `GET /api/sms/logs` — paginated list (`messagePreview` only)
+- `GET /api/sms/logs/:id` — full log including message
+- `GET /api/sms/logs/stats` — aggregate counts
+- `GET /api/sms/templates` — active global templates (all authenticated)
+- `POST/PATCH/DELETE /api/sms/templates/:id` — super_admin
+
+## Notifications (authenticated, tenant-scoped)
+- `GET /api/notifications` — `{ items, total, page, limit, unreadCount }` (`userId` null = tenant-wide)
+- `GET /api/notifications/unread-count`
+- `PATCH /api/notifications/:id/read`, `PATCH /api/notifications/read-all`
+- `DELETE /api/notifications/:id`
+
+## Client documents
+- `GET/POST /api/clients/:id/documents` — multipart field `files[]`
+- `DELETE /api/clients/:id/documents/:docId`
+
 ## Health
 - `GET /api/health` → `{status, database, service, uptime, environment, timestamp}` (Public)
 

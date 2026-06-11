@@ -21,10 +21,13 @@ function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export interface SmsConfig {
   provider: "sslwireless" | "bulksms";
-  apiKey: string;
   senderId: string;
   baseUrl: string;
   enabled: boolean;
+  apiKeyConfigured: boolean;
+  /** @deprecated Secrets are environment-managed; never returned by API */
+  apiKey?: string;
+  message?: string;
 }
 
 export type SmsLogStatus = "sent" | "failed" | "pending";
@@ -32,7 +35,8 @@ export type SmsLogStatus = "sent" | "failed" | "pending";
 export interface SmsLog {
   id: string;
   phone: string;
-  message: string;
+  message?: string;
+  messagePreview?: string;
   status: SmsLogStatus;
   provider: string;
   errorMessage?: string;
@@ -78,12 +82,10 @@ export interface SmsLogFilters {
 }
 
 export const smsApi = {
-  // ── Config ──
   getConfig: () => request<SmsConfig>("/sms/config"),
-  updateConfig: (config: SmsConfig) =>
+  updateConfig: (config: Partial<SmsConfig>) =>
     request<SmsConfig>("/sms/config", { method: "PUT", body: JSON.stringify(config) }),
 
-  // ── Send ──
   send: (data: SmsSendRequest) =>
     request<SmsSendResponse>("/sms/send", {
       method: "POST",
@@ -102,7 +104,6 @@ export const smsApi = {
       body: JSON.stringify({ phone }),
     }),
 
-  // ── Logs ──
   getLogs: (filters?: SmsLogFilters) => {
     const params = new URLSearchParams();
     if (filters?.status) params.set("status", filters.status);
