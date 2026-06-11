@@ -73,6 +73,10 @@ Login UI: http://localhost:8080/login → redirects to `/dashboard` on success.
 
 Playwright E2E (`playwright.config.ts`) requires frontend + backend + Postgres all running.
 
+### Notification automation (P1.1)
+
+Server-side hooks fire on ERP lead create, booking create, and invoice payment received. Channels: `in_app` + `sms` only (env credentials). View delivery log at `/notifications` in the app.
+
 ### Gotchas
 
 - Frontend defaults API to `http://localhost:4000/api` (no `.env` needed for basic local dev).

@@ -46,6 +46,7 @@ model Tenant {
   domains               TenantDomain[]
   subscriptionHistories SubscriptionHistory[]
   travelPackages        TravelPackage[]
+  smsSettings           SmsSettings?
 }
 
 model TenantDomain {
@@ -83,7 +84,8 @@ model User {
   rejectionReason   String?
   tenantId          String
   tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdAt         DateTime @default(now())
+  createdAt              DateTime                @default(now())
+  agentCommissionProfile AgentCommissionProfile?
 }
 
 model Client {
@@ -124,14 +126,32 @@ model ClientDocument {
 }
 
 model Agent {
-  id        String   @id @default(uuid())
-  name      String
-  phone     String   @default("")
-  email     String   @default("")
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  bookings  Booking[]
+  id                String                  @id @default(uuid())
+  name              String
+  phone             String                  @default("")
+  email             String                  @default("")
+  tenantId          String
+  tenant            Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt         DateTime                @default(now())
+  bookings          Booking[]
+  commissionProfile AgentCommissionProfile?
+}
+
+model AgentCommissionProfile {
+  agentId        String   @id
+  agent          Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  commissionRate Float    @default(0)
+  status         String   @default("active")
+  userId         String?  @unique
+  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  updatedAt      DateTime @updatedAt
+}
+
+model BookingAgentCommission {
+  bookingId             String  @id
+  booking               Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  agentCommissionAmount Float?
+  agentCommissionStatus String? @default("pending")
 }
 
 model Vendor {
@@ -290,6 +310,7 @@ model Booking {
   timeline             BookingTimelineEvent[]
   documents            BookingDocument[]
   invoices             Invoice[]
+  agentCommission      BookingAgentCommission?
 }
 
 model BookingSegment {
@@ -893,4 +914,52 @@ model Notification {
   @@index([tenantId, userId])
   @@index([tenantId, read])
   @@index([createdAt])
+}
+
+model SmsSettings {
+  id              String   @id @default(uuid())
+  tenantId        String   @unique
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  smsEnabled      Boolean  @default(true)
+  notifyOnBooking Boolean  @default(true)
+  notifyOnPayment Boolean  @default(true)
+  notifyOnLead    Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model NotificationAutomation {
+  id        String   @id @default(uuid())
+  tenantId  String
+  eventType String
+  sms       Boolean  @default(true)
+  inApp     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, eventType])
+  @@index([tenantId])
+}
+
+model NotificationDelivery {
+  id             String    @id @default(uuid())
+  tenantId       String
+  eventType      String
+  channel        String
+  status         String    @default("pending")
+  recipient      String
+  recipientName  String?
+  message        String
+  errorMessage   String?
+  relatedType    String?
+  relatedId      String?
+  notificationId String?
+  attempts       Int       @default(1)
+  sentAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, eventType])
+  @@index([tenantId, status])
+  @@index([tenantId, channel])
 }

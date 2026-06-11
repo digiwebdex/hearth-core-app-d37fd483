@@ -2,6 +2,7 @@ const router = require("express").Router();
 const { authenticate, prisma } = require("../middleware/auth");
 
 router.use(authenticate);
+router.use("/automation", require("./notificationAutomation"));
 
 function notificationVisibilityWhere(req) {
   return {

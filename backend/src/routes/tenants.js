@@ -1,5 +1,9 @@
 const router = require("express").Router();
 const { authenticate, requireRole, requirePermission, checkPlanLimit, prisma } = require("../middleware/auth");
+const {
+  ensureTenantSettings,
+  formatSettingsResponse,
+} = require("../services/tenantAutomationService");
 
 router.use(authenticate);
 
@@ -108,6 +112,38 @@ router.post("/me/members", requireRole("tenant_owner"), checkPlanLimit("users"),
 
     const { password: _, resetToken: _rt, resetTokenExpiry: _rte, ...safe } = user;
     res.status(201).json({ ...safe, ...response });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.get("/me/notification-settings", async (req, res) => {
+  try {
+    const { settings } = await ensureTenantSettings(req.tenantId);
+    res.json(formatSettingsResponse(settings));
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.patch("/me/notification-settings", requireRole("tenant_owner"), async (req, res) => {
+  try {
+    const body = req.body || {};
+    if (body.apiKey !== undefined || body.apiSecret !== undefined) {
+      return res.status(400).json({ message: "API credentials are environment-managed." });
+    }
+
+    await ensureTenantSettings(req.tenantId);
+    const allowed = ["smsEnabled", "notifyOnBooking", "notifyOnPayment", "notifyOnLead"];
+    const data = {};
+    for (const key of allowed) {
+      if (body[key] !== undefined) data[key] = Boolean(body[key]);
+    }
+    if (!Object.keys(data).length) {
+      return res.status(400).json({ message: "No allowed fields provided" });
+    }
+
+    const settings = await prisma.smsSettings.update({
+      where: { tenantId: req.tenantId },
+      data,
+    });
+    res.json(formatSettingsResponse(settings));
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

@@ -109,7 +109,7 @@ app.use("/api/tenants", require("./routes/tenants"));
 app.use("/api/tenant-domains", require("./routes/tenantDomains"));
 app.use("/api/dashboard", require("./routes/dashboard"));
 app.use("/api/clients", require("./routes/clients"));
-app.use("/api/agents", require("./routes/crud")("agent"));
+app.use("/api/agents", require("./routes/agents"));
 app.use("/api/vendors", require("./routes/vendors"));
 app.use("/api/leads", require("./routes/leads"));
 app.use("/api/tasks", require("./routes/crud")("task"));

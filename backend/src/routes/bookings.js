@@ -2,12 +2,14 @@ const router = require("express").Router();
 const multer = require("multer");
 const path = require("path");
 const { authenticate, requirePermission, checkPlanLimit, prisma } = require("../middleware/auth");
+const { dispatchTenantAutomation } = require("../services/tenantAutomationService");
 
 const upload = multer({ dest: process.env.UPLOAD_DIR || path.join(__dirname, "../../uploads") });
 const BOOKING_LIST_INCLUDE = {
   client: { select: { id: true, name: true } },
   agent: { select: { id: true, name: true } },
   travelPackage: { select: { id: true, title: true, code: true, serviceType: true } },
+  agentCommission: true,
 };
 const BOOKING_DETAIL_INCLUDE = {
   ...BOOKING_LIST_INCLUDE,
@@ -20,7 +22,7 @@ router.use(authenticate);
 
 function formatBooking(record) {
   if (!record) return null;
-  const { client, agent, travelPackage, ...booking } = record;
+  const { client, agent, travelPackage, agentCommission, ...booking } = record;
   return {
     ...booking,
     clientName: client?.name || booking.clientName || "",
@@ -28,6 +30,8 @@ function formatBooking(record) {
     packageTitleSnapshot: booking.packageTitleSnapshot || travelPackage?.title || null,
     packageCodeSnapshot: booking.packageCodeSnapshot || travelPackage?.code || null,
     serviceType: booking.serviceType || travelPackage?.serviceType || null,
+    agentCommissionAmount: agentCommission?.agentCommissionAmount ?? null,
+    agentCommissionStatus: agentCommission?.agentCommissionStatus ?? null,
   };
 }
 
@@ -118,6 +122,7 @@ async function resolveAgentForBooking(data, tenantId) {
   const agent = await prisma.agent.findFirst({
     where: {
       tenantId,
+      commissionProfile: { status: "active" },
       OR: [
         { id: agentValue },
         { name: { equals: agentValue, mode: "insensitive" } },
@@ -132,8 +137,64 @@ async function resolveAgentForBooking(data, tenantId) {
   return next;
 }
 
+function stripCommissionFields(data) {
+  const next = { ...data };
+  delete next.agentCommissionAmount;
+  delete next.agentCommissionStatus;
+  delete next.agentCommission;
+  return next;
+}
+
+async function syncAgentCommission(bookingId, data, tenantId, existingBooking = null) {
+  try {
+    const agentId = data.agentId !== undefined ? data.agentId : existingBooking?.agentId ?? null;
+    const amount = data.amount !== undefined ? Number(data.amount) : Number(existingBooking?.amount ?? 0);
+    const existingCommission = existingBooking?.agentCommission;
+
+    if (existingCommission?.agentCommissionStatus === "paid") {
+      return;
+    }
+
+    if (!agentId) {
+      await prisma.bookingAgentCommission.deleteMany({ where: { bookingId } }).catch(() => {});
+      return;
+    }
+
+    const profile = await prisma.agentCommissionProfile.findFirst({
+      where: {
+        agentId,
+        status: "active",
+        agent: { tenantId },
+      },
+      select: { commissionRate: true },
+    });
+
+    if (!profile) {
+      await prisma.bookingAgentCommission.deleteMany({ where: { bookingId } }).catch(() => {});
+      return;
+    }
+
+    const rate = Number(profile.commissionRate) || 0;
+    const commissionAmount = Math.round(amount * (rate / 100) * 100) / 100;
+
+    await prisma.bookingAgentCommission.upsert({
+      where: { bookingId },
+      create: {
+        bookingId,
+        agentCommissionAmount: commissionAmount,
+        agentCommissionStatus: "pending",
+      },
+      update: {
+        agentCommissionAmount: commissionAmount,
+      },
+    });
+  } catch (err) {
+    console.error("[commission] sync failed:", err.message);
+  }
+}
+
 async function normalizeBookingInput(data, tenantId, existingBooking = null) {
-  let next = { ...data };
+  let next = stripCommissionFields({ ...data });
   next = await resolveClientForBooking(next, tenantId, existingBooking);
   next = await resolveAgentForBooking(next, tenantId);
   return next;
@@ -166,6 +227,7 @@ router.post("/", requirePermission("bookings", "create"), checkPlanLimit("bookin
   try {
     const data = await normalizeBookingInput({ ...req.body, tenantId: req.tenantId }, req.tenantId);
     const booking = await prisma.booking.create({ data });
+    await syncAgentCommission(booking.id, data, req.tenantId).catch(() => {});
     const hydratedBooking = await getTenantBooking(booking.id, req.tenantId, BOOKING_LIST_INCLUDE);
 
     const user = await prisma.user.findUnique({ where: { id: req.userId }, select: { name: true, email: true, role: true } });
@@ -186,6 +248,30 @@ router.post("/", requirePermission("bookings", "create"), checkPlanLimit("bookin
       },
     }).catch(() => {});
 
+    const client = hydratedBooking?.clientId
+      ? await prisma.client.findFirst({
+        where: { id: hydratedBooking.clientId, tenantId: req.tenantId },
+        select: { name: true, phone: true },
+      })
+      : null;
+
+    dispatchTenantAutomation("booking_created", {
+      tenantId: req.tenantId,
+      actorUserId: req.userId,
+      payload: {
+        relatedType: "booking",
+        relatedId: booking.id,
+        bookingId: booking.id,
+        bookingTitle: hydratedBooking?.title || booking.title,
+        bookingType: hydratedBooking?.type || booking.type,
+        bookingStatus: hydratedBooking?.status || booking.status,
+        amount: hydratedBooking?.amount ?? booking.amount,
+        clientName: client?.name || hydratedBooking?.clientName || "",
+        clientPhone: client?.phone || "",
+        tenantName: tenant?.name || "",
+      },
+    }).catch((err) => console.error("[automation] booking_created:", err.message));
+
     res.status(201).json(formatBooking(hydratedBooking));
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -200,6 +286,34 @@ router.patch("/:id", requirePermission("bookings", "edit"), async (req, res) => 
     const data = await normalizeBookingInput(req.body, req.tenantId, existing);
     const result = await prisma.booking.updateMany({ where: { id: req.params.id, tenantId: req.tenantId }, data });
     if (!result.count) return res.status(404).json({ message: "Not found" });
+
+    await syncAgentCommission(req.params.id, data, req.tenantId, existing).catch(() => {});
+
+    const updated = await getTenantBooking(req.params.id, req.tenantId, BOOKING_LIST_INCLUDE);
+    res.json(formatBooking(updated));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.patch("/:id/commission", requirePermission("agents", "approve"), async (req, res) => {
+  try {
+    const existing = await ensureBookingExists(req, res, BOOKING_LIST_INCLUDE);
+    if (!existing) return;
+
+    const status = String(req.body.status || "").trim().toLowerCase();
+    if (!["pending", "paid"].includes(status)) {
+      return res.status(400).json({ message: "status must be pending or paid" });
+    }
+
+    if (!existing.agentCommission) {
+      return res.status(400).json({ message: "No commission record for this booking" });
+    }
+
+    await prisma.bookingAgentCommission.update({
+      where: { bookingId: req.params.id },
+      data: { agentCommissionStatus: status },
+    });
 
     const updated = await getTenantBooking(req.params.id, req.tenantId, BOOKING_LIST_INCLUDE);
     res.json(formatBooking(updated));

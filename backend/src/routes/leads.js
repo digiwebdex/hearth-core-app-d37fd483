@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const { authenticate, requirePermission, checkPlanLimit, prisma } = require("../middleware/auth");
+const { dispatchTenantAutomation } = require("../services/tenantAutomationService");
 
 router.use(authenticate);
 
@@ -37,8 +38,25 @@ router.get("/:id", requirePermission("leads", "view"), async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 router.post("/", requirePermission("leads", "create"), checkPlanLimit("leads"), async (req, res) => {
-  try { res.status(201).json(await prisma.lead.create({ data: { ...req.body, tenantId: req.tenantId } })); }
-  catch (err) { res.status(500).json({ message: err.message }); }
+  try {
+    const lead = await prisma.lead.create({ data: { ...req.body, tenantId: req.tenantId } });
+    const tenant = await prisma.tenant.findUnique({ where: { id: req.tenantId }, select: { name: true } });
+
+    dispatchTenantAutomation("lead_created", {
+      tenantId: req.tenantId,
+      actorUserId: req.userId,
+      payload: {
+        relatedType: "lead",
+        relatedId: lead.id,
+        leadName: lead.name,
+        leadPhone: lead.phone,
+        leadSource: lead.source,
+        tenantName: tenant?.name || "",
+      },
+    }).catch((err) => console.error("[automation] lead_created:", err.message));
+
+    res.status(201).json(lead);
+  } catch (err) { res.status(500).json({ message: err.message }); }
 });
 router.patch("/:id", requirePermission("leads", "edit"), async (req, res) => {
   try {

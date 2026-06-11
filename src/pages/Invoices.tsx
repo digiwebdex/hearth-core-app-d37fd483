@@ -23,7 +23,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { emailApi } from "@/lib/emailApi";
 import PaymentGatewayDialog from "@/components/PaymentGatewayDialog";
-import { sendPaymentSms } from "@/lib/smsAutomation";
 import {
   invoiceApi, paymentApi, bookingApi, type Invoice, type Payment, type InvoiceStatus,
   type PaymentMethod, type InvoiceRefund, type InvoiceAuditEvent, type Booking,
@@ -154,11 +153,6 @@ const Invoices = () => {
       setInvoiceForm({ bookingId: "", bookingTitle: "", clientName: "", totalAmount: 0, bookingCost: 0, dueDate: "", notes: "" });
       setCreateDialogOpen(false);
       toast({ title: t("invoicesForm.toast.created") });
-      sendPaymentSms({
-        invoiceId: (created as any).id, bookingId: invoiceForm.bookingId,
-        paymentAmount: invoiceForm.totalAmount, balance: invoiceForm.totalAmount,
-        clientName: invoiceForm.clientName, clientPhone: "", company: "Travel Agency",
-      }).then((res) => { if (res.sent) toast({ title: t("invoicesForm.toast.smsSent") }); }).catch(() => {});
     } catch (err: any) {
       toast({ title: t("invoicesForm.toast.failed"), description: err.message, variant: "destructive" });
     }
@@ -198,11 +192,6 @@ const Invoices = () => {
       setPaymentForm({ amount: 0, method: "cash", transactionRef: "", date: new Date().toISOString().split("T")[0], notes: "", receivedBy: "" });
       setPayDialogOpen(false);
       toast({ title: t("invoicesForm.toast.paymentRecorded"), description: `৳${payAmount.toLocaleString()} · ${t(`invoicesForm.methods.${paymentForm.method}`)}` });
-      sendPaymentSms({
-        paymentAmount: payAmount, paymentMethod: paymentForm.method,
-        invoiceId: selectedInvoice.id, balance: Math.max(0, selectedInvoice.dueAmount - payAmount),
-        clientName: selectedInvoice.clientName || "", clientPhone: "", company: "Travel Agency",
-      }).then((res) => { if (res.sent) toast({ title: t("invoicesForm.toast.paymentSmsSent") }); }).catch(() => {});
     } catch (err: any) {
       toast({ title: t("invoicesForm.toast.failed"), description: err.message, variant: "destructive" });
     }
