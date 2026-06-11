@@ -219,6 +219,76 @@
       "visa": "Visa",
       "package": "Package"
     },
+    "ticketFields": {
+      "flightNumber": "Flight Number",
+      "airline": "Airline",
+      "fromCity": "From City",
+      "toCity": "To City",
+      "departureDate": "Departure Date",
+      "returnDate": "Return Date",
+      "isRoundTrip": "Round trip",
+      "cabinClass": "Cabin Class",
+      "cabinEconomy": "Economy",
+      "cabinBusiness": "Business",
+      "cabinFirst": "First",
+      "pnrNumber": "PNR Number",
+      "ticketDeadline": "Ticket Deadline",
+      "travelerCount": "Travelers"
+    },
+    "tourFields": {
+      "destination": "Destination",
+      "tourOperator": "Tour Operator",
+      "itinerary": "Itinerary",
+      "includesHotel": "Includes hotel",
+      "includesTransfer": "Includes transfer"
+    },
+    "hotelFields": {
+      "hotelName": "Hotel Name",
+      "hotelCity": "City",
+      "hotelCountry": "Country",
+      "checkInDate": "Check-in Date",
+      "checkOutDate": "Check-out Date",
+      "roomType": "Room Type",
+      "roomCount": "Rooms",
+      "guestCount": "Guests",
+      "confirmationNumber": "Confirmation Number",
+      "roomTypes": {
+        "single": "Single",
+        "double": "Double",
+        "twin": "Twin",
+        "triple": "Triple",
+        "suite": "Suite",
+        "other": "Other"
+      }
+    },
+    "visaFields": {
+      "visaCountry": "Visa Country",
+      "visaType": "Visa Type",
+      "passportNumber": "Passport Number",
+      "passportExpiry": "Passport Expiry",
+      "applicationDate": "Application Date",
+      "appointmentDate": "Appointment Date",
+      "submissionDate": "Submission Date",
+      "expectedApprovalDate": "Expected Approval Date",
+      "visaFee": "Visa Fee (৳)",
+      "serviceFee": "Service Fee (৳)",
+      "visaTypes": {
+        "tourist": "Tourist",
+        "business": "Business",
+        "transit": "Transit",
+        "work": "Work",
+        "student": "Student",
+        "other": "Other"
+      }
+    },
+    "packageFields": {
+      "packageId": "Travel Package",
+      "selectPackage": "Select a package",
+      "noPackage": "No package",
+      "packageTitleSnapshot": "Package Title",
+      "packageCodeSnapshot": "Package Code",
+      "customizations": "Customizations"
+    },
     "payments": {
       "all": "All Payments",
       "unpaid": "Unpaid",

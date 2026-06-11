@@ -234,7 +234,48 @@ export interface LeadActivity { id: string; leadId: string; type: "note" | "stat
 export interface Task { id: string; title: string; description: string; status: "todo" | "in_progress" | "done"; priority: "low" | "medium" | "high"; dueDate?: string; assignedTo?: string; tenantId: string; createdAt: string; }
 export type BookingStatus = "pending" | "confirmed" | "ticketed" | "traveling" | "completed" | "cancelled";
 export type BookingType = "tour" | "ticket" | "hotel" | "visa" | "package";
-export interface Booking { id: string; type: BookingType; title?: string; clientId: string; clientName?: string; agentId: string; agentName?: string; quotationId?: string; packageId?: string; serviceType?: string; packageTitleSnapshot?: string; packageCodeSnapshot?: string; destination?: string; travelDateFrom?: string; travelDateTo?: string; travelerCount?: number; amount: number; cost: number; profit: number; paidAmount?: number; dueAmount?: number; paymentStatus?: "unpaid" | "partial" | "paid"; status: BookingStatus; assignedTo?: string; assignedToName?: string; supplierName?: string; supplierRef?: string; internalNotes?: string; tenantId: string; createdAt: string; updatedAt?: string; }
+export interface Booking {
+  id: string;
+  type: BookingType;
+  title?: string;
+  clientId: string;
+  clientName?: string;
+  agentId: string;
+  agentName?: string;
+  quotationId?: string;
+  packageId?: string;
+  serviceType?: string;
+  packageTitleSnapshot?: string;
+  packageCodeSnapshot?: string;
+  destination?: string;
+  travelDateFrom?: string;
+  travelDateTo?: string;
+  travelerCount?: number;
+  amount: number;
+  cost: number;
+  profit: number;
+  paidAmount?: number;
+  dueAmount?: number;
+  paymentStatus?: "unpaid" | "partial" | "paid";
+  status: BookingStatus;
+  assignedTo?: string;
+  assignedToName?: string;
+  supplierName?: string;
+  supplierRef?: string;
+  internalNotes?: string;
+  tenantId: string;
+  createdAt: string;
+  updatedAt?: string;
+  flightNumber?: string;
+  airline?: string;
+  pnrNumber?: string;
+  tourOperator?: string;
+  hotelName?: string;
+  checkInDate?: string;
+  checkOutDate?: string;
+  visaCountry?: string;
+  passportNumber?: string;
+}
 export interface BookingSegment { id: string; bookingId?: string; type: "hotel" | "flight" | "transfer" | "visa" | "activity" | "package"; description: string; supplier?: string; supplierRef?: string; startDate?: string; endDate?: string; details?: string; cost: number; sellingPrice: number; status?: "pending" | "confirmed" | "cancelled"; }
 export interface BookingTraveler { id: string; bookingId?: string; name: string; passportNumber?: string; passportExpiry?: string; nationality?: string; dateOfBirth?: string; phone?: string; email?: string; notes?: string; }
 export interface BookingChecklistItem { id: string; bookingId?: string; label: string; done: boolean; doneAt?: string; doneBy?: string; }
