@@ -119,7 +119,11 @@ export const clientApi = {
       body: data,
     }).then((r) => r.json()),
 };
-export const agentApi = createCrudApi<Agent>("agents");
+export const agentApi = {
+  ...createCrudApi<Agent>("agents"),
+  getMe: () => request<Agent | null>("/agents/me"),
+  getSummary: (id: string) => request<AgentSummary>(`/agents/${id}/summary`),
+};
 export const vendorApi = {
   ...createCrudApi<Vendor>("vendors"),
   getBills: (id: string) => request<VendorBill[]>(`/vendors/${id}/bills`),
@@ -171,6 +175,8 @@ export const bookingApi = {
       body: data,
     }).then((r) => r.json()),
   deleteDocument: (id: string, docId: string) => request<void>(`/bookings/${id}/documents/${docId}`, { method: "DELETE" }),
+  markCommissionPaid: (id: string) =>
+    request<Booking>(`/bookings/${id}/commission`, { method: "PATCH", body: JSON.stringify({ status: "paid" }) }),
 };
 export const invoiceApi = {
   ...createCrudApi<Invoice>("invoices"),
@@ -221,7 +227,45 @@ export interface User { id: string; name: string; email: string; role: "super_ad
 export interface Tenant { id: string; name: string; ownerId: string; subscriptionPlan: "free" | "basic" | "pro" | "business" | "enterprise"; subscriptionExpiry?: string; subscriptionStatus?: "active" | "trial" | "expired" | "cancelled" | "pending" | "suspended" | "overdue"; createdAt: string; }
 export interface Client { id: string; name: string; phone: string; email: string; alternatePhone?: string; address?: string; dateOfBirth?: string; passportNumber?: string; passportExpiry?: string; nidNumber?: string; nationality?: string; emergencyContact?: string; emergencyPhone?: string; notes?: string; tags?: string[]; documents?: ClientDocument[]; tenantId: string; createdAt: string; updatedAt?: string; }
 export interface ClientDocument { id: string; clientId: string; name: string; type: string; url: string; uploadedAt: string; }
-export interface Agent { id: string; name: string; phone: string; email: string; tenantId: string; createdAt: string; }
+export type AgentStatus = "active" | "inactive";
+export type AgentCommissionStatus = "pending" | "paid";
+
+export interface Agent {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  commissionRate: number;
+  status: AgentStatus;
+  userId?: string | null;
+  tenantId: string;
+  createdAt: string;
+  updatedAt?: string;
+  totalBookings?: number;
+  totalRevenue?: number;
+  pendingCommission?: number;
+  paidCommission?: number;
+}
+
+export interface AgentSummaryBooking {
+  id: string;
+  title?: string | null;
+  amount: number;
+  status: string;
+  travelDateFrom?: string | null;
+  clientName: string;
+  agentCommissionAmount?: number | null;
+  agentCommissionStatus?: AgentCommissionStatus | null;
+}
+
+export interface AgentSummary {
+  agent: Agent;
+  totalBookings: number;
+  totalRevenue: number;
+  pendingCommission: number;
+  paidCommission: number;
+  recentBookings: AgentSummaryBooking[];
+}
 export type VendorCategory = "hotel" | "airline" | "transport" | "visa_partner" | "guide" | "tour_operator" | "other";
 export type VendorBillStatus = "unpaid" | "partial" | "paid" | "overdue";
 export interface Vendor { id: string; name: string; phone: string; email: string; category: VendorCategory; contactPerson?: string; address?: string; serviceAreas?: string; website?: string; bankDetails?: string; notes?: string; status: "active" | "inactive"; tenantId: string; createdAt: string; updatedAt?: string; }
@@ -240,8 +284,10 @@ export interface Booking {
   title?: string;
   clientId: string;
   clientName?: string;
-  agentId: string;
+  agentId?: string | null;
   agentName?: string;
+  agentCommissionAmount?: number | null;
+  agentCommissionStatus?: AgentCommissionStatus | null;
   quotationId?: string;
   packageId?: string;
   serviceType?: string;

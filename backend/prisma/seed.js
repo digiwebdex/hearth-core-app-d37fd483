@@ -102,7 +102,18 @@ async function main() {
     });
 
     const agent = await prisma.agent.create({
-      data: { name: "Karim Hassan", phone: "+880191234567", email: "karim@alsafa.com", tenantId: demoTenant.id },
+      data: {
+        name: "Karim Hassan",
+        phone: "+880191234567",
+        email: "karim@alsafa.com",
+        tenantId: demoTenant.id,
+        commissionProfile: {
+          create: {
+            commissionRate: 5,
+            status: "active",
+          },
+        },
+      },
     });
 
     await prisma.vendor.create({
