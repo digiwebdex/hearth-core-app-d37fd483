@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useMatch, useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import PermissionGate from "@/components/PermissionGate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +35,13 @@ import { StudentFields } from "@/components/bookings/StudentFields";
 import { ManpowerFields } from "@/components/bookings/ManpowerFields";
 import { AgentSelect } from "@/components/bookings/AgentSelect";
 import { emptyForm, type BookingFormState } from "@/components/bookings/types";
+import {
+  bookingMatchesPreset,
+  bookingPresetPath,
+  bookingPresetToTypeFilter,
+  isBookingPreset,
+  type BookingPresetId,
+} from "@/lib/bookingRoutePresets";
 
 const STATUS_META: { value: BookingStatus; color: string; icon: any }[] = [
   { value: "pending", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200", icon: Clock },
@@ -294,6 +301,20 @@ const Bookings = () => {
   const [loadingQuotations, setLoadingQuotations] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  const presetMatch = useMatch("/bookings/:segment");
+  const routeSegment = presetMatch?.params.segment;
+  const activePreset: BookingPresetId =
+    routeSegment && isBookingPreset(routeSegment)
+      ? routeSegment
+      : location.pathname === "/bookings"
+        ? "all"
+        : "all";
+
+  const goToBookingPreset = (preset: BookingPresetId) => {
+    navigate(bookingPresetPath(preset));
+    setTypeFilter(bookingPresetToTypeFilter(preset));
+  };
 
   const fetchBookings = useCallback(async () => {
     setLoading(true);
@@ -311,6 +332,14 @@ const Bookings = () => {
   useEffect(() => {
     fetchBookings();
   }, [fetchBookings]);
+
+  useEffect(() => {
+    if (routeSegment && isBookingPreset(routeSegment)) {
+      setTypeFilter(bookingPresetToTypeFilter(routeSegment));
+    } else if (location.pathname === "/bookings") {
+      setTypeFilter("all");
+    }
+  }, [routeSegment, location.pathname]);
 
   const profit = useMemo(() => form.amount - form.cost, [form.amount, form.cost]);
   const resetForm = () => {
@@ -394,14 +423,17 @@ const Bookings = () => {
         b.packageTitleSnapshot?.toLowerCase().includes(search.toLowerCase()) ||
         b.packageCodeSnapshot?.toLowerCase().includes(search.toLowerCase());
       const matchStatus = statusFilter === "all" || b.status === statusFilter;
-      const matchType = typeFilter === "all" || b.type === typeFilter;
+      const matchType =
+        activePreset !== "all"
+          ? bookingMatchesPreset(b, activePreset)
+          : typeFilter === "all" || b.type === typeFilter;
       const matchPayment = paymentFilter === "all" || b.paymentStatus === paymentFilter;
       const matchDest = !destinationFilter || (b.destination || "").toLowerCase().includes(destinationFilter.toLowerCase());
       const matchTravelFrom = !travelDateFrom || (b.travelDateFrom && new Date(b.travelDateFrom) >= travelDateFrom);
       const matchTravelTo = !travelDateTo || (b.travelDateFrom && new Date(b.travelDateFrom) <= travelDateTo);
       return matchSearch && matchStatus && matchType && matchPayment && matchDest && matchTravelFrom && matchTravelTo;
     });
-  }, [items, search, statusFilter, typeFilter, paymentFilter, destinationFilter, travelDateFrom, travelDateTo]);
+  }, [items, search, statusFilter, typeFilter, activePreset, paymentFilter, destinationFilter, travelDateFrom, travelDateTo]);
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -626,14 +658,15 @@ const Bookings = () => {
             ))}
           </div>
           <div className="flex gap-2 mt-2 flex-wrap">
-            <Tab active={typeFilter === "all"} onClick={() => setTypeFilter("all")}>{t("bookingsForm.all")} ({totalCount})</Tab>
-            <Tab active={typeFilter === "tour"} onClick={() => setTypeFilter("tour")}>{t("bookingsForm.types.tour")} ({tourCount})</Tab>
-            <Tab active={typeFilter === "ticket"} onClick={() => setTypeFilter("ticket")}>{t("bookingsForm.types.ticket")} ({ticketCount})</Tab>
-            <Tab active={typeFilter === "hotel"} onClick={() => setTypeFilter("hotel")}>{t("bookingsForm.types.hotel")} ({hotelCount})</Tab>
-            <Tab active={typeFilter === "visa"} onClick={() => setTypeFilter("visa")}>{t("bookingsForm.types.visa")} ({visaCount})</Tab>
-            <Tab active={typeFilter === "package"} onClick={() => setTypeFilter("package")}>{t("bookingsForm.types.package")} ({packageCount})</Tab>
-            <Tab active={typeFilter === "student"} onClick={() => setTypeFilter("student")}>{t("bookingsForm.types.student")} ({studentCount})</Tab>
-            <Tab active={typeFilter === "manpower"} onClick={() => setTypeFilter("manpower")}>{t("bookingsForm.types.manpower")} ({manpowerCount})</Tab>
+            <Tab active={activePreset === "all"} onClick={() => goToBookingPreset("all")}>{t("bookingsForm.all")} ({totalCount})</Tab>
+            <Tab active={activePreset === "tour"} onClick={() => goToBookingPreset("tour")}>{t("bookingsForm.types.tour")} ({tourCount})</Tab>
+            <Tab active={activePreset === "flight"} onClick={() => goToBookingPreset("flight")}>{t("bookingsForm.types.ticket")} ({ticketCount})</Tab>
+            <Tab active={activePreset === "hotel"} onClick={() => goToBookingPreset("hotel")}>{t("bookingsForm.types.hotel")} ({hotelCount})</Tab>
+            <Tab active={activePreset === "visa"} onClick={() => goToBookingPreset("visa")}>{t("bookingsForm.types.visa")} ({visaCount})</Tab>
+            <Tab active={activePreset === "hajj"} onClick={() => goToBookingPreset("hajj")}>{t("sidebar.bookings.hajj")} ({packageCount})</Tab>
+            <Tab active={activePreset === "umrah"} onClick={() => goToBookingPreset("umrah")}>{t("sidebar.bookings.umrah")} ({packageCount})</Tab>
+            <Tab active={activePreset === "student"} onClick={() => goToBookingPreset("student")}>{t("bookingsForm.types.student")} ({studentCount})</Tab>
+            <Tab active={activePreset === "manpower"} onClick={() => goToBookingPreset("manpower")}>{t("bookingsForm.types.manpower")} ({manpowerCount})</Tab>
           </div>
           <div className="flex flex-wrap gap-3">
             <div className="flex items-center gap-2 max-w-sm flex-1">

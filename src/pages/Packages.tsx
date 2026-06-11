@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,14 @@ import {
   type TravelPackagePricing,
 } from "@/lib/travelPackageApi";
 import { SERVICE_TYPES, getLocalizedServiceTypeLabel, type ServiceType } from "@/lib/serviceTypes";
+import {
+  isPackagePreset,
+  packageMatchesPreset,
+  packagePresetPath,
+  PACKAGE_PRESET_CONFIG,
+  serviceTypeToPackagePreset,
+  type PackagePresetId,
+} from "@/lib/packageRoutePresets";
 import { ArrowRight, FileText, Globe, Loader2, Moon, Package2, Plus, Save, Trash2, UploadCloud, Wand2 } from "lucide-react";
 
 const emptyForm = {
@@ -78,7 +86,11 @@ function slugify(value: string) {
 
 const Packages = () => {
   const { toast } = useToast();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
+  const { preset: presetParam } = useParams<{ preset?: string }>();
+  const activePreset: PackagePresetId | null =
+    presetParam && isPackagePreset(presetParam) ? presetParam : null;
   const isBn = String(i18n.resolvedLanguage || i18n.language || "en").startsWith("bn");
   const [items, setItems] = useState<TravelPackage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,7 +118,7 @@ const Packages = () => {
     migrationTitle: isBn ? "ইউনিফায়েড সার্ভিস সেন্টার" : "Unified service center",
     migrationText: isBn ? "এখন ট্যুর, হজ্জ-উমরাহ, ভিসা, টিকেটসহ সব service template এক জায়গা থেকে ম্যানেজ করুন। আলাদা Hajj sidebar item আর দেখানো হচ্ছে না।" : "Manage tour, Hajj/Umrah, visa, ticket, and other service templates from one place. The separate Hajj sidebar item is no longer shown.",
     operationsHint: isBn ? "পুরনো pilgrim, group, rooming, payment operations এখনো legacy screen-এ আছে, তাই বর্তমান testing data safe থাকবে।" : "Legacy pilgrim, group, rooming, and payment operations still remain in the legacy screen, so current testing data stays safe.",
-    legacyButton: isBn ? "লেগেসি হাজী অপারেশনস চালু করুন" : "Open Legacy Pilgrim Operations",
+    hajjOpsButton: t("packagesPage.hajjOpsButton"),
     publicButton: isBn ? "পাবলিক প্যাকেজ পেজ" : "Public Packages Page",
     builderButton: isBn ? "ওয়েবসাইট বিল্ডার" : "Website Builder",
     publishButton: isBn ? "পাবলিশ ও ডোমেইন" : "Publish & Domain",
@@ -201,7 +213,33 @@ const Packages = () => {
   useEffect(() => { load(); }, []);
   useEffect(() => { if (selectedId) loadDetails(selectedId); }, [selectedId]);
 
-  const visibleItems = useMemo(() => items.filter((item) => filterType === "all" || item.serviceType === filterType), [items, filterType]);
+  useEffect(() => {
+    if (!activePreset) return;
+    const config = PACKAGE_PRESET_CONFIG[activePreset];
+    if (config.filterMode === "single" && config.serviceType) {
+      setFilterType(config.serviceType);
+    } else if (activePreset === "all") {
+      setFilterType("all");
+    } else if (config.defaultServiceType) {
+      setFilterType(config.defaultServiceType);
+    }
+  }, [activePreset]);
+
+  const visibleItems = useMemo(() => {
+    if (activePreset) {
+      return items.filter((item) => packageMatchesPreset(item, activePreset));
+    }
+    return items.filter((item) => filterType === "all" || item.serviceType === filterType);
+  }, [items, activePreset, filterType]);
+
+  const handleFilterTypeChange = (value: string) => {
+    setFilterType(value);
+    if (value === "all") {
+      navigate(packagePresetPath("all"));
+      return;
+    }
+    navigate(packagePresetPath(serviceTypeToPackagePreset(value)));
+  };
 
   const resetForm = () => {
     setSelectedId(null);
@@ -210,6 +248,17 @@ const Packages = () => {
     setInclusions([]);
     setPricing([]);
     setMedia([]);
+  };
+
+  const handleResetForm = () => {
+    const defaultType =
+      activePreset && activePreset !== "all"
+        ? PACKAGE_PRESET_CONFIG[activePreset].defaultServiceType
+        : undefined;
+    resetForm();
+    if (defaultType) {
+      setForm({ ...emptyForm, serviceType: defaultType });
+    }
   };
 
   const normalizeDays = () => days.map((item, index) => ({ ...item, dayNumber: index + 1, title: String(item.title || `Day ${index + 1}`).trim(), description: item.description || "", overnightLocation: item.overnightLocation || "" })).filter((item) => item.title);
@@ -276,7 +325,7 @@ const Packages = () => {
             <p className="text-sm text-muted-foreground">{text.pageSubtitle}</p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <Select value={filterType} onValueChange={setFilterType}>
+            <Select value={filterType} onValueChange={handleFilterTypeChange}>
               <SelectTrigger className="w-[210px]"><SelectValue placeholder={text.filterPlaceholder} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{text.allTypes}</SelectItem>
@@ -287,8 +336,8 @@ const Packages = () => {
             <Link to="/website"><Button variant="outline"><Wand2 className="mr-2 h-4 w-4" />{text.builderButton}</Button></Link>
             <Link to="/website/publish"><Button variant="outline"><UploadCloud className="mr-2 h-4 w-4" />{text.publishButton}</Button></Link>
             <Link to="/site/packages"><Button variant="outline"><Globe className="mr-2 h-4 w-4" />{text.publicButton}</Button></Link>
-            <Button variant="outline" onClick={resetForm}><Plus className="mr-2 h-4 w-4" />{text.newPackage}</Button>
-            <Link to="/hajj-umrah"><Button variant="secondary"><Moon className="mr-2 h-4 w-4" />{text.legacyButton}</Button></Link>
+            <Button variant="outline" onClick={handleResetForm}><Plus className="mr-2 h-4 w-4" />{text.newPackage}</Button>
+            <Link to="/hajj-umrah"><Button variant="secondary"><Moon className="mr-2 h-4 w-4" />{text.hajjOpsButton}</Button></Link>
           </div>
         </div>
 
