@@ -3,7 +3,7 @@
 **Audience:** Agency owners and staff who are not technical experts.  
 **Purpose:** One clear map of what the SaaS does today, why it feels mismatched, and the **target** structure so any agency can use it easily.
 
-**Last updated:** 2026-06 (reflects `main` after P0 navigation + booking i18n fixes)
+**Last updated:** 2026-06 (reflects `main` after polish phases A–D)
 
 ---
 
@@ -210,8 +210,8 @@ flowchart LR
 | **Hotel** | ✅ | ✅ + Hotel fields | ✅ Booking details | ✅ |
 | **Visa** | ✅ | ✅ + Visa fields | ✅ Docs on client/booking | ✅ |
 | **Hajj/Umrah sale** | ✅ | ✅ `/bookings/hajj` or `umrah` | ✅ **Also** `/hajj-umrah` for pilgrims | ✅ |
-| **Student (BD)** | ✅ | ✅ + Student fields | ⚠️ Booking details only | ✅ |
-| **Manpower (BD)** | ✅ | ✅ + Manpower fields | ⚠️ Booking details only | ✅ |
+| **Student (BD)** | ✅ | ✅ + Student fields | ✅ `/operations/bd` (optional module) | ✅ |
+| **Manpower (BD)** | ✅ | ✅ + Manpower fields | ✅ `/operations/bd` (optional module) | ✅ |
 
 **Legend:** ✅ built · ⚠️ partial · ❌ not built
 
@@ -247,12 +247,17 @@ flowchart LR
 | **Accounts** | Ledger, expenses, vendor payables, profitability |
 | **Website** | Public site content for your agency |
 | **Tasks** | Internal to-do / follow-ups for team |
+| **Follow-ups** | Scheduled callbacks and reminders (`/follow-ups`) |
+| **Documents hub** | All uploaded files across bookings and clients (`/documents`) |
+| **Activity log** | Who changed what — owners/managers only (`/activity-log`) |
 
 ---
 
 ## 10. Polish roadmap (development priority)
 
-### Phase A — Clarity (no new features) — **highest value for you**
+**Status: Phases A–D shipped on `main` (Jun 2026).** Next work: see `docs/Travel-Agency-ERP-Full-Audit-Improvement-Plan.md` Phase 0 (security) and scenario doc Phases 3–5.
+
+### Phase A — Clarity — ✅ shipped
 
 1. **Sidebar:** Sales group = Quotations + Bookings (move quotations out of CRM label).
 2. **Sidebar:** One **Service catalog** item → tabs inside (hide 7 duplicate package links).
@@ -260,18 +265,18 @@ flowchart LR
 4. **Tenant setting:** “Enable Hajj/Umrah Operations module” — hide `/hajj-umrah` for pure tour agencies.
 5. **Rename consistently (EN/BN):** always “X Bookings” vs “X Programs/Packages”.
 
-### Phase B — Complete the blueprint
+### Phase B — Complete the blueprint — ✅ shipped
 
 6. Follow-ups list (`/follow-ups`)
 7. Documents hub (`/documents`)
 8. Finance: Expenses & Commissions as menu items (route to Accounts / Agents tabs)
 
-### Phase C — BD market depth
+### Phase C — BD market depth — ✅ shipped
 
 9. Student / Manpower operations desk (optional module like Hajj)
 10. Package ↔ website auto-sync status UI
 
-### Phase D — Super admin / platform
+### Phase D — Super admin / platform — ✅ shipped
 
 11. Align GitHub deploy + VPS PM2 path
 12. Activity logs for tenant admins
@@ -312,7 +317,7 @@ flowchart LR
 | Menu too long | Packages + Bookings duplicated per category | One catalog page + one bookings page with filters |
 | Hajj feels different | Extra operations module | Optional module + clear labels |
 | “Where do I operate?” | No single rule | **Bookings → open row → details**; Hajj bulk → **Hajj Ops** |
-| Missing items in menu | P1/P2 not built yet | Follow roadmap Phase B |
+| Missing items in menu | Polish phases A–D now shipped | Next: audit plan Phase 0 (security) |
 
 **For most daily work:** CRM → Sales (Quotation/Booking) → Finance.  
 **Catalog & Website:** when marketing or updating offers.  

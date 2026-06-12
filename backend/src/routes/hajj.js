@@ -21,8 +21,9 @@ router.post("/packages", async (req, res) => {
 });
 router.patch("/packages/:id", async (req, res) => {
   try {
-    await prisma.hajjPackage.updateMany({ where: { id: req.params.id, tenantId: req.tenantId }, data: req.body });
-    res.json(await prisma.hajjPackage.findFirst({ where: { id: req.params.id } }));
+    const existing = await prisma.hajjPackage.findFirst({ where: { id: req.params.id, tenantId: req.tenantId } });
+    if (!existing) return res.status(404).json({ message: "Not found" });
+    res.json(await prisma.hajjPackage.update({ where: { id: req.params.id }, data: req.body }));
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 router.delete("/packages/:id", async (req, res) => {
@@ -44,8 +45,9 @@ router.post("/groups", async (req, res) => {
 });
 router.patch("/groups/:id", async (req, res) => {
   try {
-    await prisma.hajjGroup.updateMany({ where: { id: req.params.id, tenantId: req.tenantId }, data: req.body });
-    res.json(await prisma.hajjGroup.findFirst({ where: { id: req.params.id } }));
+    const existing = await prisma.hajjGroup.findFirst({ where: { id: req.params.id, tenantId: req.tenantId } });
+    if (!existing) return res.status(404).json({ message: "Not found" });
+    res.json(await prisma.hajjGroup.update({ where: { id: req.params.id }, data: req.body }));
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 router.delete("/groups/:id", async (req, res) => {
@@ -72,18 +74,18 @@ router.post("/pilgrims", async (req, res) => {
 });
 router.patch("/pilgrims/:id", async (req, res) => {
   try {
-    await prisma.hajjPilgrim.updateMany({ where: { id: req.params.id, tenantId: req.tenantId }, data: req.body });
-    res.json(await prisma.hajjPilgrim.findFirst({ where: { id: req.params.id } }));
+    const existing = await prisma.hajjPilgrim.findFirst({ where: { id: req.params.id, tenantId: req.tenantId } });
+    if (!existing) return res.status(404).json({ message: "Not found" });
+    res.json(await prisma.hajjPilgrim.update({ where: { id: req.params.id }, data: req.body }));
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 router.delete("/pilgrims/:id", async (req, res) => {
   try {
-    const p = await prisma.hajjPilgrim.findFirst({ where: { id: req.params.id } });
-    await prisma.hajjPilgrim.deleteMany({ where: { id: req.params.id, tenantId: req.tenantId } });
-    if (p) {
-      const count = await prisma.hajjPilgrim.count({ where: { packageId: p.packageId } });
-      await prisma.hajjPackage.update({ where: { id: p.packageId }, data: { enrolled: count } });
-    }
+    const p = await prisma.hajjPilgrim.findFirst({ where: { id: req.params.id, tenantId: req.tenantId } });
+    if (!p) return res.status(404).json({ message: "Not found" });
+    await prisma.hajjPilgrim.delete({ where: { id: req.params.id } });
+    const count = await prisma.hajjPilgrim.count({ where: { packageId: p.packageId } });
+    await prisma.hajjPackage.update({ where: { id: p.packageId }, data: { enrolled: count } });
     res.json({ success: true });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
