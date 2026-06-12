@@ -110,6 +110,7 @@
     "subscription": "Subscription",
     "settings": "Settings",
     "userGuide": "User Guide",
+    "activityLog": "Activity Log",
     "adminPanel": "Admin Panel",
     "upgradeTo": "Upgrade to",
     "packages": {
@@ -256,6 +257,35 @@
   "commissionsPage": {
     "title": "Agent commissions",
     "subtitle": "Agents with pending commission — open a profile to mark bookings paid."
+  },
+  "activityLog": {
+    "title": "Activity Log",
+    "subtitle": "Who changed what in your agency — bookings, invoices, team, and settings.",
+    "loadFailed": "Failed to load activity log",
+    "refresh": "Refresh",
+    "export": "Export CSV",
+    "searchPlaceholder": "Search actor, target, action…",
+    "moduleFilter": "Module",
+    "allModules": "All modules",
+    "tableTitle": "Events ({{count}})",
+    "timestamp": "Time",
+    "actor": "User",
+    "module": "Module",
+    "action": "Action",
+    "target": "Target",
+    "changes": "Changes",
+    "empty": "No activity recorded yet.",
+    "detailTitle": "Event details",
+    "oldValue": "Before",
+    "newValue": "After",
+    "stats": {
+      "total": "Total events",
+      "today": "Today"
+    }
+  },
+  "deploy": {
+    "pm2Title": "PM2 VPS deploy",
+    "pm2Hint": "Production at /var/www/hearth-core-app uses scripts/vps-pm2-deploy.sh (PM2 hearth-api)."
   },
   "pages": {
     "manageYour": "Manage your",

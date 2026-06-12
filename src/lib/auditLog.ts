@@ -15,7 +15,8 @@ export type AuditAction =
   | "exported" | "imported"
   | "domain_added" | "domain_verified" | "domain_removed"
   | "sms_sent" | "email_sent"
-  | "setting_changed";
+  | "setting_changed"
+  | "member_added" | "member_removed";
 
 export interface AuditLogEntry {
   id: string;
@@ -102,6 +103,7 @@ export const ACTION_LABELS: Record<AuditAction, string> = {
   domain_added: "Domain Added", domain_verified: "Domain Verified", domain_removed: "Domain Removed",
   sms_sent: "SMS Sent", email_sent: "Email Sent",
   setting_changed: "Setting Changed",
+  member_added: "Member Added", member_removed: "Member Removed",
 };
 
 export function getActionColor(action: AuditAction): string {

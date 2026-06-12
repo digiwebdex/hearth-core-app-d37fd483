@@ -31,6 +31,9 @@ export function navItemIsActive(url: string, pathname: string): boolean {
   if (url === "/operations/bd") {
     return pathname === "/operations/bd" || pathname.startsWith("/operations/bd");
   }
+  if (url === "/activity-log") {
+    return pathname === "/activity-log";
+  }
   if (url === "/dashboard") return pathname === "/dashboard";
   return pathname === url || pathname.startsWith(`${url}/`);
 }

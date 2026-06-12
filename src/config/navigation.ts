@@ -29,6 +29,7 @@ import {
   Bell,
   Settings,
   BookOpen,
+  Activity,
 } from "lucide-react";
 import type { PlanType } from "@/lib/plans";
 import type { Module } from "@/lib/permissions";
@@ -55,11 +56,14 @@ export interface NavigationOptions {
   enableHajjUmrahModule?: boolean;
   /** When true, shows Student/Manpower operations desk. Default false. */
   enableBdOperationsModule?: boolean;
+  /** When true, shows Activity log in Administration (owner/manager). */
+  showActivityLog?: boolean;
 }
 
 export function getNavigationGroups(options: NavigationOptions = {}): NavGroupConfig[] {
   const enableHajj = options.enableHajjUmrahModule !== false;
   const enableBd = options.enableBdOperationsModule === true;
+  const showActivityLog = options.showActivityLog === true;
 
   const operationsItems: NavItemConfig[] = [
     { id: "documents", titleKey: "sidebar.documents", url: "/documents", icon: FolderOpen, module: "clients" },
@@ -216,6 +220,9 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
       items: [
         { id: "team", titleKey: "sidebar.team", url: "/team", icon: Users, module: "team" },
         { id: "roles", titleKey: "sidebar.roles", url: "/roles", icon: UserCog2, module: "team" },
+        ...(showActivityLog
+          ? [{ id: "activity-log", titleKey: "sidebar.activityLog", url: "/activity-log", icon: Activity, module: "team" as const }]
+          : []),
         { id: "notifications", titleKey: "sidebar.notifications", url: "/notifications", icon: Bell, module: "reports" },
         { id: "settings", titleKey: "sidebar.settings", url: "/settings", icon: Settings, module: "settings" },
         { id: "organization", titleKey: "sidebar.organization", url: "/organization", icon: Building2, module: "organization" },

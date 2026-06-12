@@ -27,6 +27,7 @@ import Vendors from "./pages/Vendors";
 import VendorDetails from "./pages/VendorDetails";
 import Leads from "./pages/Leads";
 import FollowUps from "./pages/FollowUps";
+import ActivityLog from "./pages/ActivityLog";
 import Documents from "./pages/Documents";
 import LeadDetails from "./pages/LeadDetails";
 import ClientProfile from "./pages/ClientProfile";
@@ -195,6 +196,7 @@ const AppContent = () => (
           <Route path="/team" element={<P><Team /></P>} />
           <Route path="/organization" element={<P><Organization /></P>} />
           <Route path="/settings" element={<P><SettingsPage /></P>} />
+          <Route path="/activity-log" element={<P><ActivityLog /></P>} />
           <Route path="/settings/billing" element={<P><SettingsBilling /></P>} />
           <Route path="/website" element={<P><WebsiteBuilderHome /></P>} />
           <Route path="/website/builder" element={<P><WebsiteCustomizer /></P>} />

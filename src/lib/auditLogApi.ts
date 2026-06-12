@@ -37,5 +37,6 @@ export interface AuditLogEntry {
 }
 
 export const auditLogApi = {
-  list: () => request<AuditLogEntry[]>("/admin/audit-logs"),
+  /** Super admin: all logs. Tenant admin: tenant-scoped logs. */
+  list: () => request<AuditLogEntry[]>("/audit-logs"),
 };

@@ -84,3 +84,28 @@ Server-side hooks fire on ERP lead create, booking create, and invoice payment r
 - `backend/package.json` has a `setup` script but no lockfile; `npm install` in `backend/` is required separately from root.
 - Optional integrations (SMTP, SSLCommerz, bKash, SMS, WhatsApp) default to console logging when unset.
 - Production stack lives in `app/docker-compose.yml` (Postgres + API + Nginx frontend); `vps/` is deployment tooling only.
+
+### VPS PM2 deploy (production legacy path)
+
+Many live installs use **`/var/www/hearth-core-app`** with **PM2 `hearth-api`**, not Docker.
+
+| Item | Value |
+|------|--------|
+| Manual deploy | `bash scripts/vps-pm2-deploy.sh` (or repo-root `./deploy.sh`) |
+| GitHub Actions | `.github/workflows/deploy.yml` — default `VPS_DEPLOY_MODE=pm2` |
+
+**GitHub secrets (PM2 mode):**
+
+| Secret | Required | Example |
+|--------|----------|---------|
+| `VPS_HOST` | Yes | VPS IP or hostname |
+| `VPS_SSH_KEY` | Yes | Private key for SSH |
+| `VPS_SSH_USER` | No | Defaults to `root` in script if unset — set explicitly when using non-root |
+| `VPS_APP_DIR` | No | Default `/var/www/hearth-core-app` |
+| `VPS_PM2_NAME` | No | Default `hearth-api` (falls back to `hearth-core-api`) |
+| `VPS_DEPLOY_MODE` | No | `pm2` (default) or `docker` |
+| `VPS_PROJECT_DIR` | Docker only | Default `/opt/projects/hearth-core` |
+
+**Docker mode** runs `$VPS_PROJECT_DIR/scripts/deploy.sh` ( `/srv/travelagencyweb` stack).
+
+**Tenant activity log:** `/activity-log` (owner/manager) uses `GET /api/audit-logs`. Super admin audit UI uses the same API.
