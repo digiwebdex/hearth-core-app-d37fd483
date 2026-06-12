@@ -25,8 +25,9 @@ import { emailApi } from "@/lib/emailApi";
 import PaymentGatewayDialog from "@/components/PaymentGatewayDialog";
 import {
   invoiceApi, paymentApi, bookingApi, type Invoice, type Payment, type InvoiceStatus,
-  type PaymentMethod, type InvoiceRefund, type InvoiceAuditEvent, type Booking,
+  type PaymentMethod, type InvoiceRefund, type InvoiceAuditEvent, type InvoiceInstallment, type Booking,
 } from "@/lib/api";
+import { InvoiceInstallmentsPanel } from "@/components/invoices/InvoiceInstallmentsPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import EmptyState from "@/components/EmptyState";
@@ -74,6 +75,7 @@ const Invoices = () => {
   const [invoicePayments, setInvoicePayments] = useState<Payment[]>([]);
   const [invoiceRefunds, setInvoiceRefunds] = useState<InvoiceRefund[]>([]);
   const [invoiceAudit, setInvoiceAudit] = useState<InvoiceAuditEvent[]>([]);
+  const [invoiceInstallments, setInvoiceInstallments] = useState<InvoiceInstallment[]>([]);
 
   // Filters
   const [search, setSearch] = useState("");
@@ -121,14 +123,16 @@ const Invoices = () => {
   const loadInvoiceDetails = async (id: string) => {
     setSelectedInvoiceId(id);
     try {
-      const [pays, refs, audit] = await Promise.all([
+      const [pays, refs, audit, installments] = await Promise.all([
         invoiceApi.getPayments(id).catch(() => []),
         invoiceApi.getRefunds(id).catch(() => []),
         invoiceApi.getAuditTrail(id).catch(() => []),
+        invoiceApi.getInstallments(id).catch(() => []),
       ]);
       setInvoicePayments(pays);
       setInvoiceRefunds(refs);
       setInvoiceAudit(audit);
+      setInvoiceInstallments(installments);
     } catch {}
   };
 
@@ -633,9 +637,18 @@ const Invoices = () => {
                 <Tabs defaultValue="payments">
                   <TabsList>
                     <TabsTrigger value="payments">{t("invoicesForm.detail.payments")} ({invoicePayments.length})</TabsTrigger>
+                    <TabsTrigger value="installments">{t("invoicesForm.detail.installments")} ({invoiceInstallments.length})</TabsTrigger>
                     <TabsTrigger value="refunds">{t("invoicesForm.detail.refunds")} ({invoiceRefunds.length})</TabsTrigger>
                     <TabsTrigger value="audit">{t("invoicesForm.detail.audit")} ({invoiceAudit.length})</TabsTrigger>
                   </TabsList>
+
+                  <TabsContent value="installments" className="mt-3">
+                    <InvoiceInstallmentsPanel
+                      invoiceId={selectedInvoice.id}
+                      installments={invoiceInstallments}
+                      onChange={setInvoiceInstallments}
+                    />
+                  </TabsContent>
 
 
                   <TabsContent value="payments" className="mt-3">

@@ -3,6 +3,11 @@ const { dispatchTenantAutomation } = require("../services/tenantAutomationServic
 const multer = require("multer");
 const path = require("path");
 const { authenticate, requirePermission, prisma } = require("../middleware/auth");
+const {
+  allocatePaymentToInstallments,
+  ensureLedgerIncomeTransaction,
+  installmentStatus,
+} = require("../lib/invoiceInstallments");
 
 const upload = multer({ dest: process.env.UPLOAD_DIR || path.join(__dirname, "../../uploads") });
 router.use(authenticate);
@@ -109,23 +114,15 @@ router.post("/:id/payments", requirePermission("invoices", "create"), async (req
       await prisma.booking.updateMany({ where: { id: bookingId, tenantId: req.tenantId }, data: { paidAmount: bPaid, dueAmount: bTotal - bPaid, paymentStatus: bPaid >= bTotal ? "paid" : bPaid > 0 ? "partial" : "unpaid" } });
     }
 
-    // Auto-create Transaction record in ledger
-    await prisma.transaction.create({
-      data: {
-        type: "income",
-        category: "invoice_payment",
-        description: `Payment received for ${refreshedInvoice.invoiceNumber || refreshedInvoice.id} via ${payment.method}`,
-        amount: payment.amount,
-        referenceId: payment.id,
-        referenceType: "payment",
-        invoiceId: req.params.id,
-        bookingId: bookingId || null,
-        paymentMethod: payment.method,
-        status: "completed",
-        date: payment.date || new Date().toISOString().slice(0, 10),
-        tenantId: req.tenantId,
-      },
-    }).catch(e => console.error("Auto-transaction error:", e.message));
+    // Auto-create Transaction record in ledger (idempotent)
+    await ensureLedgerIncomeTransaction(prisma, {
+      payment,
+      invoice: refreshedInvoice,
+      tenantId: req.tenantId,
+      bookingId,
+    });
+
+    await allocatePaymentToInstallments(prisma, req.params.id, req.tenantId, payment.amount);
 
     await prisma.invoiceAuditEvent.create({ data: { invoiceId: req.params.id, type: "payment", content: `Payment of ${payment.amount} received via ${payment.method}`, amount: payment.amount, createdBy: req.userId } });
 
@@ -202,6 +199,101 @@ router.post("/:id/refunds", requirePermission("invoices", "approve"), async (req
     await prisma.invoice.update({ where: { id: req.params.id }, data: { refundedAmount: refunded, status: refunded >= inv.totalAmount ? "refunded" : inv.status } });
     res.status(201).json(refund);
   } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// Installments
+router.get("/:id/installments", requirePermission("invoices", "view"), async (req, res) => {
+  try {
+    const invoice = await getTenantInvoice(req.params.id, req.tenantId);
+    if (!invoice) return res.status(404).json({ message: "Not found" });
+    const rows = await prisma.invoiceInstallment.findMany({
+      where: { invoiceId: req.params.id, tenantId: req.tenantId },
+      orderBy: [{ sortOrder: "asc" }, { dueDate: "asc" }, { createdAt: "asc" }],
+    });
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.post("/:id/installments", requirePermission("invoices", "edit"), async (req, res) => {
+  try {
+    const invoice = await getTenantInvoice(req.params.id, req.tenantId);
+    if (!invoice) return res.status(404).json({ message: "Not found" });
+
+    const amount = Number(req.body.amount) || 0;
+    const label = String(req.body.label || "Installment").trim();
+    const dueDate = req.body.dueDate || null;
+    const sortOrder = Number(req.body.sortOrder) || 0;
+
+    const row = await prisma.invoiceInstallment.create({
+      data: {
+        invoiceId: req.params.id,
+        label,
+        amount,
+        dueDate,
+        sortOrder,
+        paidAmount: 0,
+        status: "pending",
+        tenantId: req.tenantId,
+      },
+    });
+
+    await prisma.invoiceAuditEvent.create({
+      data: {
+        invoiceId: req.params.id,
+        type: "note",
+        content: `Installment added: ${label} — ৳${amount}`,
+        createdBy: req.userId,
+      },
+    }).catch(() => {});
+
+    res.status(201).json(row);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.patch("/:id/installments/:instId", requirePermission("invoices", "edit"), async (req, res) => {
+  try {
+    const invoice = await getTenantInvoice(req.params.id, req.tenantId);
+    if (!invoice) return res.status(404).json({ message: "Not found" });
+
+    const existing = await prisma.invoiceInstallment.findFirst({
+      where: { id: req.params.instId, invoiceId: req.params.id, tenantId: req.tenantId },
+    });
+    if (!existing) return res.status(404).json({ message: "Installment not found" });
+
+    const amount = req.body.amount !== undefined ? Number(req.body.amount) : existing.amount;
+    const paidAmount = req.body.paidAmount !== undefined ? Number(req.body.paidAmount) : existing.paidAmount;
+
+    const row = await prisma.invoiceInstallment.update({
+      where: { id: req.params.instId },
+      data: {
+        label: req.body.label !== undefined ? String(req.body.label) : existing.label,
+        amount,
+        dueDate: req.body.dueDate !== undefined ? req.body.dueDate : existing.dueDate,
+        sortOrder: req.body.sortOrder !== undefined ? Number(req.body.sortOrder) : existing.sortOrder,
+        paidAmount,
+        status: installmentStatus(amount, paidAmount),
+      },
+    });
+    res.json(row);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.delete("/:id/installments/:instId", requirePermission("invoices", "edit"), async (req, res) => {
+  try {
+    const result = await prisma.invoiceInstallment.deleteMany({
+      where: { id: req.params.instId, invoiceId: req.params.id, tenantId: req.tenantId },
+    });
+    if (!result.count) return res.status(404).json({ message: "Not found" });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 // Audit

@@ -6,13 +6,33 @@
 #   APP_DIR      — repo root (default: /var/www/hearth-core-app)
 #   PM2_NAME     — process name (default: hearth-api, falls back to hearth-core-api)
 #   GIT_BRANCH   — branch to pull (default: main)
-#   HEALTH_URL   — API health URL (default: http://127.0.0.1:4000/api/health)
+#   HEALTH_URL   — API health URL (default: read PORT from backend/.env, else 4000)
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-/var/www/hearth-core-app}"
 PM2_NAME="${PM2_NAME:-hearth-api}"
 GIT_BRANCH="${GIT_BRANCH:-main}"
-HEALTH_URL="${HEALTH_URL:-http://127.0.0.1:4000/api/health}"
+
+resolve_api_port() {
+  local port="4000"
+  for env_file in "$APP_DIR/backend/.env" "$APP_DIR/.env.production" "$APP_DIR/.env"; do
+    if [ -f "$env_file" ]; then
+      local line
+      line=$(grep -E '^PORT=' "$env_file" | tail -1 || true)
+      if [ -n "$line" ]; then
+        port="${line#PORT=}"
+        port="${port//\"/}"
+        port="${port//$'\r'/}"
+        break
+      fi
+    fi
+  done
+  echo "$port"
+}
+
+if [ -z "${HEALTH_URL:-}" ]; then
+  HEALTH_URL="http://127.0.0.1:$(resolve_api_port)/api/health"
+fi
 
 if [ ! -d "$APP_DIR/.git" ]; then
   echo "❌ Not a git repo: $APP_DIR" >&2

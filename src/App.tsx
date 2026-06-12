@@ -48,6 +48,7 @@ import { HajjModuleGate } from "@/components/HajjModuleGate";
 import { BdModuleGate } from "@/components/BdModuleGate";
 import BdOperations from "./pages/BdOperations";
 import ServiceOperations from "./pages/ServiceOperations";
+import FinanceReminders from "./pages/FinanceReminders";
 import Subscriptions from "./pages/Subscriptions";
 import PaymentCallback from "./pages/PaymentCallback";
 import RoleManagement from "./pages/RoleManagement";
@@ -189,6 +190,7 @@ const AppContent = () => (
           <Route path="/hajj-umrah/operations" element={<Navigate to="/hajj-umrah" replace />} />
           <Route path="/operations/bd" element={<P><BdModuleGate><BdOperations /></BdModuleGate></P>} />
           <Route path="/operations/services" element={<P><ServiceOperations /></P>} />
+          <Route path="/finance/reminders" element={<P><FinanceReminders /></P>} />
           <Route path="/legacy/hajj-operations" element={<Navigate to="/hajj-umrah" replace />} />
           <Route path="/subscription" element={<P><Subscriptions /></P>} />
           <Route path="/payment/callback" element={<P><PaymentCallback /></P>} />

@@ -212,12 +212,22 @@ export const invoiceApi = {
   addRefund: (id: string, data: { amount: number; reason: string; method?: string }) => request<InvoiceRefund>(`/invoices/${id}/refunds`, { method: "POST", body: JSON.stringify(data) }),
   getRefunds: (id: string) => request<InvoiceRefund[]>(`/invoices/${id}/refunds`),
   getAuditTrail: (id: string) => request<InvoiceAuditEvent[]>(`/invoices/${id}/audit`),
+  getInstallments: (id: string) => request<InvoiceInstallment[]>(`/invoices/${id}/installments`),
+  addInstallment: (id: string, data: { label: string; amount: number; dueDate?: string; sortOrder?: number }) =>
+    request<InvoiceInstallment>(`/invoices/${id}/installments`, { method: "POST", body: JSON.stringify(data) }),
+  deleteInstallment: (id: string, instId: string) =>
+    request<void>(`/invoices/${id}/installments/${instId}`, { method: "DELETE" }),
   uploadProof: (id: string, payId: string, data: FormData) =>
     fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000/api"}/invoices/${id}/payments/${payId}/proof`, {
       method: "POST",
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       body: data,
     }).then((r) => r.json()),
+};
+export const financeApi = {
+  getReminders: () => request<FinanceRemindersPayload>("/finance/reminders"),
+  sendInvoiceReminder: (invoiceId: string) =>
+    request<{ success: boolean }>(`/finance/reminders/${invoiceId}/send`, { method: "POST" }),
 };
 export const paymentApi = createCrudApi<Payment>("payments");
 export const accountApi = {
@@ -394,6 +404,31 @@ export type PaymentMethod = "cash" | "bank" | "card" | "mobile_banking" | "chequ
 export interface Invoice { id: string; invoiceNumber?: string; bookingId: string; bookingTitle?: string; clientId?: string; clientName?: string; totalAmount: number; paidAmount: number; dueAmount: number; refundedAmount?: number; bookingCost?: number; status: InvoiceStatus; dueDate?: string; issuedDate?: string; notes?: string; payments?: Payment[]; refunds?: InvoiceRefund[]; auditTrail?: InvoiceAuditEvent[]; tenantId: string; createdAt: string; updatedAt?: string; }
 export interface Payment { id: string; invoiceId: string; bookingId: string; amount: number; method: PaymentMethod | string; transactionRef?: string; proofUrl?: string; date: string; notes?: string; receivedBy?: string; tenantId: string; createdAt: string; }
 export interface InvoiceRefund { id: string; invoiceId: string; amount: number; reason: string; method?: PaymentMethod | string; processedBy?: string; createdAt: string; }
+export interface InvoiceInstallment {
+  id: string;
+  invoiceId: string;
+  label: string;
+  amount: number;
+  dueDate?: string | null;
+  paidAmount: number;
+  status: "pending" | "partial" | "paid" | string;
+  sortOrder?: number;
+  tenantId?: string;
+  invoice?: Pick<Invoice, "id" | "invoiceNumber" | "clientName" | "bookingTitle" | "dueAmount">;
+}
+export interface FinanceRemindersPayload {
+  today: string;
+  overdueInvoices: Invoice[];
+  dueSoonInvoices: Invoice[];
+  overdueInstallments: InvoiceInstallment[];
+  dueSoonInstallments: InvoiceInstallment[];
+  counts: {
+    overdueInvoices: number;
+    dueSoonInvoices: number;
+    overdueInstallments: number;
+    dueSoonInstallments: number;
+  };
+}
 export interface InvoiceAuditEvent { id: string; invoiceId: string; type: "status_change" | "payment" | "refund" | "note" | "system"; content: string; oldStatus?: InvoiceStatus; newStatus?: InvoiceStatus; amount?: number; createdBy?: string; createdAt: string; }
 export type QuotationStatus = "draft" | "sent" | "approved" | "rejected" | "expired";
 export type QuotationItemType = "hotel" | "flight" | "visa" | "transport" | "tour" | "activity" | "insurance" | "service_fee" | "discount" | "tax";

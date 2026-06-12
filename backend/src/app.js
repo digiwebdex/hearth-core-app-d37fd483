@@ -10,6 +10,11 @@ const prismaHealth = new PrismaClient();
 function createApp() {
   const app = express();
 
+  // Behind nginx/Coolify — required for express-rate-limit with X-Forwarded-For
+  if (process.env.TRUST_PROXY !== "false") {
+    app.set("trust proxy", Number(process.env.TRUST_PROXY_HOPS || 1));
+  }
+
   const normalizeOrigin = (value) => value?.trim().replace(/\/$/, "");
   const defaultOrigins = [
     "https://travelagencyweb.com",
@@ -114,6 +119,7 @@ function createApp() {
   app.use("/api/tasks", require("./routes/crud")("task"));
   app.use("/api/bookings", require("./routes/bookings"));
   app.use("/api/invoices", require("./routes/invoices"));
+  app.use("/api/finance", require("./routes/finance"));
   app.use("/api/payments", require("./routes/payments"));
   app.use("/api/quotations", require("./routes/quotations"));
   app.use("/api/travel-packages", require("./routes/crud")("travelPackage"));

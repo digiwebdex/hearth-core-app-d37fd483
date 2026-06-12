@@ -89,6 +89,7 @@
     "bookings": "Bookings",
     "invoices": "Invoices",
     "payments": "Payments",
+    "paymentReminders": "Payment reminders",
     "expenses": "Expenses",
     "commissions": "Commissions",
     "documents": "Documents",
@@ -1514,6 +1515,51 @@
       ]
     }
   },
+  "installmentsForm": {
+    "scheduled": "Scheduled total",
+    "paidOnSchedule": "Paid on schedule",
+    "empty": "No installments yet — add a payment plan for Hajj, tours, or large bookings.",
+    "label": "Label",
+    "labelPlaceholder": "e.g. 1st installment, Booking deposit",
+    "amount": "Amount (৳)",
+    "dueDate": "Due date",
+    "paid": "Paid",
+    "addTitle": "Add installment",
+    "addButton": "Add installment",
+    "added": "Installment added",
+    "addFailed": "Could not add installment",
+    "deleteFailed": "Could not delete installment",
+    "required": "Label and amount are required",
+    "paymentHint": "When you record a payment, amounts apply to the oldest due installment first.",
+    "statuses": {
+      "pending": "Pending",
+      "partial": "Partial",
+      "paid": "Paid"
+    }
+  },
+  "financeReminders": {
+    "title": "Payment reminders",
+    "subtitle": "Overdue invoices and installment due dates — send reminders to clients.",
+    "loadFailed": "Failed to load payment reminders",
+    "sent": "Reminder sent",
+    "sendFailed": "Could not send reminder",
+    "none": "Nothing due in this section.",
+    "invoice": "Invoice",
+    "client": "Client",
+    "dueDate": "Due date",
+    "dueAmount": "Due amount",
+    "installment": "Installment",
+    "remaining": "Remaining",
+    "overdueInvoicesTitle": "Overdue invoices",
+    "overdueInstallmentsTitle": "Overdue installments",
+    "footer": "Commissions and ledger:",
+    "stats": {
+      "overdueInvoices": "Overdue invoices",
+      "dueSoonInvoices": "Due in 7 days",
+      "overdueInstallments": "Overdue installments",
+      "dueSoonInstallments": "Installments due soon"
+    }
+  },
   "invoicesForm": {
     "statuses": {
       "unpaid": "Unpaid",
@@ -1597,6 +1643,7 @@
       "refund": "Refund",
       "cancel": "Cancel",
       "payments": "Payments",
+      "installments": "Installments",
       "refunds": "Refunds",
       "audit": "Audit Trail",
       "noPayments": "No payments recorded yet.",

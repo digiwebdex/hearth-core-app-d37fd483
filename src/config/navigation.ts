@@ -164,6 +164,13 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
         { id: "invoices", titleKey: "sidebar.invoices", url: "/invoices", icon: Receipt, module: "invoices" },
         { id: "payments", titleKey: "sidebar.payments", url: "/payments", icon: CreditCard, module: "invoices" },
         {
+          id: "finance-reminders",
+          titleKey: "sidebar.paymentReminders",
+          url: "/finance/reminders",
+          icon: Bell,
+          module: "invoices",
+        },
+        {
           id: "expenses",
           titleKey: "sidebar.expenses",
           url: "/expenses",
