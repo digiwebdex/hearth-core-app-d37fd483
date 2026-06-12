@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const router = require("express").Router();
 const { authenticate, requireRole, prisma } = require("../middleware/auth");
-const { notifyEvent } = require("../services/notificationService");
+const { notifySubscriptionPaymentSubmitted } = require("../services/subscriptionNotificationService");
 
 router.use(authenticate);
 
@@ -135,40 +135,8 @@ async function writeAuditLog(req, { action, targetId, targetLabel, newValue, old
   }).catch(() => {});
 }
 
-async function sendSuperAdminOrderAlert({ tenant, item }) {
-  const owner = await prisma.user.findFirst({
-    where: { tenantId: tenant?.id || null, role: "tenant_owner" },
-    select: { name: true, email: true, phone: true },
-  }).catch(() => null);
-
-  try {
-    const { createPlatformNotification } = require("../services/platformNotificationService");
-    const plan = item.requestedPlan || item.plan;
-    const amount = item.amountSent || item.amount;
-    const method = item.paymentMethod || item.method || "manual";
-    const trxId = item.transactionId || item.trxId;
-    await createPlatformNotification({
-      type: "payment_request",
-      title: "New Payment Request",
-      message: `${tenant?.name || "Agency"} submitted ৳${amount} for ${plan} via ${method}${trxId ? ` (${trxId})` : ""}.`,
-      link: "/admin/payments",
-      metadata: { tenantId: tenant?.id, requestId: item.id, plan, amount: String(amount), method },
-    });
-  } catch (_e) { /* non-blocking */ }
-
-  await notifyEvent("subscription_order_alert", {
-    tenantName: tenant?.name || "Agency",
-    tenantId: tenant?.id || null,
-    ownerName: owner?.name || null,
-    ownerEmail: owner?.email || null,
-    ownerPhone: owner?.phone || tenant?.phone || null,
-    plan: item.requestedPlan || item.plan,
-    amount: item.amountSent || item.amount,
-    method: item.paymentMethod || item.method || "manual",
-    trxId: item.transactionId || item.trxId || null,
-    billingCycle: item.billingCycle || "monthly",
-    requestType: item.requestType || "activate",
-  }).catch(() => {});
+async function sendSuperAdminOrderAlert({ tenant, item, submittedByUserId }) {
+  await notifySubscriptionPaymentSubmitted({ tenant, item, submittedByUserId });
 }
 
 async function buildPaymentRequestInput(req, body, tenant) {
@@ -298,7 +266,7 @@ router.post("/", requireRole("tenant_owner"), async (req, res) => {
       newValue: { plan: item.requestedPlan || item.plan, amount: item.amountSent || item.amount, method: item.paymentMethod || item.method, trxId: item.transactionId || item.trxId, proofFileName: item.proofFileName || null },
       metadata: { billingCycle: item.billingCycle, requestType: item.requestType },
     });
-    await sendSuperAdminOrderAlert({ tenant, item });
+    await sendSuperAdminOrderAlert({ tenant, item, submittedByUserId: req.userId });
     res.status(201).json(item);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -325,7 +293,7 @@ router.post("/:id/resubmit", requireRole("tenant_owner"), async (req, res) => {
       newValue: { status: item.status, transactionId: item.transactionId || item.trxId, proofFileName: item.proofFileName || null },
       metadata: { billingCycle: item.billingCycle, requestType: item.requestType },
     });
-    await sendSuperAdminOrderAlert({ tenant, item });
+    await sendSuperAdminOrderAlert({ tenant, item, submittedByUserId: req.userId });
     res.json(item);
   } catch (err) {
     res.status(400).json({ message: err.message });
