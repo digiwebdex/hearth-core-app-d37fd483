@@ -558,6 +558,7 @@ const Bookings = () => {
                             <SelectItem value="package">{t("bookingsForm.types.package")}</SelectItem>
                             <SelectItem value="student">{t("bookingsForm.types.student")}</SelectItem>
                             <SelectItem value="manpower">{t("bookingsForm.types.manpower")}</SelectItem>
+                            <SelectItem value="corporate">{t("bookingsForm.types.corporate")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

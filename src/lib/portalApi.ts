@@ -29,10 +29,12 @@ async function req<T>(path: string, opts: RequestInit = {}): Promise<T> {
   return res.json();
 }
 
+export type PortalRole = "customer" | "supplier" | "agent";
+
 export interface PortalSession {
   token: string;
   email: string;
-  roles: ("customer" | "supplier")[];
+  roles: PortalRole[];
 }
 
 export interface PortalBooking {
@@ -47,6 +49,66 @@ export interface PortalBooking {
   paidAmount: number;
   dueAmount: number;
   tenantName?: string;
+}
+
+export interface PortalInstallment {
+  id: string;
+  label: string;
+  amount: number;
+  paidAmount: number;
+  dueDate?: string | null;
+  status: string;
+}
+
+export interface PortalInvoiceSummary {
+  id: string;
+  invoiceNumber?: string | null;
+  totalAmount: number;
+  paidAmount: number;
+  dueAmount: number;
+  status: string;
+  dueDate?: string | null;
+  issuedDate?: string | null;
+  installments: PortalInstallment[];
+}
+
+export interface PortalTimelineEvent {
+  id: string;
+  type: string;
+  content: string;
+  oldStatus?: string | null;
+  newStatus?: string | null;
+  createdAt: string;
+}
+
+export interface PortalBookingDetail extends PortalBooking {
+  type: string;
+  travelerCount?: number | null;
+  serviceType?: string | null;
+  travelers: { id: string; name: string; nationality?: string | null }[];
+  invoices: PortalInvoiceSummary[];
+  timeline: PortalTimelineEvent[];
+}
+
+export interface PortalAgentBooking {
+  id: string;
+  title?: string | null;
+  destination?: string | null;
+  travelDateFrom?: string | null;
+  travelDateTo?: string | null;
+  status: string;
+  amount: number;
+  clientName: string;
+  tenantName?: string;
+  commissionAmount: number | null;
+  commissionStatus: string | null;
+}
+
+export interface PortalAgentCommissions {
+  pendingTotal: number;
+  paidTotal: number;
+  bookingCount: number;
+  items: PortalAgentBooking[];
 }
 
 export interface PortalPurchaseOrder {
@@ -74,5 +136,8 @@ export const portalApi = {
     }),
   me: () => req<PortalSession>("/portal/auth/me"),
   bookings: () => req<PortalBooking[]>("/portal/bookings"),
+  bookingDetail: (id: string) => req<PortalBookingDetail>(`/portal/bookings/${id}`),
+  agentBookings: () => req<PortalAgentBooking[]>("/portal/agent/bookings"),
+  agentCommissions: () => req<PortalAgentCommissions>("/portal/agent/commissions"),
   purchaseOrders: () => req<PortalPurchaseOrder[]>("/portal/purchase-orders"),
 };

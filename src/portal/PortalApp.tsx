@@ -8,6 +8,8 @@ import PortalLogin from "./pages/PortalLogin";
 import PortalVerify from "./pages/PortalVerify";
 import PortalLayout from "./PortalLayout";
 import MyBookings from "./pages/MyBookings";
+import BookingDetail from "./pages/BookingDetail";
+import AgentCommissions from "./pages/AgentCommissions";
 import MyPurchaseOrders from "./pages/MyPurchaseOrders";
 
 const queryClient = new QueryClient();
@@ -35,6 +37,8 @@ export default function PortalApp() {
             >
               <Route index element={<Navigate to="/bookings" replace />} />
               <Route path="/bookings" element={<MyBookings />} />
+              <Route path="/bookings/:id" element={<BookingDetail />} />
+              <Route path="/agent" element={<AgentCommissions />} />
               <Route path="/purchase-orders" element={<MyPurchaseOrders />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />

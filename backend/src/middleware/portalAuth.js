@@ -6,7 +6,7 @@ const PORTAL_AUDIENCE = "portal";
 
 /**
  * Verify a portal JWT (audience = "portal").
- * Sets req.portalUser = { email, roles: ["customer"|"supplier"] }
+ * Sets req.portalUser = { email, roles: ["customer"|"supplier"|"agent"] }
  */
 function portalAuthenticate(req, res, next) {
   const header = req.headers.authorization;

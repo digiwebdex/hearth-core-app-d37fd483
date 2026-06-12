@@ -1488,7 +1488,7 @@ Aligns with `docs/final-travel-saas-scenario.md` and audit severity.
 | **Phase 2 — UX unify** | Packages & Services nav, deprecate legacy Hajj menu, Bangla polish | ✅ Shipped (Jun 2026) |
 | **Phase 3 — Ops modules** | Visa/ticketing/hotel JSON or tables on bookings | ✅ Shipped (Jun 2026) |
 | **Phase 4 — Finance** | Installments, commissions, ledger automation, reminders | ✅ Shipped (Jun 2026) |
-| **Phase 5 — Growth** | B2B portal, corporate, blog CMS, advanced reports | Scenario Phase 5 |
+| **Phase 5 — Growth** | B2B portal, corporate booking type, portal booking detail, agent commission wallet | ✅ Shipped (Jun 2026) |
 
 ---
 

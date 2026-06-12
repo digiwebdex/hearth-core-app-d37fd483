@@ -5,6 +5,7 @@
  * (or both):
  *   - "customer" — has bookings where Client.email matches
  *   - "supplier" — has vendor bills where Vendor.email matches
+ *   - "agent" — sub-agent / B2B partner with Agent.email match
  *
  * Tokens use a separate JWT audience ("portal") so they CANNOT be used
  * against agency endpoints, and vice versa.
@@ -19,6 +20,11 @@ const {
   SECRET,
 } = require("../middleware/portalAuth");
 const { portalAuthLimiter } = require("../middleware/rateLimit");
+const {
+  sanitizePortalBookingDetail,
+  sanitizeAgentBooking,
+  summarizeAgentCommissions,
+} = require("../lib/portalBooking");
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -32,13 +38,21 @@ const PORTAL_URL =
 const MAGIC_AUDIENCE = "portal-magic";
 
 async function classifyEmail(emailLower) {
-  const [client, vendor] = await Promise.all([
+  const [client, vendor, agent] = await Promise.all([
     prisma.client.findFirst({ where: { email: emailLower }, select: { id: true } }),
     prisma.vendor.findFirst({ where: { email: emailLower }, select: { id: true } }),
+    prisma.agent.findFirst({
+      where: {
+        email: { equals: emailLower, mode: "insensitive" },
+        NOT: { email: "" },
+      },
+      select: { id: true },
+    }),
   ]);
   const roles = [];
   if (client) roles.push("customer");
   if (vendor) roles.push("supplier");
+  if (agent) roles.push("agent");
   return roles;
 }
 
@@ -148,6 +162,132 @@ router.get("/bookings", portalAuthenticate, async (req, res) => {
   } catch (err) {
     console.error("[portal] bookings:", err);
     res.status(500).json({ message: "Failed to load bookings" });
+  }
+});
+
+// ── GET /portal/bookings/:id ──  (customer detail)
+router.get("/bookings/:id", portalAuthenticate, async (req, res) => {
+  try {
+    if (!req.portalUser.roles.includes("customer")) {
+      return res.status(403).json({ message: "Customer access required" });
+    }
+    const booking = await prisma.booking.findFirst({
+      where: {
+        id: req.params.id,
+        client: { email: req.portalUser.email },
+      },
+      include: {
+        tenant: { select: { name: true } },
+        travelers: { select: { id: true, name: true, nationality: true } },
+        invoices: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+            totalAmount: true,
+            paidAmount: true,
+            dueAmount: true,
+            status: true,
+            dueDate: true,
+            issuedDate: true,
+            installments: {
+              select: {
+                id: true,
+                label: true,
+                amount: true,
+                paidAmount: true,
+                dueDate: true,
+                status: true,
+              },
+              orderBy: { sortOrder: "asc" },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        },
+        timeline: {
+          select: {
+            id: true,
+            type: true,
+            content: true,
+            oldStatus: true,
+            newStatus: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: "desc" },
+          take: 20,
+        },
+      },
+    });
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+    res.json(sanitizePortalBookingDetail(booking));
+  } catch (err) {
+    console.error("[portal] booking detail:", err);
+    res.status(500).json({ message: "Failed to load booking" });
+  }
+});
+
+// ── GET /portal/agent/bookings ──  (B2B sub-agent)
+router.get("/agent/bookings", portalAuthenticate, async (req, res) => {
+  try {
+    if (!req.portalUser.roles.includes("agent")) return res.json([]);
+    const bookings = await prisma.booking.findMany({
+      where: { agent: { email: { equals: req.portalUser.email, mode: "insensitive" } } },
+      select: {
+        id: true,
+        title: true,
+        destination: true,
+        travelDateFrom: true,
+        travelDateTo: true,
+        status: true,
+        amount: true,
+        client: { select: { name: true } },
+        tenant: { select: { name: true } },
+        agentCommission: {
+          select: { agentCommissionAmount: true, agentCommissionStatus: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    res.json(bookings.map(sanitizeAgentBooking));
+  } catch (err) {
+    console.error("[portal] agent bookings:", err);
+    res.status(500).json({ message: "Failed to load agent bookings" });
+  }
+});
+
+// ── GET /portal/agent/commissions ──  (B2B commission wallet summary)
+router.get("/agent/commissions", portalAuthenticate, async (req, res) => {
+  try {
+    if (!req.portalUser.roles.includes("agent")) {
+      return res.json({ pendingTotal: 0, paidTotal: 0, bookingCount: 0, items: [] });
+    }
+    const bookings = await prisma.booking.findMany({
+      where: {
+        agent: { email: { equals: req.portalUser.email, mode: "insensitive" } },
+        agentCommission: { isNot: null },
+      },
+      select: {
+        id: true,
+        title: true,
+        destination: true,
+        travelDateFrom: true,
+        status: true,
+        amount: true,
+        client: { select: { name: true } },
+        tenant: { select: { name: true } },
+        agentCommission: {
+          select: { agentCommissionAmount: true, agentCommissionStatus: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    const summary = summarizeAgentCommissions(bookings);
+    res.json({
+      ...summary,
+      items: bookings.map(sanitizeAgentBooking),
+    });
+  } catch (err) {
+    console.error("[portal] agent commissions:", err);
+    res.status(500).json({ message: "Failed to load commissions" });
   }
 });
 

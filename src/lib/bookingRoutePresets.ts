@@ -11,6 +11,7 @@ export const BOOKING_PRESET_IDS = [
   "transport",
   "student",
   "manpower",
+  "corporate",
 ] as const;
 
 export type BookingPresetId = (typeof BOOKING_PRESET_IDS)[number];
@@ -37,6 +38,7 @@ export const BOOKING_PRESET_CONFIG: Record<BookingPresetId, BookingPresetConfig>
   transport: { typeFilter: "transport" },
   student: { typeFilter: "student" },
   manpower: { typeFilter: "manpower" },
+  corporate: { typeFilter: "corporate" },
 };
 
 export function bookingMatchesPreset(
@@ -72,6 +74,8 @@ export function bookingTypeToPreset(type: string): BookingPresetId {
       return "student";
     case "manpower":
       return "manpower";
+    case "corporate":
+      return "corporate";
     case "package":
       return "hajj";
     default:

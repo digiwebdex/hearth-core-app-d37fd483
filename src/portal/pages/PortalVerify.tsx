@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { portalApi, setPortalToken } from "@/lib/portalApi";
 
 export default function PortalVerify() {
+  const { t } = useTranslation();
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +19,12 @@ export default function PortalVerify() {
       .verify(token)
       .then((s) => {
         setPortalToken(s.token);
-        navigate("/bookings", { replace: true });
+        const path = s.roles.includes("customer")
+          ? "/bookings"
+          : s.roles.includes("agent")
+            ? "/agent"
+            : "/purchase-orders";
+        navigate(path, { replace: true });
       })
       .catch((e) => setError(e.message));
   }, [params, navigate]);
@@ -28,11 +35,11 @@ export default function PortalVerify() {
         <div className="text-center space-y-2">
           <p className="text-destructive">{error}</p>
           <a href="/login" className="text-sm underline">
-            Request a new link
+            {t("portal.requestNewLink")}
           </a>
         </div>
       ) : (
-        <p className="text-muted-foreground">Signing you in…</p>
+        <p className="text-muted-foreground">{t("portal.signingIn")}</p>
       )}
     </div>
   );

@@ -255,7 +255,7 @@ flowchart LR
 
 ## 10. Polish roadmap (development priority)
 
-**Status: Phases A–D shipped on `main` (Jun 2026). Phases 1–4 shipped (catalog, UX, service ops, finance).** Next: scenario Phase 5.
+**Status: Phases A–D shipped on `main` (Jun 2026). Phases 1–5 shipped (catalog, UX, service ops, finance, growth portal).**
 
 ### Phase A — Clarity — ✅ shipped
 

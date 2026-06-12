@@ -312,7 +312,7 @@ export interface Lead { id: string; name: string; phone: string; email: string; 
 export interface LeadActivity { id: string; leadId: string; type: "note" | "status_change" | "follow_up" | "call" | "email" | "meeting"; content: string; oldStatus?: LeadStatus; newStatus?: LeadStatus; createdBy?: string; createdByName?: string; createdAt: string; }
 export interface Task { id: string; title: string; description: string; status: "todo" | "in_progress" | "done"; priority: "low" | "medium" | "high"; dueDate?: string; assignedTo?: string; tenantId: string; createdAt: string; }
 export type BookingStatus = "pending" | "confirmed" | "ticketed" | "traveling" | "completed" | "cancelled";
-export type BookingType = "tour" | "ticket" | "hotel" | "visa" | "package" | "student" | "manpower" | "transport";
+export type BookingType = "tour" | "ticket" | "hotel" | "visa" | "package" | "student" | "manpower" | "transport" | "corporate";
 export interface BookingListParams {
   type?: BookingType | string;
   opsStatus?: string;

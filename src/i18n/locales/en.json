@@ -530,7 +530,8 @@
       "visa": "Visa",
       "student": "Student",
       "manpower": "Manpower",
-      "transport": "Transport"
+      "transport": "Transport",
+      "corporate": "Corporate"
     },
     "statuses": {
       "pending": "Pending",
@@ -548,7 +549,8 @@
       "package": "Hajj / Umrah Package",
       "student": "Student",
       "manpower": "Manpower",
-      "transport": "Transport"
+      "transport": "Transport",
+      "corporate": "Corporate Travel"
     },
     "ticketFields": {
       "flightNumber": "Flight Number",
@@ -3251,6 +3253,46 @@
       "installmentPlaceholder": "e.g. 1st installment",
       "note": "Note"
     }
+  },
+  "portal": {
+    "title": "My Travel Portal",
+    "loginTitle": "Sign in to your portal",
+    "loginHint": "We'll email you a secure link — no password needed.",
+    "checkEmail": "Check {{email}} for your sign-in link.",
+    "linkExpires": "The link expires in 15 minutes.",
+    "differentEmail": "Use a different email",
+    "sendLink": "Send sign-in link",
+    "sending": "Sending…",
+    "signingIn": "Signing you in…",
+    "requestNewLink": "Request a new link",
+    "myBookings": "My Bookings",
+    "myBookingsHint": "All trips booked under your email.",
+    "noBookings": "No bookings yet.",
+    "bookingFallback": "Booking",
+    "dateTbd": "TBD",
+    "agency": "Agency",
+    "due": "Due",
+    "paid": "Paid",
+    "total": "Total",
+    "backToBookings": "Back to bookings",
+    "paymentSummary": "Payment summary",
+    "travelers": "Travelers",
+    "invoices": "Invoices",
+    "installments": "Installments",
+    "updates": "Trip updates",
+    "purchaseOrders": "Purchase Orders",
+    "purchaseOrdersHint": "Orders received from agencies you supply.",
+    "noPurchaseOrders": "No purchase orders yet.",
+    "fromAgency": "From",
+    "agentNav": "Commissions",
+    "agentTitle": "Agent commission wallet",
+    "agentSubtitle": "Bookings and commissions linked to your agent email.",
+    "commissionPending": "Pending commission",
+    "commissionPaid": "Paid commission",
+    "commissionBookings": "Bookings",
+    "noAgentBookings": "No agent bookings yet.",
+    "bookingAmount": "Booking amount",
+    "commission": "Commission"
   }
 }
 

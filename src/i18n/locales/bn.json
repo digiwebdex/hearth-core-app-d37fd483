@@ -526,7 +526,8 @@
       "visa": "ভিসা",
       "student": "স্টুডেন্ট",
       "manpower": "ম্যানপাওয়ার",
-      "transport": "ট্রান্সপোর্ট"
+      "transport": "ট্রান্সপোর্ট",
+      "corporate": "কর্পোরেট"
     },
     "statuses": {
       "pending": "অপেক্ষমাণ",
@@ -544,7 +545,8 @@
       "package": "হজ্জ / উমরাহ প্যাকেজ",
       "student": "স্টুডেন্ট",
       "manpower": "ম্যানপাওয়ার",
-      "transport": "ট্রান্সপোর্ট"
+      "transport": "ট্রান্সপোর্ট",
+      "corporate": "কর্পোরেট ট্রাভেল"
     },
     "ticketFields": {
       "flightNumber": "ফ্লাইট নম্বর",
@@ -3247,6 +3249,46 @@
       "installmentPlaceholder": "যেমন: ১ম কিস্তি",
       "note": "নোট"
     }
+  },
+  "portal": {
+    "title": "আমার ট্রাভেল পোর্টাল",
+    "loginTitle": "পোর্টালে সাইন ইন করুন",
+    "loginHint": "আমরা আপনার ইমেইলে নিরাপদ লিংক পাঠাব — পাসওয়ার্ড লাগবে না।",
+    "checkEmail": "সাইন-ইন লিংকের জন্য {{email}} চেক করুন।",
+    "linkExpires": "লিংক ১৫ মিনিটে মেয়াদ শেষ হবে।",
+    "differentEmail": "অন্য ইমেইল ব্যবহার করুন",
+    "sendLink": "সাইন-ইন লিংক পাঠান",
+    "sending": "পাঠানো হচ্ছে…",
+    "signingIn": "সাইন ইন করা হচ্ছে…",
+    "requestNewLink": "নতুন লিংক চান",
+    "myBookings": "আমার বুকিং",
+    "myBookingsHint": "আপনার ইমেইলে করা সব ট্রিপ।",
+    "noBookings": "এখনও কোনো বুকিং নেই।",
+    "bookingFallback": "বুকিং",
+    "dateTbd": "নির্ধারিত নয়",
+    "agency": "এজেন্সি",
+    "due": "বাকি",
+    "paid": "পরিশোধ",
+    "total": "মোট",
+    "backToBookings": "বুকিং তালিকায় ফিরুন",
+    "paymentSummary": "পেমেন্ট সারাংশ",
+    "travelers": "যাত্রী",
+    "invoices": "ইনভয়েস",
+    "installments": "কিস্তি",
+    "updates": "ট্রিপ আপডেট",
+    "purchaseOrders": "ক্রয় অর্ডার",
+    "purchaseOrdersHint": "আপনি যে এজেন্সিগুলোকে সরবরাহ করেন তাদের অর্ডার।",
+    "noPurchaseOrders": "এখনও কোনো ক্রয় অর্ডার নেই।",
+    "fromAgency": "থেকে",
+    "agentNav": "কমিশন",
+    "agentTitle": "এজেন্ট কমিশন ওয়ালেট",
+    "agentSubtitle": "আপনার এজেন্ট ইমেইলে যুক্ত বুকিং ও কমিশন।",
+    "commissionPending": "বাকি কমিশন",
+    "commissionPaid": "পরিশোধিত কমিশন",
+    "commissionBookings": "বুকিং",
+    "noAgentBookings": "এখনও কোনো এজেন্ট বুকিং নেই।",
+    "bookingAmount": "বুকিং পরিমাণ",
+    "commission": "কমিশন"
   }
 }
 
