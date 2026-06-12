@@ -3158,7 +3158,7 @@
     "month": "মাস",
     "payAndActivate": "পে করুন ও activation এর জন্য জমা দিন",
     "pendingTitle": "পেমেন্ট জমা — approval এর অপেক্ষায়",
-    "pendingDesc": "আপনার request {{status}}। Super admin verify করে activate করবেন।",
+      "pendingDesc": "আপনার request {{status}}। Super admin verify করে activate করবেন। Approve হলে SMS ও email পাবেন।",
     "checkActivation": "Activate হয়েছে কিনা দেখুন",
     "billingCycle": "Billing cycle",
     "monthly": "মাসিক",
