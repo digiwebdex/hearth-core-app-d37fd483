@@ -42,8 +42,28 @@ fi
 cd "$APP_DIR"
 
 echo "[$(date -Iseconds)] git pull origin $GIT_BRANCH"
+# Preserve VPS-local frontend env — never let git overwrite it.
+ENV_BACKUP=""
+if [ -f .env.production ]; then
+  ENV_BACKUP="$(mktemp)"
+  cp .env.production "$ENV_BACKUP"
+fi
+
 git fetch origin "$GIT_BRANCH"
+
+# Untracked .env.production blocks merge when the repo once tracked this file.
+if [ -f .env.production ] && ! git ls-files --error-unmatch .env.production >/dev/null 2>&1; then
+  mv .env.production .env.production.vps-local
+fi
+
 git pull --ff-only origin "$GIT_BRANCH"
+
+if [ -f .env.production.vps-local ]; then
+  mv -f .env.production.vps-local .env.production
+elif [ -n "$ENV_BACKUP" ] && [ -f "$ENV_BACKUP" ]; then
+  cp "$ENV_BACKUP" .env.production
+fi
+rm -f "$ENV_BACKUP"
 
 if [ ! -f .env.production ]; then
   if [ -f .env.production.example ]; then
