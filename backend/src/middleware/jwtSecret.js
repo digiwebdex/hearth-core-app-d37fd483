@@ -36,7 +36,7 @@ function getJwtSecret() {
     throw new Error("JWT_SECRET is required in production");
   }
   if (process.env.ALLOW_DEV_JWT === "true") return DEV_FALLBACK;
-  return DEV_FALLBACK;
+  throw new Error("JWT_SECRET is required (or set ALLOW_DEV_JWT=true for local development)");
 }
 
 module.exports = { assertJwtSecretAtBoot, getJwtSecret, DEV_FALLBACK };

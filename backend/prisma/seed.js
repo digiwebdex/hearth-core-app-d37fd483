@@ -5,10 +5,20 @@ const prisma = new PrismaClient();
 const isProduction = process.env.NODE_ENV === "production";
 const allowPasswordReset = process.env.ALLOW_SEED_PASSWORD_RESET === "true";
 
+function seedCredential(envName, devFallback) {
+  const value = process.env[envName];
+  if (value) return value;
+  if (isProduction) {
+    throw new Error(`${envName} is required when seeding in production`);
+  }
+  console.warn(`[seed] ${envName} not set — using development-only default`);
+  return devFallback;
+}
+
 const adminEmail = process.env.SEED_ADMIN_EMAIL || "digiwebdex@gmail.com";
-const adminPassword = process.env.SEED_ADMIN_PASSWORD || "KeyaIq11151000@#";
+const adminPassword = seedCredential("SEED_ADMIN_PASSWORD", "DevAdmin123!local");
 const demoEmail = process.env.SEED_DEMO_EMAIL || "user@demo.com";
-const demoPassword = process.env.SEED_DEMO_PASSWORD || "demo123";
+const demoPassword = seedCredential("SEED_DEMO_PASSWORD", "demo123");
 
 async function upsertUser({ email, name, role, tenantId, password }) {
   const passwordData = {};

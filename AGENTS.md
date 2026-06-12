@@ -68,6 +68,7 @@ Login UI: http://localhost:8080/login → redirects to `/dashboard` on success.
 |---------|----------|-------|
 | `npm run lint` | repo root | ESLint; repo has many pre-existing `no-explicit-any` violations |
 | `npm test` | repo root | Vitest unit tests (jsdom, no live API) |
+| `npm test` | `backend/` | Node test runner — auth 401, password policy, rate limit 429 |
 | `npm run build` | repo root | Vite production build |
 | `npm run dev` | `backend/` | Nodemon API server |
 

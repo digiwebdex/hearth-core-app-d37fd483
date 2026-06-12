@@ -918,6 +918,20 @@ model Notification {
   @@index([createdAt])
 }
 
+model PlatformNotification {
+  id        String   @id @default(uuid())
+  type      String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  link      String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([read])
+  @@index([createdAt])
+}
+
 model SmsSettings {
   id              String   @id @default(uuid())
   tenantId        String   @unique

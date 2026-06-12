@@ -18,6 +18,7 @@ const {
   PORTAL_AUDIENCE,
   SECRET,
 } = require("../middleware/portalAuth");
+const { portalAuthLimiter } = require("../middleware/rateLimit");
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -42,7 +43,7 @@ async function classifyEmail(emailLower) {
 }
 
 // ── POST /portal/auth/request-link ──
-router.post("/auth/request-link", async (req, res) => {
+router.post("/auth/request-link", portalAuthLimiter, async (req, res) => {
   try {
     const email = String(req.body?.email || "").trim().toLowerCase();
     if (!email) return res.status(400).json({ message: "Email required" });
@@ -88,7 +89,7 @@ router.post("/auth/request-link", async (req, res) => {
 
 // ── POST /portal/auth/verify ──
 // Exchange magic token for a 7-day portal session JWT.
-router.post("/auth/verify", async (req, res) => {
+router.post("/auth/verify", portalAuthLimiter, async (req, res) => {
   try {
     const { token } = req.body || {};
     if (!token) return res.status(400).json({ message: "Token required" });

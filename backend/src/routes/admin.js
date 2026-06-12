@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const bcrypt = require("bcryptjs");
 const { authenticate, requireSuperAdmin, prisma } = require("../middleware/auth");
+const { validatePassword } = require("../utils/passwordPolicy");
 
 router.use(authenticate);
 router.use(requireSuperAdmin);
@@ -20,6 +21,9 @@ router.post("/tenants", async (req, res) => {
     if (!tenantName || !ownerName || !ownerEmail || !ownerPassword) {
       return res.status(400).json({ message: "tenantName, ownerName, ownerEmail and ownerPassword are required" });
     }
+
+    const passwordCheck = validatePassword(ownerPassword);
+    if (!passwordCheck.ok) return res.status(400).json({ message: passwordCheck.message });
 
     const exists = await prisma.user.findUnique({ where: { email: ownerEmail } });
     if (exists) return res.status(400).json({ message: "Email already registered" });

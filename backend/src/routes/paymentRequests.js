@@ -141,6 +141,21 @@ async function sendSuperAdminOrderAlert({ tenant, item }) {
     select: { name: true, email: true, phone: true },
   }).catch(() => null);
 
+  try {
+    const { createPlatformNotification } = require("../services/platformNotificationService");
+    const plan = item.requestedPlan || item.plan;
+    const amount = item.amountSent || item.amount;
+    const method = item.paymentMethod || item.method || "manual";
+    const trxId = item.transactionId || item.trxId;
+    await createPlatformNotification({
+      type: "payment_request",
+      title: "New Payment Request",
+      message: `${tenant?.name || "Agency"} submitted ৳${amount} for ${plan} via ${method}${trxId ? ` (${trxId})` : ""}.`,
+      link: "/admin/payments",
+      metadata: { tenantId: tenant?.id, requestId: item.id, plan, amount: String(amount), method },
+    });
+  } catch (_e) { /* non-blocking */ }
+
   await notifyEvent("subscription_order_alert", {
     tenantName: tenant?.name || "Agency",
     tenantId: tenant?.id || null,

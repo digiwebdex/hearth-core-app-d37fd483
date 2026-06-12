@@ -25,17 +25,17 @@ Priorities assume a Bangladesh-focused travel-agency SaaS moving toward producti
 
 | ERP area | Priority | Status |
 |----------|----------|--------|
-| Security & auth hardening | **P0** | Known vulnerabilities; fix before prod |
-| SMS & notifications APIs | **P0** | Frontend built; backend missing |
-| Client document upload | **P0** | Frontend calls missing endpoint |
-| Hajj payment tenant isolation | **P0** | IDOR bug |
-| CORS & local dev config | **P1** | Blocks dev without `.env` tweak |
+| Security & auth hardening | **P0** | ✅ Phase 0 — JWT boot check, rate limits, password policy, secure seed |
+| SMS & notifications APIs | **P0** | ✅ `/api/sms`, `/api/notifications`, `/api/admin/notifications` |
+| Client document upload | **P0** | ✅ `GET/POST/DELETE /api/clients/:id/documents` |
+| Hajj payment tenant isolation | **P0** | ✅ Tenant-scoped pilgrim payments + patch/delete hardening |
+| CORS & local dev config | **P1** | ✅ Default includes `localhost:8080` |
 | Packages & multi-service catalog | **P1** | Partial; vision in scenario doc |
 | Admin plans/features persistence | **P1** | UI-only today |
 | Website CMS gaps (blog, SEO, etc.) | **P2** | Not implemented |
 | Service-specific ops (visa, ticketing) | **P2** | Future phases |
 | B2B sub-agent portal | **P3** | Not started |
-| Test & lint hygiene | **P1** | 1 test; ESLint fails |
+| Test & lint hygiene | **P1** | Backend auth tests added; ESLint debt remains |
 
 ---
 
@@ -1483,7 +1483,7 @@ Aligns with `docs/final-travel-saas-scenario.md` and audit severity.
 
 | Phase | Focus | Duration guidance |
 |-------|--------|-------------------|
-| **Phase 0 — Stabilize** | P0 security, SMS/notifications API, client upload, Hajj IDOR, CORS, migrations | Do first |
+| **Phase 0 — Stabilize** | P0 security, SMS/notifications API, client upload, Hajj IDOR, CORS, migrations | ✅ Shipped (Jun 2026) |
 | **Phase 1 — Catalog** | TravelPackage extensions, public package feed, onboarding service types | Scenario Phase 1 |
 | **Phase 2 — UX unify** | Packages & Services nav, deprecate legacy Hajj menu, Bangla polish | Scenario Phase 2 |
 | **Phase 3 — Ops modules** | Visa/ticketing/hotel JSON or tables on bookings | Scenario Phase 3 |

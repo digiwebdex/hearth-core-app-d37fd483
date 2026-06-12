@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { authenticate, prisma, SECRET } = require("../middleware/auth");
+const { validatePassword } = require("../utils/passwordPolicy");
 
 // Login
 router.post("/login", async (req, res) => {
@@ -54,6 +55,8 @@ router.post("/login", async (req, res) => {
 router.post("/register", async (req, res) => {
   try {
     const { name, email, password, tenantName, plan } = req.body;
+    const passwordCheck = validatePassword(password);
+    if (!passwordCheck.ok) return res.status(400).json({ message: passwordCheck.message });
     const exists = await prisma.user.findUnique({ where: { email } });
     if (exists) return res.status(400).json({ message: "Email already registered" });
     const hashed = await bcrypt.hash(password, 10);
@@ -102,6 +105,17 @@ router.post("/register", async (req, res) => {
       },
     });
     await prisma.tenant.update({ where: { id: tenant.id }, data: { ownerId: user.id } });
+
+    try {
+      const { createPlatformNotification } = require("../services/platformNotificationService");
+      await createPlatformNotification({
+        type: "new_tenant",
+        title: "New Tenant Registered",
+        message: `${tenant.name} (${email}) signed up for ${subscriptionPlan} (${subscriptionStatus}).`,
+        link: "/admin/tenants",
+        metadata: { tenantId: tenant.id, email, plan: subscriptionPlan },
+      });
+    } catch (_e) { /* non-blocking */ }
 
     await prisma.auditLog.create({
       data: {
@@ -230,7 +244,8 @@ router.post("/reset-password", async (req, res) => {
   try {
     const { token, password } = req.body;
     if (!token || !password) return res.status(400).json({ message: "Token and password are required" });
-    if (password.length < 6) return res.status(400).json({ message: "Password must be at least 6 characters" });
+    const passwordCheck = validatePassword(password);
+    if (!passwordCheck.ok) return res.status(400).json({ message: passwordCheck.message });
 
     const user = await prisma.user.findFirst({
       where: { resetToken: token, resetTokenExpiry: { gt: new Date() } },
