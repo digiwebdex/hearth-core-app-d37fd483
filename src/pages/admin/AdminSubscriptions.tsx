@@ -170,7 +170,7 @@ const AdminSubscriptions = () => {
                       <TableCell>{tenant._count?.users || tenant.users?.length || 0}</TableCell>
                       <TableCell>{tenant._count?.bookings || 0}</TableCell>
                       <TableCell className="text-right space-x-2">
-                        <Button size="sm" variant="outline" onClick={() => navigate(`/admin/tenants/${tenant.id}`)}>View</Button>
+                        <Button size="sm" variant="outline" onClick={() => navigate(`/admin/tenants/${tenant.id}`, { state: { tenant } })}>View</Button>
                         <Button size="sm" variant="outline" onClick={() => openAction(tenant, "activate")}>Activate / change</Button>
                         <Button size="sm" variant="outline" onClick={() => openAction(tenant, "extend")}>Extend</Button>
                         {tenant.subscriptionStatus === "trial" && <Button size="sm" variant="outline" onClick={() => openAction(tenant, "skip_trial")}>Skip trial</Button>}

@@ -12,8 +12,17 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     },
   });
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(error.message || "Request failed");
+    const raw = await res.text().catch(() => "");
+    let message = res.statusText || "Request failed";
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as { message?: string; error?: string };
+        message = parsed.message || parsed.error || message;
+      } catch {
+        if (!raw.trimStart().startsWith("<")) message = raw.slice(0, 200) || message;
+      }
+    }
+    throw new Error(message);
   }
   return res.json();
 }

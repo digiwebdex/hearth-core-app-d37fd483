@@ -52,7 +52,7 @@ describe("auth API", () => {
       .post("/api/auth/register")
       .send({
         name: "Test User",
-        email: `test-${Date.now()}@example.com",
+        email: `test-${Date.now()}@example.com`,
         password: "SecurePass99",
         tenantName: "Test Agency",
       });

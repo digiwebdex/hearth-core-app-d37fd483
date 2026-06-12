@@ -137,7 +137,10 @@ function createApp() {
 
   app.use("/api/admin", require("./routes/adminSubscriptionWorkflow"));
   app.use("/api/admin", require("./routes/admin"));
-  app.use("/api/admin/domains", require("./routes/domains"));
+  const domainsRouter = require("./routes/domains");
+  app.use("/api/admin/domains", domainsRouter);
+  // Legacy path used by older frontend builds before domainApi pointed at /admin/domains
+  app.use("/api/domains", domainsRouter);
   app.use("/api/admin/notifications", require("./routes/adminNotifications"));
   app.use("/api/admin/subscription-workflow", require("./routes/adminSubscriptionWorkflow"));
 

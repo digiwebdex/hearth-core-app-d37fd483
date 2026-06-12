@@ -366,7 +366,7 @@ const AdminTenants = () => {
                           <TableCell className="text-muted-foreground text-sm">{new Date(tn.createdAt).toLocaleDateString()}</TableCell>
                           <TableCell>
                             <div className="flex gap-1">
-                              <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/tenants/${tn.id}`)} title={tt("adminTenants.actions.viewDetails")}>
+                              <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/tenants/${tn.id}`, { state: { tenant: tn } })} title={tt("adminTenants.actions.viewDetails")}>
                                 <Eye className="h-4 w-4" />
                               </Button>
                               <Button variant="ghost" size="icon" onClick={() => openEdit(tn)} title={tt("adminTenants.actions.edit")}>

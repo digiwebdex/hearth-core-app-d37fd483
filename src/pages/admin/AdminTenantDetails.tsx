@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +28,8 @@ type ActionType = "activate" | "extend" | "skip_trial" | "suspend";
 
 const AdminTenantDetails = () => {
   const { tenantId } = useParams<{ tenantId: string }>();
+  const location = useLocation();
+  const prefetchedTenant = (location.state as { tenant?: AdminTenant } | null)?.tenant;
   const navigate = useNavigate();
   const { toast } = useToast();
   const { i18n } = useTranslation();
@@ -152,13 +154,32 @@ const AdminTenantDetails = () => {
         domainApi.list(),
       ]);
 
-      if (tenantResult.status === "rejected") {
-        toast({ title: text.loadFailed, description: tenantResult.reason?.message || "Request failed", variant: "destructive" });
+      let tenantData: AdminTenant | null = tenantResult.status === "fulfilled" ? tenantResult.value : null;
+
+      if (!tenantData) {
+        try {
+          const tenants = await adminApi.getTenants();
+          tenantData = tenants.find((item) => item.id === tenantId) || null;
+        } catch {
+          // ignore list fallback errors
+        }
+      }
+
+      if (!tenantData && prefetchedTenant?.id === tenantId) {
+        tenantData = prefetchedTenant;
+      }
+
+      if (!tenantData) {
+        const reason = tenantResult.status === "rejected" ? tenantResult.reason : null;
+        toast({
+          title: text.loadFailed,
+          description: reason?.message || (isBn ? "এজেন্সি তালিকায় ফিরে গিয়ে আবার চেষ্টা করুন।" : "Go back to the agency list and try again."),
+          variant: "destructive",
+        });
         setTenant(null);
         return;
       }
 
-      const tenantData = tenantResult.value;
       setTenant(tenantData);
       setPlan((tenantData.subscriptionPlan || "basic") as PlanType);
 
@@ -181,12 +202,21 @@ const AdminTenantDetails = () => {
       }
 
       const secondaryFailures = [requestResult, historyResult, domainResult].filter((result) => result.status === "rejected");
-      if (secondaryFailures.length > 0) {
-        const firstError = secondaryFailures[0].status === "rejected" ? secondaryFailures[0].reason?.message : "";
+      const usedFallback = tenantResult.status === "rejected";
+      if (secondaryFailures.length > 0 || usedFallback) {
+        const firstError =
+          tenantResult.status === "rejected"
+            ? tenantResult.reason?.message
+            : secondaryFailures[0]?.status === "rejected"
+              ? secondaryFailures[0].reason?.message
+              : "";
         toast({
-          title: isBn ? "কিছু তথ্য লোড হয়নি" : "Some details could not be loaded",
-          description: firstError || (isBn ? "পেমেন্ট, ইতিহাস বা ডোমেইন তথ্য আংশিকভাবে লোড হয়েছে।" : "Payment, history, or domain data loaded partially."),
-          variant: "destructive",
+          title: isBn ? "কিছু তথ্য আংশিক লোড হয়েছে" : "Some details loaded partially",
+          description:
+            firstError ||
+            (isBn
+              ? "মূল এজেন্সি তথ্য দেখানো হচ্ছে; পেমেন্ট/ডোমেইন তথ্য পরে রিফ্রেশ করুন।"
+              : "Agency profile is shown; refresh later for payment/domain details."),
         });
       }
     } finally {
