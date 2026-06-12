@@ -12,8 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { adminApi, type AdminTenant } from "@/lib/api";
-import { domainApi, type TenantDomainRecord } from "@/lib/domainApi";
+import { adminApi, domainApi, type AdminTenant, type TenantDomainRecord } from "@/lib/api";
 import { adminSubscriptionWorkflowApi, type WorkflowPaymentRequest, type WorkflowSubscriptionHistory } from "@/lib/subscriptionWorkflowApi";
 import { PLANS, type BillingCycle, type PlanType } from "@/lib/plans";
 
@@ -146,19 +145,50 @@ const AdminTenantDetails = () => {
     if (!tenantId) return;
     setLoading(true);
     try {
-      const [tenantData, requestData, historyData, domainData] = await Promise.all([
+      const [tenantResult, requestResult, historyResult, domainResult] = await Promise.allSettled([
         adminApi.getTenant(tenantId),
         adminSubscriptionWorkflowApi.listPaymentRequests({ tenantId }),
         adminSubscriptionWorkflowApi.getSubscriptionHistory(tenantId),
         domainApi.list(),
       ]);
+
+      if (tenantResult.status === "rejected") {
+        toast({ title: text.loadFailed, description: tenantResult.reason?.message || "Request failed", variant: "destructive" });
+        setTenant(null);
+        return;
+      }
+
+      const tenantData = tenantResult.value;
       setTenant(tenantData);
-      setRequests(requestData);
-      setHistory(historyData);
-      setDomains((domainData || []).filter((item) => item.tenantId === tenantId));
       setPlan((tenantData.subscriptionPlan || "basic") as PlanType);
-    } catch (err: any) {
-      toast({ title: text.loadFailed, description: err.message, variant: "destructive" });
+
+      if (requestResult.status === "fulfilled") {
+        setRequests(requestResult.value);
+      } else {
+        setRequests([]);
+      }
+
+      if (historyResult.status === "fulfilled") {
+        setHistory(historyResult.value);
+      } else {
+        setHistory([]);
+      }
+
+      if (domainResult.status === "fulfilled") {
+        setDomains((domainResult.value || []).filter((item) => item.tenantId === tenantId));
+      } else {
+        setDomains([]);
+      }
+
+      const secondaryFailures = [requestResult, historyResult, domainResult].filter((result) => result.status === "rejected");
+      if (secondaryFailures.length > 0) {
+        const firstError = secondaryFailures[0].status === "rejected" ? secondaryFailures[0].reason?.message : "";
+        toast({
+          title: isBn ? "কিছু তথ্য লোড হয়নি" : "Some details could not be loaded",
+          description: firstError || (isBn ? "পেমেন্ট, ইতিহাস বা ডোমেইন তথ্য আংশিকভাবে লোড হয়েছে।" : "Payment, history, or domain data loaded partially."),
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }

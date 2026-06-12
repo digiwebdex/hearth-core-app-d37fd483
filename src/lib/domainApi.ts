@@ -39,17 +39,19 @@ export interface TenantDomainRecord {
 }
 
 export const domainApi = {
-  list: () => request<TenantDomainRecord[]>("/domains"),
+  list: () => request<TenantDomainRecord[]>("/admin/domains"),
   create: (data: { tenantId: string; domain: string; wwwRedirect?: string }) =>
-    request<TenantDomainRecord>("/domains", { method: "POST", body: JSON.stringify(data) }),
+    request<TenantDomainRecord>("/admin/domains", { method: "POST", body: JSON.stringify(data) }),
+  add: (data: { tenantId: string; domain: string; wwwRedirect?: string }) =>
+    request<TenantDomainRecord>("/admin/domains", { method: "POST", body: JSON.stringify(data) }),
   verify: (id: string) =>
-    request<{ verified: boolean; domain: TenantDomainRecord }>(`/domains/${id}/verify`, { method: "POST" }),
+    request<{ verified: boolean; domain: TenantDomainRecord }>(`/admin/domains/${id}/verify`, { method: "POST" }),
   updateSsl: (id: string, sslStatus: "active" | "pending" | "none") =>
-    request<TenantDomainRecord>(`/domains/${id}/ssl`, { method: "PATCH", body: JSON.stringify({ sslStatus }) }),
+    request<TenantDomainRecord>(`/admin/domains/${id}/ssl`, { method: "PATCH", body: JSON.stringify({ sslStatus }) }),
   updateStatus: (id: string, status: "active" | "pending" | "error") =>
-    request<TenantDomainRecord>(`/domains/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
+    request<TenantDomainRecord>(`/admin/domains/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
   setPrimary: (id: string) =>
-    request<TenantDomainRecord>(`/domains/${id}/primary`, { method: "PATCH" }),
+    request<TenantDomainRecord>(`/admin/domains/${id}/primary`, { method: "PATCH" }),
   remove: (id: string) =>
-    request<{ message: string }>(`/domains/${id}`, { method: "DELETE" }),
+    request<{ message: string }>(`/admin/domains/${id}`, { method: "DELETE" }),
 };
