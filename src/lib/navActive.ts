@@ -1,10 +1,18 @@
 import type { NavItemConfig } from "@/config/navigation";
 
-/** Exact route match for preset-style sidebar links (/bookings/tour, /packages/hajj). */
+/** Sidebar active state for preset-style and section routes. */
 export function navItemIsActive(url: string, pathname: string): boolean {
-  if (url === "/bookings") return pathname === "/bookings";
+  if (url === "/bookings") {
+    return pathname === "/bookings" || pathname.startsWith("/bookings/");
+  }
+  if (url === "/packages/all") {
+    return pathname === "/packages" || pathname.startsWith("/packages/");
+  }
   if (url.startsWith("/bookings/")) return pathname === url;
   if (url.startsWith("/packages/")) return pathname === url;
+  if (url === "/hajj-umrah") {
+    return pathname === "/hajj-umrah" || pathname.startsWith("/hajj-umrah/");
+  }
   if (url === "/dashboard") return pathname === "/dashboard";
   return pathname === url || pathname.startsWith(`${url}/`);
 }

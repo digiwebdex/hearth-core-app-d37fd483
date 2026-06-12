@@ -6,7 +6,7 @@ import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { getRoleMeta } from "@/lib/permissions";
-import { navigationGroups } from "@/config/navigation";
+import { getNavigationGroups } from "@/config/navigation";
 import { AppSidebarNavGroup } from "@/components/AppSidebarNav";
 import {
   Sidebar,
@@ -26,11 +26,15 @@ import { Badge } from "@/components/ui/badge";
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const { user, logout, currentPlan, appRole } = useAuth();
+  const { user, logout, currentPlan, appRole, tenant } = useAuth();
   const { canAccessAdmin } = usePermissions();
   const roleMeta = getRoleMeta(appRole);
   const { t } = useTranslation();
   const { pathname } = useLocation();
+
+  const navigationGroups = getNavigationGroups({
+    enableHajjUmrahModule: tenant?.enableHajjUmrahModule !== false,
+  });
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {

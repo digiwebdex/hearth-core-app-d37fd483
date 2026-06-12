@@ -26,9 +26,11 @@ import {
   packageMatchesPreset,
   packagePresetPath,
   PACKAGE_PRESET_CONFIG,
+  PACKAGE_PRESET_IDS,
   serviceTypeToPackagePreset,
   type PackagePresetId,
 } from "@/lib/packageRoutePresets";
+import { useHajjModuleEnabled } from "@/components/HajjModuleGate";
 import { ArrowRight, FileText, Globe, Loader2, Moon, Package2, Plus, Save, Trash2, UploadCloud, Wand2 } from "lucide-react";
 
 const emptyForm = {
@@ -84,6 +86,14 @@ function slugify(value: string) {
     .slice(0, 80);
 }
 
+function PresetTab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <Button type="button" variant={active ? "default" : "outline"} size="sm" onClick={onClick}>
+      {children}
+    </Button>
+  );
+}
+
 const Packages = () => {
   const { toast } = useToast();
   const { t, i18n } = useTranslation();
@@ -104,7 +114,8 @@ const Packages = () => {
   const [pricing, setPricing] = useState<TravelPackagePricing[]>([]);
   const [media, setMedia] = useState<TravelPackageMedia[]>([]);
 
-  const showHajjOpsButton = activePreset === "hajj" || activePreset === "umrah";
+  const hajjModuleEnabled = useHajjModuleEnabled();
+  const showHajjOpsButton = hajjModuleEnabled && (activePreset === "hajj" || activePreset === "umrah");
 
   const text = {
     loadFailed: isBn ? "প্যাকেজ লোড করা যায়নি" : "Failed to load packages",
@@ -119,8 +130,8 @@ const Packages = () => {
     pageSubtitle: isBn ? "ট্যুর, হজ্জ-উমরাহ, ভিসা, টিকেট, হোটেল ও অন্যান্য ট্রাভেল সার্ভিসের reusable template এখানে ম্যানেজ করুন।" : "Manage reusable templates for tours, Hajj/Umrah, visa, tickets, hotels, and other travel services here.",
     migrationTitle: isBn ? "ইউনিফায়েড সার্ভিস সেন্টার" : "Unified service center",
     migrationText: isBn
-      ? "সাইডবার থেকে প্যাকেজ টাইপ বেছে নিন। হজ্জ/উমরাহ প্যাকেজ পেজ থেকে পিলগ্রিম অপারেশনস খুলুন।"
-      : "Pick a package type from the sidebar. Open pilgrim operations from the Hajj or Umrah package pages.",
+      ? "সার্ভিস ক্যাটালগ = ওয়েবসাইট ও কোটেশনের জন্য reusable টেমপ্লেট। বুকিং = গ্রাহকের বিক্রয়। হজ্জ অপারেশনস = শুধু পিলগ্রিম সিজন ম্যানেজমেন্ট।"
+      : "Service catalog = reusable templates for website & quotations. Bookings = customer sales. Hajj Operations = pilgrimage season desk only.",
     operationsHint: isBn
       ? "হজ্জ/উমরাহ প্যাকেজ পেজে পিলগ্রিম, গ্রুপ, রুমিং ও পেমেন্ট অপারেশনস বাটন পাওয়া যাবে।"
       : "The pilgrim operations button appears on Hajj and Umrah package pages only.",
@@ -248,6 +259,32 @@ const Packages = () => {
     return items.filter((item) => filterType === "all" || item.serviceType === filterType);
   }, [items, activePreset, filterType]);
 
+  const categoryPresets = PACKAGE_PRESET_IDS.filter((id) => id !== "all");
+
+  const categoryCounts = useMemo(() => {
+    const counts = Object.fromEntries(categoryPresets.map((id) => [id, 0])) as Record<PackagePresetId, number>;
+    for (const item of items) {
+      for (const preset of categoryPresets) {
+        if (packageMatchesPreset(item, preset)) counts[preset] += 1;
+      }
+    }
+    return counts;
+  }, [items, categoryPresets]);
+
+  const goToPackagePreset = (preset: PackagePresetId) => {
+    navigate(packagePresetPath(preset));
+    const config = PACKAGE_PRESET_CONFIG[preset];
+    if (config.filterMode === "single" && config.serviceType) {
+      setFilterType(config.serviceType);
+    } else if (preset === "all") {
+      setFilterType("all");
+    } else if (config.defaultServiceType) {
+      setFilterType(config.defaultServiceType);
+    }
+  };
+
+  const resolvedPreset: PackagePresetId = activePreset ?? "all";
+
   const handleFilterTypeChange = (value: string) => {
     setFilterType(value);
     if (value === "all") {
@@ -357,6 +394,17 @@ const Packages = () => {
               <Link to="/hajj-umrah"><Button variant="secondary"><Moon className="mr-2 h-4 w-4" />{text.hajjOpsButton}</Button></Link>
             ) : null}
           </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <PresetTab active={resolvedPreset === "all"} onClick={() => goToPackagePreset("all")}>
+            {t("sidebar.packages.all", { defaultValue: isBn ? "সব" : "All" })}
+          </PresetTab>
+          {categoryPresets.map((preset) => (
+            <PresetTab key={preset} active={resolvedPreset === preset} onClick={() => goToPackagePreset(preset)}>
+              {t(`sidebar.packages.${preset}`)} ({categoryCounts[preset]})
+            </PresetTab>
+          ))}
         </div>
 
         <Card className="border-dashed">

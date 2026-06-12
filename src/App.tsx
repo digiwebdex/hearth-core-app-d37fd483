@@ -41,6 +41,7 @@ import InvoiceReceipt from "./pages/InvoiceReceipt";
 import Accounts from "./pages/Accounts";
 import Reports from "./pages/Reports";
 import HajjUmrah from "./pages/HajjUmrah";
+import { HajjModuleGate } from "@/components/HajjModuleGate";
 import HajjOperationsLegacy from "./pages/HajjOperationsLegacy";
 import Subscriptions from "./pages/Subscriptions";
 import PaymentCallback from "./pages/PaymentCallback";
@@ -175,8 +176,8 @@ const AppContent = () => (
           <Route path="/invoices/:id/receipt" element={<P><InvoiceReceipt /></P>} />
           <Route path="/accounts" element={<P><Accounts /></P>} />
           <Route path="/reports" element={<P><Reports /></P>} />
-          <Route path="/hajj-umrah" element={<P><HajjUmrah /></P>} />
-          <Route path="/hajj-umrah/operations" element={<P><HajjUmrah /></P>} />
+          <Route path="/hajj-umrah" element={<P><HajjModuleGate><HajjUmrah /></HajjModuleGate></P>} />
+          <Route path="/hajj-umrah/operations" element={<P><HajjModuleGate><HajjUmrah /></HajjModuleGate></P>} />
           <Route path="/legacy/hajj-operations" element={<P><HajjOperationsLegacy /></P>} />
           <Route path="/subscription" element={<P><Subscriptions /></P>} />
           <Route path="/payment/callback" element={<P><PaymentCallback /></P>} />

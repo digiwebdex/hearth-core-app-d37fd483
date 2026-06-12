@@ -66,6 +66,10 @@
   "sidebar": {
     "overview": "Overview",
     "crm": "CRM",
+    "sales": "Sales",
+    "serviceCatalog": "Service catalog",
+    "serviceCatalogItem": "Packages & services",
+    "operations": "Operations",
     "packageManagement": "Package Management",
     "bookingsGroup": "Bookings",
     "support": "Support",
@@ -104,6 +108,7 @@
     "adminPanel": "Admin Panel",
     "upgradeTo": "Upgrade to",
     "packages": {
+      "all": "All packages",
       "tour": "Tour Packages",
       "hajj": "Hajj Packages",
       "umrah": "Umrah Packages",
@@ -127,6 +132,23 @@
   "packagesPage": {
     "hajjOpsButton": "Hajj/Umrah Operations",
     "presetSubtitle": "Manage {{category}} templates and pricing"
+  },
+  "productHelp": {
+    "title": "Packages vs Bookings vs Hajj Operations",
+    "intro": "Three areas — keep them separate:",
+    "catalog": "Service catalog (Packages) — reusable templates for your website and quotations.",
+    "bookings": "Bookings — confirmed customer sales; open a row for travelers, docs, and delivery.",
+    "hajjOps": "Hajj/Umrah Operations — optional desk for pilgrimage seasons, groups, and pilgrims (Hajj agencies only).",
+    "dismiss": "Dismiss"
+  },
+  "settingsModules": {
+    "title": "Optional modules",
+    "subtitle": "Show or hide features your agency does not use.",
+    "hajjLabel": "Hajj/Umrah Operations",
+    "hajjDesc": "When off, the Hajj Operations menu and buttons are hidden. Bookings for Hajj/Umrah still work.",
+    "ownerOnly": "Only the agency owner can change module settings.",
+    "saved": "Module settings saved",
+    "saveFailed": "Could not save module settings"
   },
   "pages": {
     "manageYour": "Manage your",

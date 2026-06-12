@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import SmtpSettings from "@/components/SmtpSettings";
 import DataExport from "@/components/DataExport";
+import ModuleSettings from "@/components/ModuleSettings";
 import { CreditCard, ArrowRight } from "lucide-react";
 
 const SettingsPage = () => {
@@ -18,6 +19,8 @@ const SettingsPage = () => {
           <h1 className="text-3xl font-bold tracking-tight">{t("pages.settingsTitle")}</h1>
           <p className="text-muted-foreground">{t("pages.settingsSubtitle")}</p>
         </div>
+
+        <ModuleSettings />
 
         <Card>
           <CardHeader>
