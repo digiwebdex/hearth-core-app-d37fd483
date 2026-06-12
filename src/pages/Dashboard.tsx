@@ -83,7 +83,7 @@ const Dashboard = () => {
     {
       label: text.packagesServices,
       icon: Package2,
-      path: "/travel-packages",
+      path: "/packages/tour",
       variant: "outline" as const,
     },
     {
@@ -218,7 +218,7 @@ const Dashboard = () => {
                 </div>
                 <div className="flex flex-wrap justify-center gap-3 pt-2">
                   <Button onClick={() => navigate("/leads")}><UserPlus className="mr-2 h-4 w-4" /> {t("dashboard.addLead")}</Button>
-                  <Button variant="outline" onClick={() => navigate("/travel-packages")}><Package2 className="mr-2 h-4 w-4" /> {text.setupServiceCatalog}</Button>
+                  <Button variant="outline" onClick={() => navigate("/packages/tour")}><Package2 className="mr-2 h-4 w-4" /> {text.setupServiceCatalog}</Button>
                   <Button variant="outline" onClick={() => navigate("/quotations/new")}><Send className="mr-2 h-4 w-4" /> {t("dashboard.createQuotation")}</Button>
                   <Button variant="outline" onClick={() => navigate("/payments")}><CreditCard className="mr-2 h-4 w-4" /> {text.startCollectingPayments}</Button>
                 </div>

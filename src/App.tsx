@@ -71,6 +71,8 @@ import SitePackages from "./pages/site/SitePackages";
 import SiteContact from "./pages/site/SiteContact";
 import SitePricing from "./pages/site/SitePricing";
 import NotFound from "./pages/NotFound";
+import BookingSegmentRoute from "./components/BookingSegmentRoute";
+import { packagesDefaultPath } from "./config/navigation";
 import Index from "./pages/Index";
 import Features from "./pages/marketing/Features";
 import Pricing from "./pages/marketing/Pricing";
@@ -160,12 +162,14 @@ const AppContent = () => (
           <Route path="/quotations/:id" element={<P><QuotationDetails /></P>} />
           <Route path="/quotations/:id/edit" element={<P><QuotationBuilder /></P>} />
           <Route path="/quotations/:id/print" element={<QuotationPrint />} />
-          <Route path="/travel-packages" element={<P><Packages /></P>} />
-          <Route path="/packages-and-services" element={<P><Navigate to="/travel-packages" replace /></P>} />
-          <Route path="/services" element={<P><Navigate to="/travel-packages" replace /></P>} />
-          <Route path="/app-packages" element={<P><Navigate to="/travel-packages" replace /></P>} />
+          <Route path="/packages/:preset" element={<P><Packages /></P>} />
+          <Route path="/packages" element={<Navigate to={packagesDefaultPath} replace />} />
+          <Route path="/travel-packages" element={<Navigate to={packagesDefaultPath} replace />} />
+          <Route path="/packages-and-services" element={<Navigate to={packagesDefaultPath} replace />} />
+          <Route path="/services" element={<Navigate to={packagesDefaultPath} replace />} />
+          <Route path="/app-packages" element={<Navigate to={packagesDefaultPath} replace />} />
           <Route path="/bookings" element={<P><Bookings /></P>} />
-          <Route path="/bookings/:id" element={<P><BookingDetails /></P>} />
+          <Route path="/bookings/:segment" element={<P><BookingSegmentRoute /></P>} />
           <Route path="/invoices" element={<P><Invoices /></P>} />
           <Route path="/payments" element={<P><Invoices /></P>} />
           <Route path="/invoices/:id/receipt" element={<P><InvoiceReceipt /></P>} />

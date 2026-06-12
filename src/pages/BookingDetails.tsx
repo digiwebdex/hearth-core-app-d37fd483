@@ -21,6 +21,7 @@ import {
   bookingApi, type Booking, type BookingStatus, type BookingSegment,
   type BookingTraveler, type BookingChecklistItem, type BookingTimelineEvent, type BookingDocument,
 } from "@/lib/api";
+import { bookingPresetPath, bookingTypeToPreset } from "@/lib/bookingRoutePresets";
 import {
   ArrowLeft, MapPin, CalendarIcon, Users, DollarSign, Plane, Hotel,
   Car, Stamp, Package, Bike, Plus, Trash2, Upload, FileText, Clock,
@@ -50,7 +51,8 @@ const getStatusMeta = (s: BookingStatus) => STATUS_META.find((x) => x.value === 
 const makeId = () => `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
 const BookingDetails = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id, segment } = useParams<{ id?: string; segment?: string }>();
+  const bookingId = id || segment;
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -72,16 +74,16 @@ const BookingDetails = () => {
   const [travForm, setTravForm] = useState<Partial<BookingTraveler>>({ name: "", passportNumber: "", nationality: "" });
 
   const fetchData = useCallback(async () => {
-    if (!id) return;
+    if (!bookingId) return;
     setLoading(true);
     try {
       const [b, segs, travs, chk, tl, docs] = await Promise.all([
-        bookingApi.get(id),
-        bookingApi.getSegments(id).catch(() => []),
-        bookingApi.getTravelers(id).catch(() => []),
-        bookingApi.getChecklist(id).catch(() => []),
-        bookingApi.getTimeline(id).catch(() => []),
-        bookingApi.getDocuments(id).catch(() => []),
+        bookingApi.get(bookingId),
+        bookingApi.getSegments(bookingId).catch(() => []),
+        bookingApi.getTravelers(bookingId).catch(() => []),
+        bookingApi.getChecklist(bookingId).catch(() => []),
+        bookingApi.getTimeline(bookingId).catch(() => []),
+        bookingApi.getDocuments(bookingId).catch(() => []),
       ]);
       setBooking(b);
       setSegments(segs);
@@ -94,7 +96,7 @@ const BookingDetails = () => {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [bookingId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -110,9 +112,9 @@ const BookingDetails = () => {
   };
 
   const handleAddSegment = async () => {
-    if (!id || !segForm.description) return;
+    if (!bookingId || !segForm.description) return;
     try {
-      const seg = await bookingApi.addSegment(id, segForm as any);
+      const seg = await bookingApi.addSegment(bookingId, segForm as any);
       setSegments((p) => [...p, seg]);
       setSegForm({ type: "hotel", description: "", cost: 0, sellingPrice: 0, status: "pending" });
       setSegmentDialog(false);
@@ -123,9 +125,9 @@ const BookingDetails = () => {
   };
 
   const handleDeleteSegment = async (segId: string) => {
-    if (!id) return;
+    if (!bookingId) return;
     try {
-      await bookingApi.deleteSegment(id, segId);
+      await bookingApi.deleteSegment(bookingId, segId);
       setSegments((p) => p.filter((s) => s.id !== segId));
       toast({ title: "Segment removed" });
     } catch (err: any) {
@@ -134,9 +136,9 @@ const BookingDetails = () => {
   };
 
   const handleAddTraveler = async () => {
-    if (!id || !travForm.name) return;
+    if (!bookingId || !travForm.name) return;
     try {
-      const trav = await bookingApi.addTraveler(id, travForm as any);
+      const trav = await bookingApi.addTraveler(bookingId, travForm as any);
       setTravelers((p) => [...p, trav]);
       setTravForm({ name: "", passportNumber: "", nationality: "" });
       setTravelerDialog(false);
@@ -147,9 +149,9 @@ const BookingDetails = () => {
   };
 
   const handleDeleteTraveler = async (tId: string) => {
-    if (!id) return;
+    if (!bookingId) return;
     try {
-      await bookingApi.deleteTraveler(id, tId);
+      await bookingApi.deleteTraveler(bookingId, tId);
       setTravelers((p) => p.filter((t) => t.id !== tId));
     } catch (err: any) {
       toast({ variant: "destructive", title: "Error", description: err.message });
@@ -157,9 +159,9 @@ const BookingDetails = () => {
   };
 
   const handleToggleChecklist = async (item: BookingChecklistItem) => {
-    if (!id) return;
+    if (!bookingId) return;
     try {
-      await bookingApi.updateChecklistItem(id, item.id, !item.done);
+      await bookingApi.updateChecklistItem(bookingId, item.id, !item.done);
       setChecklist((p) => p.map((c) => c.id === item.id ? { ...c, done: !c.done } : c));
     } catch (err: any) {
       toast({ variant: "destructive", title: "Error", description: err.message });
@@ -167,9 +169,9 @@ const BookingDetails = () => {
   };
 
   const handleAddCheckItem = async () => {
-    if (!id || !newCheckItem.trim()) return;
+    if (!bookingId || !newCheckItem.trim()) return;
     try {
-      const item = await bookingApi.addChecklistItem(id, { label: newCheckItem.trim() });
+      const item = await bookingApi.addChecklistItem(bookingId, { label: newCheckItem.trim() });
       setChecklist((p) => [...p, item]);
       setNewCheckItem("");
     } catch (err: any) {
@@ -178,9 +180,9 @@ const BookingDetails = () => {
   };
 
   const handleAddNote = async () => {
-    if (!id || !newNote.trim()) return;
+    if (!bookingId || !newNote.trim()) return;
     try {
-      const event = await bookingApi.addTimelineEvent(id, { type: "note", content: newNote.trim() });
+      const event = await bookingApi.addTimelineEvent(bookingId, { type: "note", content: newNote.trim() });
       setTimeline((p) => [event, ...p]);
       setNewNote("");
       toast({ title: "Note added" });
@@ -190,11 +192,11 @@ const BookingDetails = () => {
   };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!id || !e.target.files?.length) return;
+    if (!bookingId || !e.target.files?.length) return;
     const formData = new FormData();
     formData.append("file", e.target.files[0]);
     try {
-      const doc = await bookingApi.uploadDocument(id, formData);
+      const doc = await bookingApi.uploadDocument(bookingId, formData);
       setDocuments((p) => [...p, doc]);
       toast({ title: "Document uploaded" });
     } catch (err: any) {
@@ -203,9 +205,9 @@ const BookingDetails = () => {
   };
 
   const handleDeleteDoc = async (docId: string) => {
-    if (!id) return;
+    if (!bookingId) return;
     try {
-      await bookingApi.deleteDocument(id, docId);
+      await bookingApi.deleteDocument(bookingId, docId);
       setDocuments((p) => p.filter((d) => d.id !== docId));
     } catch (err: any) {
       toast({ variant: "destructive", title: "Error", description: err.message });
@@ -226,7 +228,12 @@ const BookingDetails = () => {
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/bookings")} className="mb-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate(booking ? bookingPresetPath(bookingTypeToPreset(booking.type)) : "/bookings")}
+              className="mb-1"
+            >
               <ArrowLeft className="mr-1 h-4 w-4" /> Back to Bookings
             </Button>
             <h1 className="text-2xl font-bold">{booking.title || `${booking.type} Booking`}</h1>
