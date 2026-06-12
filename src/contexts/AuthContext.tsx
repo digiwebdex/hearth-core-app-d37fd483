@@ -70,20 +70,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
       return;
     }
+
+    let cancelled = false;
+    const timeout = window.setTimeout(() => {
+      if (!cancelled) setLoading(false);
+    }, 12000);
+
     Promise.all([
-      authApi.me().catch(() => { localStorage.removeItem("token"); return null; }),
+      authApi.me().catch(() => {
+        localStorage.removeItem("token");
+        return null;
+      }),
       tenantApi.get().catch(() => null),
-    ]).then(([u, t]) => {
-      if (u) setUser(u);
-      if (t) setTenant(t);
-    }).finally(() => setLoading(false));
+    ])
+      .then(([u, t]) => {
+        if (cancelled) return;
+        if (u) setUser(u);
+        if (t) setTenant(t);
+      })
+      .finally(() => {
+        cancelled = true;
+        window.clearTimeout(timeout);
+        setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await authApi.login(email, password);
     localStorage.setItem("token", res.token);
     setUser(res.user);
-    fetchTenant();
+    await fetchTenant();
     return res.user;
   }, []);
 

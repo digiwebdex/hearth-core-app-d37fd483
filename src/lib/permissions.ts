@@ -15,10 +15,13 @@ export type LegacyRole = "owner" | "admin" | "member";
 
 export function mapLegacyRole(role: string): AppRole {
   switch (role) {
-    case "owner": return "super_admin";
-    case "admin": return "tenant_owner";
-    case "member": return "sales_agent";
-    default: return role as AppRole;
+    case "owner":
+    case "admin":
+      return "tenant_owner";
+    case "member":
+      return "sales_agent";
+    default:
+      return role as AppRole;
   }
 }
 

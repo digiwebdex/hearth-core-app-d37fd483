@@ -34,6 +34,9 @@ export function navItemIsActive(url: string, pathname: string): boolean {
   if (url === "/activity-log") {
     return pathname === "/activity-log";
   }
+  if (url === "/finance/reminders") {
+    return pathname === "/finance/reminders";
+  }
   if (url === "/dashboard") return pathname === "/dashboard";
   return pathname === url || pathname.startsWith(`${url}/`);
 }

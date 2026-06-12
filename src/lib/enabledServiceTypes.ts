@@ -20,8 +20,10 @@ export const ONBOARDING_SERVICE_TYPES: ServiceType[] = [
 ];
 
 export function normalizeEnabledServiceTypes(values?: string[] | null): ServiceType[] {
-  if (!values?.length) return [];
-  return values
+  if (!values) return [];
+  const list = Array.isArray(values) ? values : [String(values)];
+  if (!list.length) return [];
+  return list
     .map((v) => String(v).trim().toLowerCase())
     .filter((v): v is ServiceType => (SERVICE_TYPES as readonly string[]).includes(v));
 }

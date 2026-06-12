@@ -45,15 +45,23 @@ echo "[$(date -Iseconds)] git pull origin $GIT_BRANCH"
 git fetch origin "$GIT_BRANCH"
 git pull --ff-only origin "$GIT_BRANCH"
 
-if [ ! -f .env.production ] && [ -f .env.production.example ]; then
-  cp .env.production.example .env.production
-  echo "⚠️  Created .env.production from example — verify VITE_API_URL"
+if [ ! -f .env.production ]; then
+  if [ -f .env.production.example ]; then
+    cp .env.production.example .env.production
+    echo "⚠️  Created .env.production from .env.production.example — verify VITE_API_URL"
+  elif [ -f .env.example ]; then
+    cp .env.example .env.production
+    echo "⚠️  Created .env.production from .env.example — verify VITE_API_URL"
+  else
+    echo "⚠️  Missing .env.production — Vite build may bake in localhost API URL" >&2
+  fi
 fi
 
 echo "[$(date -Iseconds)] npm install (frontend)"
 npm install
 
 echo "[$(date -Iseconds)] npm run build (frontend)"
+# Vite loads .env.production automatically for production builds.
 npm run build
 
 echo "[$(date -Iseconds)] backend install + migrate"
