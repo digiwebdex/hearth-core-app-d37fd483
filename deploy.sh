@@ -36,9 +36,14 @@ fi
 
 npm install
 npx prisma generate
-npx prisma db push --accept-data-loss
+if [ -d prisma/migrations ] && [ "$(ls -A prisma/migrations 2>/dev/null)" ]; then
+  npx prisma migrate deploy
+else
+  npx prisma db push --accept-data-loss
+fi
 
-pm2 describe hearth-core-api > /dev/null 2>&1 && pm2 restart hearth-core-api || pm2 start src/index.js --name "hearth-core-api"
+PM2_NAME="${PM2_NAME:-hearth-api}"
+pm2 describe "$PM2_NAME" > /dev/null 2>&1 && pm2 restart "$PM2_NAME" || pm2 start src/index.js --name "$PM2_NAME"
 pm2 save
 
 echo "═══ Step 4: Reload Nginx ═══"
