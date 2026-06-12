@@ -20,6 +20,8 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const reasonIcon: Record<SubscriptionBlockReason, typeof AlertTriangle> = {
   trial_ended: Clock,
@@ -34,6 +36,8 @@ type Props = {
 
 const SubscriptionRenewalPage = ({ reason }: Props) => {
   const { t } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { tenant, logout, subscriptionBlockReason } = useAuth();
   const { canManageSubscription } = usePermissions();
   const blockReason = reason || subscriptionBlockReason || "expired";
@@ -81,6 +85,40 @@ const SubscriptionRenewalPage = ({ reason }: Props) => {
   };
 
   const defaultPlan = nextSuggestedPlan(currentPlan);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (
+      params.get("upgrade") === "1" &&
+      !loading &&
+      !pendingRequest &&
+      canManageSubscription &&
+      summaryMethods.length > 0 &&
+      !dialogOpen
+    ) {
+      openRequestDialog(defaultPlan, undefined, summaryMethods[0]?.methodCode);
+      params.delete("upgrade");
+      navigate(
+        { pathname: location.pathname, search: params.toString() ? `?${params.toString()}` : "" },
+        { replace: true }
+      );
+    }
+  }, [
+    location.search,
+    loading,
+    pendingRequest,
+    canManageSubscription,
+    summaryMethods,
+    dialogOpen,
+    defaultPlan,
+    openRequestDialog,
+    navigate,
+    location.pathname,
+  ]);
+
+  const scrollToPlans = () => {
+    document.getElementById("renew-plans")?.scrollIntoView({ behavior: "smooth" });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40">
@@ -150,7 +188,20 @@ const SubscriptionRenewalPage = ({ reason }: Props) => {
                   </div>
                 </div>
               ) : canManageSubscription ? (
-                <p className="text-sm font-medium">{t("subscriptionRenewal.choosePlanBelow")}</p>
+                <div className="space-y-3">
+                  <p className="text-sm font-medium">{t("subscriptionRenewal.choosePlanBelow")}</p>
+                  <Button
+                    className="gap-2"
+                    onClick={() =>
+                      summaryMethods.length > 0
+                        ? openRequestDialog(defaultPlan, undefined, summaryMethods[0]?.methodCode)
+                        : scrollToPlans()
+                    }
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    {t("subscriptionRenewal.payAndActivate")}
+                  </Button>
+                </div>
               ) : (
                 <div className="rounded-lg border p-4 bg-muted/50">
                   <p className="text-sm">{t("subscriptionRenewal.contactOwner")}</p>
@@ -206,7 +257,7 @@ const SubscriptionRenewalPage = ({ reason }: Props) => {
 
         {/* Plans */}
         {canManageSubscription && !pendingRequest && (
-          <div>
+          <div id="renew-plans">
             <h2 className="text-xl font-bold mb-4">{t("subscriptionRenewal.selectPlan")}</h2>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {loading

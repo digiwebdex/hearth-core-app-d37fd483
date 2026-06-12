@@ -12,8 +12,9 @@ interface SubscriptionGateProps {
 const SubscriptionGate: React.FC<SubscriptionGateProps> = ({ children }) => {
   const { isSubscriptionBlocked, subscriptionBlockReason } = useAuth();
 
-  if (isSubscriptionBlocked && subscriptionBlockReason) {
-    return <SubscriptionRenewalPage reason={subscriptionBlockReason} />;
+  if (isSubscriptionBlocked) {
+    const reason = subscriptionBlockReason ?? "expired";
+    return <SubscriptionRenewalPage reason={reason} />;
   }
 
   return <>{children}</>;
