@@ -39,6 +39,7 @@ import {
   bookingMatchesPreset,
   bookingPresetPath,
   bookingPresetToTypeFilter,
+  BOOKING_PRESET_IDS,
   isBookingPreset,
   type BookingPresetId,
 } from "@/lib/bookingRoutePresets";
@@ -474,9 +475,29 @@ const Bookings = () => {
   const ticketCount = useMemo(() => items.filter((b) => b.type === "ticket").length, [items]);
   const hotelCount = useMemo(() => items.filter((b) => b.type === "hotel").length, [items]);
   const visaCount = useMemo(() => items.filter((b) => b.type === "visa").length, [items]);
-  const packageCount = useMemo(() => items.filter((b) => b.type === "package").length, [items]);
   const studentCount = useMemo(() => items.filter((b) => b.type === "student").length, [items]);
   const manpowerCount = useMemo(() => items.filter((b) => b.type === "manpower").length, [items]);
+  const hajjCount = useMemo(() => items.filter((b) => bookingMatchesPreset(b, "hajj")).length, [items]);
+  const umrahCount = useMemo(() => items.filter((b) => bookingMatchesPreset(b, "umrah")).length, [items]);
+
+  const categoryCounts: Record<BookingPresetId, number> = {
+    all: totalCount,
+    tour: tourCount,
+    flight: ticketCount,
+    hotel: hotelCount,
+    visa: visaCount,
+    hajj: hajjCount,
+    umrah: umrahCount,
+    student: studentCount,
+    manpower: manpowerCount,
+  };
+
+  const pageTitle =
+    activePreset === "all"
+      ? t("sidebar.bookings")
+      : t(`bookingsForm.categories.${activePreset}`);
+
+  const categoryPresets = BOOKING_PRESET_IDS.filter((id) => id !== "all");
 
   return (
     <DashboardLayout>
@@ -484,9 +505,11 @@ const Bookings = () => {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-              <Plane className="h-8 w-8" /> {t("sidebar.bookings")}
+              <Plane className="h-8 w-8" /> {pageTitle}
             </h1>
-            <p className="text-muted-foreground">{t("pages.bookingsSubtitle")}</p>
+            <p className="text-muted-foreground">
+              {activePreset === "all" ? t("pages.bookingsSubtitle") : t("pages.bookingsCategorySubtitle", { category: pageTitle })}
+            </p>
           </div>
           <div className="flex gap-2">
             <PermissionGate module="bookings" action="create">
@@ -647,26 +670,31 @@ const Bookings = () => {
         </div>
 
         <div className="space-y-3">
-          <div className="flex flex-wrap gap-2">
-            <Button variant={statusFilter === "all" ? "default" : "outline"} size="sm" onClick={() => setStatusFilter("all")}>
-              {t("bookingsForm.all")} ({statusCounts.all})
-            </Button>
-            {STATUS_META.map((s) => (
-              <Button key={s.value} variant={statusFilter === s.value ? "default" : "outline"} size="sm" onClick={() => setStatusFilter(s.value)}>
-                {t(`bookingsForm.statuses.${s.value}`)} ({statusCounts[s.value] || 0})
+          <div className="space-y-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("bookingsForm.filterStatus")}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button variant={statusFilter === "all" ? "default" : "outline"} size="sm" onClick={() => setStatusFilter("all")}>
+                {t("bookingsForm.allStatuses")} ({statusCounts.all})
               </Button>
-            ))}
+              {STATUS_META.map((s) => (
+                <Button key={s.value} variant={statusFilter === s.value ? "default" : "outline"} size="sm" onClick={() => setStatusFilter(s.value)}>
+                  {t(`bookingsForm.statuses.${s.value}`)} ({statusCounts[s.value] || 0})
+                </Button>
+              ))}
+            </div>
           </div>
-          <div className="flex gap-2 mt-2 flex-wrap">
-            <Tab active={activePreset === "all"} onClick={() => goToBookingPreset("all")}>{t("bookingsForm.all")} ({totalCount})</Tab>
-            <Tab active={activePreset === "tour"} onClick={() => goToBookingPreset("tour")}>{t("bookingsForm.types.tour")} ({tourCount})</Tab>
-            <Tab active={activePreset === "flight"} onClick={() => goToBookingPreset("flight")}>{t("bookingsForm.types.ticket")} ({ticketCount})</Tab>
-            <Tab active={activePreset === "hotel"} onClick={() => goToBookingPreset("hotel")}>{t("bookingsForm.types.hotel")} ({hotelCount})</Tab>
-            <Tab active={activePreset === "visa"} onClick={() => goToBookingPreset("visa")}>{t("bookingsForm.types.visa")} ({visaCount})</Tab>
-            <Tab active={activePreset === "hajj"} onClick={() => goToBookingPreset("hajj")}>{t("sidebar.bookings.hajj")} ({packageCount})</Tab>
-            <Tab active={activePreset === "umrah"} onClick={() => goToBookingPreset("umrah")}>{t("sidebar.bookings.umrah")} ({packageCount})</Tab>
-            <Tab active={activePreset === "student"} onClick={() => goToBookingPreset("student")}>{t("bookingsForm.types.student")} ({studentCount})</Tab>
-            <Tab active={activePreset === "manpower"} onClick={() => goToBookingPreset("manpower")}>{t("bookingsForm.types.manpower")} ({manpowerCount})</Tab>
+          <div className="space-y-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("bookingsForm.filterCategory")}</p>
+            <div className="flex gap-2 flex-wrap">
+              <Tab active={activePreset === "all"} onClick={() => goToBookingPreset("all")}>
+                {t("bookingsForm.categories.all")} ({categoryCounts.all})
+              </Tab>
+              {categoryPresets.map((preset) => (
+                <Tab key={preset} active={activePreset === preset} onClick={() => goToBookingPreset(preset)}>
+                  {t(`bookingsForm.categories.${preset}`)} ({categoryCounts[preset]})
+                </Tab>
+              ))}
+            </div>
           </div>
           <div className="flex flex-wrap gap-3">
             <div className="flex items-center gap-2 max-w-sm flex-1">

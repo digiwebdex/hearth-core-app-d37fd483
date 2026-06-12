@@ -81,7 +81,7 @@
     "leads": "Leads",
     "tasks": "Tasks",
     "quotations": "Quotations",
-    "bookingsMenu": "Bookings",
+    "bookings": "Bookings",
     "invoices": "Invoices",
     "payments": "Payments",
     "accounts": "Accounts",
@@ -111,17 +111,6 @@
       "hotel": "Hotel Packages",
       "student": "Student Programs (BD)",
       "manpower": "Manpower Programs (BD)"
-    },
-    "bookings": {
-      "all": "All Bookings",
-      "tour": "Tour",
-      "flight": "Flight / Air Ticket",
-      "hotel": "Hotel",
-      "hajj": "Hajj",
-      "umrah": "Umrah",
-      "visa": "Visa",
-      "student": "Student",
-      "manpower": "Manpower"
     }
   },
   "packagesPage": {
@@ -146,6 +135,7 @@
     "quotationsSubtitle": "Create and manage travel quotations",
     "newQuotation": "New Quotation",
     "bookingsSubtitle": "Manage tours, tickets, hotels, visas & packages",
+    "bookingsCategorySubtitle": "Showing {{category}} bookings only",
     "agentsSubtitle": "Manage sales agents and commission tracking",
     "newAgent": "New Agent",
     "newBooking": "New Booking",
@@ -242,6 +232,20 @@
     "error": "Error"
   },
   "bookingsForm": {
+    "filterStatus": "Status",
+    "filterCategory": "Booking category",
+    "allStatuses": "All statuses",
+    "categories": {
+      "all": "All Bookings",
+      "tour": "Tour",
+      "flight": "Flight / Air Ticket",
+      "hotel": "Hotel",
+      "hajj": "Hajj",
+      "umrah": "Umrah",
+      "visa": "Visa",
+      "student": "Student",
+      "manpower": "Manpower"
+    },
     "statuses": {
       "pending": "Pending",
       "confirmed": "Confirmed",
@@ -252,10 +256,10 @@
     },
     "types": {
       "tour": "Tour",
-      "ticket": "Ticket",
+      "ticket": "Flight / Air Ticket",
       "hotel": "Hotel",
       "visa": "Visa",
-      "package": "Package",
+      "package": "Hajj / Umrah Package",
       "student": "Student",
       "manpower": "Manpower"
     },

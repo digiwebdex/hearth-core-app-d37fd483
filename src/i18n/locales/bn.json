@@ -81,7 +81,7 @@
     "leads": "লিড",
     "tasks": "টাস্ক",
     "quotations": "কোটেশন",
-    "bookingsMenu": "বুকিং",
+    "bookings": "বুকিং",
     "invoices": "ইনভয়েস",
     "payments": "পেমেন্টস",
     "accounts": "একাউন্টস",
@@ -111,17 +111,6 @@
       "hotel": "হোটেল প্যাকেজ",
       "student": "স্টুডেন্ট প্রোগ্রাম (বিডি)",
       "manpower": "ম্যানপাওয়ার প্রোগ্রাম (বিডি)"
-    },
-    "bookings": {
-      "all": "সব বুকিং",
-      "tour": "ট্যুর",
-      "flight": "ফ্লাইট / এয়ার টিকেট",
-      "hotel": "হোটেল",
-      "hajj": "হজ্জ",
-      "umrah": "উমরাহ",
-      "visa": "ভিসা",
-      "student": "স্টুডেন্ট",
-      "manpower": "ম্যানপাওয়ার"
     }
   },
   "packagesPage": {
@@ -146,6 +135,7 @@
     "quotationsSubtitle": "ট্রাভেল কোটেশন তৈরি ও ম্যানেজ করুন",
     "newQuotation": "নতুন কোটেশন",
     "bookingsSubtitle": "ট্যুর, টিকেট, হোটেল, ভিসা ও প্যাকেজ ম্যানেজ করুন",
+    "bookingsCategorySubtitle": "শুধু {{category}} বুকিং দেখানো হচ্ছে",
     "agentsSubtitle": "সেলস এজেন্ট ও কমিশন ট্র্যাকিং পরিচালনা করুন",
     "newAgent": "নতুন এজেন্ট",
     "newBooking": "নতুন বুকিং",
@@ -242,6 +232,20 @@
     "error": "ত্রুটি"
   },
   "bookingsForm": {
+    "filterStatus": "স্ট্যাটাস",
+    "filterCategory": "বুকিং ক্যাটাগরি",
+    "allStatuses": "সব স্ট্যাটাস",
+    "categories": {
+      "all": "সব বুকিং",
+      "tour": "ট্যুর",
+      "flight": "ফ্লাইট / এয়ার টিকেট",
+      "hotel": "হোটেল",
+      "hajj": "হজ্জ",
+      "umrah": "উমরাহ",
+      "visa": "ভিসা",
+      "student": "স্টুডেন্ট",
+      "manpower": "ম্যানপাওয়ার"
+    },
     "statuses": {
       "pending": "অপেক্ষমাণ",
       "confirmed": "নিশ্চিত",
@@ -252,10 +256,10 @@
     },
     "types": {
       "tour": "ট্যুর",
-      "ticket": "টিকেট",
+      "ticket": "ফ্লাইট / এয়ার টিকেট",
       "hotel": "হোটেল",
       "visa": "ভিসা",
-      "package": "প্যাকেজ",
+      "package": "হজ্জ / উমরাহ প্যাকেজ",
       "student": "স্টুডেন্ট",
       "manpower": "ম্যানপাওয়ার"
     },
