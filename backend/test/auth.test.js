@@ -39,11 +39,38 @@ describe("auth API", () => {
       .send({
         name: "Test User",
         email: `test-${Date.now()}@example.com`,
+        phone: "01712345678",
         password: "weak",
         tenantName: "Test Agency",
       });
     assert.equal(res.status, 400);
     assert.ok(res.body.message);
+  });
+
+  it("returns 400 when phone is missing on register", async () => {
+    const res = await request(app)
+      .post("/api/auth/register")
+      .send({
+        name: "Test User",
+        email: `test-${Date.now()}@example.com",
+        password: "SecurePass99",
+        tenantName: "Test Agency",
+      });
+    assert.equal(res.status, 400);
+    assert.match(res.body.message, /phone/i);
+  });
+
+  it("returns 400 when email is missing on register", async () => {
+    const res = await request(app)
+      .post("/api/auth/register")
+      .send({
+        name: "Test User",
+        phone: "01712345678",
+        password: "SecurePass99",
+        tenantName: "Test Agency",
+      });
+    assert.equal(res.status, 400);
+    assert.match(res.body.message, /email/i);
   });
 });
 

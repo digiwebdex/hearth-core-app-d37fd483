@@ -41,15 +41,17 @@ async function sendTelegramMessage(text, opts = {}) {
   }
 }
 
-async function notifyNewSignup({ name, email, tenantName, userId, plan }) {
+async function notifyNewSignup({ name, email, phone, tenantName, userId, plan }) {
   const appUrl = process.env.APP_URL || "https://app.travelagencyweb.com";
   const text =
-    `🆕 <b>New Signup — Awaiting Approval</b>\n\n` +
+    `🆕 <b>New Agency Signup</b>\n\n` +
     `👤 <b>Name:</b> ${esc(name)}\n` +
     `📧 <b>Email:</b> ${esc(email)}\n` +
+    `📱 <b>Phone:</b> ${esc(phone || "-")}\n` +
     `🏢 <b>Agency:</b> ${esc(tenantName || "-")}\n` +
+    `📦 <b>Plan:</b> ${esc(plan || "pro")}\n` +
     `🆔 <b>User ID:</b> <code>${esc(userId)}</code>\n\n` +
-    `👉 Review & approve: ${appUrl}/admin/pending-users`;
+    `👉 Admin: ${appUrl}/admin/tenants`;
 
   const telegramResult = await sendTelegramMessage(text);
 
