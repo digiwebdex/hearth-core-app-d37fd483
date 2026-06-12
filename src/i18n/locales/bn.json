@@ -53,7 +53,9 @@
     "amount": "পরিমাণ",
     "date": "তারিখ",
     "name": "নাম",
-    "today": "আজ"
+    "today": "আজ",
+    "remove": "সরান",
+    "saving": "সংরক্ষণ হচ্ছে…"
   },
   "nav": {
     "home": "হোম",
@@ -3135,11 +3137,100 @@
       "testFailed": "টেস্ট ব্যর্থ"
     }
   },
+  "subscriptionRenewal": {
+    "platform": "Travel Agency Web",
+    "dataSafe": "আপনার এজেন্সির ডেটা নিরাপদ। পেমেন্ট verify হলে সাথে সাথে পূর্ণ অ্যাক্সেস ফিরে পাবেন।",
+    "expiredOn": "শেষ হয়েছে: {{date}}",
+    "choosePlanBelow": "নিচ থেকে প্ল্যান বেছে নিন ও পেমেন্ট তথ্য জমা দিন।",
+    "contactOwner": "সাবস্ক্রিপশন শেষ। রিনিউ করতে এজেন্সি মালিকের সাথে যোগাযোগ করুন।",
+    "howItWorks": "রিনিউ কীভাবে কাজ করে",
+    "workflowSteps": [
+      "প্ল্যান বেছে bKash, Nagad, Rocket বা ব্যাংকে টাকা পাঠান।",
+      "Transaction ID, sender number ও screenshot জমা দিন।",
+      "Super admin verify করবেন (সাধারণত কয়েক ঘণ্টার মধ্যে)।",
+      "Refresh বা আবার login — portal unlock হবে।"
+    ],
+    "paymentMethods": "পেমেন্ট গ্রহণের অ্যাকাউন্ট",
+    "noMethods": "পেমেন্ট মেথড সেটআপ হচ্ছে। support@travelagencyweb.com এ যোগাযোগ করুন।",
+    "selectPlan": "চালিয়ে যেতে প্ল্যান বেছে নিন",
+    "recommended": "সুপারিশকৃত",
+    "free": "ফ্রি",
+    "month": "মাস",
+    "payAndActivate": "পে করুন ও activation এর জন্য জমা দিন",
+    "pendingTitle": "পেমেন্ট জমা — approval এর অপেক্ষায়",
+    "pendingDesc": "আপনার request {{status}}। Super admin verify করে activate করবেন।",
+    "checkActivation": "Activate হয়েছে কিনা দেখুন",
+    "billingCycle": "Billing cycle",
+    "monthly": "মাসিক",
+    "yearly": "বার্ষিক",
+    "paymentMethod": "পেমেন্ট মেথড",
+    "amountSent": "আপনি যে পরিমাণ পাঠিয়েছেন (৳)",
+    "senderAccount": "আপনার bKash / ব্যাংক নম্বর",
+    "transactionId": "Transaction / Trx ID",
+    "paymentDate": "পেমেন্টের তারিখ",
+    "proofOptional": "পেমেন্ট screenshot (ঐচ্ছিক)",
+    "uploading": "আপলোড হচ্ছে…",
+    "openProof": "Screenshot দেখুন",
+    "note": "Admin এর জন্য নোট",
+    "selectedPlan": "নির্বাচিত প্ল্যান",
+    "expectedAmount": "প্রত্যাশিত পরিমাণ",
+    "accountName": "অ্যাকাউন্টের নাম",
+    "accountNumber": "অ্যাকাউন্ট নম্বর",
+    "bank": "ব্যাংক",
+    "receiverNotConfigured": "Receiver account এখনো configure হয়নি। support@travelagencyweb.com।",
+    "resubmitTitle": "পেমেন্ট request আবার জমা",
+    "requestPlan": "{{plan}} সাবস্ক্রাইব",
+    "resubmit": "আবার জমা",
+    "submitRequest": "পেমেন্ট request জমা দিন",
+    "rejectionReason": "আগের rejection",
+    "paymentSteps": [
+      "ডান পাশে দেখানো receiver account এ exact amount পাঠান।",
+      "bKash/Nagad/bank app থেকে transaction ID কপি করুন।",
+      "ফর্ম পূরণ করুন; সম্ভব হলে screenshot আপলোড করুন।",
+      "Super admin approval এর পর refresh করুন — portal খুলবে।"
+    ],
+    "reason": {
+      "trial_ended": {
+        "title": "৩ দিনের Pro trial শেষ",
+        "desc": "Leads, bookings, invoices ও সব Pro feature চালাতে subscribe করুন।"
+      },
+      "expired": {
+        "title": "সাবস্ক্রিপশন মেয়াদ শেষ",
+        "desc": "এজেন্সি portal আবার ব্যবহার করতে প্ল্যান renew করুন।"
+      },
+      "suspended": {
+        "title": "অ্যাকাউন্ট suspend",
+        "desc": "প্ল্যাটফর্ম admin suspend করেছেন। পেমেন্ট জমা দিন বা support এ যোগাযোগ করুন।"
+      },
+      "cancelled": {
+        "title": "সাবস্ক্রিপশন বাতিল",
+        "desc": "প্ল্যান বেছে পেমেন্ট জমা দিয়ে reactivate করুন।"
+      }
+    }
+  },
   "adminDashboard": {
     "title": "অ্যাডমিন ড্যাশবোর্ড",
     "subtitle": "প্ল্যাটফর্ম অ্যানালিটিক্স ও সংক্ষিপ্ত বিবরণ — লাইভ ডেটা",
     "refresh": "রিফ্রেশ",
     "loadFailed": "অ্যাডমিন ডেটা লোড করতে ব্যর্থ",
+    "workflow": {
+      "title": "Super admin প্রক্রিয়া (ধাপে ধাপে)",
+      "subtitle": "নতুন এজেন্সি signup ও subscription payment — এই ক্রম অনুসরণ করুন।",
+      "quickActions": "দ্রুত কাজ",
+      "steps": [
+        "নতুন এজেন্সি register → স্বয়ংক্রিয় ৩ দিন Pro trial (manual approval লাগে না)।",
+        "এজেন্সি bKash/Nagad/bank payment জমা দিলে Admin → Payment Requests খুলুন।",
+        "Transaction ID + amount verify → Approve → plan, billing cycle, Activate now।",
+        "এজেন্সি refresh/login → portal unlock পর্যন্ত পরবর্তী expiry।",
+        "Expiry এর আগে cron reminder। Expiry পর login করা যায় — শুধু payment screen।",
+        "Suspend: Subscriptions বা Agency detail → Suspend (তাৎক্ষণিক block)।",
+        "Receiving number: Payment Requests → bKash/Nagad/Rocket/bank save করুন।",
+        "Custom domain: Domains → DNS verify → Pro+ এ SSL activate।"
+      ],
+      "openPayments": "Payment review",
+      "openTenants": "সব এজেন্সি",
+      "openSubscriptions": "Subscriptions"
+    },
     "stats": {
       "totalRevenue": "মোট রাজস্ব",
       "totalAgencies": "মোট এজেন্সি",

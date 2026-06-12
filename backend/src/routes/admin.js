@@ -325,9 +325,9 @@ router.post("/users/:id/approve", async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
     if (user.status === "active") return res.status(400).json({ message: "User is already active" });
 
-    // Start the 14-day Pro trial from approval moment
+    // 3-day Pro trial (matches self-registration flow)
     const trialEnd = new Date();
-    trialEnd.setDate(trialEnd.getDate() + 14);
+    trialEnd.setDate(trialEnd.getDate() + 3);
 
     const updated = await prisma.user.update({
       where: { id: user.id },

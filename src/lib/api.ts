@@ -462,8 +462,8 @@ export const adminApi = {
   getPaymentRequests: () => request<AdminPaymentRequest[]>("/admin/payment-requests"),
   updatePaymentRequest: (id: string, data: { status: string; reviewerComment?: string }) => request<AdminPaymentRequest>(`/admin/payment-requests/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   getPendingUsers: () => request<PendingUser[]>("/admin/pending-users"),
-  approveUser: (id: string) => request<{ success: boolean }>(`/admin/pending-users/${id}/approve`, { method: "POST" }),
-  rejectUser: (id: string, reason?: string) => request<{ success: boolean }>(`/admin/pending-users/${id}/reject`, { method: "POST", body: JSON.stringify({ reason }) }),
+  approveUser: (id: string) => request<{ success: boolean }>(`/admin/users/${id}/approve`, { method: "POST" }),
+  rejectUser: (id: string, reason?: string) => request<{ success: boolean }>(`/admin/users/${id}/reject`, { method: "POST", body: JSON.stringify({ reason }) }),
 };
 
 // ── Domain types and API ──

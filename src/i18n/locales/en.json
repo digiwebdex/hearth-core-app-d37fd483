@@ -53,7 +53,9 @@
     "amount": "Amount",
     "date": "Date",
     "name": "Name",
-    "today": "Today"
+    "today": "Today",
+    "remove": "Remove",
+    "saving": "Saving…"
   },
   "nav": {
     "home": "Home",
@@ -3139,11 +3141,100 @@
       "testFailed": "Test failed"
     }
   },
+  "subscriptionRenewal": {
+    "platform": "Travel Agency Web",
+    "dataSafe": "Your agency data is safe. Once payment is verified, you will regain full access immediately.",
+    "expiredOn": "Ended on {{date}}",
+    "choosePlanBelow": "Choose a plan below and submit your payment details.",
+    "contactOwner": "Your subscription has ended. Please contact your agency owner to renew the plan.",
+    "howItWorks": "How renewal works",
+    "workflowSteps": [
+      "Choose a plan and send payment via bKash, Nagad, Rocket, or bank transfer.",
+      "Submit transaction ID, sender number, and payment screenshot.",
+      "Super admin verifies your payment (usually within a few hours).",
+      "Refresh this page or log in again — your portal unlocks automatically."
+    ],
+    "paymentMethods": "Payment receiving accounts",
+    "noMethods": "Payment methods are being configured. Please contact support.",
+    "selectPlan": "Choose a plan to continue",
+    "recommended": "Recommended",
+    "free": "Free",
+    "month": "mo",
+    "payAndActivate": "Pay & submit for activation",
+    "pendingTitle": "Payment submitted — waiting for approval",
+    "pendingDesc": "Your request is {{status}}. Super admin will verify and activate your subscription.",
+    "checkActivation": "Check if activated",
+    "billingCycle": "Billing cycle",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "paymentMethod": "Payment method",
+    "amountSent": "Amount you sent (৳)",
+    "senderAccount": "Your bKash / bank number",
+    "transactionId": "Transaction / Trx ID",
+    "paymentDate": "Payment date",
+    "proofOptional": "Payment screenshot (optional)",
+    "uploading": "Uploading…",
+    "openProof": "View screenshot",
+    "note": "Note for admin",
+    "selectedPlan": "Selected plan",
+    "expectedAmount": "Expected amount",
+    "accountName": "Account name",
+    "accountNumber": "Account number",
+    "bank": "Bank",
+    "receiverNotConfigured": "Receiver account not configured yet. Contact support@travelagencyweb.com.",
+    "resubmitTitle": "Resubmit payment request",
+    "requestPlan": "Subscribe to {{plan}}",
+    "resubmit": "Resubmit",
+    "submitRequest": "Submit payment request",
+    "rejectionReason": "Previous rejection",
+    "paymentSteps": [
+      "Send the exact plan amount to the receiver account shown on the right.",
+      "Copy the transaction ID from your bKash/Nagad/bank app.",
+      "Fill the form and upload a screenshot if possible.",
+      "Wait for super admin approval — then refresh to enter your portal."
+    ],
+    "reason": {
+      "trial_ended": {
+        "title": "Your 3-day Pro trial has ended",
+        "desc": "Subscribe to continue using leads, bookings, invoices, and all Pro features."
+      },
+      "expired": {
+        "title": "Subscription expired",
+        "desc": "Renew your plan to access your agency portal again."
+      },
+      "suspended": {
+        "title": "Account suspended",
+        "desc": "Your agency account was suspended by the platform admin. Submit payment or contact support."
+      },
+      "cancelled": {
+        "title": "Subscription cancelled",
+        "desc": "Reactivate by choosing a plan and submitting payment."
+      }
+    }
+  },
   "adminDashboard": {
     "title": "Admin Dashboard",
     "subtitle": "Platform analytics and overview — live data",
     "refresh": "Refresh",
     "loadFailed": "Failed to load admin data",
+    "workflow": {
+      "title": "Super admin process (step by step)",
+      "subtitle": "Follow this flow for every new agency signup and subscription payment.",
+      "quickActions": "Quick actions",
+      "steps": [
+        "New agency registers → 3-day Pro trial starts automatically (no manual approval needed).",
+        "Check Admin → Payment Requests when agency submits bKash/Nagad/bank payment.",
+        "Verify transaction ID + amount → Approve → choose plan, billing cycle, Activate now.",
+        "Agency refreshes or logs in again → full portal access restored until next expiry.",
+        "Before expiry: cron sends reminders. After expiry: agency can log in but sees payment screen only.",
+        "To suspend an agency: Subscriptions or Agency detail → Suspend (blocks access immediately).",
+        "Configure receiving numbers: Payment Requests → save bKash/Nagad/Rocket/bank details.",
+        "Custom domains: Domains → verify DNS → activate SSL for Pro+ agencies."
+      ],
+      "openPayments": "Review payments",
+      "openTenants": "All agencies",
+      "openSubscriptions": "Subscriptions"
+    },
     "stats": {
       "totalRevenue": "Total Revenue",
       "totalAgencies": "Total Agencies",
