@@ -65,26 +65,29 @@ function renderAgencySignupAdminEmail(data) {
 
 function renderSubscriptionOrderAgencyEmail(data) {
   return {
-    subject: `We received your ${data.requestType || "subscription"} request`,
+    subject: `Payment received — ${data.plan} plan request submitted`,
     html: `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
-        <h2 style="color:#0f172a;">Subscription request received</h2>
-        <p>We received your request for the <strong>${data.plan}</strong> plan.</p>
+        <h2 style="color:#0f172a;">We received your payment details</h2>
+        <p>Hello${data.ownerName ? ` ${data.ownerName}` : ""},</p>
+        <p>Your subscription payment for <strong>${data.plan}</strong> has been submitted successfully.</p>
         <p><strong>Amount:</strong> ৳${Number(data.amount || 0).toLocaleString()}</p>
         <p><strong>Method:</strong> ${data.method || "manual"}</p>
         <p><strong>Reference:</strong> ${data.trxId || "N/A"}</p>
-        <p>Our team will review it soon and notify you after approval.</p>
+        <p>Super admin will verify your payment. You will receive <strong>SMS and email</strong> when your plan is activated.</p>
+        <p style="color:#666;font-size:13px;">Status: Pending approval</p>
       </div>
     `,
   };
 }
 
 function renderSubscriptionOrderAdminEmail(data) {
+  const adminLink = process.env.APP_URL || "https://app.travelagencyweb.com";
   return {
-    subject: `New subscription order from ${data.tenantName || "Agency"}`,
+    subject: `[Action required] New subscription payment — ${data.tenantName || "Agency"}`,
     html: `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
-        <h2 style="color:#0f172a;">New Subscription Order</h2>
+        <h2 style="color:#0f172a;">New Subscription Payment</h2>
         <p><strong>Agency:</strong> ${data.tenantName || "N/A"}</p>
         <p><strong>Owner:</strong> ${data.ownerName || "N/A"}</p>
         <p><strong>Owner email:</strong> ${data.ownerEmail || "N/A"}</p>
@@ -95,6 +98,11 @@ function renderSubscriptionOrderAdminEmail(data) {
         <p><strong>Amount:</strong> ৳${Number(data.amount || 0).toLocaleString()}</p>
         <p><strong>Method:</strong> ${data.method || "manual"}</p>
         <p><strong>Transaction ID:</strong> ${data.trxId || "N/A"}</p>
+        <p style="margin:24px 0;">
+          <a href="${adminLink}/admin/payments" style="background:#ea580c;color:white;padding:12px 24px;text-decoration:none;border-radius:6px;display:inline-block;">
+            Review &amp; Approve
+          </a>
+        </p>
       </div>
     `,
   };
@@ -228,14 +236,29 @@ const EVENT_HANDLERS = {
   subscription_activated: [
     async (data) => {
       if (data.ownerEmail) {
+        const appUrl = data.appUrl || process.env.FRONTEND_URL || "https://app.travelagencyweb.com";
+        const loginUrl = appUrl.includes("app.") ? appUrl : `${appUrl.replace(/\/$/, "")}/login`;
+        const headline = data.immediate === false
+          ? `Your ${data.plan} plan is scheduled`
+          : `Your ${data.plan} plan is active!`;
+        const body = data.immediate === false
+          ? `<p>Your ${data.plan} subscription will activate on <strong>${data.activationDate}</strong> and remain valid until <strong>${data.expiryDate}</strong>.</p>`
+          : `<p>Your subscription is now active and valid until <strong>${data.expiryDate}</strong>.</p><p>You can log in and use your agency portal immediately.</p>`;
+
         await sendEmail({
           to: data.ownerEmail,
-          subject: `${data.plan} Plan Activated — Travel Agency Website & Software Solution`,
+          subject: `${data.plan} Plan ${data.immediate === false ? "Scheduled" : "Activated"} — Travel Agency Web`,
           html: `
             <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
-              <h2>Your ${data.plan} Plan is Active!</h2>
-              <p>Your subscription has been activated and is valid until <strong>${data.expiryDate}</strong>.</p>
-              <p>Enjoy full access to all features included in the ${data.plan} plan.</p>
+              <h2 style="color:#0f172a;">${headline}</h2>
+              ${data.tenantName ? `<p><strong>Agency:</strong> ${data.tenantName}</p>` : ""}
+              ${body}
+              <p style="margin:24px 0;">
+                <a href="${loginUrl}" style="background:#ea580c;color:white;padding:12px 24px;text-decoration:none;border-radius:6px;display:inline-block;">
+                  Log in to your portal
+                </a>
+              </p>
+              <p style="color:#666;font-size:13px;">Payment method: ${data.method || "manual"}${data.trxId ? ` · Ref: ${data.trxId}` : ""}</p>
             </div>
           `,
         });

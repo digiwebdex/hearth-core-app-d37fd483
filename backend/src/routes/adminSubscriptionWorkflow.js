@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const { authenticate, requireSuperAdmin, prisma } = require("../middleware/auth");
+const { notifySubscriptionPaymentApproved } = require("../services/subscriptionNotificationService");
 
 router.use(authenticate);
 router.use(requireSuperAdmin);
@@ -280,6 +281,18 @@ router.patch("/payment-requests/:id", async (req, res) => {
       await history({ tenantId: tenant.id, paymentRequestId: paymentRequest.id, oldPlan: tenant.subscriptionPlan, newPlan: requestedPlan, oldStatus: tenant.subscriptionStatus, newStatus: outcome.immediate ? "active" : tenant.subscriptionStatus, billingCycle, activationDate: outcome.start, expiryDate: outcome.expiryDate, actionType: requestType === "renew" ? "renewed" : requestType === "upgrade" ? (outcome.immediate ? "upgraded" : "upgrade_scheduled") : (tenant.subscriptionStatus === "trial" && outcome.immediate ? "trial_ended_paid" : "activated"), source: "payment_request_approved", note: req.body.adminNote || null, actorUserId: req.userId });
       await prisma.paymentRequest.updateMany({ where: { tenantId: tenant.id, id: { not: paymentRequest.id }, status: { in: PENDING_REVIEW_STATUSES } }, data: { status: "cancelled", adminNote: "Cancelled automatically because another subscription request was approved", reviewedBy: req.userId, reviewedAt, processedAt: reviewedAt } }).catch(() => {});
       await audit(req, { tenantId: tenant.id, tenantName: tenant.name, module: "subscription", action: "payment_approved", targetType: "paymentRequest", targetId: paymentRequest.id, targetLabel: `${requestedPlan} - ${paymentRequest.amountSent || paymentRequest.amount}`, oldValue: JSON.stringify({ plan: tenant.subscriptionPlan, status: tenant.subscriptionStatus, expiry: tenant.subscriptionExpiry }), newValue: JSON.stringify({ plan: requestedPlan, status: outcome.immediate ? "active" : tenant.subscriptionStatus, activationDate: outcome.start.toISOString(), expiryDate: outcome.expiryDate.toISOString(), activationMode: outcome.activationMode }) });
+
+      await notifySubscriptionPaymentApproved({
+        tenant: outcome.immediate
+          ? { ...tenant, subscriptionPlan: requestedPlan, subscriptionStatus: "active", subscriptionExpiry: outcome.expiryDate }
+          : tenant,
+        paymentRequest: updated,
+        plan: requestedPlan,
+        expiryDate: outcome.expiryDate,
+        immediate: outcome.immediate,
+        activationDate: outcome.start,
+      }).catch(() => {});
+
       return res.json({ paymentRequest: updated, outcome: { immediate: outcome.immediate, activationDate: outcome.start, expiryDate: outcome.expiryDate, plan: requestedPlan, billingCycle, requestType } });
     }
 

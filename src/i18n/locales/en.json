@@ -3162,7 +3162,7 @@
     "month": "mo",
     "payAndActivate": "Pay & submit for activation",
     "pendingTitle": "Payment submitted — waiting for approval",
-    "pendingDesc": "Your request is {{status}}. Super admin will verify and activate your subscription.",
+      "pendingDesc": "Your request is {{status}}. Super admin will verify and activate your subscription. You will receive SMS and email when approved.",
     "checkActivation": "Check if activated",
     "billingCycle": "Billing cycle",
     "monthly": "Monthly",
