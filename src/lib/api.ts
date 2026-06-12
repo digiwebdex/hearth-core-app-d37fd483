@@ -152,6 +152,21 @@ export const leadApi = {
   checkDuplicateClient: (email: string, phone: string) =>
     request<{ exists: boolean; client?: Client }>(`/leads/check-duplicate?email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}`).catch(() => ({ exists: false })),
 };
+
+export interface HubDocument {
+  id: string;
+  source: "client" | "booking";
+  sourceId: string;
+  sourceLabel: string;
+  name: string;
+  type: string;
+  url: string;
+  uploadedAt: string;
+}
+
+export const documentHubApi = {
+  list: () => request<HubDocument[]>("/documents"),
+};
 export const taskApi = createCrudApi<Task>("tasks");
 export const bookingApi = {
   ...createCrudApi<Booking>("bookings"),

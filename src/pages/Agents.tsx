@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import PermissionGate from "@/components/PermissionGate";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,6 +42,8 @@ const emptyForm: AgentFormState = {
 const Agents = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const commissionsMode = location.pathname === "/commissions";
   const { toast } = useToast();
   const { currentPlan } = useAuth();
   const { isSalesAgent, can } = usePermissions();
@@ -102,15 +104,22 @@ const Agents = () => {
   }, [isSalesAgent, navigate, redirectChecked]);
 
   const filtered = useMemo(() => {
-    return agents.filter((a) => {
-      const matchSearch =
-        !search ||
-        a.name.toLowerCase().includes(search.toLowerCase()) ||
-        a.email.toLowerCase().includes(search.toLowerCase());
-      const matchStatus = statusFilter === "all" || a.status === statusFilter;
-      return matchSearch && matchStatus;
-    });
-  }, [agents, search, statusFilter]);
+    return agents
+      .filter((a) => {
+        const matchSearch =
+          !search ||
+          a.name.toLowerCase().includes(search.toLowerCase()) ||
+          a.email.toLowerCase().includes(search.toLowerCase());
+        const matchStatus = statusFilter === "all" || a.status === statusFilter;
+        const matchCommission =
+          !commissionsMode || !canUseCommission || (a.pendingCommission ?? 0) > 0;
+        return matchSearch && matchStatus && matchCommission;
+      })
+      .sort((a, b) => {
+        if (!commissionsMode || !canUseCommission) return 0;
+        return (b.pendingCommission ?? 0) - (a.pendingCommission ?? 0);
+      });
+  }, [agents, search, statusFilter, commissionsMode, canUseCommission]);
 
   const resetForm = () => {
     setForm(emptyForm);
@@ -208,9 +217,12 @@ const Agents = () => {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-              <UserCog className="h-8 w-8" /> {t("agentsForm.title")}
+              <UserCog className="h-8 w-8" />{" "}
+              {commissionsMode ? t("commissionsPage.title") : t("agentsForm.title")}
             </h1>
-            <p className="text-muted-foreground">{t("pages.agentsSubtitle")}</p>
+            <p className="text-muted-foreground">
+              {commissionsMode ? t("commissionsPage.subtitle") : t("pages.agentsSubtitle")}
+            </p>
           </div>
           <PermissionGate module="agents" action="create">
             <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>

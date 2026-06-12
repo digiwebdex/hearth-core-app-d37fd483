@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useLocation, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,15 @@ import type { AccountsSummary, Invoice, Payment, VendorBill, Expense, Account, T
 
 const Accounts = () => {
   const { currentPlan } = useAuth();
-  const [activeTab, setActiveTab] = useState("overview");
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const resolveInitialTab = () => {
+    if (location.pathname === "/expenses") return "expenses";
+    const tab = searchParams.get("tab");
+    if (tab) return tab;
+    return "overview";
+  };
+  const [activeTab, setActiveTab] = useState(resolveInitialTab);
   const [loading, setLoading] = useState(true);
 
   // Data states
@@ -98,6 +107,15 @@ const Accounts = () => {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    if (location.pathname === "/expenses") {
+      setActiveTab("expenses");
+      return;
+    }
+    const tab = searchParams.get("tab");
+    if (tab) setActiveTab(tab);
+  }, [location.pathname, searchParams]);
 
   return (
     <DashboardLayout>

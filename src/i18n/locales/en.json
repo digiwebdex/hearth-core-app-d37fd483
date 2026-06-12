@@ -83,11 +83,15 @@
     "agents": "Agents",
     "vendors": "Vendors",
     "leads": "Leads",
+    "followUps": "Follow-ups",
     "tasks": "Tasks",
     "quotations": "Quotations",
     "bookings": "Bookings",
     "invoices": "Invoices",
     "payments": "Payments",
+    "expenses": "Expenses",
+    "commissions": "Commissions",
+    "documents": "Documents",
     "accounts": "Accounts",
     "accountsLedger": "Accounts / Ledger",
     "reports": "Reports",
@@ -149,6 +153,52 @@
     "ownerOnly": "Only the agency owner can change module settings.",
     "saved": "Module settings saved",
     "saveFailed": "Could not save module settings"
+  },
+  "followUps": {
+    "title": "Follow-ups",
+    "subtitle": "Leads with a scheduled follow-up date — overdue, today, and upcoming.",
+    "loadFailed": "Failed to load follow-ups",
+    "searchPlaceholder": "Search leads…",
+    "lead": "Lead",
+    "contact": "Contact",
+    "destination": "Destination",
+    "followUpDate": "Follow-up date",
+    "overdue": "Overdue",
+    "dueToday": "Due today",
+    "emptyTitle": "No follow-ups in this view",
+    "emptyDesc": "Set a next follow-up date on leads, or schedule one from lead details.",
+    "filters": {
+      "overdue": "Overdue",
+      "today": "Due today",
+      "upcoming": "Upcoming",
+      "all": "All scheduled"
+    }
+  },
+  "documentsHub": {
+    "title": "Documents",
+    "subtitle": "All files uploaded to client profiles and bookings in one place.",
+    "loadFailed": "Failed to load documents",
+    "searchPlaceholder": "Search files…",
+    "file": "File",
+    "source": "Linked to",
+    "type": "Type",
+    "open": "Open",
+    "emptyTitle": "No documents yet",
+    "emptyDesc": "Upload files from a client profile or booking details page.",
+    "uploadHint": "Upload new files from",
+    "filters": {
+      "all": "All",
+      "client": "Clients",
+      "booking": "Bookings"
+    },
+    "sourceTypes": {
+      "client": "Client",
+      "booking": "Booking"
+    }
+  },
+  "commissionsPage": {
+    "title": "Agent commissions",
+    "subtitle": "Agents with pending commission — open a profile to mark bookings paid."
   },
   "pages": {
     "manageYour": "Manage your",

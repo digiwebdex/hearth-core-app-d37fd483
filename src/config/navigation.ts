@@ -10,9 +10,13 @@ import {
   Plane,
   Moon,
   ListTodo,
+  Clock,
+  FolderOpen,
   Receipt,
   CreditCard,
   Wallet,
+  Banknote,
+  Percent,
   BarChart3,
   Globe,
   Wand2,
@@ -54,6 +58,7 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
   const enableHajj = options.enableHajjUmrahModule !== false;
 
   const operationsItems: NavItemConfig[] = [
+    { id: "documents", titleKey: "sidebar.documents", url: "/documents", icon: FolderOpen, module: "clients" },
     { id: "tasks", titleKey: "sidebar.tasks", url: "/tasks", icon: ListTodo, module: "tasks" },
   ];
 
@@ -86,6 +91,7 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
       labelKey: "sidebar.crm",
       items: [
         { id: "leads", titleKey: "sidebar.leads", url: "/leads", icon: Target, module: "leads" },
+        { id: "follow-ups", titleKey: "sidebar.followUps", url: "/follow-ups", icon: Clock, module: "leads" },
         { id: "clients", titleKey: "sidebar.clients", url: "/clients", icon: UserCheck, module: "clients" },
         { id: "agents", titleKey: "sidebar.agents", url: "/agents", icon: UserCog, module: "agents" },
         { id: "vendors", titleKey: "sidebar.vendors", url: "/vendors", icon: Store, module: "vendors" },
@@ -123,6 +129,21 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
       items: [
         { id: "invoices", titleKey: "sidebar.invoices", url: "/invoices", icon: Receipt, module: "invoices" },
         { id: "payments", titleKey: "sidebar.payments", url: "/payments", icon: CreditCard, module: "invoices" },
+        {
+          id: "expenses",
+          titleKey: "sidebar.expenses",
+          url: "/expenses",
+          icon: Banknote,
+          module: "accounts",
+          minPlan: "basic",
+        },
+        {
+          id: "commissions",
+          titleKey: "sidebar.commissions",
+          url: "/commissions",
+          icon: Percent,
+          module: "agents",
+        },
         {
           id: "accounts",
           titleKey: "sidebar.accountsLedger",

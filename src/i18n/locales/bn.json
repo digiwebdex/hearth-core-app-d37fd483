@@ -83,11 +83,15 @@
     "agents": "এজেন্ট",
     "vendors": "ভেন্ডর",
     "leads": "লিড",
+    "followUps": "ফলো-আপ",
     "tasks": "টাস্ক",
     "quotations": "কোটেশন",
     "bookings": "বুকিং",
     "invoices": "ইনভয়েস",
     "payments": "পেমেন্টস",
+    "expenses": "খরচ",
+    "commissions": "কমিশন",
+    "documents": "ডকুমেন্ট",
     "accounts": "একাউন্টস",
     "accountsLedger": "একাউন্টস / লেজার",
     "reports": "রিপোর্ট",
@@ -149,6 +153,52 @@
     "ownerOnly": "শুধু এজেন্সি মালিক মডিউল সেটিংস পরিবর্তন করতে পারেন।",
     "saved": "মডিউল সেটিংস সেভ হয়েছে",
     "saveFailed": "মডিউল সেটিংস সেভ করা যায়নি"
+  },
+  "followUps": {
+    "title": "ফলো-আপ",
+    "subtitle": "যে লিডগুলোর ফলো-আপ তারিখ আছে — বাকি, আজ, ও আসন্ন।",
+    "loadFailed": "ফলো-আপ লোড করা যায়নি",
+    "searchPlaceholder": "লিড খুঁজুন…",
+    "lead": "লিড",
+    "contact": "যোগাযোগ",
+    "destination": "গন্তব্য",
+    "followUpDate": "ফলো-আপ তারিখ",
+    "overdue": "বাকি",
+    "dueToday": "আজ",
+    "emptyTitle": "এই ভিউতে কোনো ফলো-আপ নেই",
+    "emptyDesc": "লিডে পরবর্তী ফলো-আপ তারিখ দিন, অথবা লিড ডিটেইল থেকে শিডিউল করুন।",
+    "filters": {
+      "overdue": "বাকি",
+      "today": "আজ",
+      "upcoming": "আসন্ন",
+      "all": "সব শিডিউল"
+    }
+  },
+  "documentsHub": {
+    "title": "ডকুমেন্ট",
+    "subtitle": "ক্লায়েন্ট প্রোফাইল ও বুকিং-এ আপলোড করা সব ফাইল এক জায়গায়।",
+    "loadFailed": "ডকুমেন্ট লোড করা যায়নি",
+    "searchPlaceholder": "ফাইল খুঁজুন…",
+    "file": "ফাইল",
+    "source": "সংযুক্ত",
+    "type": "টাইপ",
+    "open": "খুলুন",
+    "emptyTitle": "এখনো কোনো ডকুমেন্ট নেই",
+    "emptyDesc": "ক্লায়েন্ট প্রোফাইল বা বুকিং ডিটেইল থেকে ফাইল আপলোড করুন।",
+    "uploadHint": "নতুন ফাইল আপলোড করুন",
+    "filters": {
+      "all": "সব",
+      "client": "ক্লায়েন্ট",
+      "booking": "বুকিং"
+    },
+    "sourceTypes": {
+      "client": "ক্লায়েন্ট",
+      "booking": "বুকিং"
+    }
+  },
+  "commissionsPage": {
+    "title": "এজেন্ট কমিশন",
+    "subtitle": "যাদের কমিশন বাকি — প্রোফাইল খুলে বুকিং paid মার্ক করুন।"
   },
   "pages": {
     "manageYour": "ম্যানেজ করুন",

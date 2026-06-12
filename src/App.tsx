@@ -26,6 +26,8 @@ import AgentProfile from "./pages/AgentProfile";
 import Vendors from "./pages/Vendors";
 import VendorDetails from "./pages/VendorDetails";
 import Leads from "./pages/Leads";
+import FollowUps from "./pages/FollowUps";
+import Documents from "./pages/Documents";
 import LeadDetails from "./pages/LeadDetails";
 import ClientProfile from "./pages/ClientProfile";
 import Tasks from "./pages/Tasks";
@@ -157,6 +159,8 @@ const AppContent = () => (
           <Route path="/vendors/:id" element={<P><VendorDetails /></P>} />
           <Route path="/leads" element={<P><Leads /></P>} />
           <Route path="/leads/:id" element={<P><LeadDetails /></P>} />
+          <Route path="/follow-ups" element={<P><FollowUps /></P>} />
+          <Route path="/documents" element={<P><Documents /></P>} />
           <Route path="/tasks" element={<P><Tasks /></P>} />
           <Route path="/quotations" element={<P><Quotations /></P>} />
           <Route path="/quotations/new" element={<P><QuotationBuilder /></P>} />
@@ -175,6 +179,8 @@ const AppContent = () => (
           <Route path="/payments" element={<P><Invoices /></P>} />
           <Route path="/invoices/:id/receipt" element={<P><InvoiceReceipt /></P>} />
           <Route path="/accounts" element={<P><Accounts /></P>} />
+          <Route path="/expenses" element={<P><Accounts /></P>} />
+          <Route path="/commissions" element={<P><Agents /></P>} />
           <Route path="/reports" element={<P><Reports /></P>} />
           <Route path="/hajj-umrah" element={<P><HajjModuleGate><HajjUmrah /></HajjModuleGate></P>} />
           <Route path="/hajj-umrah/operations" element={<P><HajjModuleGate><HajjUmrah /></HajjModuleGate></P>} />

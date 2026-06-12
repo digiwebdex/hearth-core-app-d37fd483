@@ -13,6 +13,21 @@ export function navItemIsActive(url: string, pathname: string): boolean {
   if (url === "/hajj-umrah") {
     return pathname === "/hajj-umrah" || pathname.startsWith("/hajj-umrah/");
   }
+  if (url === "/accounts") {
+    return pathname === "/accounts" || pathname === "/expenses";
+  }
+  if (url === "/expenses") {
+    return pathname === "/expenses";
+  }
+  if (url === "/commissions") {
+    return pathname === "/commissions";
+  }
+  if (url === "/follow-ups") {
+    return pathname === "/follow-ups";
+  }
+  if (url === "/documents") {
+    return pathname === "/documents";
+  }
   if (url === "/dashboard") return pathname === "/dashboard";
   return pathname === url || pathname.startsWith(`${url}/`);
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
@@ -54,7 +54,10 @@ const BookingDetails = () => {
   const { id, segment } = useParams<{ id?: string; segment?: string }>();
   const bookingId = id || segment;
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const initialTab = searchParams.get("tab") || "segments";
+  const [activeTab, setActiveTab] = useState(initialTab);
 
   const [booking, setBooking] = useState<Booking | null>(null);
   const [segments, setSegments] = useState<BookingSegment[]>([]);
@@ -72,6 +75,11 @@ const BookingDetails = () => {
   const [travelerDialog, setTravelerDialog] = useState(false);
   const [segForm, setSegForm] = useState<Partial<BookingSegment>>({ type: "hotel", description: "", cost: 0, sellingPrice: 0, status: "pending" });
   const [travForm, setTravForm] = useState<Partial<BookingTraveler>>({ name: "", passportNumber: "", nationality: "" });
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab) setActiveTab(tab);
+  }, [searchParams]);
 
   const fetchData = useCallback(async () => {
     if (!bookingId) return;
@@ -309,7 +317,7 @@ const BookingDetails = () => {
           </Card>
         </div>
 
-        <Tabs defaultValue="segments" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="flex-wrap">
             <TabsTrigger value="segments">Segments ({segments.length})</TabsTrigger>
             <TabsTrigger value="travelers">Travelers ({travelers.length})</TabsTrigger>

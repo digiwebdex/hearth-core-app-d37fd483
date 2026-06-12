@@ -180,6 +180,9 @@ const LeadDetails = () => {
         priority: "medium",
         dueDate: format(followUpDate, "yyyy-MM-dd"),
       } as any);
+      const followUpIso = format(followUpDate, "yyyy-MM-dd");
+      const updatedLead = await leadApi.update(lead.id, { nextFollowUp: followUpIso });
+      setLead(updatedLead);
       // Also add activity
       const act = await leadApi.addActivity(lead.id, {
         type: "follow_up",
