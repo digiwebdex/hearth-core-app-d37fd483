@@ -30,6 +30,7 @@ import {
   Settings,
   BookOpen,
   Briefcase,
+  Activity,
 } from "lucide-react";
 import type { PlanType } from "@/lib/plans";
 import type { Module } from "@/lib/permissions";
