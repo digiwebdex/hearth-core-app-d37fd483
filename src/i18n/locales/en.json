@@ -995,10 +995,14 @@
     "welcomeBack": "Welcome back",
     "signInSubtitle": "Sign in to your account",
     "registerTitle": "Create your account",
-    "registerSubtitle": "Start your travel agency in minutes — no credit card required.",
+    "registerSubtitle": "Start your travel agency in minutes — email and mobile number required.",
     "trialBadge": "3-day Pro trial · full access",
     "verifyTitle": "Verify your email",
-    "verifySubtitle": "We've sent a verification link to your inbox."
+    "verifySubtitle": "We've sent a verification link to your inbox.",
+    "phone": "Mobile number",
+    "phonePlaceholder": "01XXXXXXXXX",
+    "phoneHint": "Bangladesh mobile (required for SMS alerts & subscription notifications)",
+    "validationFailed": "Please fix the form"
   },
   "register": {
     "companyName": "Company Name",

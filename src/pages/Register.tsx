@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Sparkles, Clock, CheckCircle2 } from "lucide-react";
 import { PLANS } from "@/lib/plans";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { validateEmail, validatePhone } from "@/lib/contactValidation";
 
 const Register = () => {
   const { t } = useTranslation();
@@ -23,6 +24,7 @@ const Register = () => {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [tenantName, setTenantName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -34,9 +36,29 @@ const Register = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const emailCheck = validateEmail(email);
+    if (!emailCheck.ok) {
+      toast({ variant: "destructive", title: t("auth.validationFailed"), description: emailCheck.message });
+      return;
+    }
+
+    const phoneCheck = validatePhone(phone);
+    if (!phoneCheck.ok) {
+      toast({ variant: "destructive", title: t("auth.validationFailed"), description: phoneCheck.message });
+      return;
+    }
+
     setLoading(true);
     try {
-      const result = await register({ name, email, password, tenantName, plan: selectedPlan.id });
+      const result = await register({
+        name: name.trim(),
+        email: emailCheck.email,
+        phone: phoneCheck.phone,
+        password,
+        tenantName: tenantName.trim(),
+        plan: selectedPlan.id,
+      });
       if (result.pendingApproval) {
         toast({ title: "Account submitted", description: result.message || "Pending admin approval." });
         navigate("/login");
@@ -47,8 +69,9 @@ const Register = () => {
         });
         navigate("/onboarding");
       }
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Registration failed", description: err.message });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Registration failed";
+      toast({ variant: "destructive", title: "Registration failed", description: message });
     } finally {
       setLoading(false);
     }
@@ -79,20 +102,34 @@ const Register = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">{t("common.fullName")}</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
+              <Label htmlFor="name">{t("common.fullName")} *</Label>
+              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">{t("common.email")}</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">{t("common.password")}</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="tenantName">{t("common.agencyName")}</Label>
+              <Label htmlFor="tenantName">{t("common.agencyName")} *</Label>
               <Input id="tenantName" value={tenantName} onChange={(e) => setTenantName(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">{t("common.email")} *</Label>
+              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">{t("auth.phone")} *</Label>
+              <Input
+                id="phone"
+                type="tel"
+                inputMode="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder={t("auth.phonePlaceholder")}
+                required
+                autoComplete="tel"
+              />
+              <p className="text-xs text-muted-foreground">{t("auth.phoneHint")}</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">{t("common.password")} *</Label>
+              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} autoComplete="new-password" />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? t("common.creating") : isFree ? t("common.createAccount") : t("common.startFreeTrial")}

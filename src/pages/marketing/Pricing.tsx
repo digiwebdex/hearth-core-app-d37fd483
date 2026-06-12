@@ -18,6 +18,7 @@ import {
   Check, X, ArrowRight, Star, Zap, Crown, Rocket, Gem,
   Lock, BarChart3, Receipt,
 } from "lucide-react";
+import { validateEmail, validatePhone } from "@/lib/contactValidation";
 
 const planIcons: Record<string, React.ElementType> = { free: Star, basic: Zap, pro: Crown, business: Rocket, enterprise: Gem };
 
@@ -45,9 +46,28 @@ const Pricing = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const emailCheck = validateEmail(form.email);
+    if (!emailCheck.ok) {
+      toast({ variant: "destructive", title: t("marketing.pricing.regFailed"), description: emailCheck.message });
+      return;
+    }
+    const phoneCheck = validatePhone(form.phone);
+    if (!phoneCheck.ok) {
+      toast({ variant: "destructive", title: t("marketing.pricing.regFailed"), description: phoneCheck.message });
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await register({ name: form.ownerName, email: form.email, password: form.password, tenantName: form.companyName, plan: selectedPlan || "pro" });
+      const res = await register({
+        name: form.ownerName.trim(),
+        email: emailCheck.email,
+        phone: phoneCheck.phone,
+        password: form.password,
+        tenantName: form.companyName.trim(),
+        plan: selectedPlan || "pro",
+      });
       if (res.pendingApproval) {
         toast({ title: t("marketing.pricing.submitted"), description: res.message || t("marketing.pricing.pendingApproval") });
         navigate("/login");

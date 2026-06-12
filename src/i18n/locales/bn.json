@@ -991,10 +991,14 @@
     "welcomeBack": "আবার স্বাগতম",
     "signInSubtitle": "আপনার অ্যাকাউন্টে সাইন ইন করুন",
     "registerTitle": "আপনার অ্যাকাউন্ট তৈরি করুন",
-    "registerSubtitle": "কয়েক মিনিটেই শুরু করুন — ক্রেডিট কার্ড লাগবে না।",
+    "registerSubtitle": "কয়েক মিনিটেই শুরু করুন — ইমেইল ও মোবাইল নম্বর বাধ্যতামূলক।",
     "trialBadge": "৩ দিন প্রো ট্রায়াল · ফুল অ্যাক্সেস",
     "verifyTitle": "ইমেইল ভেরিফাই করুন",
-    "verifySubtitle": "আমরা আপনার ইনবক্সে একটি ভেরিফিকেশন লিংক পাঠিয়েছি।"
+    "verifySubtitle": "আমরা আপনার ইনবক্সে একটি ভেরিফিকেশন লিংক পাঠিয়েছি।",
+    "phone": "মোবাইল নম্বর",
+    "phonePlaceholder": "01XXXXXXXXX",
+    "phoneHint": "বাংলাদেশের মোবাইল (SMS ও subscription notification-এর জন্য প্রয়োজন)",
+    "validationFailed": "ফর্ম ঠিক করুন"
   },
   "register": {
     "companyName": "কোম্পানির নাম",

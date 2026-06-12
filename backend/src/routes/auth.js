@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { authenticate, prisma, SECRET } = require("../middleware/auth");
 const { validatePassword } = require("../utils/passwordPolicy");
+const { validatePhone, validateEmail } = require("../utils/contactValidation");
 
 // Login
 router.post("/login", async (req, res) => {
@@ -54,10 +55,21 @@ router.post("/login", async (req, res) => {
 // Register — auto-approved with 3-day Pro trial, returns JWT immediately (Pattern B)
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password, tenantName, plan } = req.body;
+    const { name, email, password, tenantName, plan, phone } = req.body;
+
+    if (!String(name || "").trim()) return res.status(400).json({ message: "Full name is required" });
+    if (!String(tenantName || "").trim()) return res.status(400).json({ message: "Agency name is required" });
+
+    const emailCheck = validateEmail(email);
+    if (!emailCheck.ok) return res.status(400).json({ message: emailCheck.message });
+
+    const phoneCheck = validatePhone(phone);
+    if (!phoneCheck.ok) return res.status(400).json({ message: phoneCheck.message });
+
     const passwordCheck = validatePassword(password);
     if (!passwordCheck.ok) return res.status(400).json({ message: passwordCheck.message });
-    const exists = await prisma.user.findUnique({ where: { email } });
+
+    const exists = await prisma.user.findUnique({ where: { email: emailCheck.email } });
     if (exists) return res.status(400).json({ message: "Email already registered" });
     const hashed = await bcrypt.hash(password, 10);
 
@@ -83,6 +95,7 @@ router.post("/register", async (req, res) => {
       data: {
         name: tenantName || name + "'s Agency",
         slug,
+        phone: phoneCheck.phone,
         subscriptionPlan,
         subscriptionStatus,
         subscriptionExpiry,
@@ -95,7 +108,10 @@ router.post("/register", async (req, res) => {
 
     const user = await prisma.user.create({
       data: {
-        name, email, password: hashed,
+        name: String(name).trim(),
+        email: emailCheck.email,
+        phone: phoneCheck.phone,
+        password: hashed,
         role: "tenant_owner",
         status: "active", // auto-approved
         tenantId: tenant.id,
@@ -111,30 +127,30 @@ router.post("/register", async (req, res) => {
       await createPlatformNotification({
         type: "new_tenant",
         title: "New Tenant Registered",
-        message: `${tenant.name} (${email}) signed up for ${subscriptionPlan} (${subscriptionStatus}).`,
+        message: `${tenant.name} (${emailCheck.email}, ${phoneCheck.phone}) signed up for ${subscriptionPlan} (${subscriptionStatus}).`,
         link: "/admin/tenants",
-        metadata: { tenantId: tenant.id, email, plan: subscriptionPlan },
+        metadata: { tenantId: tenant.id, email: emailCheck.email, phone: phoneCheck.phone, plan: subscriptionPlan },
       });
     } catch (_e) { /* non-blocking */ }
 
     await prisma.auditLog.create({
       data: {
-        actorId: user.id, actorName: name, actorEmail: email, actorRole: "tenant_owner",
+        actorId: user.id, actorName: name, actorEmail: emailCheck.email, actorRole: "tenant_owner",
         tenantId: tenant.id, tenantName: tenant.name,
         module: "auth", action: "signup",
-        targetType: "user", targetId: user.id, targetLabel: email,
-        newValue: `auto-approved · ${subscriptionStatus} · plan:${subscriptionPlan} · intended:${requestedPlan}`,
+        targetType: "user", targetId: user.id, targetLabel: emailCheck.email,
+        newValue: `auto-approved · ${subscriptionStatus} · plan:${subscriptionPlan} · intended:${requestedPlan} · phone:${phoneCheck.phone}`,
       },
     }).catch(() => {});
 
     try {
       const { sendEmailVerification } = require("../services/emailService");
-      sendEmailVerification(email, name, emailVerifyToken).catch(() => {});
+      sendEmailVerification(emailCheck.email, name, emailVerifyToken).catch(() => {});
     } catch (e) { /* ignore */ }
 
     try {
       const { notifyNewSignup } = require("../services/telegramService");
-      notifyNewSignup({ name, email, tenantName: tenant.name, userId: user.id, plan: requestedPlan }).catch(() => {});
+      notifyNewSignup({ name, email: emailCheck.email, phone: phoneCheck.phone, tenantName: tenant.name, userId: user.id, plan: requestedPlan }).catch(() => {});
     } catch (e) { /* ignore */ }
 
     // Issue JWT — instant access
