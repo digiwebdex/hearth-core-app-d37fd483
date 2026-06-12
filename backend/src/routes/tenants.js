@@ -11,6 +11,7 @@ router.use(authenticate);
 const ALLOWED_TENANT_FIELDS = [
   "name", "logo", "phone", "address", "city", "country",
   "currency", "timezone", "websiteConfig", "enableHajjUmrahModule", "enableBdOperationsModule",
+  "enabledServiceTypes",
 ];
 
 function pickAllowed(body, allowedFields) {
@@ -40,6 +41,10 @@ router.patch("/me", requireRole("tenant_owner"), async (req, res) => {
     }
     if (data.enableBdOperationsModule !== undefined) {
       data.enableBdOperationsModule = Boolean(data.enableBdOperationsModule);
+    }
+    if (data.enabledServiceTypes !== undefined) {
+      const raw = Array.isArray(data.enabledServiceTypes) ? data.enabledServiceTypes : [];
+      data.enabledServiceTypes = [...new Set(raw.map((v) => String(v).trim().toLowerCase()).filter(Boolean))];
     }
     const tenant = await prisma.tenant.update({ where: { id: req.tenantId }, data });
     res.json(tenant);

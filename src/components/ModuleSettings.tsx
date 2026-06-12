@@ -1,22 +1,67 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Moon, GraduationCap } from "lucide-react";
+import { Moon, GraduationCap, Layers } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { tenantApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import {
+  deriveModuleFlagsFromServiceTypes,
+  normalizeEnabledServiceTypes,
+  ONBOARDING_SERVICE_TYPES,
+} from "@/lib/enabledServiceTypes";
+import { getLocalizedServiceTypeLabel } from "@/lib/serviceTypes";
+import type { ServiceType } from "@/lib/serviceTypes";
 
 export default function ModuleSettings() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const { tenant, appRole, refreshTenant } = useAuth();
   const [saving, setSaving] = useState(false);
+  const isBn = String(i18n.resolvedLanguage || i18n.language || "en").startsWith("bn");
+
+  const savedTypes = useMemo(
+    () => normalizeEnabledServiceTypes(tenant?.enabledServiceTypes),
+    [tenant?.enabledServiceTypes],
+  );
+  const [selectedTypes, setSelectedTypes] = useState<ServiceType[]>(savedTypes);
+
+  useEffect(() => {
+    setSelectedTypes(savedTypes);
+  }, [savedTypes]);
 
   const hajjEnabled = tenant?.enableHajjUmrahModule !== false;
   const bdEnabled = tenant?.enableBdOperationsModule === true;
   const canEdit = appRole === "tenant_owner" || appRole === "owner";
+
+  const toggleServiceType = (type: ServiceType) => {
+    setSelectedTypes((prev) =>
+      prev.includes(type) ? prev.filter((item) => item !== type) : [...prev, type],
+    );
+  };
+
+  const handleSaveServiceTypes = async () => {
+    if (!canEdit) return;
+    setSaving(true);
+    try {
+      const moduleFlags = deriveModuleFlagsFromServiceTypes(selectedTypes);
+      await tenantApi.update({
+        enabledServiceTypes: selectedTypes,
+        ...moduleFlags,
+      });
+      await refreshTenant();
+      toast({ title: t("settingsModules.saved") });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      toast({ title: t("settingsModules.saveFailed"), description: message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleHajjToggle = async (checked: boolean) => {
     if (!canEdit) return;
@@ -58,6 +103,37 @@ export default function ModuleSettings() {
         <CardDescription>{t("settingsModules.subtitle")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="rounded-lg border p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Layers className="h-4 w-4" />
+            <Label>{t("settingsModules.serviceTypesLabel")}</Label>
+          </div>
+          <p className="text-sm text-muted-foreground">{t("settingsModules.serviceTypesDesc")}</p>
+          <div className="flex flex-wrap gap-2">
+            {ONBOARDING_SERVICE_TYPES.map((type) => {
+              const active = selectedTypes.includes(type);
+              return (
+                <Badge
+                  key={type}
+                  variant={active ? "default" : "outline"}
+                  className={canEdit ? "cursor-pointer" : ""}
+                  onClick={() => canEdit && toggleServiceType(type)}
+                >
+                  {getLocalizedServiceTypeLabel(type, isBn)}
+                </Badge>
+              );
+            })}
+          </div>
+          {selectedTypes.length === 0 ? (
+            <p className="text-xs text-muted-foreground">{t("settingsModules.serviceTypesAll")}</p>
+          ) : null}
+          {canEdit ? (
+            <Button size="sm" disabled={saving} onClick={handleSaveServiceTypes}>
+              {t("settingsModules.saveServiceTypes")}
+            </Button>
+          ) : null}
+        </div>
+
         <div className="flex items-center justify-between gap-4 rounded-lg border p-4">
           <div className="space-y-1">
             <Label htmlFor="hajj-module">{t("settingsModules.hajjLabel")}</Label>

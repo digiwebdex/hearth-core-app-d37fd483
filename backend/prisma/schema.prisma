@@ -24,6 +24,7 @@ model Tenant {
   subscriptionExpiry    DateTime?
   enableHajjUmrahModule Boolean               @default(true)
   enableBdOperationsModule Boolean              @default(false)
+  enabledServiceTypes   String[]                @default([])
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
   users                 User[]
@@ -575,6 +576,9 @@ model TravelPackage {
   currency       String                   @default("BDT")
   status         String                   @default("draft")
   isFeatured     Boolean                  @default(false)
+  visaRequired   Boolean?
+  cancellationPolicy String?
+  seasonalPricing Json?
   heroImage      String?
   createdBy      String?
   createdAt      DateTime                 @default(now())

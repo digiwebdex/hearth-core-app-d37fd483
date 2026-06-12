@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import type { PlanType } from "@/lib/plans";
 import type { Module } from "@/lib/permissions";
+import { normalizeEnabledServiceTypes } from "@/lib/enabledServiceTypes";
 
 export interface NavItemConfig {
   id: string;
@@ -58,11 +59,19 @@ export interface NavigationOptions {
   enableBdOperationsModule?: boolean;
   /** When true, shows Activity log in Administration (owner/manager). */
   showActivityLog?: boolean;
+  /** Empty or omitted = all service presets visible. */
+  enabledServiceTypes?: string[];
 }
 
 export function getNavigationGroups(options: NavigationOptions = {}): NavGroupConfig[] {
-  const enableHajj = options.enableHajjUmrahModule !== false;
-  const enableBd = options.enableBdOperationsModule === true;
+  const enabled = normalizeEnabledServiceTypes(options.enabledServiceTypes);
+  const showAllServices = enabled.length === 0;
+  let enableHajj = options.enableHajjUmrahModule !== false;
+  let enableBd = options.enableBdOperationsModule === true;
+  if (!showAllServices) {
+    if (!enabled.includes("hajj_umrah")) enableHajj = false;
+    if (!enabled.includes("study_abroad")) enableBd = false;
+  }
   const showActivityLog = options.showActivityLog === true;
 
   const operationsItems: NavItemConfig[] = [

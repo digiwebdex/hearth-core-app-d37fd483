@@ -68,6 +68,9 @@ export interface TravelPackage {
   currency?: string;
   status?: string;
   isFeatured?: boolean;
+  visaRequired?: boolean;
+  cancellationPolicy?: string;
+  seasonalPricing?: unknown;
   heroImage?: string;
   createdBy?: string;
   createdAt?: string;

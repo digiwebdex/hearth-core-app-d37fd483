@@ -30,6 +30,10 @@ export interface PackagePublic {
   type: string;
   highlights: string[];
   source?: "travel_package" | "hajj";
+  isFeatured?: boolean;
+  visaRequired?: boolean;
+  cancellationPolicy?: string;
+  serviceType?: string;
 }
 
 /** Normalize domain — strip www prefix for consistent lookups */

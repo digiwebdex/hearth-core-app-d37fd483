@@ -255,7 +255,7 @@ flowchart LR
 
 ## 10. Polish roadmap (development priority)
 
-**Status: Phases A–D shipped on `main` (Jun 2026).** Next work: see `docs/Travel-Agency-ERP-Full-Audit-Improvement-Plan.md` Phase 0 (security) and scenario doc Phases 3–5.
+**Status: Phases A–D shipped on `main` (Jun 2026). Phase 1 catalog foundation shipped.** Next: scenario doc Phases 2–3.
 
 ### Phase A — Clarity — ✅ shipped
 

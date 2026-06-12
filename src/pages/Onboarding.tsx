@@ -10,10 +10,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import { Building2, UserCheck, Plane, Receipt, Check, ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
+import { Building2, UserCheck, Plane, Receipt, Check, ArrowRight, ArrowLeft, Sparkles, Layers } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  deriveModuleFlagsFromServiceTypes,
+  ONBOARDING_SERVICE_TYPES,
+} from "@/lib/enabledServiceTypes";
+import { getLocalizedServiceTypeLabel } from "@/lib/serviceTypes";
+import type { ServiceType } from "@/lib/serviceTypes";
 
 const Onboarding = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isBn = String(i18n.resolvedLanguage || i18n.language || "en").startsWith("bn");
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -30,6 +38,13 @@ const Onboarding = () => {
   const [companyName, setCompanyName] = useState("");
   const [companyPhone, setCompanyPhone] = useState("");
   const [companyAddress, setCompanyAddress] = useState("");
+  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>(["tour_domestic", "hajj_umrah"]);
+
+  const toggleServiceType = (type: ServiceType) => {
+    setServiceTypes((prev) =>
+      prev.includes(type) ? prev.filter((item) => item !== type) : [...prev, type],
+    );
+  };
 
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
@@ -46,7 +61,14 @@ const Onboarding = () => {
   const handleStep1 = async () => {
     setLoading(true);
     try {
-      await tenantApi.update({ name: companyName } as any);
+      const moduleFlags = deriveModuleFlagsFromServiceTypes(serviceTypes);
+      await tenantApi.update({
+        name: companyName,
+        phone: companyPhone || undefined,
+        address: companyAddress || undefined,
+        enabledServiceTypes: serviceTypes,
+        ...moduleFlags,
+      });
       await refreshTenant();
       toast({ title: t("marketing.onboarding.savedCompany") });
       setStep(2);
@@ -152,6 +174,22 @@ const Onboarding = () => {
               <div className="space-y-2">
                 <Label>{t("marketing.onboarding.address")}</Label>
                 <Input value={companyAddress} onChange={(e) => setCompanyAddress(e.target.value)} placeholder={t("marketing.onboarding.addressPh")} />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2"><Layers className="h-4 w-4" />{t("marketing.onboarding.serviceTypes")}</Label>
+                <p className="text-sm text-muted-foreground">{t("marketing.onboarding.serviceTypesDesc")}</p>
+                <div className="flex flex-wrap gap-2">
+                  {ONBOARDING_SERVICE_TYPES.map((type) => (
+                    <Badge
+                      key={type}
+                      variant={serviceTypes.includes(type) ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => toggleServiceType(type)}
+                    >
+                      {getLocalizedServiceTypeLabel(type, isBn)}
+                    </Badge>
+                  ))}
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button onClick={handleStep1} className="flex-1" disabled={!companyName || loading}>

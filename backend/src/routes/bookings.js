@@ -3,6 +3,7 @@ const multer = require("multer");
 const path = require("path");
 const { authenticate, requirePermission, checkPlanLimit, prisma } = require("../middleware/auth");
 const { dispatchTenantAutomation } = require("../services/tenantAutomationService");
+const { enrichBookingFromPackage } = require("../services/packageLinkage");
 
 const upload = multer({ dest: process.env.UPLOAD_DIR || path.join(__dirname, "../../uploads") });
 const BOOKING_LIST_INCLUDE = {
@@ -195,6 +196,9 @@ async function syncAgentCommission(bookingId, data, tenantId, existingBooking = 
 
 async function normalizeBookingInput(data, tenantId, existingBooking = null) {
   let next = stripCommissionFields({ ...data });
+  if (next.packageId && !existingBooking?.packageId) {
+    next = await enrichBookingFromPackage(next, tenantId);
+  }
   next = await resolveClientForBooking(next, tenantId, existingBooking);
   next = await resolveAgentForBooking(next, tenantId);
   return next;

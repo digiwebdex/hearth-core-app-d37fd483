@@ -224,13 +224,20 @@ function publicTravelPackage(p) {
     type: mapTravelPackageType(p.serviceType),
     highlights,
     source: "travel_package",
+    isFeatured: !!p.isFeatured,
+    visaRequired: !!p.visaRequired,
+    cancellationPolicy: p.cancellationPolicy || undefined,
+    serviceType: p.serviceType || undefined,
   };
 }
 
-async function getPublicPackagesByTenantId(tenantId) {
+async function getPublicPackagesByTenantId(tenantId, { featuredOnly = false } = {}) {
+  const travelWhere = { tenantId, status: "published" };
+  if (featuredOnly) travelWhere.isFeatured = true;
+
   const [travelPackages, hajjPackages] = await Promise.all([
     prisma.travelPackage.findMany({
-      where: { tenantId, status: "published" },
+      where: travelWhere,
       include: {
         days: { orderBy: { dayNumber: "asc" } },
         inclusions: { orderBy: { sortOrder: "asc" } },
@@ -270,7 +277,9 @@ router.get("/:slug/packages", async (req, res) => {
     const slug = String(req.params.slug || "").toLowerCase();
     const tenant = await prisma.tenant.findFirst({ where: { slug }, select: { id: true } });
     if (!tenant) return res.status(404).json({ message: "Tenant not found" });
-    const packages = await getPublicPackagesByTenantId(tenant.id);
+    const packages = await getPublicPackagesByTenantId(tenant.id, {
+      featuredOnly: String(req.query.featured || "").toLowerCase() === "true",
+    });
     res.json(packages);
   } catch (e) {
     console.error("public/:slug/packages error", e);
@@ -313,7 +322,9 @@ router.get("/domain/:domain/packages", async (req, res) => {
     const domain = normalizeDomain(req.params.domain);
     const record = await findReadyDomain(domain);
     if (!record) return res.status(404).json({ message: "Domain not found" });
-    const packages = await getPublicPackagesByTenantId(record.tenantId);
+    const packages = await getPublicPackagesByTenantId(record.tenantId, {
+      featuredOnly: String(req.query.featured || "").toLowerCase() === "true",
+    });
     res.json(packages);
   } catch (e) {
     console.error("public/domain/:domain/packages error", e);

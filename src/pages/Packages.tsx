@@ -32,6 +32,13 @@ import {
 } from "@/lib/packageRoutePresets";
 import { useHajjModuleEnabled } from "@/components/HajjModuleGate";
 import { useBdModuleEnabled } from "@/components/BdModuleGate";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  filterServiceTypesForTenant,
+  normalizeEnabledServiceTypes,
+  presetAllowedForServiceTypes,
+} from "@/lib/enabledServiceTypes";
+import { Switch } from "@/components/ui/switch";
 import PackageWebsiteSyncCard, { PackageWebsiteSyncBadge } from "@/components/PackageWebsiteSyncCard";
 import { ArrowRight, FileText, Globe, GraduationCap, Loader2, Moon, Package2, Plus, Save, Trash2, UploadCloud, Wand2 } from "lucide-react";
 
@@ -49,6 +56,8 @@ const emptyForm = {
   currency: "BDT",
   status: "draft",
   isFeatured: false,
+  visaRequired: false,
+  cancellationPolicy: "",
   heroImage: "",
 };
 
@@ -98,12 +107,21 @@ function PresetTab({ active, onClick, children }: { active: boolean; onClick: ()
 
 const Packages = () => {
   const { toast } = useToast();
+  const { tenant } = useAuth();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { preset: presetParam } = useParams<{ preset?: string }>();
   const activePreset: PackagePresetId | null =
     presetParam && isPackagePreset(presetParam) ? presetParam : null;
   const isBn = String(i18n.resolvedLanguage || i18n.language || "en").startsWith("bn");
+  const enabledServiceTypes = useMemo(
+    () => normalizeEnabledServiceTypes(tenant?.enabledServiceTypes),
+    [tenant?.enabledServiceTypes],
+  );
+  const visibleServiceTypes = useMemo(
+    () => filterServiceTypesForTenant(SERVICE_TYPES, enabledServiceTypes),
+    [enabledServiceTypes],
+  );
   const [items, setItems] = useState<TravelPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -179,6 +197,9 @@ const Packages = () => {
     addPricing: isBn ? "প্রাইসিং স্ল্যাব যোগ করুন" : "Add Pricing Slab",
     addMedia: isBn ? "মিডিয়া যোগ করুন" : "Add Media",
     delete: isBn ? "ডিলিট" : "Delete",
+    visaRequired: isBn ? "ভিসা প্রয়োজন" : "Visa required",
+    cancellationPolicy: isBn ? "বাতিল নীতি" : "Cancellation policy",
+    featured: isBn ? "ওয়েবসাইটে ফিচার্ড" : "Featured on website",
   };
 
   const selected = useMemo(() => items.find((item) => item.id === selectedId) || null, [items, selectedId]);
@@ -223,6 +244,8 @@ const Packages = () => {
         currency: full.currency || "BDT",
         status: full.status || "draft",
         isFeatured: !!full.isFeatured,
+        visaRequired: !!full.visaRequired,
+        cancellationPolicy: full.cancellationPolicy || "",
         heroImage: full.heroImage || "",
       });
       setDays((full.days || []).map((item, index) => ({ ...item, dayNumber: Number(item.dayNumber || index + 1) })));
@@ -264,7 +287,9 @@ const Packages = () => {
     return items.filter((item) => filterType === "all" || item.serviceType === filterType);
   }, [items, activePreset, filterType]);
 
-  const categoryPresets = PACKAGE_PRESET_IDS.filter((id) => id !== "all");
+  const categoryPresets = PACKAGE_PRESET_IDS.filter(
+    (id) => id !== "all" && presetAllowedForServiceTypes(id, enabledServiceTypes),
+  );
 
   const categoryCounts = useMemo(() => {
     const counts = Object.fromEntries(categoryPresets.map((id) => [id, 0])) as Record<PackagePresetId, number>;
@@ -387,7 +412,7 @@ const Packages = () => {
               <SelectTrigger className="w-[210px]"><SelectValue placeholder={text.filterPlaceholder} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{text.allTypes}</SelectItem>
-                {SERVICE_TYPES.map((type) => <SelectItem key={type} value={type}>{getLocalizedServiceTypeLabel(type, isBn)}</SelectItem>)}
+                {visibleServiceTypes.map((type) => <SelectItem key={type} value={type}>{getLocalizedServiceTypeLabel(type, isBn)}</SelectItem>)}
               </SelectContent>
             </Select>
             {selected ? <Link to={`/quotations/new?packageId=${selected.id}&source=packages`}><Button><FileText className="mr-2 h-4 w-4" />{text.quotationButton}</Button></Link> : null}
@@ -491,7 +516,7 @@ const Packages = () => {
                     <TabsContent value="basic" className="space-y-4">
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2"><Label>{text.packageCode}</Label><Input value={form.code} onChange={(e) => setForm((prev) => ({ ...prev, code: e.target.value }))} /></div>
-                        <div className="space-y-2"><Label>{text.serviceType}</Label><Select value={form.serviceType} onValueChange={(value) => setForm((prev) => ({ ...prev, serviceType: value as ServiceType }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{SERVICE_TYPES.map((type) => <SelectItem key={type} value={type}>{getLocalizedServiceTypeLabel(type, isBn)}</SelectItem>)}</SelectContent></Select></div>
+                        <div className="space-y-2"><Label>{text.serviceType}</Label><Select value={form.serviceType} onValueChange={(value) => setForm((prev) => ({ ...prev, serviceType: value as ServiceType }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{visibleServiceTypes.map((type) => <SelectItem key={type} value={type}>{getLocalizedServiceTypeLabel(type, isBn)}</SelectItem>)}</SelectContent></Select></div>
                         <div className="space-y-2 md:col-span-2"><Label>{text.packageTitle}</Label><Input value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value, slug: slugify(e.target.value) }))} /></div>
                         <div className="space-y-2 md:col-span-2"><Label>{text.summary}</Label><Textarea value={form.summary} rows={4} onChange={(e) => setForm((prev) => ({ ...prev, summary: e.target.value }))} /></div>
                         <div className="space-y-2"><Label>{text.destination}</Label><Input value={form.destination} onChange={(e) => setForm((prev) => ({ ...prev, destination: e.target.value }))} /></div>
@@ -500,6 +525,15 @@ const Packages = () => {
                         <div className="space-y-2"><Label>{text.nights}</Label><Input type="number" min={0} value={form.durationNights} onChange={(e) => setForm((prev) => ({ ...prev, durationNights: Number(e.target.value || 0) }))} /></div>
                         <div className="space-y-2"><Label>{text.basePrice}</Label><Input type="number" min={0} value={form.basePrice} onChange={(e) => setForm((prev) => ({ ...prev, basePrice: Number(e.target.value || 0) }))} /></div>
                         <div className="space-y-2"><Label>{text.status}</Label><Select value={form.status} onValueChange={(value) => setForm((prev) => ({ ...prev, status: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="draft">Draft</SelectItem><SelectItem value="published">Published</SelectItem><SelectItem value="archived">Archived</SelectItem></SelectContent></Select></div>
+                        <div className="flex items-center justify-between rounded-lg border p-3 md:col-span-2">
+                          <div><Label>{text.visaRequired}</Label></div>
+                          <Switch checked={form.visaRequired} onCheckedChange={(checked) => setForm((prev) => ({ ...prev, visaRequired: checked }))} />
+                        </div>
+                        <div className="flex items-center justify-between rounded-lg border p-3 md:col-span-2">
+                          <div><Label>{text.featured}</Label></div>
+                          <Switch checked={form.isFeatured} onCheckedChange={(checked) => setForm((prev) => ({ ...prev, isFeatured: checked }))} />
+                        </div>
+                        <div className="space-y-2 md:col-span-2"><Label>{text.cancellationPolicy}</Label><Textarea value={form.cancellationPolicy} rows={3} onChange={(e) => setForm((prev) => ({ ...prev, cancellationPolicy: e.target.value }))} placeholder={isBn ? "বাতিল ও রিফান্ড শর্ত..." : "Cancellation and refund terms..."} /></div>
                       </div>
                     </TabsContent>
 

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import PublicLayout from "@/components/PublicLayout";
 import { useWebsite } from "@/contexts/WebsiteContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,6 +26,8 @@ const typeLabels: Record<string, string> = {
 };
 
 const SitePackages = () => {
+  const { i18n } = useTranslation();
+  const isBn = String(i18n.resolvedLanguage || i18n.language || "en").startsWith("bn");
   const { packages, websiteConfig } = useWebsite();
   const { user } = useAuth();
   const [search, setSearch] = useState("");
@@ -125,12 +128,19 @@ const SitePackages = () => {
                     )}
                   </div>
                   <CardContent className="p-5 flex-1 flex flex-col">
-                    <div className="flex items-center justify-between mb-2 gap-3">
+                    <div className="flex items-center justify-between mb-2 gap-3 flex-wrap">
                       <Badge variant="secondary" className="capitalize">{typeLabels[pkg.type] || pkg.type}</Badge>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">{pkg.duration}</span>
+                      <div className="flex items-center gap-2">
+                        {pkg.isFeatured ? <Badge>{isBn ? "ফিচার্ড" : "Featured"}</Badge> : null}
+                        {pkg.visaRequired ? <Badge variant="outline">{isBn ? "ভিসা লাগবে" : "Visa required"}</Badge> : null}
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">{pkg.duration}</span>
+                      </div>
                     </div>
                     <h3 className="font-bold text-lg mb-1">{pkg.name}</h3>
                     <p className="text-sm text-muted-foreground mb-3 flex-1">{pkg.description}</p>
+                    {pkg.cancellationPolicy ? (
+                      <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{pkg.cancellationPolicy}</p>
+                    ) : null}
                     {pkg.highlights.length > 0 && (
                       <ul className="space-y-1 mb-4">
                         {pkg.highlights.map((h) => (

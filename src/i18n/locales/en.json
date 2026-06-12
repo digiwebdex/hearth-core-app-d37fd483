@@ -210,7 +210,11 @@
     "bdDesc": "When on, shows the BD operations desk for study abroad and manpower bookings. Off by default.",
     "ownerOnly": "Only the agency owner can change module settings.",
     "saved": "Module settings saved",
-    "saveFailed": "Could not save module settings"
+    "saveFailed": "Could not save module settings",
+    "serviceTypesLabel": "Services you sell",
+    "serviceTypesDesc": "Pick the travel services your agency offers. Empty selection shows all catalog tabs (backward compatible).",
+    "serviceTypesAll": "No filter selected — all service types are visible.",
+    "saveServiceTypes": "Save service focus"
   },
   "followUps": {
     "title": "Follow-ups",
@@ -1177,6 +1181,8 @@
       "phone": "Phone",
       "address": "Address",
       "addressPh": "Dhaka, Bangladesh",
+      "serviceTypes": "Services you sell",
+      "serviceTypesDesc": "Select what your agency focuses on. You can change this later in Settings.",
       "saving": "Saving…",
       "continue": "Continue",
       "back": "Back",

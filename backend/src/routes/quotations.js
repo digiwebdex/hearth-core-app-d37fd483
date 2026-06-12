@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const { authenticate, requirePermission, checkPlanLimit, prisma } = require("../middleware/auth");
+const { enrichQuotationFromPackage } = require("../services/packageLinkage");
 
 router.use(authenticate);
 
@@ -15,8 +16,11 @@ router.get("/:id", requirePermission("quotations", "view"), async (req, res) => 
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 router.post("/", requirePermission("quotations", "create"), checkPlanLimit("quotations"), async (req, res) => {
-  try { res.status(201).json(await prisma.quotation.create({ data: { ...req.body, createdBy: req.userId, tenantId: req.tenantId } })); }
-  catch (err) { res.status(500).json({ message: err.message }); }
+  try {
+    const data = await enrichQuotationFromPackage(req.body, req.tenantId);
+    res.status(201).json(await prisma.quotation.create({ data: { ...data, createdBy: req.userId, tenantId: req.tenantId } }));
+  }
+  catch (err) { res.status(400).json({ message: err.message }); }
 });
 router.patch("/:id", requirePermission("quotations", "edit"), async (req, res) => {
   try {
