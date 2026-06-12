@@ -114,7 +114,8 @@
     }
   },
   "packagesPage": {
-    "hajjOpsButton": "Hajj/Umrah Operations"
+    "hajjOpsButton": "Hajj/Umrah Operations",
+    "presetSubtitle": "Manage {{category}} templates and pricing"
   },
   "pages": {
     "manageYour": "Manage your",

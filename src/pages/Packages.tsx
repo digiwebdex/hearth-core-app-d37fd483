@@ -104,6 +104,8 @@ const Packages = () => {
   const [pricing, setPricing] = useState<TravelPackagePricing[]>([]);
   const [media, setMedia] = useState<TravelPackageMedia[]>([]);
 
+  const showHajjOpsButton = activePreset === "hajj" || activePreset === "umrah";
+
   const text = {
     loadFailed: isBn ? "প্যাকেজ লোড করা যায়নি" : "Failed to load packages",
     loadDetailsFailed: isBn ? "প্যাকেজ ডিটেইল লোড করা যায়নি" : "Failed to load package details",
@@ -116,8 +118,12 @@ const Packages = () => {
     pageTitle: isBn ? "প্যাকেজ ও সার্ভিসেস" : "Packages & Services",
     pageSubtitle: isBn ? "ট্যুর, হজ্জ-উমরাহ, ভিসা, টিকেট, হোটেল ও অন্যান্য ট্রাভেল সার্ভিসের reusable template এখানে ম্যানেজ করুন।" : "Manage reusable templates for tours, Hajj/Umrah, visa, tickets, hotels, and other travel services here.",
     migrationTitle: isBn ? "ইউনিফায়েড সার্ভিস সেন্টার" : "Unified service center",
-    migrationText: isBn ? "এখন ট্যুর, হজ্জ-উমরাহ, ভিসা, টিকেটসহ সব service template এক জায়গা থেকে ম্যানেজ করুন। আলাদা Hajj sidebar item আর দেখানো হচ্ছে না।" : "Manage tour, Hajj/Umrah, visa, ticket, and other service templates from one place. The separate Hajj sidebar item is no longer shown.",
-    operationsHint: isBn ? "পুরনো pilgrim, group, rooming, payment operations এখনো legacy screen-এ আছে, তাই বর্তমান testing data safe থাকবে।" : "Legacy pilgrim, group, rooming, and payment operations still remain in the legacy screen, so current testing data stays safe.",
+    migrationText: isBn
+      ? "সাইডবার থেকে প্যাকেজ টাইপ বেছে নিন। হজ্জ/উমরাহ প্যাকেজ পেজ থেকে পিলগ্রিম অপারেশনস খুলুন।"
+      : "Pick a package type from the sidebar. Open pilgrim operations from the Hajj or Umrah package pages.",
+    operationsHint: isBn
+      ? "হজ্জ/উমরাহ প্যাকেজ পেজে পিলগ্রিম, গ্রুপ, রুমিং ও পেমেন্ট অপারেশনস বাটন পাওয়া যাবে।"
+      : "The pilgrim operations button appears on Hajj and Umrah package pages only.",
     hajjOpsButton: t("packagesPage.hajjOpsButton"),
     publicButton: isBn ? "পাবলিক প্যাকেজ পেজ" : "Public Packages Page",
     builderButton: isBn ? "ওয়েবসাইট বিল্ডার" : "Website Builder",
@@ -160,6 +166,16 @@ const Packages = () => {
   };
 
   const selected = useMemo(() => items.find((item) => item.id === selectedId) || null, [items, selectedId]);
+
+  const pageTitle =
+    activePreset && activePreset !== "all"
+      ? t(`sidebar.packages.${activePreset}`)
+      : text.pageTitle;
+
+  const pageSubtitle =
+    activePreset && activePreset !== "all"
+      ? t("packagesPage.presetSubtitle", { category: pageTitle })
+      : text.pageSubtitle;
 
   const load = async () => {
     setLoading(true);
@@ -321,8 +337,8 @@ const Packages = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2"><Package2 className="h-6 w-6" /> {text.pageTitle}</h1>
-            <p className="text-sm text-muted-foreground">{text.pageSubtitle}</p>
+            <h1 className="text-2xl font-bold flex items-center gap-2"><Package2 className="h-6 w-6" /> {pageTitle}</h1>
+            <p className="text-sm text-muted-foreground">{pageSubtitle}</p>
           </div>
           <div className="flex gap-2 flex-wrap">
             <Select value={filterType} onValueChange={handleFilterTypeChange}>
@@ -337,7 +353,9 @@ const Packages = () => {
             <Link to="/website/publish"><Button variant="outline"><UploadCloud className="mr-2 h-4 w-4" />{text.publishButton}</Button></Link>
             <Link to="/site/packages"><Button variant="outline"><Globe className="mr-2 h-4 w-4" />{text.publicButton}</Button></Link>
             <Button variant="outline" onClick={handleResetForm}><Plus className="mr-2 h-4 w-4" />{text.newPackage}</Button>
-            <Link to="/hajj-umrah"><Button variant="secondary"><Moon className="mr-2 h-4 w-4" />{text.hajjOpsButton}</Button></Link>
+            {showHajjOpsButton ? (
+              <Link to="/hajj-umrah"><Button variant="secondary"><Moon className="mr-2 h-4 w-4" />{text.hajjOpsButton}</Button></Link>
+            ) : null}
           </div>
         </div>
 
@@ -347,7 +365,7 @@ const Packages = () => {
               <p className="font-medium">{text.migrationTitle}</p>
               <p className="text-sm text-muted-foreground">{text.migrationText}</p>
               <p className="text-sm text-muted-foreground mt-1">{text.publicText}</p>
-              <p className="text-sm text-muted-foreground mt-1">{text.operationsHint}</p>
+              {showHajjOpsButton ? <p className="text-sm text-muted-foreground mt-1">{text.operationsHint}</p> : null}
               {selected ? <p className="text-sm text-muted-foreground mt-1">{text.quotationHint}</p> : null}
             </div>
             <div className="flex gap-2 flex-wrap">
@@ -355,6 +373,9 @@ const Packages = () => {
               <Link to="/website"><Button variant="outline"><span>{text.builderButton}</span><ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
               <Link to="/website/publish"><Button variant="outline"><span>{text.publishButton}</span><ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
               <Link to="/site/packages"><Button variant="outline"><span>{text.publicButton}</span><ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
+              {showHajjOpsButton ? (
+                <Link to="/hajj-umrah"><Button variant="secondary"><Moon className="mr-2 h-4 w-4" />{text.hajjOpsButton}</Button></Link>
+              ) : null}
             </div>
           </CardContent>
         </Card>

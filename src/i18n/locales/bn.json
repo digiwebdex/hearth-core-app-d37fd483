@@ -114,7 +114,8 @@
     }
   },
   "packagesPage": {
-    "hajjOpsButton": "হজ্জ/উমরাহ অপারেশনস"
+    "hajjOpsButton": "হজ্জ/উমরাহ অপারেশনস",
+    "presetSubtitle": "{{category}} টেমপ্লেট ও প্রাইসিং ম্যানেজ করুন"
   },
   "pages": {
     "manageYour": "ম্যানেজ করুন",
