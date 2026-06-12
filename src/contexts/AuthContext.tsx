@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from "rea
 import { authApi, tenantApi, type User, type Tenant } from "@/lib/api";
 import type { PlanType } from "@/lib/plans";
 import { mapLegacyRole, type AppRole } from "@/lib/permissions";
+import { getSubscriptionBlockState, type SubscriptionBlockReason } from "@/lib/subscriptionAccess";
 
 interface AuthContextType {
   user: User | null;
@@ -9,6 +10,8 @@ interface AuthContextType {
   currentPlan: PlanType;
   appRole: AppRole;
   isSubscriptionExpired: boolean;
+  isSubscriptionBlocked: boolean;
+  subscriptionBlockReason: SubscriptionBlockReason | null;
   isTrialActive: boolean;
   trialDaysLeft: number;
   loading: boolean;
@@ -41,15 +44,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   })();
 
-  const isSubscriptionExpired = (() => {
-    if (!tenant) return false;
-    if (currentPlan === "free") return false;
-    if (tenant.subscriptionStatus === "expired" || tenant.subscriptionStatus === "cancelled") return true;
-    if (tenant.subscriptionExpiry) {
-      return new Date(tenant.subscriptionExpiry) < new Date();
-    }
-    return false;
-  })();
+  const { isBlocked: isSubscriptionBlocked, reason: subscriptionBlockReason } =
+    getSubscriptionBlockState(tenant, currentPlan);
+
+  const isSubscriptionExpired = isSubscriptionBlocked;
 
   const fetchTenant = async () => {
     try {
@@ -133,7 +131,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, tenant, currentPlan, appRole, isSubscriptionExpired, isTrialActive, trialDaysLeft, loading, login, register, logout, refreshTenant }}>
+    <AuthContext.Provider value={{ user, tenant, currentPlan, appRole, isSubscriptionExpired, isSubscriptionBlocked, subscriptionBlockReason, isTrialActive, trialDaysLeft, loading, login, register, logout, refreshTenant }}>
       {children}
     </AuthContext.Provider>
   );

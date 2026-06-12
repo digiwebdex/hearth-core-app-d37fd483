@@ -25,7 +25,11 @@ const Login = () => {
     try {
       const loggedInUser = await login(email, password);
       const role = mapLegacyRole(loggedInUser.role);
-      navigate(role === "super_admin" ? "/admin" : "/dashboard");
+      if (role === "super_admin") {
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (err: any) {
       toast({ variant: "destructive", title: "Login failed", description: err.message });
     } finally {

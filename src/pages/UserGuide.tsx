@@ -1,29 +1,37 @@
 import DashboardLayout from "@/components/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "react-i18next";
 import {
   LayoutDashboard, Users, UserCheck, UserCog, Store, Target, ListTodo, FileText, Plane, Package2,
-  Receipt, Wallet, BarChart3, Bell, Moon, Building2, Globe, Crown, Settings, BookOpen
+  Receipt, Wallet, BarChart3, Bell, Moon, Building2, Globe, Crown, Settings, BookOpen,
+  ListOrdered, Briefcase, Clock, FolderOpen, ArrowRight,
 } from "lucide-react";
 
-const sectionIcons: Record<string, any> = {
+const sectionIcons: Record<string, typeof BookOpen> = {
   "getting-started": BookOpen,
+  "daily-workflow": ListOrdered,
+  "sidebar-map": LayoutDashboard,
   dashboard: LayoutDashboard,
   clients: UserCheck,
   agents: UserCog,
   vendors: Store,
   leads: Target,
+  "follow-ups": Clock,
   tasks: ListTodo,
   quotations: FileText,
   packages: Package2,
   bookings: Plane,
+  operations: Briefcase,
   invoices: Receipt,
+  "finance-desk": Bell,
   accounts: Wallet,
   reports: BarChart3,
   notifications: Bell,
   hajj: Moon,
+  portal: Globe,
+  documents: FolderOpen,
   team: Users,
   organization: Building2,
   website: Globe,
@@ -31,16 +39,62 @@ const sectionIcons: Record<string, any> = {
   settings: Settings,
 };
 
-const sectionIds = Object.keys(sectionIcons);
+/** Display order — most important for new agency owners first. */
+const sectionIds = [
+  "getting-started",
+  "daily-workflow",
+  "sidebar-map",
+  "dashboard",
+  "leads",
+  "follow-ups",
+  "quotations",
+  "packages",
+  "bookings",
+  "operations",
+  "invoices",
+  "finance-desk",
+  "accounts",
+  "clients",
+  "agents",
+  "vendors",
+  "hajj",
+  "portal",
+  "documents",
+  "tasks",
+  "reports",
+  "notifications",
+  "team",
+  "organization",
+  "website",
+  "subscription",
+  "settings",
+];
 
 const UserGuide = () => {
   const { t } = useTranslation();
-  const sections = sectionIds.map((id) => {
-    const data = t(`userGuide.sections.${id}`, { returnObjects: true }) as {
-      title: string; intro: string; steps: string[]; tips?: string[];
-    };
-    return { id, icon: sectionIcons[id], ...data };
-  });
+
+  const workflowPhases = t("userGuide.workflow.phases", { returnObjects: true }) as Array<{
+    title: string;
+    steps: string[];
+  }>;
+
+  const threePillars = t("userGuide.threePillars.items", { returnObjects: true }) as Array<{
+    title: string;
+    desc: string;
+  }>;
+
+  const sections = sectionIds
+    .filter((id) => sectionIcons[id])
+    .map((id) => {
+      const data = t(`userGuide.sections.${id}`, { returnObjects: true }) as {
+        title: string;
+        intro: string;
+        steps: string[];
+        tips?: string[];
+      };
+      return { id, icon: sectionIcons[id], ...data };
+    })
+    .filter((s) => s.title && s.steps?.length);
 
   return (
     <DashboardLayout>
@@ -53,8 +107,58 @@ const UserGuide = () => {
             </div>
             <p className="text-muted-foreground">{t("userGuide.subtitle")}</p>
           </div>
-          <Badge variant="secondary" className="hidden md:inline-flex">{t("userGuide.badge")}</Badge>
+          <Badge variant="secondary" className="hidden md:inline-flex shrink-0">
+            {t("userGuide.badge")}
+          </Badge>
         </div>
+
+        {/* Main business workflow */}
+        <Card className="border-primary/40 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="text-xl flex items-center gap-2">
+              <ListOrdered className="h-5 w-5 text-primary" />
+              {t("userGuide.workflow.title")}
+            </CardTitle>
+            <CardDescription>{t("userGuide.workflow.subtitle")}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {Array.isArray(workflowPhases) &&
+              workflowPhases.map((phase, idx) => (
+                <div key={idx}>
+                  <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
+                      {idx + 1}
+                    </span>
+                    {phase.title}
+                  </h3>
+                  <ol className="list-decimal list-inside space-y-1.5 text-sm text-muted-foreground ml-8">
+                    {phase.steps?.map((step, i) => (
+                      <li key={i}>{step}</li>
+                    ))}
+                  </ol>
+                </div>
+              ))}
+          </CardContent>
+        </Card>
+
+        {/* Catalog vs Sales vs Ops */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">{t("userGuide.threePillars.title")}</CardTitle>
+            <CardDescription>{t("userGuide.threePillars.subtitle")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 md:grid-cols-3">
+              {Array.isArray(threePillars) &&
+                threePillars.map((item, i) => (
+                  <div key={i} className="rounded-lg border p-3 space-y-1">
+                    <p className="font-medium text-sm">{item.title}</p>
+                    <p className="text-xs text-muted-foreground">{item.desc}</p>
+                  </div>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
@@ -76,7 +180,11 @@ const UserGuide = () => {
           </CardContent>
         </Card>
 
-        <Accordion type="multiple" defaultValue={["getting-started"]} className="space-y-3">
+        <Accordion
+          type="multiple"
+          defaultValue={["getting-started", "daily-workflow"]}
+          className="space-y-3"
+        >
           {sections.map((s) => (
             <AccordionItem key={s.id} value={s.id} id={s.id} className="border rounded-lg bg-card scroll-mt-24">
               <AccordionTrigger className="px-4 hover:no-underline">
@@ -102,9 +210,11 @@ const UserGuide = () => {
                   </div>
                   {s.tips && s.tips.length > 0 && (
                     <div className="rounded-md border border-primary/20 bg-primary/5 p-3">
-                      <h4 className="font-medium mb-1.5 text-sm">💡 {t("userGuide.tips")}</h4>
+                      <h4 className="font-medium mb-1.5 text-sm">{t("userGuide.tips")}</h4>
                       <ul className="list-disc list-inside space-y-1 text-sm">
-                        {s.tips.map((tip, i) => <li key={i}>{tip}</li>)}
+                        {s.tips.map((tip, i) => (
+                          <li key={i}>{tip}</li>
+                        ))}
                       </ul>
                     </div>
                   )}
@@ -116,7 +226,10 @@ const UserGuide = () => {
 
         <Card className="border-primary/30">
           <CardHeader>
-            <CardTitle className="text-lg">{t("userGuide.help")}</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              {t("userGuide.help")}
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+            </CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-2">
             <p>{t("userGuide.helpIntro")}</p>

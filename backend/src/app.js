@@ -107,6 +107,9 @@ function createApp() {
   app.use(express.json({ limit: "12mb" }));
   app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
+  const { subscriptionAccessGate } = require("./middleware/subscriptionAccess");
+  app.use("/api", subscriptionAccessGate);
+
   app.use("/api/auth", authLimiter, require("./routes/auth"));
   app.use("/api/tenants", require("./routes/tenants"));
   app.use("/api/tenant-domains", require("./routes/tenantDomains"));

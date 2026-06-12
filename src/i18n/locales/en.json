@@ -53,7 +53,9 @@
     "amount": "Amount",
     "date": "Date",
     "name": "Name",
-    "today": "Today"
+    "today": "Today",
+    "remove": "Remove",
+    "saving": "Saving…"
   },
   "nav": {
     "home": "Home",
@@ -2086,27 +2088,165 @@
   },
   "userGuide": {
     "title": "User Guide",
-    "subtitle": "Complete guide to using your travel agency software.",
-    "badge": "User Guide",
-    "quickNav": "Quick Navigation",
+    "subtitle": "Step-by-step guide for running your travel agency — from first login to payment collection.",
+    "badge": "Updated Jun 2026",
+    "quickNav": "Module reference (A–Z)",
     "steps": "Steps",
     "tips": "Tips",
     "help": "Need Help?",
     "helpIntro": "If you face any issue, contact our support team:",
     "helpEmail": "Email: support@travelagencyweb.com",
     "helpWeb": "Website: travelagencyweb.com/contact-us",
+    "workflow": {
+      "title": "Full agency workflow (step by step)",
+      "subtitle": "Use this flow for every customer — enquiry to payment to delivery.",
+      "phases": [
+        {
+          "title": "A. One-time setup (do once when you start)",
+          "steps": [
+            "Log in at https://app.travelagencyweb.com with your owner account.",
+            "Open Administration → Organization — add company name, logo, phone, address (shows on invoice & quotation).",
+            "Open Administration → Team — invite staff; assign roles (Sales, Accountant, Manager).",
+            "Open Service catalog (Packages & services) — create your tour, Hajj, visa, hotel programs with price.",
+            "Optional: Administration → Website — publish packages on your public site.",
+            "Optional: CRM → Vendors — add airlines, hotels, visa agents you pay.",
+            "Optional: CRM → Agents — add sub-agents with commission %."
+          ]
+        },
+        {
+          "title": "B. When a customer enquires (CRM)",
+          "steps": [
+            "CRM → Leads → Add Lead — name, phone, destination, budget, travel date.",
+            "Set status: New → Contacted → Qualified.",
+            "CRM → Follow-ups — set next call date so nothing is missed.",
+            "CRM → Clients — create client record when you have confirmed details (passport, email)."
+          ]
+        },
+        {
+          "title": "C. Send a price (Sales — quotation)",
+          "steps": [
+            "Sales → Quotations → New Quotation.",
+            "Select client (or pick from lead).",
+            "Add line items — or open Service catalog and click Create quotation on a package row.",
+            "Set total price, tax, discount → Save.",
+            "Print / PDF / share with customer on WhatsApp.",
+            "When customer accepts → Convert to Booking (one click)."
+          ]
+        },
+        {
+          "title": "D. Confirm the sale (Sales — booking)",
+          "steps": [
+            "Sales → Bookings → Add Booking (or open converted booking).",
+            "Choose booking type: Tour, Flight, Hotel, Visa, Hajj package, Student, Corporate, etc.",
+            "Fill destination, travel dates, amount, assign agent if any.",
+            "Open booking row → Booking details: add travelers, passport, upload documents.",
+            "Update status: Pending → Confirmed → Ticketed → Completed."
+          ]
+        },
+        {
+          "title": "E. Collect money (Finance)",
+          "steps": [
+            "Finance → Invoices — invoice is created from booking (or add manually).",
+            "Send invoice PDF to customer.",
+            "Finance → Payments — record each payment (Cash, bKash, Bank).",
+            "On invoice → Installments tab — split total into kisti (1st, 2nd, 3rd) if needed.",
+            "Finance → Payment reminders — see overdue invoices and due installments; send reminder.",
+            "Finance → Accounts — see cash/bank balance and ledger."
+          ]
+        },
+        {
+          "title": "F. Deliver the service (Operations)",
+          "steps": [
+            "Operations → Service ops desk — visa, ticket, hotel, transport queues by status.",
+            "Open each booking → Ops tab — update PNR, visa status, hotel confirmation.",
+            "Operations → Documents — all uploaded files in one place.",
+            "Operations → Tasks — assign internal to-do to team.",
+            "Hajj/Umrah season only: Operations → Hajj/Umrah ops desk — pilgrims, groups, rooming."
+          ]
+        },
+        {
+          "title": "G. Customer & partner portals (optional)",
+          "steps": [
+            "Customer portal: portal.travelagencyweb.com — client enters their email → magic link → My Bookings, invoice & kisti summary.",
+            "Sub-agent portal: same URL — agent email → Commissions wallet (pending/paid).",
+            "Supplier portal: vendor email → Purchase orders (payables)."
+          ]
+        },
+        {
+          "title": "H. Monitor the business (daily habit)",
+          "steps": [
+            "Overview → Dashboard — leads, bookings, overdue invoices, quick actions.",
+            "Finance → Reports — sales, payments, profit (Business plan).",
+            "Administration → Activity log — who changed what (owner/manager).",
+            "Bell icon (top bar) — system notifications."
+          ]
+        }
+      ]
+    },
+    "threePillars": {
+      "title": "Three areas — do not mix them up",
+      "subtitle": "The sidebar is organized so each job has one home.",
+      "items": [
+        {
+          "title": "📦 Service catalog (Packages)",
+          "desc": "What you sell — templates with price, itinerary, website publish. Not a customer sale yet."
+        },
+        {
+          "title": "✈️ Sales (Quotations & Bookings)",
+          "desc": "Real customer deals — quote, confirm, invoice, payment. One row = one customer trip."
+        },
+        {
+          "title": "🔧 Operations & Finance",
+          "desc": "Deliver the trip (visa, ticket, docs) and track money (kisti, reminders, ledger)."
+        }
+      ]
+    },
     "sections": {
       "getting-started": {
         "title": "Getting Started",
-        "intro": "This guide is a complete reference for using your travel agency account. Each module's purpose and usage is detailed below.",
+        "intro": "Your agency account lives at app.travelagencyweb.com. Bangla is the default language — switch EN/বাং from the top bar.",
         "steps": [
-          "Log in on your subdomain (e.g., yourname.travelagencyweb.com or app.travelagencyweb.com).",
-          "After first login, complete the Onboarding steps: company name, logo, address, currency.",
-          "Add your staff from the Team module and assign roles.",
-          "Configure SMTP, SMS and payment gateways from Settings."
+          "Register or log in at app.travelagencyweb.com.",
+          "Complete Onboarding: company name, services you offer (Hajj, tour, visa, etc.).",
+          "Fill Organization profile — used on every invoice and quotation.",
+          "Invite team from Team page; give Sales staff access to Leads & Bookings only.",
+          "Create at least one package in Service catalog so quotations are faster.",
+          "Bookmark the User Guide (Administration → User Guide) for your staff."
         ],
         "tips": [
-          "Complete Organization info first — it's used in invoices and quotations."
+          "Use Chrome or Brave with Shields off for app.travelagencyweb.com if pages look blank.",
+          "After each software update on VPS, press Ctrl+Shift+R once to refresh."
+        ]
+      },
+      "daily-workflow": {
+        "title": "Daily workflow (quick checklist)",
+        "intro": "Print this mentally every morning — same order for every agency.",
+        "steps": [
+          "1. Dashboard — check overdue invoices & follow-ups due today.",
+          "2. Follow-ups — call/WhatsApp customers due today.",
+          "3. Leads — update status for new enquiries from phone/Facebook.",
+          "4. Quotations — send pending quotes.",
+          "5. Bookings — confirm new sales; update ops status on open trips.",
+          "6. Invoices & Payments — record money received today.",
+          "7. Service ops desk — process visa/ticket/hotel queue.",
+          "8. Payment reminders — chase overdue kisti before travel date."
+        ],
+        "tips": [
+          "Rule: No booking without client record. No payment without invoice."
+        ]
+      },
+      "sidebar-map": {
+        "title": "Sidebar map (menu groups)",
+        "intro": "Menu order follows real business flow: CRM → Catalog → Sales → Operations → Finance → Website → Admin.",
+        "steps": [
+          "Overview — Dashboard.",
+          "CRM — Leads, Follow-ups, Clients, Agents, Vendors.",
+          "Service catalog — Packages & services (all program types in one place).",
+          "Sales — Quotations, Bookings (use category filter: Hajj, Tour, Visa…).",
+          "Operations — Documents, Tasks, Service ops desk, Hajj ops desk (if enabled), BD ops (student/manpower).",
+          "Finance — Invoices, Payments, Payment reminders, Expenses, Commissions, Accounts, Reports.",
+          "Website CMS — build & publish public site.",
+          "Administration — Team, Roles, Activity log, Notifications, Settings, Organization, Subscription, User Guide."
         ]
       },
       "dashboard": {
@@ -2200,12 +2340,73 @@
       },
       "bookings": {
         "title": "Bookings",
-        "intro": "Manage confirmed bookings.",
+        "intro": "Confirmed customer sales — one booking = one trip or service contract.",
         "steps": [
-          "Add a new booking from Add Booking (or auto-generate from a quotation).",
-          "Fill PNR, travel date, passenger info, vendor cost.",
-          "Add payments, invoices and documents from booking details.",
-          "Keep status updated: Pending / Confirmed / Cancelled."
+          "Sales → Bookings → Add Booking (or convert from quotation).",
+          "Pick type: Tour, Flight, Hotel, Visa, Package (Hajj/Umrah), Student, Manpower, Transport, Corporate.",
+          "Use sidebar filters (/bookings/hajj, /bookings/visa, etc.) to focus one category.",
+          "Open booking → Details: travelers, timeline, documents, segments.",
+          "Link agent for commission; link package for snapshot price.",
+          "Statuses: Pending → Confirmed → Ticketed → Traveling → Completed."
+        ],
+        "tips": [
+          "Delivery work happens in Booking details + Service ops desk — not in Packages catalog."
+        ]
+      },
+      "operations": {
+        "title": "Service operations desk",
+        "intro": "Operations team queue for visa, tickets, hotels, transport — without mixing all bookings in one list.",
+        "steps": [
+          "Operations → Service ops desk.",
+          "Tabs/desks: Visa, Ticket, Hotel, Transport, Departures.",
+          "Open a row → Booking ops panel — update ops status, PNR, embassy, check-in dates.",
+          "Filter by pending / in-progress / done.",
+          "Student/Manpower agencies: Operations → BD operations desk (if enabled in settings)."
+        ]
+      },
+      "finance-desk": {
+        "title": "Finance — installments & reminders",
+        "intro": "Phase 4 finance tools — kisti plans and overdue chasing.",
+        "steps": [
+          "Finance → Invoices → open invoice → Installments tab → add kisti rows with due dates.",
+          "When customer pays, payment auto-allocates to oldest unpaid kisti first.",
+          "Finance → Payment reminders — lists overdue invoices + due installments.",
+          "Click Send reminder (uses SMS/email if configured; console mode in dev).",
+          "Finance → Commissions — agent commission per booking; mark paid when settled.",
+          "Finance → Accounts → Expenses tab for office cost; Ledger for full history."
+        ]
+      },
+      "portal": {
+        "title": "Customer & agent portal",
+        "intro": "Self-service at portal.travelagencyweb.com — separate from staff app.",
+        "steps": [
+          "Customer: must have Client email in CRM → portal login with that email → magic link.",
+          "Customer sees: booking list, trip detail, invoice total, kisti status.",
+          "Sub-agent: Agent record email → portal → Commissions tab (pending/paid wallet).",
+          "Supplier: Vendor email → Purchase orders (amount due to them).",
+          "Staff app remains app.travelagencyweb.com — do not confuse the two URLs."
+        ],
+        "tips": [
+          "Magic link expires in 15 minutes — ask customer to check spam folder."
+        ]
+      },
+      "follow-ups": {
+        "title": "Follow-ups",
+        "intro": "Daily call-back list so leads and clients are not forgotten.",
+        "steps": [
+          "CRM → Follow-ups.",
+          "See all leads/clients with next follow-up date today or overdue.",
+          "After call, update lead status and set next follow-up date.",
+          "Convert hot lead to quotation when ready."
+        ]
+      },
+      "documents": {
+        "title": "Documents hub",
+        "intro": "All files uploaded across bookings and clients in one searchable place.",
+        "steps": [
+          "Operations → Documents.",
+          "Browse by booking/client upload.",
+          "Upload passport, visa copy, ticket PDF from booking details — they appear here too."
         ]
       },
       "invoices": {
@@ -2940,11 +3141,100 @@
       "testFailed": "Test failed"
     }
   },
+  "subscriptionRenewal": {
+    "platform": "Travel Agency Web",
+    "dataSafe": "Your agency data is safe. Once payment is verified, you will regain full access immediately.",
+    "expiredOn": "Ended on {{date}}",
+    "choosePlanBelow": "Choose a plan below and submit your payment details.",
+    "contactOwner": "Your subscription has ended. Please contact your agency owner to renew the plan.",
+    "howItWorks": "How renewal works",
+    "workflowSteps": [
+      "Choose a plan and send payment via bKash, Nagad, Rocket, or bank transfer.",
+      "Submit transaction ID, sender number, and payment screenshot.",
+      "Super admin verifies your payment (usually within a few hours).",
+      "Refresh this page or log in again — your portal unlocks automatically."
+    ],
+    "paymentMethods": "Payment receiving accounts",
+    "noMethods": "Payment methods are being configured. Please contact support.",
+    "selectPlan": "Choose a plan to continue",
+    "recommended": "Recommended",
+    "free": "Free",
+    "month": "mo",
+    "payAndActivate": "Pay & submit for activation",
+    "pendingTitle": "Payment submitted — waiting for approval",
+    "pendingDesc": "Your request is {{status}}. Super admin will verify and activate your subscription.",
+    "checkActivation": "Check if activated",
+    "billingCycle": "Billing cycle",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "paymentMethod": "Payment method",
+    "amountSent": "Amount you sent (৳)",
+    "senderAccount": "Your bKash / bank number",
+    "transactionId": "Transaction / Trx ID",
+    "paymentDate": "Payment date",
+    "proofOptional": "Payment screenshot (optional)",
+    "uploading": "Uploading…",
+    "openProof": "View screenshot",
+    "note": "Note for admin",
+    "selectedPlan": "Selected plan",
+    "expectedAmount": "Expected amount",
+    "accountName": "Account name",
+    "accountNumber": "Account number",
+    "bank": "Bank",
+    "receiverNotConfigured": "Receiver account not configured yet. Contact support@travelagencyweb.com.",
+    "resubmitTitle": "Resubmit payment request",
+    "requestPlan": "Subscribe to {{plan}}",
+    "resubmit": "Resubmit",
+    "submitRequest": "Submit payment request",
+    "rejectionReason": "Previous rejection",
+    "paymentSteps": [
+      "Send the exact plan amount to the receiver account shown on the right.",
+      "Copy the transaction ID from your bKash/Nagad/bank app.",
+      "Fill the form and upload a screenshot if possible.",
+      "Wait for super admin approval — then refresh to enter your portal."
+    ],
+    "reason": {
+      "trial_ended": {
+        "title": "Your 3-day Pro trial has ended",
+        "desc": "Subscribe to continue using leads, bookings, invoices, and all Pro features."
+      },
+      "expired": {
+        "title": "Subscription expired",
+        "desc": "Renew your plan to access your agency portal again."
+      },
+      "suspended": {
+        "title": "Account suspended",
+        "desc": "Your agency account was suspended by the platform admin. Submit payment or contact support."
+      },
+      "cancelled": {
+        "title": "Subscription cancelled",
+        "desc": "Reactivate by choosing a plan and submitting payment."
+      }
+    }
+  },
   "adminDashboard": {
     "title": "Admin Dashboard",
     "subtitle": "Platform analytics and overview — live data",
     "refresh": "Refresh",
     "loadFailed": "Failed to load admin data",
+    "workflow": {
+      "title": "Super admin process (step by step)",
+      "subtitle": "Follow this flow for every new agency signup and subscription payment.",
+      "quickActions": "Quick actions",
+      "steps": [
+        "New agency registers → 3-day Pro trial starts automatically (no manual approval needed).",
+        "Check Admin → Payment Requests when agency submits bKash/Nagad/bank payment.",
+        "Verify transaction ID + amount → Approve → choose plan, billing cycle, Activate now.",
+        "Agency refreshes or logs in again → full portal access restored until next expiry.",
+        "Before expiry: cron sends reminders. After expiry: agency can log in but sees payment screen only.",
+        "To suspend an agency: Subscriptions or Agency detail → Suspend (blocks access immediately).",
+        "Configure receiving numbers: Payment Requests → save bKash/Nagad/Rocket/bank details.",
+        "Custom domains: Domains → verify DNS → activate SSL for Pro+ agencies."
+      ],
+      "openPayments": "Review payments",
+      "openTenants": "All agencies",
+      "openSubscriptions": "Subscriptions"
+    },
     "stats": {
       "totalRevenue": "Total Revenue",
       "totalAgencies": "Total Agencies",

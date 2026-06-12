@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Building2, CreditCard, Users, Crown,
-  DollarSign, UserPlus, RefreshCw,
+  DollarSign, UserPlus, RefreshCw, ListOrdered,
 } from "lucide-react";
 import { adminApi, type AdminStats, type AdminTenant, type AdminPaymentRequest } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -92,6 +92,44 @@ const AdminDashboard = () => {
             {t("adminDashboard.refresh")}
           </Button>
         </div>
+
+        {/* Super admin workflow guide */}
+        <Card className="border-primary/40 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <ListOrdered className="h-5 w-5 text-primary" />
+              {t("adminDashboard.workflow.title")}
+            </CardTitle>
+            <CardDescription>{t("adminDashboard.workflow.subtitle")}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ol className="grid gap-2 md:grid-cols-2 text-sm list-decimal list-inside text-muted-foreground">
+              {(t("adminDashboard.workflow.steps", { returnObjects: true }) as string[]).map((step) => (
+                <li key={step} className="leading-relaxed">{step}</li>
+              ))}
+            </ol>
+            <div className="flex flex-wrap gap-2 pt-2 border-t">
+              <span className="text-xs font-medium text-muted-foreground self-center mr-1">
+                {t("adminDashboard.workflow.quickActions")}:
+              </span>
+              <Button size="sm" variant="default" onClick={() => navigate("/admin/payments")}>
+                <CreditCard className="h-4 w-4 mr-1" />
+                {t("adminDashboard.workflow.openPayments")}
+                {pendingPayments > 0 && (
+                  <Badge variant="secondary" className="ml-2">{pendingPayments}</Badge>
+                )}
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => navigate("/admin/tenants")}>
+                <Building2 className="h-4 w-4 mr-1" />
+                {t("adminDashboard.workflow.openTenants")}
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => navigate("/admin/subscriptions")}>
+                <Crown className="h-4 w-4 mr-1" />
+                {t("adminDashboard.workflow.openSubscriptions")}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Stats Grid */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
