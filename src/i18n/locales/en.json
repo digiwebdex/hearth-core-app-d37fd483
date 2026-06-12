@@ -111,6 +111,17 @@
       "hotel": "Hotel Packages",
       "student": "Student Programs (BD)",
       "manpower": "Manpower Programs (BD)"
+    },
+    "bookingNav": {
+      "all": "All Bookings",
+      "tour": "Tour Bookings",
+      "flight": "Flight Bookings",
+      "hotel": "Hotel Bookings",
+      "hajj": "Hajj Bookings",
+      "umrah": "Umrah Bookings",
+      "visa": "Visa Bookings",
+      "student": "Student Bookings",
+      "manpower": "Manpower Bookings"
     }
   },
   "packagesPage": {

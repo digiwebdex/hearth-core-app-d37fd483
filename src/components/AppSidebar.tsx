@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { LogOut, Shield } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useLocation } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -28,6 +30,19 @@ export function AppSidebar() {
   const { canAccessAdmin } = usePermissions();
   const roleMeta = getRoleMeta(appRole);
   const { t } = useTranslation();
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      const container = document.querySelector('[data-sidebar="content"]');
+      if (!container) return;
+      const active =
+        container.querySelector('[data-sidebar="menu-button"][data-active="true"]') ??
+        container.querySelector('[data-sidebar="menu-sub-button"][data-active="true"]');
+      active?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [pathname]);
 
   return (
     <Sidebar collapsible="icon">

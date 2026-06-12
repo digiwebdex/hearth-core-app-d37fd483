@@ -7,6 +7,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import type { PlanType } from "@/lib/plans";
 import type { Module } from "@/lib/permissions";
 import type { NavGroupConfig, NavItemConfig } from "@/config/navigation";
+import { navGroupHasActiveItem, navItemIsActive } from "@/lib/navActive";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   SidebarGroup,
@@ -29,10 +30,7 @@ function isPlanSufficient(minPlan: PlanType | undefined, currentPlan: PlanType):
 }
 
 function pathMatches(url: string, pathname: string): boolean {
-  if (url === "/bookings") return pathname === "/bookings";
-  if (url.startsWith("/bookings/")) return pathname === url;
-  if (url.startsWith("/packages/")) return pathname === url;
-  return pathname === url || pathname.startsWith(`${url}/`);
+  return navItemIsActive(url, pathname);
 }
 
 function itemOrChildActive(item: NavItemConfig, pathname: string): boolean {
@@ -83,22 +81,27 @@ function SidebarNavLeaf({
   item,
   title,
   collapsed,
+  pathname,
   sub = false,
 }: {
   item: NavItemConfig;
   title: string;
   collapsed: boolean;
+  pathname: string;
   sub?: boolean;
 }) {
   if (!item.url) return null;
 
+  const activeMatcher = (path: string) => navItemIsActive(item.url!, path);
+
   if (sub) {
     return (
       <SidebarMenuSubItem>
-        <SidebarMenuSubButton asChild>
+        <SidebarMenuSubButton asChild data-active={activeMatcher(pathname) ? true : undefined}>
           <NavLink
             to={item.url}
-            end={item.url === "/bookings" || item.url === "/dashboard"}
+            end
+            isActiveOverride={activeMatcher}
             className="hover:bg-sidebar-accent/50"
             activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
           >
@@ -112,10 +115,11 @@ function SidebarNavLeaf({
 
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton asChild>
+      <SidebarMenuButton asChild data-active={activeMatcher(pathname) ? true : undefined}>
         <NavLink
           to={item.url}
-          end={item.url === "/bookings" || item.url === "/dashboard"}
+          end
+          isActiveOverride={activeMatcher}
           className="hover:bg-sidebar-accent/50"
           activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
         >
@@ -199,7 +203,7 @@ function SidebarNavItem({
                   );
                 }
                 return (
-                  <SidebarNavLeaf key={child.id} item={child} title={childTitle} collapsed={collapsed} sub />
+                  <SidebarNavLeaf key={child.id} item={child} title={childTitle} collapsed={collapsed} pathname={pathname} sub />
                 );
               })}
             </SidebarMenuSub>
@@ -209,7 +213,7 @@ function SidebarNavItem({
     );
   }
 
-  return <SidebarNavLeaf item={item} title={title} collapsed={collapsed} />;
+  return <SidebarNavLeaf item={item} title={title} collapsed={collapsed} pathname={pathname} />;
 }
 
 function filterVisibleItems(items: NavItemConfig[], canAccess: (module: Module) => boolean): NavItemConfig[] {
@@ -242,9 +246,15 @@ export function AppSidebarNavGroup({
   const visibleItems = filterVisibleItems(group.items, canAccess);
   if (visibleItems.length === 0) return null;
 
+  const groupActive = navGroupHasActiveItem(visibleItems, pathname);
+
   return (
-    <SidebarGroup>
-      <SidebarGroupLabel>{!collapsed ? t(group.labelKey) : ""}</SidebarGroupLabel>
+    <SidebarGroup data-group-active={groupActive || undefined}>
+      <SidebarGroupLabel
+        className={groupActive ? "text-sidebar-accent-foreground font-semibold" : undefined}
+      >
+        {!collapsed ? t(group.labelKey) : ""}
+      </SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu>
           {visibleItems.map((item) => (

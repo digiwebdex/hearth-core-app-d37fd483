@@ -110,6 +110,21 @@ export const navigationGroups: NavGroupConfig[] = [
     ],
   },
   {
+    id: "bookings",
+    labelKey: "sidebar.bookingsGroup",
+    items: [
+      bookingChild("all", "sidebar.bookingNav.all", Plane),
+      bookingChild("tour", "sidebar.bookingNav.tour", MapPin),
+      bookingChild("flight", "sidebar.bookingNav.flight", Ticket),
+      bookingChild("hotel", "sidebar.bookingNav.hotel", Hotel),
+      bookingChild("hajj", "sidebar.bookingNav.hajj", Moon),
+      bookingChild("umrah", "sidebar.bookingNav.umrah", Moon),
+      bookingChild("visa", "sidebar.bookingNav.visa", Stamp),
+      bookingChild("student", "sidebar.bookingNav.student", GraduationCap),
+      bookingChild("manpower", "sidebar.bookingNav.manpower", HardHat),
+    ],
+  },
+  {
     id: "packageManagement",
     labelKey: "sidebar.packageManagement",
     items: [
@@ -127,21 +142,6 @@ export const navigationGroups: NavGroupConfig[] = [
         icon: Moon,
         module: "hajj_umrah",
       },
-    ],
-  },
-  {
-    id: "bookings",
-    labelKey: "sidebar.bookingsGroup",
-    items: [
-      bookingChild("all", "bookingsForm.categories.all", Plane),
-      bookingChild("tour", "bookingsForm.categories.tour", MapPin),
-      bookingChild("flight", "bookingsForm.categories.flight", Ticket),
-      bookingChild("hotel", "bookingsForm.categories.hotel", Hotel),
-      bookingChild("hajj", "bookingsForm.categories.hajj", Moon),
-      bookingChild("umrah", "bookingsForm.categories.umrah", Moon),
-      bookingChild("visa", "bookingsForm.categories.visa", Stamp),
-      bookingChild("student", "bookingsForm.categories.student", GraduationCap),
-      bookingChild("manpower", "bookingsForm.categories.manpower", HardHat),
     ],
   },
   {
