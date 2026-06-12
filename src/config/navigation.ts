@@ -9,6 +9,7 @@ import {
   Package2,
   Plane,
   Moon,
+  GraduationCap,
   ListTodo,
   Clock,
   FolderOpen,
@@ -52,10 +53,13 @@ export interface NavGroupConfig {
 export interface NavigationOptions {
   /** When false, hides Hajj/Umrah Operations from Operations group. Default true. */
   enableHajjUmrahModule?: boolean;
+  /** When true, shows Student/Manpower operations desk. Default false. */
+  enableBdOperationsModule?: boolean;
 }
 
 export function getNavigationGroups(options: NavigationOptions = {}): NavGroupConfig[] {
   const enableHajj = options.enableHajjUmrahModule !== false;
+  const enableBd = options.enableBdOperationsModule === true;
 
   const operationsItems: NavItemConfig[] = [
     { id: "documents", titleKey: "sidebar.documents", url: "/documents", icon: FolderOpen, module: "clients" },
@@ -69,6 +73,16 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
       url: "/hajj-umrah",
       icon: Moon,
       module: "hajj_umrah",
+    });
+  }
+
+  if (enableBd) {
+    operationsItems.push({
+      id: "bd-operations",
+      titleKey: "sidebar.bdOperations",
+      url: "/operations/bd",
+      icon: GraduationCap,
+      module: "bookings",
     });
   }
 

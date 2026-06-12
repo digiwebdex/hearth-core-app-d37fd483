@@ -99,6 +99,7 @@
     "notifications": "Notifications",
     "hajjUmrah": "Hajj/Umrah",
     "hajjUmrahOperations": "Hajj/Umrah Operations",
+    "bdOperations": "Student & Manpower Ops",
     "team": "Team",
     "roles": "Roles & Permissions",
     "organization": "Organization",
@@ -135,7 +136,61 @@
   },
   "packagesPage": {
     "hajjOpsButton": "Hajj/Umrah Operations",
+    "bdOpsButton": "Student/Manpower Ops",
     "presetSubtitle": "Manage {{category}} templates and pricing"
+  },
+  "packageWebsiteSync": {
+    "title": "Website sync status",
+    "subtitle": "Published packages with a slug and image appear on your public packages page automatically.",
+    "autoSyncNote": "Set status to Published when ready. No manual push — the live site reads published packages from the catalog.",
+    "previewPublic": "Preview public packages",
+    "openWebsite": "Website center",
+    "websiteColumn": "Website",
+    "status": {
+      "live": "Live on site",
+      "incomplete": "Published — needs image/slug",
+      "draft": "Not on site",
+      "archived": "Hidden"
+    },
+    "hint": {
+      "live": "Visible on /site/packages",
+      "incomplete": "Add hero image and slug, then publish",
+      "draft": "Change status to Published to show online",
+      "archived": "Removed from public listing"
+    }
+  },
+  "bdOps": {
+    "title": "Student & Manpower Operations",
+    "subtitle": "Operations desk for study abroad and overseas employment bookings — open a row for checklist, docs, and delivery.",
+    "loadFailed": "Failed to load operations desk",
+    "searchPlaceholder": "Search client, institute, employer…",
+    "viewAllBookings": "All bookings",
+    "createBooking": "Go to bookings",
+    "emptyTitle": "No bookings in this desk",
+    "emptyDesc": "Create student or manpower bookings from Sales, then manage delivery here.",
+    "footerHint": "Tip: Bookings = customer sale. This desk = day-to-day delivery for BD student and manpower cases.",
+    "client": "Client",
+    "institute": "Institute",
+    "program": "Program",
+    "employer": "Employer",
+    "job": "Job title",
+    "country": "Country",
+    "enrollment": "Enrollment",
+    "medical": "Medical",
+    "bmet": "BMET",
+    "payment": "Payment",
+    "desks": {
+      "student": "Student",
+      "manpower": "Manpower"
+    },
+    "filters": {
+      "active": "Active only",
+      "all": "All statuses"
+    },
+    "stats": {
+      "total": "Total bookings",
+      "active": "In progress"
+    }
   },
   "productHelp": {
     "title": "Packages vs Bookings vs Hajj Operations",
@@ -150,6 +205,8 @@
     "subtitle": "Show or hide features your agency does not use.",
     "hajjLabel": "Hajj/Umrah Operations",
     "hajjDesc": "When off, the Hajj Operations menu and buttons are hidden. Bookings for Hajj/Umrah still work.",
+    "bdLabel": "Student & Manpower Operations",
+    "bdDesc": "When on, shows the BD operations desk for study abroad and manpower bookings. Off by default.",
     "ownerOnly": "Only the agency owner can change module settings.",
     "saved": "Module settings saved",
     "saveFailed": "Could not save module settings"

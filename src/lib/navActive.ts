@@ -28,6 +28,9 @@ export function navItemIsActive(url: string, pathname: string): boolean {
   if (url === "/documents") {
     return pathname === "/documents";
   }
+  if (url === "/operations/bd") {
+    return pathname === "/operations/bd" || pathname.startsWith("/operations/bd");
+  }
   if (url === "/dashboard") return pathname === "/dashboard";
   return pathname === url || pathname.startsWith(`${url}/`);
 }

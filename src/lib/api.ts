@@ -239,7 +239,7 @@ export const quotationApi = {
 
 // ── Types ──
 export interface User { id: string; name: string; email: string; role: "super_admin" | "tenant_owner" | "manager" | "sales_agent" | "accountant" | "operations" | "owner" | "admin" | "member"; tenantId: string; emailVerified?: boolean; createdAt: string; }
-export interface Tenant { id: string; name: string; ownerId: string; subscriptionPlan: "free" | "basic" | "pro" | "business" | "enterprise"; subscriptionExpiry?: string; subscriptionStatus?: "active" | "trial" | "expired" | "cancelled" | "pending" | "suspended" | "overdue"; enableHajjUmrahModule?: boolean; createdAt: string; }
+export interface Tenant { id: string; name: string; ownerId: string; subscriptionPlan: "free" | "basic" | "pro" | "business" | "enterprise"; subscriptionExpiry?: string; subscriptionStatus?: "active" | "trial" | "expired" | "cancelled" | "pending" | "suspended" | "overdue"; enableHajjUmrahModule?: boolean; enableBdOperationsModule?: boolean; createdAt: string; }
 export interface Client { id: string; name: string; phone: string; email: string; alternatePhone?: string; address?: string; dateOfBirth?: string; passportNumber?: string; passportExpiry?: string; nidNumber?: string; nationality?: string; emergencyContact?: string; emergencyPhone?: string; notes?: string; tags?: string[]; documents?: ClientDocument[]; tenantId: string; createdAt: string; updatedAt?: string; }
 export interface ClientDocument { id: string; clientId: string; name: string; type: string; url: string; uploadedAt: string; }
 export type AgentStatus = "active" | "inactive";

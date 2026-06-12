@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Moon } from "lucide-react";
+import { Moon, GraduationCap } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -14,14 +14,30 @@ export default function ModuleSettings() {
   const { tenant, appRole, refreshTenant } = useAuth();
   const [saving, setSaving] = useState(false);
 
-  const enabled = tenant?.enableHajjUmrahModule !== false;
+  const hajjEnabled = tenant?.enableHajjUmrahModule !== false;
+  const bdEnabled = tenant?.enableBdOperationsModule === true;
   const canEdit = appRole === "tenant_owner" || appRole === "owner";
 
-  const handleToggle = async (checked: boolean) => {
+  const handleHajjToggle = async (checked: boolean) => {
     if (!canEdit) return;
     setSaving(true);
     try {
       await tenantApi.update({ enableHajjUmrahModule: checked });
+      await refreshTenant();
+      toast({ title: t("settingsModules.saved") });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      toast({ title: t("settingsModules.saveFailed"), description: message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleBdToggle = async (checked: boolean) => {
+    if (!canEdit) return;
+    setSaving(true);
+    try {
+      await tenantApi.update({ enableBdOperationsModule: checked });
       await refreshTenant();
       toast({ title: t("settingsModules.saved") });
     } catch (err: unknown) {
@@ -49,9 +65,24 @@ export default function ModuleSettings() {
           </div>
           <Switch
             id="hajj-module"
-            checked={enabled}
+            checked={hajjEnabled}
             disabled={!canEdit || saving}
-            onCheckedChange={handleToggle}
+            onCheckedChange={handleHajjToggle}
+          />
+        </div>
+        <div className="flex items-center justify-between gap-4 rounded-lg border p-4">
+          <div className="space-y-1">
+            <Label htmlFor="bd-module" className="flex items-center gap-2">
+              <GraduationCap className="h-4 w-4" />
+              {t("settingsModules.bdLabel")}
+            </Label>
+            <p className="text-sm text-muted-foreground">{t("settingsModules.bdDesc")}</p>
+          </div>
+          <Switch
+            id="bd-module"
+            checked={bdEnabled}
+            disabled={!canEdit || saving}
+            onCheckedChange={handleBdToggle}
           />
         </div>
         {!canEdit ? (

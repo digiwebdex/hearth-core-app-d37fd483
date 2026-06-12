@@ -31,7 +31,9 @@ import {
   type PackagePresetId,
 } from "@/lib/packageRoutePresets";
 import { useHajjModuleEnabled } from "@/components/HajjModuleGate";
-import { ArrowRight, FileText, Globe, Loader2, Moon, Package2, Plus, Save, Trash2, UploadCloud, Wand2 } from "lucide-react";
+import { useBdModuleEnabled } from "@/components/BdModuleGate";
+import PackageWebsiteSyncCard, { PackageWebsiteSyncBadge } from "@/components/PackageWebsiteSyncCard";
+import { ArrowRight, FileText, Globe, GraduationCap, Loader2, Moon, Package2, Plus, Save, Trash2, UploadCloud, Wand2 } from "lucide-react";
 
 const emptyForm = {
   code: "",
@@ -115,7 +117,9 @@ const Packages = () => {
   const [media, setMedia] = useState<TravelPackageMedia[]>([]);
 
   const hajjModuleEnabled = useHajjModuleEnabled();
+  const bdModuleEnabled = useBdModuleEnabled();
   const showHajjOpsButton = hajjModuleEnabled && (activePreset === "hajj" || activePreset === "umrah");
+  const showBdOpsButton = bdModuleEnabled && (activePreset === "student" || activePreset === "manpower");
 
   const text = {
     loadFailed: isBn ? "প্যাকেজ লোড করা যায়নি" : "Failed to load packages",
@@ -136,6 +140,7 @@ const Packages = () => {
       ? "হজ্জ/উমরাহ প্যাকেজ পেজে পিলগ্রিম, গ্রুপ, রুমিং ও পেমেন্ট অপারেশনস বাটন পাওয়া যাবে।"
       : "The pilgrim operations button appears on Hajj and Umrah package pages only.",
     hajjOpsButton: t("packagesPage.hajjOpsButton"),
+    bdOpsButton: t("packagesPage.bdOpsButton"),
     publicButton: isBn ? "পাবলিক প্যাকেজ পেজ" : "Public Packages Page",
     builderButton: isBn ? "ওয়েবসাইট বিল্ডার" : "Website Builder",
     publishButton: isBn ? "পাবলিশ ও ডোমেইন" : "Publish & Domain",
@@ -393,8 +398,13 @@ const Packages = () => {
             {showHajjOpsButton ? (
               <Link to="/hajj-umrah"><Button variant="secondary"><Moon className="mr-2 h-4 w-4" />{text.hajjOpsButton}</Button></Link>
             ) : null}
+            {showBdOpsButton ? (
+              <Link to={`/operations/bd?desk=${activePreset}`}><Button variant="secondary"><GraduationCap className="mr-2 h-4 w-4" />{text.bdOpsButton}</Button></Link>
+            ) : null}
           </div>
         </div>
+
+        <PackageWebsiteSyncCard packages={items} />
 
         <div className="flex flex-wrap gap-2">
           <PresetTab active={resolvedPreset === "all"} onClick={() => goToPackagePreset("all")}>
@@ -424,6 +434,9 @@ const Packages = () => {
               {showHajjOpsButton ? (
                 <Link to="/hajj-umrah"><Button variant="secondary"><Moon className="mr-2 h-4 w-4" />{text.hajjOpsButton}</Button></Link>
               ) : null}
+              {showBdOpsButton ? (
+                <Link to={`/operations/bd?desk=${activePreset}`}><Button variant="secondary"><GraduationCap className="mr-2 h-4 w-4" />{text.bdOpsButton}</Button></Link>
+              ) : null}
             </div>
           </CardContent>
         </Card>
@@ -440,16 +453,18 @@ const Packages = () => {
                       <TableHead>{isBn ? "শিরোনাম" : "Title"}</TableHead>
                       <TableHead>{isBn ? "টাইপ" : "Type"}</TableHead>
                       <TableHead>{text.status}</TableHead>
+                      <TableHead>{t("packageWebsiteSync.websiteColumn")}</TableHead>
                       <TableHead className="text-right">{text.basePrice}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {visibleItems.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">{text.noPackages}</TableCell></TableRow> : visibleItems.map((item) => (
+                    {visibleItems.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">{text.noPackages}</TableCell></TableRow> : visibleItems.map((item) => (
                       <TableRow key={item.id} className="cursor-pointer" onClick={() => setSelectedId(item.id)}>
                         <TableCell className="font-medium">{item.code}</TableCell>
                         <TableCell><div className="space-y-1"><div>{item.title}</div>{selectedId === item.id ? <Badge variant="secondary">{text.selected}</Badge> : null}</div></TableCell>
                         <TableCell><Badge variant="outline">{getLocalizedServiceTypeLabel(item.serviceType, isBn)}</Badge></TableCell>
                         <TableCell><Badge variant="secondary" className="capitalize">{item.status || text.draft}</Badge></TableCell>
+                        <TableCell><PackageWebsiteSyncBadge pkg={item} /></TableCell>
                         <TableCell className="text-right">{item.currency || "BDT"} {Number(item.basePrice || 0).toLocaleString()}</TableCell>
                       </TableRow>
                     ))}

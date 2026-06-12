@@ -10,7 +10,7 @@ router.use(authenticate);
 // Allowed fields for tenant self-update (prevents privilege escalation)
 const ALLOWED_TENANT_FIELDS = [
   "name", "logo", "phone", "address", "city", "country",
-  "currency", "timezone", "websiteConfig", "enableHajjUmrahModule",
+  "currency", "timezone", "websiteConfig", "enableHajjUmrahModule", "enableBdOperationsModule",
 ];
 
 function pickAllowed(body, allowedFields) {
@@ -37,6 +37,9 @@ router.patch("/me", requireRole("tenant_owner"), async (req, res) => {
     }
     if (data.enableHajjUmrahModule !== undefined) {
       data.enableHajjUmrahModule = Boolean(data.enableHajjUmrahModule);
+    }
+    if (data.enableBdOperationsModule !== undefined) {
+      data.enableBdOperationsModule = Boolean(data.enableBdOperationsModule);
     }
     const tenant = await prisma.tenant.update({ where: { id: req.tenantId }, data });
     res.json(tenant);

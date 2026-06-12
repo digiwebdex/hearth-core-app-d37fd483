@@ -34,6 +34,7 @@ export function AppSidebar() {
 
   const navigationGroups = getNavigationGroups({
     enableHajjUmrahModule: tenant?.enableHajjUmrahModule !== false,
+    enableBdOperationsModule: tenant?.enableBdOperationsModule === true,
   });
 
   useEffect(() => {
