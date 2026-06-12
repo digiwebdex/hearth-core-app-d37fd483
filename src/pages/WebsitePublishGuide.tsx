@@ -164,7 +164,7 @@ const WebsitePublishGuide = () => {
           </div>
           <div className="flex gap-2 flex-wrap">
             <Link to="/website/builder"><Button variant="outline"><Wand2 className="mr-2 h-4 w-4" />{text.websiteBuilder}</Button></Link>
-            <Link to="/travel-packages"><Button variant="outline">{text.packagesServices}</Button></Link>
+            <Link to="/packages/all"><Button variant="outline">{text.packagesServices}</Button></Link>
             <Link to="/site/packages"><Button><ExternalLink className="mr-2 h-4 w-4" />{text.publicPackages}</Button></Link>
           </div>
         </div>

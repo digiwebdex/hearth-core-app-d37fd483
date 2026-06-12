@@ -125,14 +125,6 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
       ],
     },
     {
-      id: "sales",
-      labelKey: "sidebar.sales",
-      items: [
-        { id: "quotations", titleKey: "sidebar.quotations", url: "/quotations", icon: FileText, module: "quotations" },
-        { id: "bookings", titleKey: "sidebar.bookings", url: "/bookings", icon: Plane, module: "bookings" },
-      ],
-    },
-    {
       id: "serviceCatalog",
       labelKey: "sidebar.serviceCatalog",
       items: [
@@ -143,6 +135,14 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
           icon: Package2,
           module: "packages",
         },
+      ],
+    },
+    {
+      id: "sales",
+      labelKey: "sidebar.sales",
+      items: [
+        { id: "quotations", titleKey: "sidebar.quotations", url: "/quotations", icon: FileText, module: "quotations" },
+        { id: "bookings", titleKey: "sidebar.bookings", url: "/bookings", icon: Plane, module: "bookings" },
       ],
     },
     {

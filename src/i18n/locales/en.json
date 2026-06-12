@@ -98,7 +98,7 @@
     "financialReports": "Financial Reports",
     "notifications": "Notifications",
     "hajjUmrah": "Hajj/Umrah",
-    "hajjUmrahOperations": "Hajj/Umrah Operations",
+    "hajjUmrahOperations": "Hajj/Umrah ops desk",
     "bdOperations": "Student & Manpower Ops",
     "team": "Team",
     "roles": "Roles & Permissions",
@@ -114,14 +114,14 @@
     "adminPanel": "Admin Panel",
     "upgradeTo": "Upgrade to",
     "packages": {
-      "all": "All packages",
-      "tour": "Tour Packages",
-      "hajj": "Hajj Packages",
-      "umrah": "Umrah Packages",
-      "visa": "Visa Services",
-      "hotel": "Hotel Packages",
-      "student": "Student Programs (BD)",
-      "manpower": "Manpower Programs (BD)"
+      "all": "All programs",
+      "tour": "Tour programs",
+      "hajj": "Hajj programs",
+      "umrah": "Umrah programs",
+      "visa": "Visa services",
+      "hotel": "Hotel programs",
+      "student": "Student programs (BD)",
+      "manpower": "Manpower programs (BD)"
     },
     "bookingNav": {
       "all": "All Bookings",
@@ -136,8 +136,14 @@
     }
   },
   "packagesPage": {
-    "hajjOpsButton": "Hajj/Umrah Operations",
-    "bdOpsButton": "Student/Manpower Ops",
+    "pageTitle": "Packages & services",
+    "pageSubtitle": "Reusable templates for tours, Hajj/Umrah, visa, tickets, hotels, and other travel services.",
+    "migrationTitle": "One catalog — clear rules",
+    "migrationText": "Catalog = templates for website & quotations. Bookings = customer sales. Hajj/Umrah ops desk = pilgrimage seasons only.",
+    "operationsHint": "The ops desk button appears on Hajj and Umrah program tabs when the module is enabled.",
+    "publicText": "Published programs appear on your public packages page automatically.",
+    "hajjOpsButton": "Open Hajj/Umrah ops desk",
+    "bdOpsButton": "Student/Manpower ops desk",
     "presetSubtitle": "Manage {{category}} templates and pricing"
   },
   "packageWebsiteSync": {
@@ -198,14 +204,14 @@
     "intro": "Three areas — keep them separate:",
     "catalog": "Service catalog (Packages) — reusable templates for your website and quotations.",
     "bookings": "Bookings — confirmed customer sales; open a row for travelers, docs, and delivery.",
-    "hajjOps": "Hajj/Umrah Operations — optional desk for pilgrimage seasons, groups, and pilgrims (Hajj agencies only).",
+    "hajjOps": "Hajj/Umrah ops desk — optional for pilgrimage seasons, groups, and pilgrims (not the same as catalog programs).",
     "dismiss": "Dismiss"
   },
   "settingsModules": {
     "title": "Optional modules",
     "subtitle": "Show or hide features your agency does not use.",
-    "hajjLabel": "Hajj/Umrah Operations",
-    "hajjDesc": "When off, the Hajj Operations menu and buttons are hidden. Bookings for Hajj/Umrah still work.",
+    "hajjLabel": "Hajj/Umrah ops desk",
+    "hajjDesc": "When off, the ops desk menu and buttons are hidden. Hajj/Umrah programs and bookings still work from Packages & Sales.",
     "bdLabel": "Student & Manpower Operations",
     "bdDesc": "When on, shows the BD operations desk for study abroad and manpower bookings. Off by default.",
     "ownerOnly": "Only the agency owner can change module settings.",
@@ -2012,6 +2018,20 @@
           "Convert to Booking in one click when accepted."
         ]
       },
+      "packages": {
+        "title": "Packages & services",
+        "intro": "Your service catalog — reusable templates for the website and quotations. Not individual customer sales.",
+        "steps": [
+          "Open Packages & services from the sidebar (Catalog group).",
+          "Use tabs (Tour, Hajj, Visa, etc.) to filter program types.",
+          "Create or edit a template: pricing, itinerary, inclusions, publish status.",
+          "Published templates sync to your public website packages page.",
+          "Click Create quotation on a row to prefill the quotation builder."
+        ],
+        "tips": [
+          "Programs (catalog) vs Bookings (sales) vs Hajj ops desk (pilgrimage seasons) — keep them separate."
+        ]
+      },
       "bookings": {
         "title": "Bookings",
         "intro": "Manage confirmed bookings.",
@@ -2066,12 +2086,16 @@
         ]
       },
       "hajj": {
-        "title": "Hajj / Umrah",
-        "intro": "Hajj & Umrah package and pilgrim management.",
+        "title": "Hajj / Umrah ops desk",
+        "intro": "Seasonal pilgrimage operations — pilgrims, groups, rooming, and installment payments. Package templates live under Packages & services.",
         "steps": [
-          "Create packages (with Muallim, hotel, flight, transport).",
-          "Keep each pilgrim's passport, visa, mahram info.",
-          "Manage group-wise bookings."
+          "Enable the Hajj/Umrah ops desk in Settings if your agency runs pilgrimage seasons.",
+          "Manage pilgrims, groups, visa progress, and payments from the ops desk.",
+          "Create Hajj/Umrah program templates under Packages → Hajj or Umrah tabs.",
+          "Customer sales remain under Sales → Bookings (Hajj/Umrah filter)."
+        ],
+        "tips": [
+          "Pure tour agencies can turn the ops desk off — Hajj program templates and bookings still work if needed."
         ]
       },
       "team": {

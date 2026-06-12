@@ -59,7 +59,7 @@ const SitePackages = () => {
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">{pageSubtitle}</p>
           {user && (
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-              <Link to="/travel-packages">
+              <Link to="/packages/all">
                 <Button>
                   <Pencil className="mr-2 h-4 w-4" />
                   Manage packages
@@ -108,7 +108,7 @@ const SitePackages = () => {
             <div className="py-12 text-center text-muted-foreground space-y-4">
               <p>No packages found.</p>
               {user && (
-                <Link to="/travel-packages">
+                <Link to="/packages/all">
                   <Button>
                     <Pencil className="mr-2 h-4 w-4" />
                     Add your first package

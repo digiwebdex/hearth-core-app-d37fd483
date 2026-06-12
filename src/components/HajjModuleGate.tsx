@@ -7,7 +7,7 @@ export function HajjModuleGate({ children }: { children: React.ReactNode }) {
 
   if (loading) return null;
   if (tenant?.enableHajjUmrahModule === false) {
-    return <Navigate to="/bookings/hajj" replace />;
+    return <Navigate to="/packages/hajj" replace />;
   }
 
   return <>{children}</>;

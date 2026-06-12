@@ -159,7 +159,7 @@ const WebsiteBuilderHome = () => {
               <CardDescription>{text.packagesServicesDesc}</CardDescription>
             </CardHeader>
             <CardContent>
-              <Link to="/travel-packages"><Button className="w-full" variant="outline">{text.managePackages}</Button></Link>
+              <Link to="/packages/all"><Button className="w-full" variant="outline">{text.managePackages}</Button></Link>
             </CardContent>
           </Card>
           <Card>

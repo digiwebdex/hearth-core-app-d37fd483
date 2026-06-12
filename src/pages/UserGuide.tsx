@@ -4,7 +4,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "react-i18next";
 import {
-  LayoutDashboard, Users, UserCheck, UserCog, Store, Target, ListTodo, FileText, Plane,
+  LayoutDashboard, Users, UserCheck, UserCog, Store, Target, ListTodo, FileText, Plane, Package2,
   Receipt, Wallet, BarChart3, Bell, Moon, Building2, Globe, Crown, Settings, BookOpen
 } from "lucide-react";
 
@@ -17,6 +17,7 @@ const sectionIcons: Record<string, any> = {
   leads: Target,
   tasks: ListTodo,
   quotations: FileText,
+  packages: Package2,
   bookings: Plane,
   invoices: Receipt,
   accounts: Wallet,

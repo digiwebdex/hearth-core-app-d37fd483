@@ -47,7 +47,6 @@ import HajjUmrah from "./pages/HajjUmrah";
 import { HajjModuleGate } from "@/components/HajjModuleGate";
 import { BdModuleGate } from "@/components/BdModuleGate";
 import BdOperations from "./pages/BdOperations";
-import HajjOperationsLegacy from "./pages/HajjOperationsLegacy";
 import Subscriptions from "./pages/Subscriptions";
 import PaymentCallback from "./pages/PaymentCallback";
 import RoleManagement from "./pages/RoleManagement";
@@ -186,9 +185,9 @@ const AppContent = () => (
           <Route path="/commissions" element={<P><Agents /></P>} />
           <Route path="/reports" element={<P><Reports /></P>} />
           <Route path="/hajj-umrah" element={<P><HajjModuleGate><HajjUmrah /></HajjModuleGate></P>} />
-          <Route path="/hajj-umrah/operations" element={<P><HajjModuleGate><HajjUmrah /></HajjModuleGate></P>} />
+          <Route path="/hajj-umrah/operations" element={<Navigate to="/hajj-umrah" replace />} />
           <Route path="/operations/bd" element={<P><BdModuleGate><BdOperations /></BdModuleGate></P>} />
-          <Route path="/legacy/hajj-operations" element={<P><HajjOperationsLegacy /></P>} />
+          <Route path="/legacy/hajj-operations" element={<Navigate to="/hajj-umrah" replace />} />
           <Route path="/subscription" element={<P><Subscriptions /></P>} />
           <Route path="/payment/callback" element={<P><PaymentCallback /></P>} />
           <Route path="/roles" element={<P><RoleManagement /></P>} />

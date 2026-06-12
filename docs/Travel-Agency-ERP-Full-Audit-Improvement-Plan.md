@@ -1485,7 +1485,7 @@ Aligns with `docs/final-travel-saas-scenario.md` and audit severity.
 |-------|--------|-------------------|
 | **Phase 0 — Stabilize** | P0 security, SMS/notifications API, client upload, Hajj IDOR, CORS, migrations | ✅ Shipped (Jun 2026) |
 | **Phase 1 — Catalog** | TravelPackage extensions, public package feed, onboarding service types | ✅ Shipped (Jun 2026) |
-| **Phase 2 — UX unify** | Packages & Services nav, deprecate legacy Hajj menu, Bangla polish | Scenario Phase 2 |
+| **Phase 2 — UX unify** | Packages & Services nav, deprecate legacy Hajj menu, Bangla polish | ✅ Shipped (Jun 2026) |
 | **Phase 3 — Ops modules** | Visa/ticketing/hotel JSON or tables on bookings | Scenario Phase 3 |
 | **Phase 4 — Finance** | Installments, commissions, ledger automation, reminders | Scenario Phase 4 |
 | **Phase 5 — Growth** | B2B portal, corporate, blog CMS, advanced reports | Scenario Phase 5 |

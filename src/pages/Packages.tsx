@@ -148,15 +148,11 @@ const Packages = () => {
     created: isBn ? "প্যাকেজ তৈরি হয়েছে" : "Package created",
     updated: isBn ? "প্যাকেজ আপডেট হয়েছে" : "Package updated",
     deleted: isBn ? "প্যাকেজ ডিলিট হয়েছে" : "Package deleted",
-    pageTitle: isBn ? "প্যাকেজ ও সার্ভিসেস" : "Packages & Services",
-    pageSubtitle: isBn ? "ট্যুর, হজ্জ-উমরাহ, ভিসা, টিকেট, হোটেল ও অন্যান্য ট্রাভেল সার্ভিসের reusable template এখানে ম্যানেজ করুন।" : "Manage reusable templates for tours, Hajj/Umrah, visa, tickets, hotels, and other travel services here.",
-    migrationTitle: isBn ? "ইউনিফায়েড সার্ভিস সেন্টার" : "Unified service center",
-    migrationText: isBn
-      ? "সার্ভিস ক্যাটালগ = ওয়েবসাইট ও কোটেশনের জন্য reusable টেমপ্লেট। বুকিং = গ্রাহকের বিক্রয়। হজ্জ অপারেশনস = শুধু পিলগ্রিম সিজন ম্যানেজমেন্ট।"
-      : "Service catalog = reusable templates for website & quotations. Bookings = customer sales. Hajj Operations = pilgrimage season desk only.",
-    operationsHint: isBn
-      ? "হজ্জ/উমরাহ প্যাকেজ পেজে পিলগ্রিম, গ্রুপ, রুমিং ও পেমেন্ট অপারেশনস বাটন পাওয়া যাবে।"
-      : "The pilgrim operations button appears on Hajj and Umrah package pages only.",
+    pageTitle: t("packagesPage.pageTitle"),
+    pageSubtitle: t("packagesPage.pageSubtitle"),
+    migrationTitle: t("packagesPage.migrationTitle"),
+    migrationText: t("packagesPage.migrationText"),
+    operationsHint: t("packagesPage.operationsHint"),
     hajjOpsButton: t("packagesPage.hajjOpsButton"),
     bdOpsButton: t("packagesPage.bdOpsButton"),
     publicButton: isBn ? "পাবলিক প্যাকেজ পেজ" : "Public Packages Page",
@@ -164,7 +160,7 @@ const Packages = () => {
     publishButton: isBn ? "পাবলিশ ও ডোমেইন" : "Publish & Domain",
     quotationButton: isBn ? "কোটেশন তৈরি করুন" : "Create Quotation",
     quotationHint: isBn ? "নির্বাচিত template থেকে quotation builder prefill হবে।" : "Quotation builder will be prefilled from the selected template.",
-    publicText: isBn ? "যে প্যাকেজ Published করবেন, সেগুলো website package page-এ দেখা যাবে।" : "Published packages will appear automatically on the website packages page.",
+    publicText: t("packagesPage.publicText"),
     newPackage: isBn ? "নতুন সার্ভিস" : "New Service",
     filterPlaceholder: isBn ? "সার্ভিস টাইপ ফিল্টার" : "Filter by service type",
     allTypes: isBn ? "সব সার্ভিস টাইপ" : "All service types",
@@ -207,12 +203,12 @@ const Packages = () => {
   const pageTitle =
     activePreset && activePreset !== "all"
       ? t(`sidebar.packages.${activePreset}`)
-      : text.pageTitle;
+      : t("packagesPage.pageTitle");
 
   const pageSubtitle =
     activePreset && activePreset !== "all"
       ? t("packagesPage.presetSubtitle", { category: pageTitle })
-      : text.pageSubtitle;
+      : t("packagesPage.pageSubtitle");
 
   const load = async () => {
     setLoading(true);
