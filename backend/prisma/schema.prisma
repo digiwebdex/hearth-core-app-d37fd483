@@ -303,6 +303,8 @@ model Booking {
   supplierName         String?
   supplierRef          String?
   internalNotes        String?
+  serviceDetails       Json?
+  opsStatus            String?                @default("pending")
   tenantId             String
   tenant               Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   createdAt            DateTime               @default(now())

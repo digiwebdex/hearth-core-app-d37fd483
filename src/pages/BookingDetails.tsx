@@ -22,6 +22,8 @@ import {
   type BookingTraveler, type BookingChecklistItem, type BookingTimelineEvent, type BookingDocument,
 } from "@/lib/api";
 import { bookingPresetPath, bookingTypeToPreset } from "@/lib/bookingRoutePresets";
+import { mergeServiceDetailsIntoBooking } from "@/lib/bookingServiceDetails";
+import { BookingOpsPanel, SERVICE_OPS_TYPES } from "@/components/bookings/BookingOpsPanel";
 import {
   ArrowLeft, MapPin, CalendarIcon, Users, DollarSign, Plane, Hotel,
   Car, Stamp, Package, Bike, Plus, Trash2, Upload, FileText, Clock,
@@ -93,7 +95,7 @@ const BookingDetails = () => {
         bookingApi.getTimeline(bookingId).catch(() => []),
         bookingApi.getDocuments(bookingId).catch(() => []),
       ]);
-      setBooking(b);
+      setBooking(mergeServiceDetailsIntoBooking(b));
       setSegments(segs);
       setTravelers(travs);
       setChecklist(chk);
@@ -319,12 +321,21 @@ const BookingDetails = () => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="flex-wrap">
+            {booking && SERVICE_OPS_TYPES.has(booking.type) ? (
+              <TabsTrigger value="operations">Operations</TabsTrigger>
+            ) : null}
             <TabsTrigger value="segments">Segments ({segments.length})</TabsTrigger>
             <TabsTrigger value="travelers">Travelers ({travelers.length})</TabsTrigger>
             <TabsTrigger value="checklist">Checklist ({doneCount}/{checklist.length})</TabsTrigger>
             <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
             <TabsTrigger value="timeline">Timeline ({timeline.length})</TabsTrigger>
           </TabsList>
+
+          {booking && SERVICE_OPS_TYPES.has(booking.type) ? (
+            <TabsContent value="operations">
+              <BookingOpsPanel booking={booking} onUpdated={(updated) => setBooking(updated)} />
+            </TabsContent>
+          ) : null}
 
           {/* ── SEGMENTS ── */}
           <TabsContent value="segments" className="space-y-4">

@@ -170,6 +170,16 @@ export const documentHubApi = {
 export const taskApi = createCrudApi<Task>("tasks");
 export const bookingApi = {
   ...createCrudApi<Booking>("bookings"),
+  list: (params?: BookingListParams) => {
+    const qs = new URLSearchParams();
+    if (params?.type) qs.set("type", params.type);
+    if (params?.opsStatus) qs.set("opsStatus", params.opsStatus);
+    if (params?.status) qs.set("status", params.status);
+    if (params?.limit != null) qs.set("limit", String(params.limit));
+    if (params?.offset != null) qs.set("offset", String(params.offset));
+    const query = qs.toString();
+    return request<Booking[]>(`/bookings${query ? `?${query}` : ""}`);
+  },
   updateStatus: (id: string, status: BookingStatus) => request<Booking>(`/bookings/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
   getSegments: (id: string) => request<BookingSegment[]>(`/bookings/${id}/segments`),
   addSegment: (id: string, data: Omit<BookingSegment, "id">) => request<BookingSegment>(`/bookings/${id}/segments`, { method: "POST", body: JSON.stringify(data) }),
@@ -292,7 +302,14 @@ export interface Lead { id: string; name: string; phone: string; email: string; 
 export interface LeadActivity { id: string; leadId: string; type: "note" | "status_change" | "follow_up" | "call" | "email" | "meeting"; content: string; oldStatus?: LeadStatus; newStatus?: LeadStatus; createdBy?: string; createdByName?: string; createdAt: string; }
 export interface Task { id: string; title: string; description: string; status: "todo" | "in_progress" | "done"; priority: "low" | "medium" | "high"; dueDate?: string; assignedTo?: string; tenantId: string; createdAt: string; }
 export type BookingStatus = "pending" | "confirmed" | "ticketed" | "traveling" | "completed" | "cancelled";
-export type BookingType = "tour" | "ticket" | "hotel" | "visa" | "package" | "student" | "manpower";
+export type BookingType = "tour" | "ticket" | "hotel" | "visa" | "package" | "student" | "manpower" | "transport";
+export interface BookingListParams {
+  type?: BookingType | string;
+  opsStatus?: string;
+  status?: BookingStatus;
+  limit?: number;
+  offset?: number;
+}
 export interface Booking {
   id: string;
   type: BookingType;
@@ -324,6 +341,8 @@ export interface Booking {
   supplierName?: string;
   supplierRef?: string;
   internalNotes?: string;
+  serviceDetails?: Record<string, unknown> | null;
+  opsStatus?: string;
   tenantId: string;
   createdAt: string;
   updatedAt?: string;
@@ -346,6 +365,24 @@ export interface Booking {
   contractDuration?: string;
   medicalStatus?: string;
   bmetRegistration?: string;
+  routeDescription?: string;
+  pickupLocation?: string;
+  dropoffLocation?: string;
+  pickupDate?: string;
+  pickupTime?: string;
+  vehicleType?: string;
+  driverName?: string;
+  driverPhone?: string;
+  transportVendor?: string;
+  workflowStatus?: string;
+  fromCity?: string;
+  toCity?: string;
+  confirmationNumber?: string;
+  guestCount?: number;
+  submissionDate?: string;
+  appointmentDate?: string;
+  visaType?: string;
+  ticketDeadline?: string;
 }
 export interface BookingSegment { id: string; bookingId?: string; type: "hotel" | "flight" | "transfer" | "visa" | "activity" | "package"; description: string; supplier?: string; supplierRef?: string; startDate?: string; endDate?: string; details?: string; cost: number; sellingPrice: number; status?: "pending" | "confirmed" | "cancelled"; }
 export interface BookingTraveler { id: string; bookingId?: string; name: string; passportNumber?: string; passportExpiry?: string; nationality?: string; dateOfBirth?: string; phone?: string; email?: string; notes?: string; }

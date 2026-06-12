@@ -67,6 +67,17 @@ export interface BookingFormState {
   visaFee: number;
   serviceFee: number;
 
+  // Transport
+  routeDescription: string;
+  pickupLocation: string;
+  dropoffLocation: string;
+  pickupDate: string;
+  pickupTime: string;
+  vehicleType: string;
+  driverName: string;
+  driverPhone: string;
+  transportVendor: string;
+
   // Package
   packageTitleSnapshot: string;
   packageCodeSnapshot: string;
@@ -139,6 +150,16 @@ export const emptyForm: BookingFormState = {
   expectedApprovalDate: "",
   visaFee: 0,
   serviceFee: 0,
+
+  routeDescription: "",
+  pickupLocation: "",
+  dropoffLocation: "",
+  pickupDate: "",
+  pickupTime: "",
+  vehicleType: "",
+  driverName: "",
+  driverPhone: "",
+  transportVendor: "",
 
   packageTitleSnapshot: "",
   packageCodeSnapshot: "",

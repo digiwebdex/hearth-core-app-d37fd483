@@ -29,7 +29,7 @@ import {
   Bell,
   Settings,
   BookOpen,
-  Activity,
+  Briefcase,
 } from "lucide-react";
 import type { PlanType } from "@/lib/plans";
 import type { Module } from "@/lib/permissions";
@@ -77,6 +77,13 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
   const operationsItems: NavItemConfig[] = [
     { id: "documents", titleKey: "sidebar.documents", url: "/documents", icon: FolderOpen, module: "clients" },
     { id: "tasks", titleKey: "sidebar.tasks", url: "/tasks", icon: ListTodo, module: "tasks" },
+    {
+      id: "service-operations",
+      titleKey: "sidebar.serviceOperations",
+      url: "/operations/services",
+      icon: Briefcase,
+      module: "bookings",
+    },
   ];
 
   if (enableHajj) {

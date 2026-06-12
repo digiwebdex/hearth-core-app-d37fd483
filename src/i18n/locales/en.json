@@ -100,6 +100,7 @@
     "hajjUmrah": "Hajj/Umrah",
     "hajjUmrahOperations": "Hajj/Umrah ops desk",
     "bdOperations": "Student & Manpower Ops",
+    "serviceOperations": "Service ops desk",
     "team": "Team",
     "roles": "Roles & Permissions",
     "organization": "Organization",
@@ -131,6 +132,7 @@
       "hajj": "Hajj Bookings",
       "umrah": "Umrah Bookings",
       "visa": "Visa Bookings",
+      "transport": "Transport Bookings",
       "student": "Student Bookings",
       "manpower": "Manpower Bookings"
     }
@@ -197,6 +199,107 @@
     "stats": {
       "total": "Total bookings",
       "active": "In progress"
+    }
+  },
+  "serviceOps": {
+    "title": "Service operations desk",
+    "subtitle": "Day-to-day delivery for visa, ticketing, hotel, transport, and tour departures — open a row for checklist, docs, and status.",
+    "loadFailed": "Failed to load service operations desk",
+    "searchPlaceholder": "Search client, PNR, hotel, route…",
+    "viewAllBookings": "All bookings",
+    "createBooking": "Go to bookings",
+    "emptyTitle": "No bookings in this desk",
+    "emptyDesc": "Create bookings from Sales, then manage delivery and workflow status here.",
+    "footerHint": "Bookings = customer sale. This desk = operational delivery (embassy status, ticket issue, hotel confirmation, transport assignment).",
+    "client": "Client",
+    "payment": "Payment",
+    "filters": {
+      "active": "Active only",
+      "all": "All statuses"
+    },
+    "desks": {
+      "visa": "Visa",
+      "ticket": "Ticketing",
+      "hotel": "Hotel",
+      "transport": "Transport",
+      "departures": "Group departures"
+    },
+    "columns": {
+      "country": "Country",
+      "passport": "Passport",
+      "dates": "Key dates",
+      "workflow": "Ops status",
+      "pnr": "PNR",
+      "airline": "Airline",
+      "route": "Route",
+      "hotel": "Hotel",
+      "checkIn": "Check-in",
+      "confirmation": "Confirmation",
+      "pickup": "Pickup",
+      "vehicle": "Vehicle"
+    },
+    "departures": {
+      "emptyTitle": "No upcoming departures",
+      "emptyDesc": "Tour and package bookings with a travel date appear here grouped by departure.",
+      "createBooking": "Create tour booking",
+      "date": "Departure date",
+      "destination": "Destination",
+      "bookings": "Bookings",
+      "travelers": "Travelers"
+    },
+    "panel": {
+      "title": "Service operations",
+      "workflowStatus": "Workflow status",
+      "saveStatus": "Save status",
+      "saved": "Operations status saved",
+      "saveFailed": "Could not save operations status",
+      "visaCountry": "Visa country",
+      "passport": "Passport",
+      "submission": "Submission",
+      "appointment": "Appointment",
+      "pnr": "PNR",
+      "airline": "Airline",
+      "route": "Route",
+      "deadline": "Ticket deadline",
+      "hotel": "Hotel",
+      "dates": "Stay dates",
+      "confirmation": "Confirmation",
+      "guests": "Guests",
+      "pickup": "Pickup",
+      "vehicle": "Vehicle",
+      "driver": "Driver"
+    },
+    "workflow": {
+      "visa": {
+        "not_started": "Not started",
+        "documents_pending": "Documents pending",
+        "submitted": "Submitted to embassy",
+        "interview_scheduled": "Interview scheduled",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "passport_returned": "Passport returned"
+      },
+      "ticket": {
+        "pending": "Pending issue",
+        "issued": "Ticket issued",
+        "reissued": "Reissued",
+        "refund_requested": "Refund requested",
+        "refunded": "Refunded"
+      },
+      "hotel": {
+        "pending": "Pending",
+        "confirmed": "Confirmed",
+        "voucher_sent": "Voucher sent",
+        "checked_in": "Checked in",
+        "cancelled": "Cancelled"
+      },
+      "transport": {
+        "pending": "Pending",
+        "assigned": "Driver assigned",
+        "in_transit": "In transit",
+        "completed": "Completed",
+        "cancelled": "Cancelled"
+      }
     }
   },
   "productHelp": {
@@ -425,7 +528,8 @@
       "umrah": "Umrah",
       "visa": "Visa",
       "student": "Student",
-      "manpower": "Manpower"
+      "manpower": "Manpower",
+      "transport": "Transport"
     },
     "statuses": {
       "pending": "Pending",
@@ -442,7 +546,8 @@
       "visa": "Visa",
       "package": "Hajj / Umrah Package",
       "student": "Student",
-      "manpower": "Manpower"
+      "manpower": "Manpower",
+      "transport": "Transport"
     },
     "ticketFields": {
       "flightNumber": "Flight Number",
@@ -505,6 +610,18 @@
         "student": "Student",
         "other": "Other"
       }
+    },
+    "transportFields": {
+      "routeDescription": "Route / service",
+      "routePlaceholder": "Airport transfer, city tour, intercity…",
+      "pickupLocation": "Pickup location",
+      "dropoffLocation": "Drop-off location",
+      "pickupDate": "Pickup date",
+      "pickupTime": "Pickup time",
+      "vehicleType": "Vehicle type",
+      "transportVendor": "Transport vendor",
+      "driverName": "Driver name",
+      "driverPhone": "Driver phone"
     },
     "packageFields": {
       "packageId": "Travel Package",

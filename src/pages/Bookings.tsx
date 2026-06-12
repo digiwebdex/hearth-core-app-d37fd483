@@ -18,7 +18,7 @@ import { format, isAfter, isBefore, addDays, parseISO } from "date-fns";
 import {
   Plus, Pencil, Trash2, Plane, Search, Eye, DollarSign,
   CalendarIcon, MapPin, AlertTriangle, Clock, CheckCircle2, XCircle,
-  Ticket, Hotel, Stamp, Package, Filter, FileText, GraduationCap, HardHat,
+  Ticket, Hotel, Stamp, Package, Filter, FileText, GraduationCap, HardHat, Car,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { bookingApi, quotationApi, type Booking, type BookingStatus, type BookingType, type Quotation } from "@/lib/api";
@@ -33,8 +33,15 @@ import { VisaFields } from "@/components/bookings/VisaFields";
 import { PackageFields } from "@/components/bookings/PackageFields";
 import { StudentFields } from "@/components/bookings/StudentFields";
 import { ManpowerFields } from "@/components/bookings/ManpowerFields";
+import { TransportFields } from "@/components/bookings/TransportFields";
 import { AgentSelect } from "@/components/bookings/AgentSelect";
 import { emptyForm, type BookingFormState } from "@/components/bookings/types";
+import {
+  buildServiceDetailsFromForm,
+  applyServiceDetailsToForm,
+  mergeServiceDetailsIntoBooking,
+  DEFAULT_OPS_STATUS,
+} from "@/lib/bookingServiceDetails";
 import {
   bookingMatchesPreset,
   bookingPresetPath,
@@ -61,6 +68,7 @@ const TYPE_ICONS: Record<BookingType, typeof MapPin> = {
   package: Package,
   student: GraduationCap,
   manpower: HardHat,
+  transport: Car,
 };
 
 const getStatusMeta = (s: BookingStatus) => STATUS_META.find((x) => x.value === s) || STATUS_META[0];
@@ -121,36 +129,14 @@ function getBookingTypeInfo(b: Booking): string {
       const job = b.jobTitle || b.supplierRef || "";
       return [country, employer, job].filter(Boolean).join(" · ");
     }
+    case "transport": {
+      const route = b.routeDescription || b.destination || "";
+      const pickup = b.pickupLocation || "";
+      return [route, pickup].filter(Boolean).join(" · ");
+    }
     default:
       return "";
   }
-}
-
-function formTypeDetails(form: BookingFormState): Partial<Booking> {
-  return {
-    flightNumber: form.flightNumber || undefined,
-    airline: form.airline || undefined,
-    pnrNumber: form.pnrNumber || undefined,
-    tourOperator: form.tourOperator || undefined,
-    hotelName: form.hotelName || undefined,
-    checkInDate: form.checkInDate || undefined,
-    checkOutDate: form.checkOutDate || undefined,
-    visaCountry: form.visaCountry || undefined,
-    passportNumber: form.passportNumber || undefined,
-    packageTitleSnapshot: form.packageTitleSnapshot || undefined,
-    packageCodeSnapshot: form.packageCodeSnapshot || undefined,
-    destination: form.destination || undefined,
-    passportExpiry: form.passportExpiry || undefined,
-    instituteName: form.instituteName || undefined,
-    courseProgram: form.courseProgram || undefined,
-    enrollmentDate: form.enrollmentDate || undefined,
-    workCountry: form.workCountry || undefined,
-    employer: form.employer || undefined,
-    jobTitle: form.jobTitle || undefined,
-    contractDuration: form.contractDuration || undefined,
-    medicalStatus: form.medicalStatus || undefined,
-    bmetRegistration: form.bmetRegistration || undefined,
-  };
 }
 
 function formToApiPayload(form: BookingFormState) {
@@ -227,6 +213,14 @@ function formToApiPayload(form: BookingFormState) {
         supplierName: form.employer || undefined,
         supplierRef: form.jobTitle || undefined,
       };
+    case "transport":
+      return {
+        ...base,
+        destination: form.routeDescription || form.dropoffLocation || undefined,
+        travelDateFrom: form.pickupDate || form.travelDateFrom || undefined,
+        supplierName: form.transportVendor || undefined,
+        supplierRef: form.vehicleType || undefined,
+      };
     default:
       return {
         ...base,
@@ -237,48 +231,68 @@ function formToApiPayload(form: BookingFormState) {
   }
 }
 
-function bookingToForm(b: Booking): BookingFormState {
+function withServicePayload(form: BookingFormState) {
+  const serviceDetails = buildServiceDetailsFromForm(form);
   return {
-    ...emptyForm,
-    id: b.id,
-    type: b.type,
-    title: b.title || "",
-    clientId: b.clientId,
-    clientName: b.clientName || "",
-    agentId: b.agentId || "",
-    amount: b.amount,
-    cost: b.cost,
-    status: b.status,
-    travelDateFrom: b.travelDateFrom || "",
-    travelDateTo: b.travelDateTo || "",
-    travelerCount: b.travelerCount || 1,
-    internalNotes: b.internalNotes || "",
-    packageId: b.packageId || "",
-    packageTitleSnapshot: b.packageTitleSnapshot || "",
-    packageCodeSnapshot: b.packageCodeSnapshot || "",
-    destination: b.destination || "",
-    flightNumber: b.flightNumber || b.supplierRef || "",
-    airline: b.airline || b.supplierName || "",
-    pnrNumber: b.pnrNumber || b.supplierRef || "",
-    departureDate: b.travelDateFrom || "",
-    returnDate: b.travelDateTo || "",
-    tourOperator: b.tourOperator || b.supplierName || "",
-    hotelName: b.hotelName || b.supplierName || "",
-    checkInDate: b.checkInDate || b.travelDateFrom || "",
-    checkOutDate: b.checkOutDate || b.travelDateTo || "",
-    visaCountry: b.visaCountry || b.destination || "",
-    passportNumber: b.passportNumber || "",
-    passportExpiry: b.passportExpiry || "",
-    instituteName: b.instituteName || (b.type === "student" ? b.supplierName || "" : ""),
-    courseProgram: b.courseProgram || (b.type === "student" ? b.supplierRef || "" : ""),
-    enrollmentDate: b.enrollmentDate || (b.type === "student" ? b.travelDateFrom || "" : ""),
-    workCountry: b.workCountry || (b.type === "manpower" ? b.destination || "" : ""),
-    employer: b.employer || (b.type === "manpower" ? b.supplierName || "" : ""),
-    jobTitle: b.jobTitle || (b.type === "manpower" ? b.supplierRef || "" : ""),
-    contractDuration: b.contractDuration || "",
-    medicalStatus: (b.medicalStatus as BookingFormState["medicalStatus"]) || "pending",
-    bmetRegistration: b.bmetRegistration || "",
+    ...formToApiPayload(form),
+    serviceDetails,
+    opsStatus: String(serviceDetails.workflowStatus || DEFAULT_OPS_STATUS),
   };
+}
+
+function bookingToForm(b: Booking): BookingFormState {
+  const merged = mergeServiceDetailsIntoBooking(b);
+  const form: BookingFormState = {
+    ...emptyForm,
+    id: merged.id,
+    type: merged.type,
+    title: merged.title || "",
+    clientId: merged.clientId,
+    clientName: merged.clientName || "",
+    agentId: merged.agentId || "",
+    amount: merged.amount,
+    cost: merged.cost,
+    status: merged.status,
+    travelDateFrom: merged.travelDateFrom || "",
+    travelDateTo: merged.travelDateTo || "",
+    travelerCount: merged.travelerCount || 1,
+    internalNotes: merged.internalNotes || "",
+    packageId: merged.packageId || "",
+    packageTitleSnapshot: merged.packageTitleSnapshot || "",
+    packageCodeSnapshot: merged.packageCodeSnapshot || "",
+    destination: merged.destination || "",
+    flightNumber: merged.flightNumber || merged.supplierRef || "",
+    airline: merged.airline || merged.supplierName || "",
+    pnrNumber: merged.pnrNumber || merged.supplierRef || "",
+    departureDate: merged.departureDate || merged.travelDateFrom || "",
+    returnDate: merged.returnDate || merged.travelDateTo || "",
+    tourOperator: merged.tourOperator || merged.supplierName || "",
+    hotelName: merged.hotelName || merged.supplierName || "",
+    checkInDate: merged.checkInDate || merged.travelDateFrom || "",
+    checkOutDate: merged.checkOutDate || merged.travelDateTo || "",
+    visaCountry: merged.visaCountry || merged.destination || "",
+    passportNumber: merged.passportNumber || "",
+    passportExpiry: merged.passportExpiry || "",
+    instituteName: merged.instituteName || (merged.type === "student" ? merged.supplierName || "" : ""),
+    courseProgram: merged.courseProgram || (merged.type === "student" ? merged.supplierRef || "" : ""),
+    enrollmentDate: merged.enrollmentDate || (merged.type === "student" ? merged.travelDateFrom || "" : ""),
+    workCountry: merged.workCountry || (merged.type === "manpower" ? merged.destination || "" : ""),
+    employer: merged.employer || (merged.type === "manpower" ? merged.supplierName || "" : ""),
+    jobTitle: merged.jobTitle || (merged.type === "manpower" ? merged.supplierRef || "" : ""),
+    contractDuration: merged.contractDuration || "",
+    medicalStatus: (merged.medicalStatus as BookingFormState["medicalStatus"]) || "pending",
+    bmetRegistration: merged.bmetRegistration || "",
+    routeDescription: merged.routeDescription || merged.destination || "",
+    pickupLocation: merged.pickupLocation || "",
+    dropoffLocation: merged.dropoffLocation || "",
+    pickupDate: merged.pickupDate || merged.travelDateFrom || "",
+    pickupTime: merged.pickupTime || "",
+    vehicleType: merged.vehicleType || merged.supplierRef || "",
+    driverName: merged.driverName || "",
+    driverPhone: merged.driverPhone || "",
+    transportVendor: merged.transportVendor || merged.supplierName || "",
+  };
+  return applyServiceDetailsToForm(form, merged.serviceDetails || undefined);
 }
 
 const Bookings = () => {
@@ -322,7 +336,7 @@ const Bookings = () => {
     setError(null);
     try {
       const data = await bookingApi.list();
-      setItems(data as any);
+      setItems((data as Booking[]).map((b) => mergeServiceDetailsIntoBooking(b)));
     } catch (err: any) {
       setError(err.message || "Failed to load bookings");
     } finally {
@@ -350,18 +364,17 @@ const Bookings = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const payload = formToApiPayload(form);
-    const typeDetails = formTypeDetails(form);
+    const payload = withServicePayload(form);
     if (editingId) {
       bookingApi.update(editingId, payload).then((updated: Booking) => {
-        setItems((prev) => prev.map((b) => (b.id === editingId ? { ...b, ...updated, ...typeDetails } : b)));
+        setItems((prev) => prev.map((b) => (b.id === editingId ? mergeServiceDetailsIntoBooking({ ...b, ...updated }) : b)));
         toast({ title: t("bookingsForm.bookingUpdated") });
       }).catch((err: any) => {
         toast({ title: t("bookingsForm.updateFailed"), description: err.message, variant: "destructive" });
       });
     } else {
       bookingApi.create(payload).then((created: Booking) => {
-        setItems((prev) => [...prev, { ...created, ...typeDetails }]);
+        setItems((prev) => [...prev, mergeServiceDetailsIntoBooking(created)]);
         toast({ title: t("bookingsForm.bookingCreated") });
       }).catch((err: any) => {
         toast({ title: t("bookingsForm.createFailed"), description: err.message, variant: "destructive" });
@@ -541,6 +554,7 @@ const Bookings = () => {
                             <SelectItem value="ticket">{t("bookingsForm.types.ticket")}</SelectItem>
                             <SelectItem value="hotel">{t("bookingsForm.types.hotel")}</SelectItem>
                             <SelectItem value="visa">{t("bookingsForm.types.visa")}</SelectItem>
+                            <SelectItem value="transport">{t("bookingsForm.types.transport")}</SelectItem>
                             <SelectItem value="package">{t("bookingsForm.types.package")}</SelectItem>
                             <SelectItem value="student">{t("bookingsForm.types.student")}</SelectItem>
                             <SelectItem value="manpower">{t("bookingsForm.types.manpower")}</SelectItem>
@@ -561,6 +575,7 @@ const Bookings = () => {
                     {form.type === "tour" && <TourFields form={form} setForm={setForm} />}
                     {form.type === "hotel" && <HotelFields form={form} setForm={setForm} />}
                     {form.type === "visa" && <VisaFields form={form} setForm={setForm} />}
+                    {form.type === "transport" && <TransportFields form={form} setForm={setForm} />}
                     {form.type === "package" && <PackageFields form={form} setForm={setForm} />}
                     {form.type === "student" && <StudentFields form={form} setForm={setForm} />}
                     {form.type === "manpower" && <ManpowerFields form={form} setForm={setForm} />}

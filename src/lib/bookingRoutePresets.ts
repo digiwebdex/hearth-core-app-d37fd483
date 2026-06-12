@@ -8,6 +8,7 @@ export const BOOKING_PRESET_IDS = [
   "hajj",
   "umrah",
   "visa",
+  "transport",
   "student",
   "manpower",
 ] as const;
@@ -33,6 +34,7 @@ export const BOOKING_PRESET_CONFIG: Record<BookingPresetId, BookingPresetConfig>
   hajj: { typeFilter: "package", titleKeywords: ["hajj", "haj", "হজ"] },
   umrah: { typeFilter: "package", titleKeywords: ["umrah", "উমরাহ"] },
   visa: { typeFilter: "visa" },
+  transport: { typeFilter: "transport" },
   student: { typeFilter: "student" },
   manpower: { typeFilter: "manpower" },
 };
@@ -64,6 +66,8 @@ export function bookingTypeToPreset(type: string): BookingPresetId {
       return "hotel";
     case "visa":
       return "visa";
+    case "transport":
+      return "transport";
     case "student":
       return "student";
     case "manpower":

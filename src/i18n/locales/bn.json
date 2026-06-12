@@ -100,6 +100,7 @@
     "hajjUmrah": "হজ্জ ও উমরাহ",
     "hajjUmrahOperations": "হজ্জ/উমরাহ অপস ডেস্ক",
     "bdOperations": "স্টুডেন্ট ও ম্যানপাওয়ার অপস",
+    "serviceOperations": "সার্ভিস অপস ডেস্ক",
     "team": "টিম",
     "roles": "রোল ও পারমিশন",
     "organization": "প্রতিষ্ঠান",
@@ -197,6 +198,107 @@
     "stats": {
       "total": "মোট বুকিং",
       "active": "চলমান"
+    }
+  },
+  "serviceOps": {
+    "title": "সার্ভিস অপারেশনস ডেস্ক",
+    "subtitle": "ভিসা, টিকেট, হোটেল, ট্রান্সপোর্ট ও গ্রুপ ডিপারচারের দৈনন্দিন ডেলিভারি — সারি খুলে চেকলিস্ট, ডক ও স্ট্যাটাস দেখুন।",
+    "loadFailed": "সার্ভিস অপস ডেস্ক লোড করা যায়নি",
+    "searchPlaceholder": "ক্লায়েন্ট, PNR, হোটেল, রুট…",
+    "viewAllBookings": "সব বুকিং",
+    "createBooking": "বুকিংয়ে যান",
+    "emptyTitle": "এই ডেস্কে কোনো বুকিং নেই",
+    "emptyDesc": "Sales থেকে বুকিং তৈরি করুন, তারপর এখানে ডেলিভারি ও workflow স্ট্যাটাস পরিচালনা করুন।",
+    "footerHint": "বুকিং = গ্রাহকের বিক্রয়। এই ডেস্ক = অপারেশনাল ডেলিভারি (এম্বাসি, টিকেট ইস্যু, হোটেল কনফার্ম, গাড়ি অ্যাসাইন)।",
+    "client": "ক্লায়েন্ট",
+    "payment": "পেমেন্ট",
+    "filters": {
+      "active": "শুধু সক্রিয়",
+      "all": "সব স্ট্যাটাস"
+    },
+    "desks": {
+      "visa": "ভিসা",
+      "ticket": "টিকেটিং",
+      "hotel": "হোটেল",
+      "transport": "ট্রান্সপোর্ট",
+      "departures": "গ্রুপ ডিপারচার"
+    },
+    "columns": {
+      "country": "দেশ",
+      "passport": "পাসপোর্ট",
+      "dates": "গুরুত্বপূর্ণ তারিখ",
+      "workflow": "অপস স্ট্যাটাস",
+      "pnr": "PNR",
+      "airline": "এয়ারলাইন",
+      "route": "রুট",
+      "hotel": "হোটেল",
+      "checkIn": "চেক-ইন",
+      "confirmation": "কনফার্মেশন",
+      "pickup": "পিকআপ",
+      "vehicle": "যান"
+    },
+    "departures": {
+      "emptyTitle": "কোনো আসন্ন ডিপারচার নেই",
+      "emptyDesc": "ট্রাভেল তারিখসহ ট্যুর/প্যাকেজ বুকিং এখানে গ্রুপ হয়ে দেখা যাবে।",
+      "createBooking": "ট্যুর বুকিং তৈরি",
+      "date": "ডিপারচার তারিখ",
+      "destination": "গন্তব্য",
+      "bookings": "বুকিং",
+      "travelers": "ভ্রমণকারী"
+    },
+    "panel": {
+      "title": "সার্ভিস অপারেশনস",
+      "workflowStatus": "Workflow স্ট্যাটাস",
+      "saveStatus": "স্ট্যাটাস সেভ",
+      "saved": "অপস স্ট্যাটাস সেভ হয়েছে",
+      "saveFailed": "অপস স্ট্যাটাস সেভ করা যায়নি",
+      "visaCountry": "ভিসা দেশ",
+      "passport": "পাসপোর্ট",
+      "submission": "জমা",
+      "appointment": "অ্যাপয়েন্টমেন্ট",
+      "pnr": "PNR",
+      "airline": "এয়ারলাইন",
+      "route": "রুট",
+      "deadline": "টিকেট ডেডলাইন",
+      "hotel": "হোটেল",
+      "dates": "থাকার তারিখ",
+      "confirmation": "কনফার্মেশন",
+      "guests": "অতিথি",
+      "pickup": "পিকআপ",
+      "vehicle": "যান",
+      "driver": "ড্রাইভার"
+    },
+    "workflow": {
+      "visa": {
+        "not_started": "শুরু হয়নি",
+        "documents_pending": "ডকুমেন্ট বাকি",
+        "submitted": "এম্বাসিতে জমা",
+        "interview_scheduled": "ইন্টারভিউ নির্ধারিত",
+        "approved": "অনুমোদিত",
+        "rejected": "প্রত্যাখ্যাত",
+        "passport_returned": "পাসপোর্ট ফেরত"
+      },
+      "ticket": {
+        "pending": "ইস্যু বাকি",
+        "issued": "টিকেট ইস্যু",
+        "reissued": "রি-ইস্যু",
+        "refund_requested": "রিফান্ড অনুরোধ",
+        "refunded": "রিফান্ড সম্পন্ন"
+      },
+      "hotel": {
+        "pending": "অপেক্ষমাণ",
+        "confirmed": "নিশ্চিত",
+        "voucher_sent": "ভাউচার পাঠানো",
+        "checked_in": "চেক-ইন",
+        "cancelled": "বাতিল"
+      },
+      "transport": {
+        "pending": "অপেক্ষমাণ",
+        "assigned": "ড্রাইভার অ্যাসাইন",
+        "in_transit": "রাস্তায়",
+        "completed": "সম্পন্ন",
+        "cancelled": "বাতিল"
+      }
     }
   },
   "productHelp": {
@@ -421,7 +523,8 @@
       "umrah": "উমরাহ",
       "visa": "ভিসা",
       "student": "স্টুডেন্ট",
-      "manpower": "ম্যানপাওয়ার"
+      "manpower": "ম্যানপাওয়ার",
+      "transport": "ট্রান্সপোর্ট"
     },
     "statuses": {
       "pending": "অপেক্ষমাণ",
@@ -438,7 +541,8 @@
       "visa": "ভিসা",
       "package": "হজ্জ / উমরাহ প্যাকেজ",
       "student": "স্টুডেন্ট",
-      "manpower": "ম্যানপাওয়ার"
+      "manpower": "ম্যানপাওয়ার",
+      "transport": "ট্রান্সপোর্ট"
     },
     "ticketFields": {
       "flightNumber": "ফ্লাইট নম্বর",
@@ -501,6 +605,18 @@
         "student": "ছাত্র",
         "other": "অন্যান্য"
       }
+    },
+    "transportFields": {
+      "routeDescription": "রুট / সেবা",
+      "routePlaceholder": "এয়ারপোর্ট ট্রান্সফার, সিটি ট্যুর…",
+      "pickupLocation": "পিকআপ লোকেশন",
+      "dropoffLocation": "ড্রপ-অফ লোকেশন",
+      "pickupDate": "পিকআপ তারিখ",
+      "pickupTime": "পিকআপ সময়",
+      "vehicleType": "যানের ধরন",
+      "transportVendor": "ট্রান্সপোর্ট ভেন্ডর",
+      "driverName": "ড্রাইভারের নাম",
+      "driverPhone": "ড্রাইভার ফোন"
     },
     "packageFields": {
       "packageId": "ট্রাভেল প্যাকেজ",

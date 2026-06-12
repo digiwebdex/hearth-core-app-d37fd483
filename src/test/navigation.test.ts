@@ -20,4 +20,11 @@ describe("getNavigationGroups", () => {
     expect(hajj?.titleKey).toBe("sidebar.hajjUmrahOperations");
     expect(hajj?.url).toBe("/hajj-umrah");
   });
+
+  it("includes service operations desk in operations group", () => {
+    const ops = getNavigationGroups().find((g) => g.id === "operations");
+    const serviceOps = ops?.items.find((i) => i.id === "service-operations");
+    expect(serviceOps?.titleKey).toBe("sidebar.serviceOperations");
+    expect(serviceOps?.url).toBe("/operations/services");
+  });
 });

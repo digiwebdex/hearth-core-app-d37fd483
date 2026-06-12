@@ -4,6 +4,11 @@ const path = require("path");
 const { authenticate, requirePermission, checkPlanLimit, prisma } = require("../middleware/auth");
 const { dispatchTenantAutomation } = require("../services/tenantAutomationService");
 const { enrichBookingFromPackage } = require("../services/packageLinkage");
+const {
+  flattenServiceDetails,
+  buildListWhere,
+  pickServiceDetailsPayload,
+} = require("../lib/bookingServiceDetails");
 
 const upload = multer({ dest: process.env.UPLOAD_DIR || path.join(__dirname, "../../uploads") });
 const BOOKING_LIST_INCLUDE = {
@@ -24,13 +29,14 @@ router.use(authenticate);
 function formatBooking(record) {
   if (!record) return null;
   const { client, agent, travelPackage, agentCommission, ...booking } = record;
+  const flattened = flattenServiceDetails(booking);
   return {
-    ...booking,
-    clientName: client?.name || booking.clientName || "",
-    agentName: agent?.name || booking.agentName || "",
-    packageTitleSnapshot: booking.packageTitleSnapshot || travelPackage?.title || null,
-    packageCodeSnapshot: booking.packageCodeSnapshot || travelPackage?.code || null,
-    serviceType: booking.serviceType || travelPackage?.serviceType || null,
+    ...flattened,
+    clientName: client?.name || flattened.clientName || "",
+    agentName: agent?.name || flattened.agentName || "",
+    packageTitleSnapshot: flattened.packageTitleSnapshot || travelPackage?.title || null,
+    packageCodeSnapshot: flattened.packageCodeSnapshot || travelPackage?.code || null,
+    serviceType: flattened.serviceType || travelPackage?.serviceType || null,
     agentCommissionAmount: agentCommission?.agentCommissionAmount ?? null,
     agentCommissionStatus: agentCommission?.agentCommissionStatus ?? null,
   };
@@ -195,21 +201,32 @@ async function syncAgentCommission(bookingId, data, tenantId, existingBooking = 
 }
 
 async function normalizeBookingInput(data, tenantId, existingBooking = null) {
-  let next = stripCommissionFields({ ...data });
+  let next = stripCommissionFields(pickServiceDetailsPayload({ ...data }));
   if (next.packageId && !existingBooking?.packageId) {
     next = await enrichBookingFromPackage(next, tenantId);
   }
   next = await resolveClientForBooking(next, tenantId, existingBooking);
   next = await resolveAgentForBooking(next, tenantId);
+  if (!next.opsStatus && !existingBooking?.opsStatus) {
+    next.opsStatus = "pending";
+  }
   return next;
 }
 
 router.get("/", requirePermission("bookings", "view"), async (req, res) => {
   try {
+    const where = buildListWhere(req.tenantId, req.query);
+    const limitRaw = parseInt(String(req.query.limit || "500"), 10);
+    const offsetRaw = parseInt(String(req.query.offset || "0"), 10);
+    const take = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 1000) : 500;
+    const skip = Number.isFinite(offsetRaw) ? Math.max(offsetRaw, 0) : 0;
+
     const bookings = await prisma.booking.findMany({
-      where: { tenantId: req.tenantId },
+      where,
       include: BOOKING_LIST_INCLUDE,
       orderBy: { createdAt: "desc" },
+      take,
+      skip,
     });
     res.json(bookings.map(formatBooking));
   } catch (err) {
