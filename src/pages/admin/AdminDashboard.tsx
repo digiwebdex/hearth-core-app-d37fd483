@@ -235,7 +235,7 @@ const AdminDashboard = () => {
               ) : (
                 <div className="space-y-3">
                   {recentTenants.map((tn) => (
-                    <div key={tn.id} className="flex items-center justify-between text-sm cursor-pointer hover:bg-muted/50 rounded-lg p-2 -mx-2" onClick={() => navigate(`/admin/tenants/${tn.id}`)}>
+                    <div key={tn.id} className="flex items-center justify-between text-sm cursor-pointer hover:bg-muted/50 rounded-lg p-2 -mx-2" onClick={() => navigate(`/admin/tenants/${tn.id}`, { state: { tenant: tn } })}>
                       <div>
                         <p className="font-medium">{tn.name}</p>
                         <p className="text-xs text-muted-foreground">{new Date(tn.createdAt).toLocaleDateString()}</p>

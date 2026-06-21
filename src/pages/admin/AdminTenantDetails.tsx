@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,8 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { adminApi, type AdminTenant } from "@/lib/api";
-import { domainApi, type TenantDomainRecord } from "@/lib/domainApi";
+import { adminApi, domainApi, type AdminTenant, type TenantDomainRecord } from "@/lib/api";
 import { adminSubscriptionWorkflowApi, type WorkflowPaymentRequest, type WorkflowSubscriptionHistory } from "@/lib/subscriptionWorkflowApi";
 import { PLANS, type BillingCycle, type PlanType } from "@/lib/plans";
 
@@ -29,6 +28,8 @@ type ActionType = "activate" | "extend" | "skip_trial" | "suspend";
 
 const AdminTenantDetails = () => {
   const { tenantId } = useParams<{ tenantId: string }>();
+  const location = useLocation();
+  const prefetchedTenant = (location.state as { tenant?: AdminTenant } | null)?.tenant;
   const navigate = useNavigate();
   const { toast } = useToast();
   const { i18n } = useTranslation();
@@ -146,19 +147,78 @@ const AdminTenantDetails = () => {
     if (!tenantId) return;
     setLoading(true);
     try {
-      const [tenantData, requestData, historyData, domainData] = await Promise.all([
+      const [tenantResult, requestResult, historyResult, domainResult] = await Promise.allSettled([
         adminApi.getTenant(tenantId),
         adminSubscriptionWorkflowApi.listPaymentRequests({ tenantId }),
         adminSubscriptionWorkflowApi.getSubscriptionHistory(tenantId),
         domainApi.list(),
       ]);
+
+      let tenantData: AdminTenant | null = tenantResult.status === "fulfilled" ? tenantResult.value : null;
+
+      if (!tenantData) {
+        try {
+          const tenants = await adminApi.getTenants();
+          tenantData = tenants.find((item) => item.id === tenantId) || null;
+        } catch {
+          // ignore list fallback errors
+        }
+      }
+
+      if (!tenantData && prefetchedTenant?.id === tenantId) {
+        tenantData = prefetchedTenant;
+      }
+
+      if (!tenantData) {
+        const reason = tenantResult.status === "rejected" ? tenantResult.reason : null;
+        toast({
+          title: text.loadFailed,
+          description: reason?.message || (isBn ? "এজেন্সি তালিকায় ফিরে গিয়ে আবার চেষ্টা করুন।" : "Go back to the agency list and try again."),
+          variant: "destructive",
+        });
+        setTenant(null);
+        return;
+      }
+
       setTenant(tenantData);
-      setRequests(requestData);
-      setHistory(historyData);
-      setDomains((domainData || []).filter((item) => item.tenantId === tenantId));
       setPlan((tenantData.subscriptionPlan || "basic") as PlanType);
-    } catch (err: any) {
-      toast({ title: text.loadFailed, description: err.message, variant: "destructive" });
+
+      if (requestResult.status === "fulfilled") {
+        setRequests(requestResult.value);
+      } else {
+        setRequests([]);
+      }
+
+      if (historyResult.status === "fulfilled") {
+        setHistory(historyResult.value);
+      } else {
+        setHistory([]);
+      }
+
+      if (domainResult.status === "fulfilled") {
+        setDomains((domainResult.value || []).filter((item) => item.tenantId === tenantId));
+      } else {
+        setDomains([]);
+      }
+
+      const secondaryFailures = [requestResult, historyResult, domainResult].filter((result) => result.status === "rejected");
+      const usedFallback = tenantResult.status === "rejected";
+      if (secondaryFailures.length > 0 || usedFallback) {
+        const firstError =
+          tenantResult.status === "rejected"
+            ? tenantResult.reason?.message
+            : secondaryFailures[0]?.status === "rejected"
+              ? secondaryFailures[0].reason?.message
+              : "";
+        toast({
+          title: isBn ? "কিছু তথ্য আংশিক লোড হয়েছে" : "Some details loaded partially",
+          description:
+            firstError ||
+            (isBn
+              ? "মূল এজেন্সি তথ্য দেখানো হচ্ছে; পেমেন্ট/ডোমেইন তথ্য পরে রিফ্রেশ করুন।"
+              : "Agency profile is shown; refresh later for payment/domain details."),
+        });
+      }
     } finally {
       setLoading(false);
     }

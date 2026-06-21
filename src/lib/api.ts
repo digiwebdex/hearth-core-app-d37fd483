@@ -12,8 +12,17 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     },
   });
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(error.message || "Request failed");
+    const raw = await res.text().catch(() => "");
+    let message = res.statusText || "Request failed";
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as { message?: string; error?: string };
+        message = parsed.message || parsed.error || message;
+      } catch {
+        if (!raw.trimStart().startsWith("<")) message = raw.slice(0, 200) || message;
+      }
+    }
+    throw new Error(message);
   }
   return res.json();
 }
@@ -484,11 +493,12 @@ export interface TenantDomainRecord {
 }
 
 export const domainApi = {
-  list: () => request<TenantDomainRecord[]>("/domains"),
-  create: (data: { tenantId: string; domain: string; wwwRedirect?: string }) => request<TenantDomainRecord>("/domains", { method: "POST", body: JSON.stringify(data) }),
-  verify: (id: string) => request<{ verified: boolean; domain: TenantDomainRecord }>(`/domains/${id}/verify`, { method: "POST" }),
-  updateSsl: (id: string, sslStatus: "active" | "pending" | "none") => request<TenantDomainRecord>(`/domains/${id}/ssl`, { method: "PATCH", body: JSON.stringify({ sslStatus }) }),
-  updateStatus: (id: string, status: "active" | "pending" | "error") => request<TenantDomainRecord>(`/domains/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
-  setPrimary: (id: string) => request<TenantDomainRecord>(`/domains/${id}/primary`, { method: "PATCH" }),
-  remove: (id: string) => request<{ message: string }>(`/domains/${id}`, { method: "DELETE" }),
+  list: () => request<TenantDomainRecord[]>("/admin/domains"),
+  create: (data: { tenantId: string; domain: string; wwwRedirect?: string }) => request<TenantDomainRecord>("/admin/domains", { method: "POST", body: JSON.stringify(data) }),
+  add: (data: { tenantId: string; domain: string; wwwRedirect?: string }) => request<TenantDomainRecord>("/admin/domains", { method: "POST", body: JSON.stringify(data) }),
+  verify: (id: string) => request<{ verified: boolean; domain: TenantDomainRecord }>(`/admin/domains/${id}/verify`, { method: "POST" }),
+  updateSsl: (id: string, sslStatus: "active" | "pending" | "none") => request<TenantDomainRecord>(`/admin/domains/${id}/ssl`, { method: "PATCH", body: JSON.stringify({ sslStatus }) }),
+  updateStatus: (id: string, status: "active" | "pending" | "error") => request<TenantDomainRecord>(`/admin/domains/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
+  setPrimary: (id: string) => request<TenantDomainRecord>(`/admin/domains/${id}/primary`, { method: "PATCH" }),
+  remove: (id: string) => request<{ message: string }>(`/admin/domains/${id}`, { method: "DELETE" }),
 };

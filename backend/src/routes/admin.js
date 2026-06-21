@@ -104,9 +104,9 @@ router.get("/tenants/:id", async (req, res) => {
         _count: { select: { users: true, bookings: true, clients: true, invoices: true } },
       },
     });
-    if (!t) return res.status(404).json({ message: "Not found" });
+    if (!t) return res.status(404).json({ message: "Tenant not found" });
     res.json(t);
-  } catch (err) { res.status(500).json({ message: err.message }); }
+  } catch (err) { res.status(500).json({ message: err.message || "Failed to load tenant" }); }
 });
 
 // Only allow safe fields for admin tenant update
