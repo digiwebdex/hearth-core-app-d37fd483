@@ -10,7 +10,13 @@ const { validatePhone, validateEmail } = require("../utils/contactValidation");
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await prisma.user.findUnique({ where: { email } });
+    let user = null;
+    try {
+      user = await prisma.user.findUnique({ where: { email } });
+    } catch (_e) {
+      // Avoid leaking DB/connectivity errors on auth endpoints.
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
     if (!user) return res.status(401).json({ message: "Invalid credentials" });
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(401).json({ message: "Invalid credentials" });

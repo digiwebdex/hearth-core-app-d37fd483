@@ -48,8 +48,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   })();
 
-  const { isBlocked: isSubscriptionBlocked, reason: subscriptionBlockReason } =
+  const { isBlocked: computedBlocked, reason: subscriptionBlockReason } =
     getSubscriptionBlockState(tenant, currentPlan);
+  const isSubscriptionBlocked = appRole === "super_admin" ? false : computedBlocked;
 
   const isSubscriptionExpired = isSubscriptionBlocked;
 

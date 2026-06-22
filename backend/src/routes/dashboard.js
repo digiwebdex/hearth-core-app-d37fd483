@@ -1,9 +1,9 @@
 const router = require("express").Router();
-const { authenticate, prisma } = require("../middleware/auth");
+const { authenticate, requirePermission, prisma } = require("../middleware/auth");
 
 router.use(authenticate);
 
-router.get("/stats", async (req, res) => {
+router.get("/stats", requirePermission("dashboard", "view"), async (req, res) => {
   try {
     const tid = req.tenantId;
     const now = new Date();
@@ -48,25 +48,35 @@ router.get("/stats", async (req, res) => {
     bookings.forEach((b) => { if (b.destination) destMap[b.destination] = (destMap[b.destination] || 0) + 1; });
     const topDestinations = Object.entries(destMap).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([destination, count]) => ({ destination, count }));
 
-    res.json({
+    const base = {
       totalUsers: users,
       totalClients: clients,
       totalBookings: bookings.length,
-      totalRevenue: invoices.reduce((s, i) => s + i.paidAmount, 0),
       recentBookings,
-      recentPayments: payments,
       activeLeads,
       followUpsDueToday: followUps,
       quotationsSentThisMonth,
       quotationsAwaitingApproval,
       confirmedBookings: confirmed,
       upcomingDepartures: upcoming,
-      overdueInvoices: overdue.length,
-      overdueInvoiceAmount: overdue.reduce((s, i) => s + i.dueAmount, 0),
-      vendorDues,
-      salesThisMonth: salesMonth,
       topDestinations,
-    });
+    };
+
+    // Finance-sensitive widgets: show only to finance roles.
+    const financeRoles = new Set(["super_admin", "tenant_owner", "manager", "accountant"]);
+    if (financeRoles.has(req.userRole)) {
+      return res.json({
+        ...base,
+        totalRevenue: invoices.reduce((s, i) => s + i.paidAmount, 0),
+        recentPayments: payments,
+        overdueInvoices: overdue.length,
+        overdueInvoiceAmount: overdue.reduce((s, i) => s + i.dueAmount, 0),
+        vendorDues,
+        salesThisMonth: salesMonth,
+      });
+    }
+
+    return res.json(base);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

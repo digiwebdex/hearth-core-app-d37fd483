@@ -28,6 +28,13 @@ router.get("/", requireAuditViewer, async (req, res) => {
 // Create audit log entry (authenticated users — tenant-scoped)
 router.post("/", async (req, res) => {
   try {
+    // Only allow privileged roles to write manual audit events.
+    // Most audit logs should be generated server-side from real actions.
+    const writeRoles = new Set(["super_admin", "tenant_owner", "manager"]);
+    if (!writeRoles.has(req.userRole)) {
+      return res.status(403).json({ message: "Forbidden: insufficient role to write audit logs" });
+    }
+
     const { module, action, targetType, targetId, targetLabel, oldValue, newValue, metadata } = req.body;
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
