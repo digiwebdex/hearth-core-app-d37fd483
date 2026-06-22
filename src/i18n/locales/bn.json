@@ -1022,6 +1022,9 @@
       "monthly": "মাসিক",
       "yearly": "বার্ষিক",
       "save20": "২০% সাশ্রয়",
+      "save2Months": "২ মাস ফ্রি",
+      "billingToggleLabel": "বিলিং সাইকেল",
+      "yearlyHint": "১০ মাসের পেমেন্টে ১২ মাস সেবা",
       "perMonth": "/মাস",
       "perYear": "/বছর",
       "custom": "কাস্টম",
@@ -2839,7 +2842,7 @@
     "cycle": {
       "monthly": "মাসিক",
       "yearly": "বার্ষিক",
-      "yearlySave": "বার্ষিক (২০% সাশ্রয়)",
+      "yearlySave": "বার্ষিক (২ মাস ফ্রি)",
       "yr": "বছর",
       "mo": "মাস"
     },
