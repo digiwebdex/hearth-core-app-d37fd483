@@ -56,6 +56,13 @@ if [ -f .env.production ] && ! git ls-files --error-unmatch .env.production >/de
   mv .env.production .env.production.vps-local
 fi
 
+# Production VPS should match git — drop accidental edits to tracked source files.
+if ! git diff --quiet || ! git diff --cached --quiet; then
+  echo "⚠️  Local changes to tracked files detected — resetting before pull (backend/.env and .env.production are preserved separately):"
+  git status --short || true
+  git reset --hard HEAD
+fi
+
 git pull --ff-only origin "$GIT_BRANCH"
 
 if [ -f .env.production.vps-local ]; then
