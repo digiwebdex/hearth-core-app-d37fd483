@@ -13,7 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { PLANS, FEATURE_COMPARISON, type PlanType } from "@/lib/plans";
+import { PLANS, FEATURE_COMPARISON, getDisplayMonthlyPrice, type BillingCycle } from "@/lib/plans";
+import { BillingCycleToggle } from "@/components/marketing/BillingCycleToggle";
 import {
   Check, X, ArrowRight, Star, Zap, Crown, Rocket, Gem,
   Lock, BarChart3, Receipt,
@@ -36,12 +37,7 @@ const Pricing = () => {
   const update = (key: string, val: string) => setForm((p) => ({ ...p, [key]: val }));
 
   const handleSelectPlan = (planId: string) => {
-    // Direct route to Register with plan pre-selected — Pattern B (instant 3-day trial)
-    if (planId === "free") {
-      navigate(`/register?plan=free`);
-    } else {
-      navigate(`/register?plan=${planId}`);
-    }
+    navigate(`/register?plan=${planId}&billing=${billing}`);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,10 +77,7 @@ const Pricing = () => {
     } finally { setLoading(false); }
   };
 
-  const getPrice = (plan: typeof PLANS[0]) => {
-    if (plan.monthlyPrice <= 0) return plan.monthlyPrice;
-    return billing === "yearly" ? Math.round(plan.yearlyPrice / 12) : plan.monthlyPrice;
-  };
+  const getPrice = (plan: typeof PLANS[0]) => getDisplayMonthlyPrice(plan, billing);
 
   return (
     <MarketingLayout
@@ -103,15 +96,7 @@ const Pricing = () => {
           <p className="text-lg text-white/45 max-w-2xl mx-auto mb-8">
             {t("marketing.pricing.subtitle")}
           </p>
-          {/* Billing toggle */}
-          <div className="inline-flex items-center gap-3 p-1.5 rounded-full bg-white/5 border border-white/8">
-            <button onClick={() => setBilling("monthly")} className={`px-5 py-2 rounded-full text-sm font-medium transition ${billing === "monthly" ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md" : "text-white/45 hover:text-white"}`}>
-              {t("marketing.pricing.monthly")}
-            </button>
-            <button onClick={() => setBilling("yearly")} className={`px-5 py-2 rounded-full text-sm font-medium transition flex items-center gap-2 ${billing === "yearly" ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md" : "text-white/45 hover:text-white"}`}>
-              {t("marketing.pricing.yearly")} <Badge variant="secondary" className="text-[10px] bg-emerald-500/20 text-emerald-400 border-0">{t("marketing.pricing.save20")}</Badge>
-            </button>
-          </div>
+          <BillingCycleToggle billing={billing} onChange={setBilling} />
         </div>
       </section>
 
@@ -216,7 +201,15 @@ const Pricing = () => {
                   {PLANS.map((p) => (
                     <TableHead key={p.id} className="text-center text-white/60 min-w-[100px]">
                       <div className="font-semibold">{p.name}</div>
-                      <div className="text-xs text-amber-400 font-normal">{p.monthlyPrice === -1 ? t("marketing.pricing.custom") : p.monthlyPrice === 0 ? t("marketing.pricing.free") : `৳${p.monthlyPrice}`}</div>
+                      <div className="text-xs text-amber-400 font-normal">
+                        {p.monthlyPrice === -1
+                          ? t("marketing.pricing.custom")
+                          : p.monthlyPrice === 0
+                            ? t("marketing.pricing.free")
+                            : billing === "yearly"
+                              ? `৳${p.yearlyPrice.toLocaleString()}${t("marketing.pricing.perYear")}`
+                              : `৳${p.monthlyPrice}`}
+                      </div>
                     </TableHead>
                   ))}
                 </TableRow>

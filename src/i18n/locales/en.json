@@ -1025,6 +1025,8 @@
       "subtitle": "Choose the plan that fits your travel agency. All prices in BDT.",
       "monthly": "Monthly",
       "yearly": "Yearly",
+      "twoMonthsFree": "2 mo. free",
+      "save2Months": "Save 2 months with yearly billing",
       "save20": "Save 20%",
       "perMonth": "/month",
       "perYear": "/year",
@@ -2843,7 +2845,7 @@
     "cycle": {
       "monthly": "Monthly",
       "yearly": "Yearly",
-      "yearlySave": "Yearly (save 20%)",
+      "yearlySave": "Yearly (2 months free)",
       "yr": "yr",
       "mo": "mo"
     },

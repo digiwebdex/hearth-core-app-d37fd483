@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { PLANS } from "@/lib/plans";
+import { PLANS, getDisplayMonthlyPrice, type BillingCycle } from "@/lib/plans";
+import { BillingCycleToggle } from "@/components/marketing/BillingCycleToggle";
 import {
   Plane, BarChart3, Shield, Moon, Receipt,
   Check, ArrowRight, Zap, Crown, Rocket, Gem, Star,
@@ -39,10 +40,11 @@ const Index = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [billing, setBilling] = useState<BillingCycle>("monthly");
 
   // Single entry point: any plan-card click → /register with pre-selected plan
   const handleSelectPlan = (planId: string) => {
-    navigate(`/register?plan=${planId}`);
+    navigate(`/register?plan=${planId}&billing=${billing}`);
   };
 
   const visiblePlans = PLANS;
@@ -158,12 +160,14 @@ const Index = () => {
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-amber-400/10 text-amber-400 border-amber-400/25">{t("landing.pricingBadge")}</Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">{t("landing.pricingTitle")}</h2>
-            <p className="text-white/45 max-w-2xl mx-auto">{t("landing.pricingSubtitle")}</p>
+            <p className="text-white/45 max-w-2xl mx-auto mb-8">{t("landing.pricingSubtitle")}</p>
+            <BillingCycleToggle billing={billing} onChange={setBilling} />
           </div>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto mt-12">
             {visiblePlans.map((plan) => {
               const Icon = planIcons[plan.id] || Star;
               const isHighlighted = plan.badge === "Most Popular" || plan.badge === "Best Value";
+              const price = getDisplayMonthlyPrice(plan, billing);
               return (
                 <Card key={plan.id} className={`relative overflow-hidden bg-white/[0.04] border-white/8 text-white ${isHighlighted ? "ring-2 ring-amber-400 border-amber-400/40 md:scale-105 z-10" : "hover:border-white/15"} transition-all`}>
                   {plan.badge && (
@@ -178,13 +182,16 @@ const Index = () => {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="text-center">
-                      {plan.price === -1 ? (
+                      {price === -1 ? (
                         <span className="text-2xl font-extrabold text-amber-400">{t("common.custom")}</span>
                       ) : (
                         <>
-                          <span className="text-3xl font-extrabold text-amber-400">৳{plan.price.toLocaleString()}</span>
+                          <span className="text-3xl font-extrabold text-amber-400">৳{price.toLocaleString()}</span>
                           <span className="text-white/40 text-sm ml-1">{t("common.perMonth")}</span>
                         </>
+                      )}
+                      {billing === "yearly" && price > 0 && (
+                        <p className="text-xs text-emerald-400 mt-1">৳{plan.yearlyPrice.toLocaleString()}{t("marketing.pricing.perYear")}</p>
                       )}
                     </div>
                     <Separator className="bg-white/8" />
@@ -194,7 +201,7 @@ const Index = () => {
                       ))}
                     </ul>
                     <Button className={`w-full h-10 text-sm ${isHighlighted ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/20" : "bg-white/8 hover:bg-white/12 text-white"}`} onClick={() => handleSelectPlan(plan.id)}>
-                      {plan.price === -1 ? t("register.contactForPrice") : t("common.subscribeNow")}<ArrowRight className="ml-2 h-4 w-4" />
+                      {price === -1 ? t("register.contactForPrice") : t("common.subscribeNow")}<ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </CardContent>
                 </Card>

@@ -45,9 +45,14 @@ export interface PlanConfig {
   hasPrioritySupport: boolean;
 }
 
-// ── Helper: yearly price with discount ──
-const yearly = (monthly: number, discountPct = 20) =>
-  monthly <= 0 ? monthly : Math.round(monthly * 12 * (1 - discountPct / 100));
+// ── Helper: yearly price — pay for 10 months, get 12 (2 months free) ──
+const yearly = (monthly: number) =>
+  monthly <= 0 ? monthly : monthly * 10;
+
+export function getDisplayMonthlyPrice(plan: PlanConfig, cycle: BillingCycle): number {
+  if (plan.monthlyPrice <= 0) return plan.monthlyPrice;
+  return cycle === "yearly" ? Math.round(plan.yearlyPrice / 12) : plan.monthlyPrice;
+}
 
 export const PLANS: PlanConfig[] = [
   {
