@@ -45,9 +45,11 @@ export interface PlanConfig {
   hasPrioritySupport: boolean;
 }
 
-// ── Helper: yearly price with discount ──
-const yearly = (monthly: number, discountPct = 20) =>
-  monthly <= 0 ? monthly : Math.round(monthly * 12 * (1 - discountPct / 100));
+// ── Helper: yearly price — pay for 10 months, get 12 (2 months free) ──
+export const YEARLY_FREE_MONTHS = 2;
+
+const yearly = (monthly: number) =>
+  monthly <= 0 ? monthly : monthly * (12 - YEARLY_FREE_MONTHS);
 
 export const PLANS: PlanConfig[] = [
   {
@@ -118,10 +120,16 @@ export function getPlanPrice(planId: PlanType, cycle: BillingCycle): number {
   return cycle === "yearly" ? plan.yearlyPrice : plan.monthlyPrice;
 }
 
+/** Monthly equivalent shown on cards when yearly billing is selected */
+export function getDisplayMonthlyPrice(plan: PlanConfig, cycle: BillingCycle): number {
+  if (plan.monthlyPrice <= 0) return plan.monthlyPrice;
+  return cycle === "yearly" ? Math.round(plan.yearlyPrice / 12) : plan.monthlyPrice;
+}
+
 export function getYearlySavings(planId: PlanType): number {
   const plan = getPlan(planId);
   if (plan.monthlyPrice <= 0) return 0;
-  return (plan.monthlyPrice * 12) - plan.yearlyPrice;
+  return plan.monthlyPrice * YEARLY_FREE_MONTHS;
 }
 
 export function getLimitLabel(value: number): string {

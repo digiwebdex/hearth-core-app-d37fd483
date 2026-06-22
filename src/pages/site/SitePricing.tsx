@@ -1,18 +1,21 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PLANS, FEATURE_COMPARISON, type PlanConfig } from "@/lib/plans";
+import { PLANS, FEATURE_COMPARISON, getDisplayMonthlyPrice, type BillingCycle, type PlanConfig } from "@/lib/plans";
+import BillingCycleToggle from "@/components/BillingCycleToggle";
 import { Check, X, Crown, Sparkles, Plane } from "lucide-react";
 
 const visiblePlans = PLANS;
 
-function PlanCard({ plan }: { plan: PlanConfig }) {
+function PlanCard({ plan, billing }: { plan: PlanConfig; billing: BillingCycle }) {
   const isPopular = plan.badge === "Most Popular";
   const isBestValue = plan.badge === "Best Value";
   const highlighted = isPopular || isBestValue;
+  const price = getDisplayMonthlyPrice(plan, billing);
 
   return (
     <Card className={`relative flex flex-col ${highlighted ? "border-primary shadow-lg scale-[1.03]" : "border-border"}`}>
@@ -29,15 +32,20 @@ function PlanCard({ plan }: { plan: PlanConfig }) {
         <CardTitle className="text-xl">{plan.name}</CardTitle>
         <CardDescription>{plan.description}</CardDescription>
         <div className="mt-4">
-          {plan.price === 0 ? (
+          {price === 0 ? (
             <span className="text-4xl font-bold">Free</span>
-          ) : plan.price === -1 ? (
+          ) : price === -1 ? (
             <span className="text-3xl font-bold">Custom</span>
           ) : (
             <>
-              <span className="text-4xl font-bold">৳{plan.price.toLocaleString()}</span>
+              <span className="text-4xl font-bold">৳{price.toLocaleString()}</span>
               <span className="text-muted-foreground text-sm">/month</span>
             </>
+          )}
+          {billing === "yearly" && price > 0 && (
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-2">
+              ৳{plan.yearlyPrice.toLocaleString()}/year · Save 2 months
+            </p>
           )}
         </div>
       </CardHeader>
@@ -56,9 +64,12 @@ function PlanCard({ plan }: { plan: PlanConfig }) {
             </li>
           ))}
         </ul>
-        <Link to={plan.price === -1 ? "/site/contact" : `/register?plan=${plan.id}`} className="w-full">
+        <Link
+          to={price === -1 ? "/site/contact" : `/register?plan=${plan.id}&billing=${billing}`}
+          className="w-full"
+        >
           <Button className="w-full" variant={highlighted ? "default" : "outline"} size="lg">
-            {plan.price === -1 ? "Contact Us for Price" : "Subscribe Now"}
+            {price === -1 ? "Contact Us for Price" : "Subscribe Now"}
           </Button>
         </Link>
       </CardContent>
@@ -116,6 +127,8 @@ function FeatureComparisonTable() {
 }
 
 const SitePricing = () => {
+  const [billing, setBilling] = useState<BillingCycle>("monthly");
+
   return (
     <div className="min-h-screen bg-background">
       {/* Simple nav */}
@@ -135,9 +148,10 @@ const SitePricing = () => {
       {/* Hero */}
       <section className="py-16 text-center px-4">
         <h1 className="text-4xl md:text-5xl font-bold mb-4">Simple, Transparent Pricing</h1>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Choose the plan that fits your travel agency. Start free and upgrade as you grow.
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
+          Choose the plan that fits your travel agency. Pay yearly and get 2 months free.
         </p>
+        <BillingCycleToggle value={billing} onChange={setBilling} variant="light" />
       </section>
 
       {/* Plans */}
@@ -153,7 +167,7 @@ const SitePricing = () => {
           <TabsContent value="cards">
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto items-start">
               {visiblePlans.map((plan) => (
-                <PlanCard key={plan.id} plan={plan} />
+                <PlanCard key={plan.id} plan={plan} billing={billing} />
               ))}
             </div>
           </TabsContent>

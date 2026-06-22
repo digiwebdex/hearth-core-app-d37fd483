@@ -651,6 +651,9 @@
       "monthly": "Monthly",
       "yearly": "Yearly",
       "save20": "Save 20%",
+      "save2Months": "Save 2 months",
+      "billingToggleLabel": "Billing cycle",
+      "yearlyHint": "Pay for 10 months, get 12 months of service",
       "perMonth": "/month",
       "perYear": "/year",
       "custom": "Custom",
@@ -2203,7 +2206,7 @@
     "cycle": {
       "monthly": "Monthly",
       "yearly": "Yearly",
-      "yearlySave": "Yearly (save 20%)",
+      "yearlySave": "Yearly (save 2 months)",
       "yr": "yr",
       "mo": "mo"
     },

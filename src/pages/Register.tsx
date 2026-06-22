@@ -9,17 +9,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Sparkles, Clock, CheckCircle2 } from "lucide-react";
-import { PLANS } from "@/lib/plans";
+import { PLANS, getDisplayMonthlyPrice, getPlanPrice, type BillingCycle } from "@/lib/plans";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const Register = () => {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const planParam = (searchParams.get("plan") || "pro").toLowerCase();
+  const billingParam = (searchParams.get("billing") || "monthly").toLowerCase();
+  const billingCycle: BillingCycle = billingParam === "yearly" ? "yearly" : "monthly";
   const selectedPlan = useMemo(
     () => PLANS.find((p) => p.id === planParam) || PLANS.find((p) => p.id === "pro") || PLANS[0],
     [planParam]
   );
+  const displayPrice = useMemo(() => getDisplayMonthlyPrice(selectedPlan, billingCycle), [selectedPlan, billingCycle]);
+  const billingTotal = useMemo(() => getPlanPrice(selectedPlan.id, billingCycle), [selectedPlan, billingCycle]);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -67,7 +71,17 @@ const Register = () => {
           <div className="mt-3 flex flex-col items-center gap-2">
             <Badge variant="secondary" className="text-xs">
               {t("common.selectedPlan")}: <span className="ml-1 font-semibold">{selectedPlan.name}</span>
+              {displayPrice > 0 && (
+                <span className="ml-2 text-muted-foreground">
+                  · {billingCycle === "yearly" ? t("marketing.pricing.yearly") : t("marketing.pricing.monthly")}
+                  {" "}৳{billingCycle === "yearly" ? billingTotal.toLocaleString() : displayPrice.toLocaleString()}
+                  {billingCycle === "yearly" ? t("marketing.pricing.perYear") : t("common.perMonth")}
+                </span>
+              )}
             </Badge>
+            {billingCycle === "yearly" && displayPrice > 0 && (
+              <p className="text-xs text-emerald-600 dark:text-emerald-400">{t("marketing.pricing.save2Months")}</p>
+            )}
             {!isFree && (
               <div className="flex items-center gap-1.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 px-3 py-1 text-xs font-medium">
                 <Clock className="h-3.5 w-3.5" />
