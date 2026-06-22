@@ -158,6 +158,61 @@ router.patch("/me/notification-settings", requireRole("tenant_owner"), async (re
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+router.patch("/me/members/:userId", requireRole("tenant_owner"), async (req, res) => {
+  try {
+    const { role, name } = req.body || {};
+    const target = await prisma.user.findFirst({
+      where: { id: req.params.userId, tenantId: req.tenantId },
+      select: { id: true, email: true, name: true, role: true },
+    });
+    if (!target) return res.status(404).json({ message: "Member not found" });
+    if (target.id === req.userId) {
+      return res.status(400).json({ message: "Cannot change your own role" });
+    }
+    if (target.role === "tenant_owner" || target.role === "owner" || target.role === "admin") {
+      return res.status(400).json({ message: "Cannot change tenant owner role" });
+    }
+
+    const allowedRoles = ["manager", "sales_agent", "accountant", "operations"];
+    const data = {};
+    if (role !== undefined) {
+      if (!allowedRoles.includes(role)) {
+        return res.status(400).json({ message: "Invalid role for team member" });
+      }
+      data.role = role;
+    }
+    if (name !== undefined) {
+      const trimmed = String(name).trim();
+      if (!trimmed) return res.status(400).json({ message: "Name cannot be empty" });
+      data.name = trimmed;
+    }
+    if (!Object.keys(data).length) {
+      return res.status(400).json({ message: "No allowed fields provided" });
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: target.id },
+      data,
+      select: { id: true, name: true, email: true, role: true, tenantId: true, createdAt: true },
+    });
+
+    const actor = await prisma.user.findUnique({ where: { id: req.userId }, select: { name: true, email: true, role: true } });
+    const tenant = await prisma.tenant.findUnique({ where: { id: req.tenantId }, select: { name: true } });
+    await prisma.auditLog.create({
+      data: {
+        actorId: req.userId, actorName: actor?.name || "", actorEmail: actor?.email || "", actorRole: actor?.role || "",
+        tenantId: req.tenantId, tenantName: tenant?.name || null,
+        module: "team", action: "member_updated",
+        targetType: "user", targetId: updated.id, targetLabel: updated.email,
+        oldValue: JSON.stringify({ role: target.role, name: target.name }),
+        newValue: JSON.stringify({ role: updated.role, name: updated.name }),
+      },
+    }).catch(() => {});
+
+    res.json(updated);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 router.delete("/me/members/:userId", requireRole("tenant_owner"), async (req, res) => {
   try {
     // Prevent removing yourself

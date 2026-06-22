@@ -26,6 +26,7 @@ const Team = () => {
   const [inviteRole, setInviteRole] = useState("sales_agent");
   const [inviting, setInviting] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const { canManageTeam } = usePermissions();
@@ -59,6 +60,20 @@ const Team = () => {
       toast({ title: "Failed to add member", description: err.message, variant: "destructive" });
     } finally {
       setInviting(false);
+    }
+  };
+
+  const handleRoleChange = async (memberId: string, role: string) => {
+    setUpdatingRoleId(memberId);
+    try {
+      const updated = await tenantApi.updateMember(memberId, { role });
+      setMembers((prev) => prev.map((m) => (m.id === memberId ? updated : m)));
+      toast({ title: "Role updated" });
+    } catch (err: any) {
+      toast({ title: "Failed to update role", description: err.message, variant: "destructive" });
+      fetchMembers();
+    } finally {
+      setUpdatingRoleId(null);
     }
   };
 
@@ -116,7 +131,9 @@ const Team = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    <p className="text-xs text-muted-foreground">Default password: changeme123 (user should change after first login)</p>
+                    <p className="text-xs text-muted-foreground">
+                      A password setup link is emailed when SMTP is configured. Otherwise you receive a one-time temporary password after adding the member.
+                    </p>
                     <div className="flex gap-2">
                       <Button type="submit" className="flex-1" disabled={inviting}>
                         {inviting ? "Adding..." : "Add Member"}
@@ -156,9 +173,25 @@ const Team = () => {
                         <TableCell className="font-medium">{m.name}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{m.email}</TableCell>
                         <TableCell>
-                          <Badge variant="secondary" style={{ backgroundColor: roleMeta.color + "20", color: roleMeta.color }}>
-                            {roleMeta.label}
-                          </Badge>
+                          {canManageTeam && m.id !== user?.id && m.role !== "tenant_owner" && m.role !== "owner" && m.role !== "admin" ? (
+                            <Select
+                              value={m.role}
+                              disabled={updatingRoleId === m.id}
+                              onValueChange={(value) => handleRoleChange(m.id, value)}
+                            >
+                              <SelectTrigger className="h-8 w-[150px]"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="manager">Manager</SelectItem>
+                                <SelectItem value="sales_agent">Sales Agent</SelectItem>
+                                <SelectItem value="accountant">Accountant</SelectItem>
+                                <SelectItem value="operations">Operations</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Badge variant="secondary" style={{ backgroundColor: roleMeta.color + "20", color: roleMeta.color }}>
+                              {roleMeta.label}
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{new Date(m.createdAt).toLocaleDateString()}</TableCell>
                         {canManageTeam && (

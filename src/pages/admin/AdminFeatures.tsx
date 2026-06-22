@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import AdminLayout from "@/components/AdminLayout";
+import AdminConfigNotice from "@/components/admin/AdminConfigNotice";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -136,9 +137,12 @@ const AdminFeatures = () => {
 
   const handleSave = async () => {
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 800));
+    await new Promise((r) => setTimeout(r, 300));
     setSaving(false);
-    toast({ title: text.saveDone, description: text.saveDesc });
+    toast({
+      title: isBn ? "প্রিভিউ মোড" : "Preview mode",
+      description: isBn ? "লাইভ ফিচার ম্যাপ src/lib/features.ts ফাইলে পরিচালিত হয়।" : "Live feature map is managed in src/lib/features.ts.",
+    });
   };
 
   const countEnabled = (plan: PlanType) => Object.values(featureMap).filter((m) => m[plan]).length;
@@ -147,6 +151,7 @@ const AdminFeatures = () => {
   return (
     <AdminLayout>
       <div className="space-y-6">
+        <AdminConfigNotice sourceFile="src/lib/features.ts" />
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">

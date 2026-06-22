@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import AdminLayout from "@/components/AdminLayout";
+import AdminConfigNotice from "@/components/admin/AdminConfigNotice";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -115,10 +116,10 @@ const AdminPlans = () => {
     e.preventDefault();
     if (editingId) {
       setPlans((prev) => prev.map((p) => p.id === editingId ? { ...p, ...form } : p));
-      toast({ title: t("adminPlans.toast.updated") });
+      toast({ title: t("adminPlans.toast.updated"), description: "Preview only — update src/lib/plans.ts to change live pricing." });
     } else {
       setPlans((prev) => [...prev, { ...form, id: crypto.randomUUID() }]);
-      toast({ title: t("adminPlans.toast.created") });
+      toast({ title: t("adminPlans.toast.created"), description: "Preview only — update src/lib/plans.ts to change live pricing." });
     }
     resetForm();
     setDialogOpen(false);
@@ -149,6 +150,7 @@ const AdminPlans = () => {
   return (
     <AdminLayout>
       <div className="space-y-6">
+        <AdminConfigNotice sourceFile="src/lib/plans.ts" />
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{t("adminPlans.title")}</h1>

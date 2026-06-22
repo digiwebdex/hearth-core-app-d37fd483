@@ -88,6 +88,11 @@ export const tenantApi = {
     }),
   removeMember: (userId: string) =>
     request<void>(`/tenants/me/members/${userId}`, { method: "DELETE" }),
+  updateMember: (userId: string, data: { role?: string; name?: string }) =>
+    request<User>(`/tenants/me/members/${userId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
 };
 
 // ── Dashboard Stats ──

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,8 +16,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
+import { tenantApi, type User } from "@/lib/api";
 import {
   DEFAULT_PERMISSIONS,
+  mapLegacyRole,
   ROLE_METADATA,
   MODULE_METADATA,
   ALL_ACTIONS_LIST,
@@ -30,7 +32,6 @@ import {
   type PermissionMatrix,
 } from "@/lib/permissions";
 
-// Mock team members for demo
 interface TeamMember {
   id: string;
   name: string;
@@ -40,16 +41,21 @@ interface TeamMember {
   joinedAt: string;
 }
 
-const mockMembers: TeamMember[] = [
-  { id: "u1", name: "Karim Ahmed", email: "karim@agency.com", role: "manager", status: "active", joinedAt: "2026-01-15" },
-  { id: "u2", name: "Fatima Begum", email: "fatima@agency.com", role: "sales_agent", status: "active", joinedAt: "2026-02-01" },
-  { id: "u3", name: "Jamal Uddin", email: "jamal@agency.com", role: "accountant", status: "active", joinedAt: "2026-02-10" },
-  { id: "u4", name: "Nasir Hossain", email: "nasir@agency.com", role: "operations", status: "active", joinedAt: "2026-03-01" },
-  { id: "u5", name: "Sakib Hasan", email: "sakib@agency.com", role: "sales_agent", status: "invited", joinedAt: "2026-03-20" },
-];
+function toTeamMember(user: User): TeamMember {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: mapLegacyRole(user.role),
+    status: "active",
+    joinedAt: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "—",
+  };
+}
 
 const RoleManagement = () => {
-  const [members, setMembers] = useState<TeamMember[]>(mockMembers);
+  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [savingRole, setSavingRole] = useState(false);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
@@ -59,6 +65,21 @@ const RoleManagement = () => {
   const [viewRole, setViewRole] = useState<AppRole>("sales_agent");
   const { toast } = useToast();
   const { canManageTeam } = usePermissions();
+
+  const fetchMembers = async () => {
+    setLoading(true);
+    try {
+      const data = await tenantApi.getMembers();
+      setMembers(data.map(toTeamMember));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to load team";
+      toast({ title: "Failed to load team", description: message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchMembers(); }, []);
 
   const tenantRoles = getTenantRoles();
 
@@ -76,12 +97,21 @@ const RoleManagement = () => {
     return counts;
   }, [members]);
 
-  const handleChangeRole = () => {
+  const handleChangeRole = async () => {
     if (!selectedMember) return;
-    setMembers((prev) => prev.map((m) => m.id === selectedMember.id ? { ...m, role: newRole } : m));
-    toast({ title: "Role updated", description: `${selectedMember.name} is now ${getRoleMeta(newRole).label}` });
-    setChangeRoleOpen(false);
-    setSelectedMember(null);
+    setSavingRole(true);
+    try {
+      const updated = await tenantApi.updateMember(selectedMember.id, { role: newRole });
+      setMembers((prev) => prev.map((m) => (m.id === selectedMember.id ? toTeamMember(updated) : m)));
+      toast({ title: "Role updated", description: `${selectedMember.name} is now ${getRoleMeta(newRole).label}` });
+      setChangeRoleOpen(false);
+      setSelectedMember(null);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to update role";
+      toast({ title: "Failed to update role", description: message, variant: "destructive" });
+    } finally {
+      setSavingRole(false);
+    }
   };
 
   const statusBadge = (status: string) => {
@@ -310,8 +340,9 @@ const RoleManagement = () => {
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <Button className="flex-1" onClick={handleChangeRole}>
-                    <Save className="mr-2 h-4 w-4" /> Update Role
+                  <Button className="flex-1" onClick={handleChangeRole} disabled={savingRole}>
+                    {savingRole ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Update Role
                   </Button>
                   <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
                 </div>

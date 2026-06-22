@@ -5,15 +5,37 @@ const prisma = new PrismaClient();
 
 const SECRET = getJwtSecret();
 
-function authenticate(req, res, next) {
+async function authenticate(req, res, next) {
   const header = req.headers.authorization;
   if (!header) return res.status(401).json({ message: "No token provided" });
   const token = header.replace("Bearer ", "");
   try {
     const decoded = jwt.verify(token, SECRET);
-    req.userId = decoded.userId;
-    req.tenantId = decoded.tenantId;
-    req.userRole = decoded.role;
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: { id: true, tenantId: true, role: true, status: true },
+    });
+    if (!user) return res.status(401).json({ message: "Invalid token" });
+
+    if (user.status === "pending") {
+      return res.status(403).json({
+        message: "Your account is pending admin approval.",
+        code: "PENDING_APPROVAL",
+      });
+    }
+    if (user.status === "rejected") {
+      return res.status(403).json({
+        message: "Your account has been rejected.",
+        code: "REJECTED",
+      });
+    }
+    if (user.status !== "active") {
+      return res.status(403).json({ message: "Account is not active", code: "INACTIVE" });
+    }
+
+    req.userId = user.id;
+    req.tenantId = user.tenantId;
+    req.userRole = user.role;
     next();
   } catch {
     return res.status(401).json({ message: "Invalid token" });

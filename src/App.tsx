@@ -6,7 +6,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { WebsiteProvider } from "@/contexts/WebsiteContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import PermissionRoute from "@/components/PermissionRoute";
 import AdminRoute from "@/components/AdminRoute";
+import type { Module } from "@/lib/permissions";
 import Login from "./pages/Login";
 import { Navigate } from "react-router-dom";
 import { getReservedSubdomain, resolveHostname } from "@/lib/domainResolver";
@@ -94,6 +96,11 @@ const queryClient = new QueryClient();
 type SitePage = "home" | "about" | "packages" | "contact";
 
 const P = ({ children }: { children: React.ReactNode }) => <ProtectedRoute>{children}</ProtectedRoute>;
+const PM = ({ module, children }: { module: Module; children: React.ReactNode }) => (
+  <ProtectedRoute>
+    <PermissionRoute module={module}>{children}</PermissionRoute>
+  </ProtectedRoute>
+);
 const A = ({ children }: { children: React.ReactNode }) => <AdminRoute>{children}</AdminRoute>;
 
 const getSitePage = (page: SitePage) =>
@@ -182,10 +189,10 @@ const AppContent = () => (
           <Route path="/invoices" element={<P><Invoices /></P>} />
           <Route path="/payments" element={<P><Invoices /></P>} />
           <Route path="/invoices/:id/receipt" element={<P><InvoiceReceipt /></P>} />
-          <Route path="/accounts" element={<P><Accounts /></P>} />
-          <Route path="/expenses" element={<P><Accounts /></P>} />
-          <Route path="/commissions" element={<P><Agents /></P>} />
-          <Route path="/reports" element={<P><Reports /></P>} />
+          <Route path="/accounts" element={<PM module="accounts"><Accounts /></PM>} />
+          <Route path="/expenses" element={<PM module="accounts"><Accounts /></PM>} />
+          <Route path="/commissions" element={<PM module="agents"><Agents /></PM>} />
+          <Route path="/reports" element={<PM module="reports"><Reports /></PM>} />
           <Route path="/hajj-umrah" element={<P><HajjModuleGate><HajjUmrah /></HajjModuleGate></P>} />
           <Route path="/hajj-umrah/operations" element={<Navigate to="/hajj-umrah" replace />} />
           <Route path="/operations/bd" element={<P><BdModuleGate><BdOperations /></BdModuleGate></P>} />
@@ -194,18 +201,18 @@ const AppContent = () => (
           <Route path="/legacy/hajj-operations" element={<Navigate to="/hajj-umrah" replace />} />
           <Route path="/subscription" element={<P><SubscriptionRoute /></P>} />
           <Route path="/payment/callback" element={<P><PaymentCallback /></P>} />
-          <Route path="/roles" element={<P><RoleManagement /></P>} />
+          <Route path="/roles" element={<PM module="team"><RoleManagement /></PM>} />
           <Route path="/notifications" element={<P><NotificationLog /></P>} />
-          <Route path="/team" element={<P><Team /></P>} />
-          <Route path="/organization" element={<P><Organization /></P>} />
-          <Route path="/settings" element={<P><SettingsPage /></P>} />
+          <Route path="/team" element={<PM module="team"><Team /></PM>} />
+          <Route path="/organization" element={<PM module="organization"><Organization /></PM>} />
+          <Route path="/settings" element={<PM module="settings"><SettingsPage /></PM>} />
           <Route path="/activity-log" element={<P><ActivityLog /></P>} />
-          <Route path="/settings/billing" element={<P><SettingsBilling /></P>} />
-          <Route path="/website" element={<P><WebsiteBuilderHome /></P>} />
-          <Route path="/website/builder" element={<P><WebsiteCustomizer /></P>} />
-          <Route path="/website/theme-builder" element={<P><Navigate to="/website/builder" replace /></P>} />
-          <Route path="/website/publish" element={<P><WebsitePublishGuide /></P>} />
-          <Route path="/website/domains" element={<P><WebsitePublishGuide /></P>} />
+          <Route path="/settings/billing" element={<PM module="subscription"><SettingsBilling /></PM>} />
+          <Route path="/website" element={<PM module="website"><WebsiteBuilderHome /></PM>} />
+          <Route path="/website/builder" element={<PM module="website"><WebsiteCustomizer /></PM>} />
+          <Route path="/website/theme-builder" element={<PM module="website"><Navigate to="/website/builder" replace /></PM>} />
+          <Route path="/website/publish" element={<PM module="website"><WebsitePublishGuide /></PM>} />
+          <Route path="/website/domains" element={<PM module="website"><WebsitePublishGuide /></PM>} />
           <Route path="/user-guide" element={<P><UserGuide /></P>} />
 
           <Route path="/admin" element={<A><AdminDashboard /></A>} />
