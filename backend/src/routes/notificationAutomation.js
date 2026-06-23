@@ -11,6 +11,7 @@ const EVENT_LABELS = {
   lead_created: "Lead Created",
   booking_created: "Booking Created",
   payment_received: "Payment Received",
+  quotation_sent: "Quotation Sent",
 };
 
 function formatAutomationResponse(settings, events) {

@@ -8,30 +8,34 @@ const { messagePreview } = require("../middleware/upload");
 
 const prisma = new PrismaClient();
 
-const AUTOMATION_EVENTS = ["lead_created", "booking_created", "payment_received"];
+const AUTOMATION_EVENTS = ["lead_created", "booking_created", "payment_received", "quotation_sent"];
 
 const EVENT_MASTER_TOGGLE = {
   lead_created: "notifyOnLead",
   booking_created: "notifyOnBooking",
   payment_received: "notifyOnPayment",
+  quotation_sent: "notifyOnBooking",
 };
 
 const SMS_TEMPLATE_TYPE = {
   lead_created: "custom",
   booking_created: "booking",
   payment_received: "payment",
+  quotation_sent: "custom",
 };
 
 const NOTIFICATION_TYPE = {
   lead_created: "system",
   booking_created: "booking_created",
   payment_received: "payment_received",
+  quotation_sent: "quotation_sent",
 };
 
 const NOTIFICATION_LINK = {
   lead_created: "/leads",
   booking_created: "/bookings",
   payment_received: "/invoices",
+  quotation_sent: "/quotations",
 };
 
 function isSmsEnvConfigured() {
@@ -61,11 +65,12 @@ function buildVariableMap(payload) {
     company: payload.tenantName || "Travel Agency",
     invoiceId: payload.invoiceId || "",
     method: payload.paymentMethod || "",
+    quotationTitle: payload.quotationTitle || "",
+    quotationTotal: payload.quotationTotal != null ? String(payload.quotationTotal) : "0",
+    destination: payload.destination || "",
     balance: payload.balance != null ? String(payload.balance) : "0",
   };
 }
-
-async function ensureTenantSettings(tenantId) {
   let settings = await prisma.smsSettings.findUnique({ where: { tenantId } });
   if (!settings) {
     settings = await prisma.smsSettings.create({
@@ -239,6 +244,12 @@ async function resolveSmsMessage(eventType, payload) {
       templateId: null,
     };
   }
+  if (eventType === "quotation_sent") {
+    return {
+      message: `Dear ${variables.name}, your quotation for ${payload.destination || payload.quotationTitle || "travel"} is ready. Total: ${variables.quotationTotal} BDT. - ${variables.company}`,
+      templateId: null,
+    };
+  }
   return {
     message: `Dear ${variables.name}, we received your payment of ${variables.amount} BDT. - ${variables.company}`,
     templateId: null,
@@ -252,12 +263,16 @@ function buildInAppMessage(eventType, payload) {
   if (eventType === "booking_created") {
     return `${payload.bookingTitle || "Booking"} created for ${payload.clientName || "client"} — ৳${Number(payload.amount || 0).toLocaleString()}.`;
   }
+  if (eventType === "quotation_sent") {
+    return `Quotation sent: ${payload.quotationTitle || payload.destination || "New quote"} — ৳${Number(payload.quotationTotal || 0).toLocaleString()}.`;
+  }
   return `Payment of ৳${Number(payload.amount || 0).toLocaleString()} received for ${payload.invoiceNumber || payload.invoiceId || "invoice"}.`;
 }
 
 function buildInAppTitle(eventType) {
   if (eventType === "lead_created") return "New Lead";
   if (eventType === "booking_created") return "New Booking";
+  if (eventType === "quotation_sent") return "Quotation Sent";
   return "Payment Received";
 }
 

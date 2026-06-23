@@ -55,9 +55,55 @@ router.delete("/:id", requirePermission("quotations", "delete"), async (req, res
 });
 router.patch("/:id/status", requirePermission("quotations", "edit"), async (req, res) => {
   try {
-    const result = await prisma.quotation.updateMany({ where: { id: req.params.id, tenantId: req.tenantId }, data: { status: req.body.status } });
+    const status = req.body.status;
+    const existing = await prisma.quotation.findFirst({ where: { id: req.params.id, tenantId: req.tenantId } });
+    if (!existing) return res.status(404).json({ message: "Not found" });
+
+    const result = await prisma.quotation.updateMany({ where: { id: req.params.id, tenantId: req.tenantId }, data: { status } });
     if (!result.count) return res.status(404).json({ message: "Not found" });
-    res.json(await prisma.quotation.findFirst({ where: { id: req.params.id, tenantId: req.tenantId } }));
+
+    const quotation = await prisma.quotation.findFirst({ where: { id: req.params.id, tenantId: req.tenantId } });
+
+    if (status === "sent" && existing.status !== "sent") {
+      const { dispatchTenantAutomation } = require("../services/tenantAutomationService");
+      let clientPhone = "";
+      let clientName = quotation.clientName || "";
+
+      if (quotation.clientId) {
+        const client = await prisma.client.findFirst({
+          where: { id: quotation.clientId, tenantId: req.tenantId },
+          select: { name: true, phone: true },
+        });
+        clientPhone = client?.phone || "";
+        clientName = client?.name || clientName;
+      } else if (quotation.leadId) {
+        const lead = await prisma.lead.findFirst({
+          where: { id: quotation.leadId, tenantId: req.tenantId },
+          select: { name: true, phone: true },
+        });
+        clientPhone = lead?.phone || "";
+        clientName = lead?.name || quotation.leadName || clientName;
+      }
+
+      const tenant = await prisma.tenant.findUnique({ where: { id: req.tenantId }, select: { name: true } });
+
+      dispatchTenantAutomation("quotation_sent", {
+        tenantId: req.tenantId,
+        actorUserId: req.userId,
+        payload: {
+          relatedType: "quotation",
+          relatedId: quotation.id,
+          quotationTitle: quotation.title,
+          quotationTotal: quotation.grandTotal,
+          destination: quotation.destination,
+          clientName,
+          clientPhone,
+          tenantName: tenant?.name || "",
+        },
+      }).catch((err) => console.error("[automation] quotation_sent:", err.message));
+    }
+
+    res.json(quotation);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 router.get("/:id/versions", requirePermission("quotations", "view"), async (req, res) => {

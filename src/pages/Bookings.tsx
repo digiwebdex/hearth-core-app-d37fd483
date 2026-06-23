@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useMatch, useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -150,13 +150,15 @@ function getBookingTypeInfo(b: Booking): string {
   }
 }
 
-function formToApiPayload(form: BookingFormState) {
+function formToApiPayload(form: BookingFormState, extra?: { clientPhone?: string; clientEmail?: string }) {
   const profit = form.amount - form.cost;
   const base = {
     type: form.type,
     title: form.title,
     clientId: form.clientId,
     clientName: form.clientName,
+    clientPhone: extra?.clientPhone || undefined,
+    clientEmail: extra?.clientEmail || undefined,
     agentId: form.agentId,
     amount: form.amount,
     cost: form.cost,
@@ -252,10 +254,10 @@ function formToApiPayload(form: BookingFormState) {
   }
 }
 
-function withServicePayload(form: BookingFormState) {
+function withServicePayload(form: BookingFormState, extra?: { clientPhone?: string; clientEmail?: string }) {
   const serviceDetails = buildServiceDetailsFromForm(form);
   return {
-    ...formToApiPayload(form),
+    ...formToApiPayload(form, extra),
     serviceDetails,
     opsStatus: String(serviceDetails.workflowStatus || DEFAULT_OPS_STATUS),
   };
@@ -352,6 +354,7 @@ const Bookings = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [leadPrefillId, setLeadPrefillId] = useState("");
+  const leadClientMeta = useRef({ phone: "", email: "" });
   const presetMatch = useMatch("/bookings/:segment");
   const routeSegment = presetMatch?.params.segment;
   const activePreset: BookingPresetId =
@@ -400,6 +403,7 @@ const Bookings = () => {
       travelDateTo: prefill.travelDateTo,
     });
     setLeadPrefillId(prefill.leadId);
+    leadClientMeta.current = { phone: prefill.clientPhone, email: prefill.clientEmail };
     setDialogOpen(true);
     setSearchParams({}, { replace: true });
   }, [searchParams, setSearchParams, allowedBookingTypes]);
@@ -420,7 +424,7 @@ const Bookings = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const payload = withServicePayload(form);
+    const payload = withServicePayload(form, leadClientMeta.current);
     if (editingId) {
       bookingApi.update(editingId, payload).then((updated: Booking) => {
         setItems((prev) => prev.map((b) => (b.id === editingId ? mergeServiceDetailsIntoBooking({ ...b, ...updated }) : b)));

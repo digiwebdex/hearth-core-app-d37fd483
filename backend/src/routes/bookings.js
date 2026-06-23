@@ -92,12 +92,20 @@ async function resolveClientForBooking(data, tenantId, existingBooking = null) {
       client = await prisma.client.create({
         data: {
           name: clientNameValue,
-          phone: "",
-          email: "",
+          phone: String(next.clientPhone || "").trim(),
+          email: String(next.clientEmail || "").trim(),
           tenantId,
         },
         select: { id: true },
       });
+    } else if (next.clientPhone || next.clientEmail) {
+      await prisma.client.update({
+        where: { id: client.id },
+        data: {
+          ...(next.clientPhone ? { phone: String(next.clientPhone).trim() } : {}),
+          ...(next.clientEmail ? { email: String(next.clientEmail).trim() } : {}),
+        },
+      }).catch(() => {});
     }
 
     next.clientId = client.id;

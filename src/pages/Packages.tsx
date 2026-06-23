@@ -44,6 +44,7 @@ import { Switch } from "@/components/ui/switch";
 import PackageWebsiteSyncCard, { PackageWebsiteSyncBadge } from "@/components/PackageWebsiteSyncCard";
 import MasterDataSelect from "@/components/MasterDataSelect";
 import { getPackageQuickTemplates, type PackageQuickTemplate } from "@/lib/packageQuickTemplates";
+import { DEFAULT_PACKAGE_HERO_IMAGE } from "@/lib/packageConstants";
 import { ArrowRight, FileText, Globe, GraduationCap, Loader2, Moon, Package2, Plus, Save, Trash2, UploadCloud, Wand2 } from "lucide-react";
 
 const emptyForm = {
@@ -217,6 +218,8 @@ const Packages = () => {
     quickTemplate: isBn ? "দ্রুত টেমপ্লেট" : "Quick template",
     quickTemplatePlaceholder: isBn ? "টেমপ্লেট বেছে নিন…" : "Choose a starter template…",
     quickTemplateApplied: isBn ? "টেমপ্লেট লোড হয়েছে — প্রয়োজনে সম্পাদনা করুন" : "Template loaded — edit as needed",
+    publishToWebsite: isBn ? "সেভ ও ওয়েবসাইটে প্রকাশ" : "Save & publish to website",
+    publishedLive: isBn ? "প্যাকেজ ওয়েবসাইটে প্রকাশিত" : "Package published on website",
   };
 
   const selected = useMemo(() => items.find((item) => item.id === selectedId) || null, [items, selectedId]);
@@ -383,16 +386,19 @@ const Packages = () => {
   const normalizePricing = () => pricing.map((item) => ({ ...item, label: String(item.label || "Standard").trim(), travelerMin: Math.max(1, Number(item.travelerMin || 1)), travelerMax: item.travelerMax ? Number(item.travelerMax) : null, price: Number(item.price || 0), currency: String(item.currency || form.currency || "BDT").toUpperCase() })).filter((item) => item.label);
   const normalizeMedia = () => media.map((item, index) => ({ ...item, url: String(item.url || "").trim(), altText: item.altText || "", sortOrder: index })).filter((item) => item.url);
 
-  const handleSave = async () => {
+  const handleSave = async (publish = false) => {
     if (!form.code.trim() || !form.title.trim()) {
       toast({ title: text.required, variant: "destructive" });
       return;
     }
     setSaving(true);
+    const heroImage = form.heroImage || (publish ? DEFAULT_PACKAGE_HERO_IMAGE : "");
     const payload = {
       ...form,
       code: form.code.trim().toUpperCase(),
       slug: slugify(form.slug || form.title),
+      status: publish ? "published" : form.status,
+      heroImage,
       durationDays: Number(form.durationDays || 1),
       durationNights: Number(form.durationNights || 0),
       basePrice: Number(form.basePrice || 0),
@@ -407,12 +413,15 @@ const Packages = () => {
         const updated = await travelPackageApi.update(selectedId, payload);
         setItems((prev) => prev.map((item) => (item.id === selectedId ? updated : item)));
         await loadDetails(selectedId);
-        toast({ title: text.updated });
+        toast({ title: publish ? text.publishedLive : text.updated });
       } else {
         const created = await travelPackageApi.create(payload);
         setItems((prev) => [created, ...prev]);
         setSelectedId(created.id);
-        toast({ title: text.created });
+        toast({ title: publish ? text.publishedLive : text.created });
+      }
+      if (publish) {
+        setForm((prev) => ({ ...prev, status: "published", heroImage }));
       }
     } catch (err: any) {
       toast({ title: text.saveFailed, description: err.message, variant: "destructive" });
@@ -650,7 +659,16 @@ const Packages = () => {
 
                   <div className="flex items-center justify-between pt-2">
                     <div>{selectedId ? <Button variant="destructive" onClick={handleDelete}><Trash2 className="mr-2 h-4 w-4" />{text.delete}</Button> : null}</div>
-                    <Button onClick={handleSave} disabled={saving}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}{selectedId ? text.update : text.create}</Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={() => handleSave(false)} disabled={saving}>
+                        {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        {selectedId ? text.update : text.create}
+                      </Button>
+                      <Button onClick={() => handleSave(true)} disabled={saving}>
+                        {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Globe className="mr-2 h-4 w-4" />}
+                        {text.publishToWebsite}
+                      </Button>
+                    </div>
                   </div>
                 </>
               )}
