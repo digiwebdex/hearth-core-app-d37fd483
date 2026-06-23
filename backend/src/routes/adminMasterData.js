@@ -10,6 +10,8 @@ const CATEGORIES = new Set([
   "visa_type",
   "job_category",
   "vehicle_type",
+  "hotel",
+  "insurance_plan",
 ]);
 
 function normalizeCategory(value) {

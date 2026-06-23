@@ -16,7 +16,7 @@ async function upsertRef(prisma, row) {
 }
 
 async function seedMasterReferenceData(prisma) {
-  const counts = { country: 0, city: 0, airline: 0, airport: 0, university: 0, visa_type: 0, job_category: 0, vehicle_type: 0 };
+  const counts = { country: 0, city: 0, airline: 0, airport: 0, university: 0, visa_type: 0, job_category: 0, vehicle_type: 0, hotel: 0, insurance_plan: 0 };
 
   const countries = [
     { code: "BD", name: "Bangladesh", nameBn: "বাংলাদেশ", sortOrder: 1 },
@@ -168,6 +168,31 @@ async function seedMasterReferenceData(prisma) {
   for (const u of universities) {
     await upsertRef(prisma, { category: "university", ...u, isActive: true });
     counts.university += 1;
+  }
+
+  const hotels = [
+    { name: "Hotel Sarina Dhaka", nameBn: "হোটেল সারিনা ঢাকা", meta: { city: "Dhaka", country: "BD" } },
+    { name: "Pan Pacific Sonargaon", nameBn: "প্যান প্যাসিফিক সোনারগাঁও", meta: { city: "Dhaka", country: "BD" } },
+    { name: "Sayeman Beach Resort", nameBn: "সায়েমান বিচ রিসোর্ট", meta: { city: "Cox's Bazar", country: "BD" } },
+    { name: "Makkah Clock Royal Tower", nameBn: "মক্কা ক্লক রয়্যাল টাওয়ার", meta: { city: "Makkah", country: "SA" } },
+    { name: "Madinah Hilton", nameBn: "মদিনা হিলটন", meta: { city: "Madinah", country: "SA" } },
+    { name: "Burj Al Arab", nameBn: "বুর্জ আল আরব", meta: { city: "Dubai", country: "AE" } },
+  ];
+  for (const h of hotels) {
+    await upsertRef(prisma, { category: "hotel", ...h, isActive: true });
+    counts.hotel += 1;
+  }
+
+  const insurancePlans = [
+    { name: "Single Trip Travel Insurance", nameBn: "সিঙ্গেল ট্রিপ ট্রাভেল ইন্স্যুরেন্স" },
+    { name: "Hajj & Umrah Insurance", nameBn: "হজ্জ ও উমরাহ ইন্স্যুরেন্স" },
+    { name: "Student Travel Insurance", nameBn: "স্টুডেন্ট ট্রাভেল ইন্স্যুরেন্স" },
+    { name: "Family Travel Insurance", nameBn: "ফ্যামিলি ট্রাভেল ইন্স্যুরেন্স" },
+    { name: "Business Travel Insurance", nameBn: "বিজনেস ট্রাভেল ইন্স্যুরেন্স" },
+  ];
+  for (const plan of insurancePlans) {
+    await upsertRef(prisma, { category: "insurance_plan", ...plan, isActive: true });
+    counts.insurance_plan += 1;
   }
 
   return { ok: true, counts };

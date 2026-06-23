@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
+import MasterDataSelect from "@/components/MasterDataSelect";
 import type { BookingFormState } from "./types";
 
 interface TourFieldsProps {
@@ -22,11 +23,7 @@ export function TourFields({ form, setForm }: TourFieldsProps) {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="destination">{t("bookingsForm.tourFields.destination")}</Label>
-          <Input
-            id="destination"
-            value={form.destination}
-            onChange={(e) => patch("destination", e.target.value)}
-          />
+          <MasterDataSelect category="city" value={form.destination} onChange={(v) => patch("destination", v)} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="tourOperator">{t("bookingsForm.tourFields.tourOperator")}</Label>

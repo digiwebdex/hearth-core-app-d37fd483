@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import MasterDataSelect from "@/components/MasterDataSelect";
 import type { BookingFormState } from "./types";
 
 interface TransportFieldsProps {
@@ -52,7 +53,7 @@ export function TransportFields({ form, setForm }: TransportFieldsProps) {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="vehicleType">{t("bookingsForm.transportFields.vehicleType")}</Label>
-          <Input id="vehicleType" value={form.vehicleType} onChange={(e) => patch("vehicleType", e.target.value)} />
+          <MasterDataSelect category="vehicle_type" value={form.vehicleType} onChange={(v) => patch("vehicleType", v)} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="transportVendor">{t("bookingsForm.transportFields.transportVendor")}</Label>

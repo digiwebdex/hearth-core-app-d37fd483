@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import MasterDataSelect from "@/components/MasterDataSelect";
 import type { BookingFormState, VisaType } from "./types";
 
 const VISA_TYPES: VisaType[] = ["tourist", "business", "transit", "work", "student", "other"];
@@ -23,7 +24,7 @@ export function StudentFields({ form, setForm }: StudentFieldsProps) {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="instituteName">{t("bookingsForm.studentFields.instituteName")}</Label>
-          <Input id="instituteName" value={form.instituteName} onChange={(e) => patch("instituteName", e.target.value)} />
+          <MasterDataSelect category="university" value={form.instituteName} onChange={(v) => patch("instituteName", v)} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="courseProgram">{t("bookingsForm.studentFields.courseProgram")}</Label>
@@ -33,7 +34,7 @@ export function StudentFields({ form, setForm }: StudentFieldsProps) {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="studentVisaCountry">{t("bookingsForm.studentFields.visaCountry")}</Label>
-          <Input id="studentVisaCountry" value={form.visaCountry} onChange={(e) => patch("visaCountry", e.target.value)} />
+          <MasterDataSelect category="country" value={form.visaCountry} onChange={(v) => patch("visaCountry", v)} />
         </div>
         <div className="space-y-2">
           <Label>{t("bookingsForm.studentFields.visaType")}</Label>

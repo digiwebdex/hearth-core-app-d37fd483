@@ -34,7 +34,7 @@ export function ManpowerFields({ form, setForm }: ManpowerFieldsProps) {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="jobTitle">{t("bookingsForm.manpowerFields.jobTitle")}</Label>
-          <Input id="jobTitle" value={form.jobTitle} onChange={(e) => patch("jobTitle", e.target.value)} />
+          <MasterDataSelect category="job_category" value={form.jobTitle} onChange={(v) => patch("jobTitle", v)} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="contractDuration">{t("bookingsForm.manpowerFields.contractDuration")}</Label>

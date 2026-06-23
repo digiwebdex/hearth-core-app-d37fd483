@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import MasterDataSelect from "@/components/MasterDataSelect";
 import type { BookingFormState, CabinClass } from "./types";
 
 interface TicketFieldsProps {
@@ -26,18 +27,32 @@ export function TicketFields({ form, setForm }: TicketFieldsProps) {
         </div>
         <div className="space-y-2">
           <Label htmlFor="airline">{t("bookingsForm.ticketFields.airline")}</Label>
-          <Input id="airline" value={form.airline} onChange={(e) => patch("airline", e.target.value)} />
+          <MasterDataSelect category="airline" value={form.airline} onChange={(v) => patch("airline", v)} showCode />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="fromCity">{t("bookingsForm.ticketFields.fromCity")}</Label>
-          <Input id="fromCity" value={form.fromCity} onChange={(e) => patch("fromCity", e.target.value)} />
+          <MasterDataSelect
+            category="airport"
+            value={form.fromCity}
+            onChange={(v) => patch("fromCity", v)}
+            valueField="code"
+            showCode
+            placeholder={t("bookingsForm.ticketFields.fromCity")}
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="toCity">{t("bookingsForm.ticketFields.toCity")}</Label>
-          <Input id="toCity" value={form.toCity} onChange={(e) => patch("toCity", e.target.value)} />
+          <MasterDataSelect
+            category="airport"
+            value={form.toCity}
+            onChange={(v) => patch("toCity", v)}
+            valueField="code"
+            showCode
+            placeholder={t("bookingsForm.ticketFields.toCity")}
+          />
         </div>
       </div>
 

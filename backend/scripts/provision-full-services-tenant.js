@@ -8,6 +8,7 @@ require("dotenv").config({ path: require("path").join(__dirname, "../.env") });
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const { PrismaClient } = require("@prisma/client");
+const { ALL_SUBCATEGORY_IDS } = require("../src/constants/serviceCatalogIds");
 
 const ALL_SERVICES = [
   "hajj_umrah",
@@ -76,6 +77,7 @@ async function main() {
         subscriptionStatus: "active",
         subscriptionExpiry: new Date(Date.now() + 365 * 86400000),
         enabledServiceTypes: ALL_SERVICES,
+        enabledSubcategories: [...ALL_SUBCATEGORY_IDS],
         enableHajjUmrahModule: true,
         enableBdOperationsModule: true,
       },
@@ -104,6 +106,7 @@ async function main() {
       where: { id: tenant.id },
       data: {
         enabledServiceTypes: ALL_SERVICES,
+        enabledSubcategories: [...ALL_SUBCATEGORY_IDS],
         enableHajjUmrahModule: true,
         enableBdOperationsModule: true,
       },

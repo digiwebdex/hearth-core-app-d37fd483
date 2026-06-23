@@ -2,7 +2,7 @@ const router = require("express").Router();
 const { authenticate, prisma } = require("../middleware/auth");
 
 const ALLOWED = new Set([
-  "country", "city", "airline", "airport", "university", "visa_type", "job_category", "vehicle_type",
+  "country", "city", "airline", "airport", "university", "visa_type", "job_category",   "vehicle_type", "hotel", "insurance_plan",
 ]);
 
 router.use(authenticate);

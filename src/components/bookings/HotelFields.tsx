@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import MasterDataSelect from "@/components/MasterDataSelect";
 import type { BookingFormState, RoomType } from "./types";
 
 const ROOM_TYPES: RoomType[] = ["single", "double", "twin", "triple", "suite", "other"];
@@ -23,17 +24,22 @@ export function HotelFields({ form, setForm }: HotelFieldsProps) {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="hotelName">{t("bookingsForm.hotelFields.hotelName")}</Label>
-          <Input id="hotelName" value={form.hotelName} onChange={(e) => patch("hotelName", e.target.value)} />
+          <MasterDataSelect category="hotel" value={form.hotelName} onChange={(v) => patch("hotelName", v)} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="hotelCity">{t("bookingsForm.hotelFields.hotelCity")}</Label>
-          <Input id="hotelCity" value={form.hotelCity} onChange={(e) => patch("hotelCity", e.target.value)} />
+          <MasterDataSelect
+            category="city"
+            value={form.hotelCity}
+            onChange={(v) => patch("hotelCity", v)}
+            parentName={form.hotelCountry}
+          />
         </div>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="hotelCountry">{t("bookingsForm.hotelFields.hotelCountry")}</Label>
-        <Input id="hotelCountry" value={form.hotelCountry} onChange={(e) => patch("hotelCountry", e.target.value)} />
+        <MasterDataSelect category="country" value={form.hotelCountry} onChange={(v) => patch("hotelCountry", v)} />
       </div>
 
       <div className="grid grid-cols-2 gap-4">

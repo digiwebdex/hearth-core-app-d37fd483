@@ -26,7 +26,9 @@ export type MasterDataCategory =
   | "university"
   | "visa_type"
   | "job_category"
-  | "vehicle_type";
+  | "vehicle_type"
+  | "hotel"
+  | "insurance_plan";
 
 export interface MasterReference {
   id: string;
@@ -52,6 +54,8 @@ export const MASTER_DATA_CATEGORIES: { id: MasterDataCategory; labelEn: string; 
   { id: "visa_type", labelEn: "Visa Types", labelBn: "ভিসা টাইপ" },
   { id: "job_category", labelEn: "Job Categories", labelBn: "চাকরির ক্যাটাগরি" },
   { id: "vehicle_type", labelEn: "Vehicle Types", labelBn: "যানবাহনের ধরন" },
+  { id: "hotel", labelEn: "Hotels & Resorts", labelBn: "হোটেল ও রিসোর্ট" },
+  { id: "insurance_plan", labelEn: "Insurance Plans", labelBn: "ইন্স্যুরেন্স প্ল্যান" },
 ];
 
 export const masterDataApi = {
