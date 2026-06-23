@@ -31,7 +31,10 @@ Single source of truth: `/srv/travelagencyweb/app/.env` (used by `docker compose
 - `ALLOW_SEED_PASSWORD_RESET=true` — allow seed script to reset passwords in production
 
 ## SMS / WhatsApp (only if used)
-- `SMS_PROVIDER`, `SMS_ENABLED`, `TWILIO_*`, `SMS_API_KEY`, `SMS_SENDER_ID`
+- `SMS_PROVIDER` — `bulksmsbd` | `twilio` | `console`
+- `SMS_ENABLED`, `SMS_API_KEY`, `SMS_SENDER_ID`, `SMS_BASE_URL` (default `http://bulksmsbd.net/api`)
+- `TRIAL_EXPIRY_SMS_LANG` — `bn` or `en` for trial-expired SMS text
+- BulkSMSBD balance check: `GET /api/sms/balance` (super admin); uses `getBalanceApi` endpoint
 - `WHATSAPP_PROVIDER`, `META_WHATSAPP_TOKEN`, `META_WHATSAPP_PHONE_ID`
 
 **Never commit `.env`.** `backend/.gitignore` and `.dockerignore` already exclude it.

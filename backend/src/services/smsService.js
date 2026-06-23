@@ -1,14 +1,65 @@
 /**
  * SMS Service — provider abstraction with console fallback
- * Supports: Twilio, local BD providers (e.g. BulkSMSBD, Infobip)
- * 
+ * Supports: Twilio, BulkSMSBD (bulksmsbd.net)
+ *
  * Env vars:
- * - SMS_PROVIDER (twilio | bulksmsbd | infobip | console)
- * - SMS_API_KEY / TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN
- * - SMS_SENDER_ID / TWILIO_FROM_NUMBER
+ * - SMS_PROVIDER (twilio | bulksmsbd | console)
+ * - SMS_API_KEY — BulkSMSBD API key
+ * - SMS_SENDER_ID — BulkSMSBD approved sender (e.g. 8809617626936)
+ * - SMS_BASE_URL — optional, default https://bulksmsbd.net/api
+ * - TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN + TWILIO_FROM_NUMBER
  */
 
+const { normalizePhone } = require("../utils/contactValidation");
+
 const SMS_PROVIDER = () => process.env.SMS_PROVIDER || "console";
+
+const BULKSMSBD_ERRORS = {
+  1001: "Invalid number",
+  1002: "Sender ID not correct or disabled",
+  1003: "Required fields missing",
+  1005: "BulkSMSBD internal error",
+  1006: "Balance validity not available",
+  1007: "Insufficient SMS balance",
+  1011: "User ID not found (check API key)",
+  1012: "Masking SMS must be sent in Bengali",
+  1032: "Server IP not whitelisted in BulkSMSBD",
+};
+
+function bulkSmsBdBaseUrl() {
+  return (process.env.SMS_BASE_URL || "http://bulksmsbd.net/api").replace(/\/$/, "");
+}
+
+/** BulkSMSBD expects 88017XXXXXXXX (no + prefix). */
+function toBulkSmsNumber(to) {
+  const normalized = normalizePhone(to);
+  if (normalized) return normalized.replace(/^\+/, "");
+  const digits = String(to || "").replace(/\D/g, "");
+  return digits || String(to || "");
+}
+
+function parseBulkSmsBdResponse(data) {
+  const codeRaw = data?.response_code ?? data?.responseCode ?? data?.code;
+  const codeNum = typeof codeRaw === "string" ? parseInt(codeRaw, 10) : codeRaw;
+  if (codeNum === 202 || codeRaw === "202") {
+    return {
+      success: true,
+      messageId: String(codeNum),
+      providerResponse: data,
+    };
+  }
+  const msg =
+    data?.success_message ||
+    data?.error_message ||
+    BULKSMSBD_ERRORS[codeNum] ||
+    `BulkSMSBD error (code ${codeRaw ?? "unknown"})`;
+  return {
+    success: false,
+    error: msg,
+    code: codeNum,
+    providerResponse: data,
+  };
+}
 
 /**
  * Send an SMS. Falls back to console.log if provider not configured.
@@ -71,12 +122,88 @@ async function sendViaBulkSmsBD(to, message) {
       console.log(`[SMS-LOG] BulkSMSBD not configured. To: ${to} | Message: ${message}`);
       return { success: false, provider: "bulksmsbd", error: "SMS_API_KEY not configured" };
     }
+    if (!senderId) {
+      return { success: false, provider: "bulksmsbd", error: "SMS_SENDER_ID not configured" };
+    }
 
-    const url = `https://bulksmsbd.net/api/smsapi?api_key=${apiKey}&type=text&number=${encodeURIComponent(to)}&senderid=${senderId || "8809617613880"}&message=${encodeURIComponent(message)}`;
+    const number = toBulkSmsNumber(to);
+    const params = new URLSearchParams({
+      api_key: apiKey,
+      type: "text",
+      number,
+      senderid: senderId,
+      message,
+    });
+    const url = `${bulkSmsBdBaseUrl()}/smsapi?${params.toString()}`;
     const res = await fetch(url);
-    const data = await res.json().catch(() => ({}));
+    const text = await res.text();
+    let data = {};
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { response_code: text.trim() };
+    }
 
-    return { success: true, provider: "bulksmsbd", messageId: data.response_code || `BD-${Date.now()}` };
+    const parsed = parseBulkSmsBdResponse(data);
+    if (parsed.success) {
+      return { success: true, provider: "bulksmsbd", messageId: parsed.messageId, providerResponse: parsed.providerResponse };
+    }
+    console.warn(`[SMS] BulkSMSBD failed: ${parsed.error}`, data);
+    return {
+      success: false,
+      provider: "bulksmsbd",
+      error: parsed.error,
+      code: parsed.code,
+      providerResponse: parsed.providerResponse,
+    };
+  } catch (err) {
+    return { success: false, provider: "bulksmsbd", error: err.message };
+  }
+}
+
+/** Check BulkSMSBD account balance (super-admin diagnostics). */
+async function getSmsBalance() {
+  const provider = SMS_PROVIDER();
+  if (provider !== "bulksmsbd") {
+    return { success: false, provider, error: "Balance check only supported for bulksmsbd" };
+  }
+  const apiKey = process.env.SMS_API_KEY;
+  if (!apiKey) {
+    return { success: false, provider: "bulksmsbd", error: "SMS_API_KEY not configured" };
+  }
+  try {
+    const url = `${bulkSmsBdBaseUrl()}/getBalanceApi?api_key=${encodeURIComponent(apiKey)}`;
+    const res = await fetch(url);
+    const text = await res.text();
+    let data = {};
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { raw: text.trim() };
+    }
+    const balance =
+      data.balance ??
+      data.Balance ??
+      data.sms_balance ??
+      data.credit ??
+      data.main_balance ??
+      data.total_balance;
+    const codeNum = typeof data.response_code === "string" ? parseInt(data.response_code, 10) : data.response_code;
+    if (codeNum && codeNum !== 202 && BULKSMSBD_ERRORS[codeNum]) {
+      return {
+        success: false,
+        provider: "bulksmsbd",
+        error: data.error_message || BULKSMSBD_ERRORS[codeNum],
+        providerResponse: data,
+      };
+    }
+    return {
+      success: balance !== undefined && balance !== null,
+      provider: "bulksmsbd",
+      balance: balance != null ? String(balance) : undefined,
+      providerResponse: data,
+      error: balance == null ? "Could not parse balance from provider" : undefined,
+    };
   } catch (err) {
     return { success: false, provider: "bulksmsbd", error: err.message };
   }
@@ -135,4 +262,4 @@ function getSmsTemplate(templateName, data) {
   return tmpl(data);
 }
 
-module.exports = { sendSms, getSmsTemplate };
+module.exports = { sendSms, getSmsTemplate, getSmsBalance, toBulkSmsNumber };

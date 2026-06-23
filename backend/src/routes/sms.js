@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const { authenticate, requireSuperAdmin, prisma } = require("../middleware/auth");
-const { sendSms } = require("../services/smsService");
+const { sendSms, getSmsBalance } = require("../services/smsService");
 const { messagePreview } = require("../middleware/upload");
 
 router.use(authenticate);
@@ -14,7 +14,7 @@ function mapEnvProvider() {
 
 function providerBaseUrl() {
   const provider = (process.env.SMS_PROVIDER || "console").toLowerCase();
-  if (provider === "bulksmsbd") return "https://bulksmsbd.net/api";
+  if (provider === "bulksmsbd") return "http://bulksmsbd.net/api";
   if (provider === "twilio") return "https://api.twilio.com";
   return process.env.SMS_BASE_URL || "";
 }
@@ -101,6 +101,15 @@ async function dispatchSms({ phone, message, tenantId, userId, templateId, templ
 // ── Config (super_admin, env-derived) ──
 router.get("/config", requireSuperAdmin, (_req, res) => {
   res.json(getPublicConfig());
+});
+
+router.get("/balance", requireSuperAdmin, async (_req, res) => {
+  try {
+    const result = await getSmsBalance();
+    res.status(result.success ? 200 : 502).json(result);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 router.put("/config", requireSuperAdmin, (req, res) => {
