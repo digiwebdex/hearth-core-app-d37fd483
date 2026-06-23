@@ -18,9 +18,11 @@ import { format, isAfter, isBefore, addDays, parseISO } from "date-fns";
 import {
   Plus, Pencil, Trash2, Plane, Search, Eye, DollarSign,
   CalendarIcon, MapPin, AlertTriangle, Clock, CheckCircle2, XCircle,
-  Ticket, Hotel, Stamp, Package, Filter, FileText, GraduationCap, HardHat, Car,
+  Ticket, Hotel, Stamp, Package, Filter, FileText, GraduationCap, HardHat, Car, Shield,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { getTenantBookingTypes } from "@/lib/bookingTypeOptions";
 import { bookingApi, quotationApi, type Booking, type BookingStatus, type BookingType, type Quotation } from "@/lib/api";
 import EmptyState from "@/components/EmptyState";
 import LoadingState from "@/components/LoadingState";
@@ -34,6 +36,7 @@ import { PackageFields } from "@/components/bookings/PackageFields";
 import { StudentFields } from "@/components/bookings/StudentFields";
 import { ManpowerFields } from "@/components/bookings/ManpowerFields";
 import { TransportFields } from "@/components/bookings/TransportFields";
+import { InsuranceFields } from "@/components/bookings/InsuranceFields";
 import { AgentSelect } from "@/components/bookings/AgentSelect";
 import { emptyForm, type BookingFormState } from "@/components/bookings/types";
 import {
@@ -69,6 +72,8 @@ const TYPE_ICONS: Record<BookingType, typeof MapPin> = {
   student: GraduationCap,
   manpower: HardHat,
   transport: Car,
+  corporate: Plane,
+  insurance: Shield,
 };
 
 const getStatusMeta = (s: BookingStatus) => STATUS_META.find((x) => x.value === s) || STATUS_META[0];
@@ -133,6 +138,12 @@ function getBookingTypeInfo(b: Booking): string {
       const route = b.routeDescription || b.destination || "";
       const pickup = b.pickupLocation || "";
       return [route, pickup].filter(Boolean).join(" · ");
+    }
+    case "insurance": {
+      const plan = (b as Booking & { insurancePlan?: string }).insurancePlan || b.supplierName || "";
+      const policy = (b as Booking & { policyNumber?: string }).policyNumber || b.supplierRef || "";
+      const dest = (b as Booking & { insuranceDestination?: string }).insuranceDestination || b.destination || "";
+      return [plan, dest, policy].filter(Boolean).join(" · ");
     }
     default:
       return "";
@@ -221,6 +232,16 @@ function formToApiPayload(form: BookingFormState) {
         supplierName: form.transportVendor || undefined,
         supplierRef: form.vehicleType || undefined,
       };
+    case "insurance":
+      return {
+        ...base,
+        destination: form.insuranceDestination || undefined,
+        travelDateFrom: form.coverageStart || form.travelDateFrom || undefined,
+        travelDateTo: form.coverageEnd || form.travelDateTo || undefined,
+        travelerCount: form.insuredCount || form.travelerCount,
+        supplierName: form.insurancePlan || form.insuranceProvider || undefined,
+        supplierRef: form.policyNumber || undefined,
+      };
     default:
       return {
         ...base,
@@ -291,6 +312,13 @@ function bookingToForm(b: Booking): BookingFormState {
     driverName: merged.driverName || "",
     driverPhone: merged.driverPhone || "",
     transportVendor: merged.transportVendor || merged.supplierName || "",
+    insurancePlan: (merged as Record<string, unknown>).insurancePlan as string || (merged.type === "insurance" ? merged.supplierName || "" : ""),
+    insuranceProvider: (merged as Record<string, unknown>).insuranceProvider as string || "",
+    insuranceDestination: (merged as Record<string, unknown>).insuranceDestination as string || (merged.type === "insurance" ? merged.destination || "" : ""),
+    coverageStart: (merged as Record<string, unknown>).coverageStart as string || merged.travelDateFrom || "",
+    coverageEnd: (merged as Record<string, unknown>).coverageEnd as string || merged.travelDateTo || "",
+    insuredCount: Number((merged as Record<string, unknown>).insuredCount) || merged.travelerCount || 1,
+    policyNumber: (merged as Record<string, unknown>).policyNumber as string || (merged.type === "insurance" ? merged.supplierRef || "" : ""),
   };
   return applyServiceDetailsToForm(form, merged.serviceDetails || undefined);
 }
@@ -315,6 +343,11 @@ const Bookings = () => {
   const [approvedQuotations, setApprovedQuotations] = useState<Quotation[]>([]);
   const [loadingQuotations, setLoadingQuotations] = useState(false);
   const { toast } = useToast();
+  const { tenant } = useAuth();
+  const allowedBookingTypes = useMemo(
+    () => getTenantBookingTypes(tenant?.enabledServiceTypes, tenant?.enabledSubcategories),
+    [tenant?.enabledServiceTypes, tenant?.enabledSubcategories],
+  );
   const navigate = useNavigate();
   const location = useLocation();
   const presetMatch = useMatch("/bookings/:segment");
@@ -550,15 +583,9 @@ const Bookings = () => {
                         <Select value={form.type} onValueChange={(v) => setForm((f) => ({ ...f, type: v as BookingType }))}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="tour">{t("bookingsForm.types.tour")}</SelectItem>
-                            <SelectItem value="ticket">{t("bookingsForm.types.ticket")}</SelectItem>
-                            <SelectItem value="hotel">{t("bookingsForm.types.hotel")}</SelectItem>
-                            <SelectItem value="visa">{t("bookingsForm.types.visa")}</SelectItem>
-                            <SelectItem value="transport">{t("bookingsForm.types.transport")}</SelectItem>
-                            <SelectItem value="package">{t("bookingsForm.types.package")}</SelectItem>
-                            <SelectItem value="student">{t("bookingsForm.types.student")}</SelectItem>
-                            <SelectItem value="manpower">{t("bookingsForm.types.manpower")}</SelectItem>
-                            <SelectItem value="corporate">{t("bookingsForm.types.corporate")}</SelectItem>
+                            {allowedBookingTypes.map((bt) => (
+                              <SelectItem key={bt} value={bt}>{t(`bookingsForm.types.${bt}`)}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
@@ -577,6 +604,7 @@ const Bookings = () => {
                     {form.type === "hotel" && <HotelFields form={form} setForm={setForm} />}
                     {form.type === "visa" && <VisaFields form={form} setForm={setForm} />}
                     {form.type === "transport" && <TransportFields form={form} setForm={setForm} />}
+                    {form.type === "insurance" && <InsuranceFields form={form} setForm={setForm} />}
                     {form.type === "package" && <PackageFields form={form} setForm={setForm} />}
                     {form.type === "student" && <StudentFields form={form} setForm={setForm} />}
                     {form.type === "manpower" && <ManpowerFields form={form} setForm={setForm} />}

@@ -548,7 +548,8 @@
       "student": "স্টুডেন্ট",
       "manpower": "ম্যানপাওয়ার",
       "transport": "ট্রান্সপোর্ট",
-      "corporate": "কর্পোরেট ট্রাভেল"
+      "corporate": "কর্পোরেট ট্রাভেল",
+      "insurance": "ট্রাভেল ইন্স্যুরেন্স"
     },
     "ticketFields": {
       "flightNumber": "ফ্লাইট নম্বর",
@@ -657,6 +658,16 @@
         "failed": "ব্যর্থ",
         "not_required": "প্রয়োজন নেই"
       }
+    },
+    "insuranceFields": {
+      "plan": "ইন্স্যুরেন্স প্ল্যান",
+      "provider": "ইন্স্যুরেন্স প্রোভাইডার",
+      "providerPh": "যেমন: গার্ডিয়ান লাইফ",
+      "destination": "কভারেজ দেশ",
+      "policyNumber": "পলিসি নম্বর",
+      "coverageStart": "কভারেজ শুরু",
+      "coverageEnd": "কভারেজ শেষ",
+      "insuredCount": "বীমাকৃত ব্যক্তি"
     },
     "payments": {
       "all": "সব পেমেন্ট",

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,6 +13,8 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { Building2, UserCheck, Plane, Receipt, Check, ArrowRight, ArrowLeft, Sparkles, Layers } from "lucide-react";
 import ServiceCatalogPicker from "@/components/ServiceCatalogPicker";
 import { buildServiceSelectionPayload } from "@/lib/enabledServiceTypes";
+import { getTenantBookingTypes } from "@/lib/bookingTypeOptions";
+import type { BookingType } from "@/lib/api";
 
 const Onboarding = () => {
   const { t, i18n } = useTranslation();
@@ -21,7 +23,7 @@ const Onboarding = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { refreshTenant } = useAuth();
+  const { refreshTenant, tenant } = useAuth();
 
   const STEPS = [
     { id: 1, titleKey: "s1Title", descKey: "s1Desc", icon: Building2 },
@@ -40,7 +42,17 @@ const Onboarding = () => {
   const [clientEmail, setClientEmail] = useState("");
   const [createdClientId, setCreatedClientId] = useState("");
 
-  const [bookingType, setBookingType] = useState<"tour" | "ticket" | "hotel" | "visa">("tour");
+  const demoBookingTypes = useMemo(
+    () => getTenantBookingTypes(tenant?.enabledServiceTypes, tenant?.enabledSubcategories),
+    [tenant?.enabledServiceTypes, tenant?.enabledSubcategories],
+  );
+  const [bookingType, setBookingType] = useState<BookingType>("tour");
+
+  useEffect(() => {
+    if (demoBookingTypes.length && !demoBookingTypes.includes(bookingType)) {
+      setBookingType(demoBookingTypes[0]);
+    }
+  }, [demoBookingTypes, bookingType]);
   const [bookingAmount, setBookingAmount] = useState(0);
   const [bookingCost, setBookingCost] = useState(0);
   const [createdBookingId, setCreatedBookingId] = useState("");
@@ -202,13 +214,12 @@ const Onboarding = () => {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>{t("marketing.onboarding.bookingType")}</Label>
-                <Select value={bookingType} onValueChange={(v) => setBookingType(v as any)}>
+                <Select value={bookingType} onValueChange={(v) => setBookingType(v as BookingType)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="tour">{t("marketing.onboarding.tour")}</SelectItem>
-                    <SelectItem value="ticket">{t("marketing.onboarding.ticket")}</SelectItem>
-                    <SelectItem value="hotel">{t("marketing.onboarding.hotel")}</SelectItem>
-                    <SelectItem value="visa">{t("marketing.onboarding.visa")}</SelectItem>
+                    {demoBookingTypes.map((bt) => (
+                      <SelectItem key={bt} value={bt}>{t(`bookingsForm.types.${bt}`)}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

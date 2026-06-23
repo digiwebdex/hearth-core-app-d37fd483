@@ -28,6 +28,8 @@ import {
   ArrowLeft, Save, Plus, Trash2, Hotel, Plane, Stamp, Car, Map, Bike,
   Shield, DollarSign, Percent, Receipt, CalendarIcon, ChevronUp, ChevronDown, FileText,
 } from "lucide-react";
+import MasterDataSelect from "@/components/MasterDataSelect";
+import QuotationCatalogPicker from "@/components/QuotationCatalogPicker";
 
 const ITEM_TYPES: { value: QuotationItemType; labelKey: string; icon: any }[] = [
   { value: "hotel", labelKey: "hotel", icon: Hotel },
@@ -444,7 +446,7 @@ const QuotationBuilder = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>{t("quotationBuilder.details.destination")}</Label>
-                    <Input value={destination} onChange={(e) => setDestination(e.target.value)} placeholder={t("quotationBuilder.details.destinationPh")} />
+                    <MasterDataSelect category="city" value={destination} onChange={setDestination} />
                   </div>
                   <div className="space-y-2">
                     <Label>{t("quotationBuilder.details.travelers")}</Label>
@@ -549,9 +551,15 @@ const QuotationBuilder = () => {
                             </Select>
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                              <Input className="h-8 text-xs" value={item.description} onChange={(e) => updateItem(item.id, { description: e.target.value })} placeholder={t("quotationBuilder.pricing.descriptionPh")} />
+                            <div className="space-y-1 min-w-[200px]">
+                              <div className="flex items-center gap-2">
+                                <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                <Input className="h-8 text-xs flex-1" value={item.description} onChange={(e) => updateItem(item.id, { description: e.target.value })} placeholder={t("quotationBuilder.pricing.descriptionPh")} />
+                              </div>
+                              <QuotationCatalogPicker
+                                itemType={item.type}
+                                onPick={(description, supplier) => updateItem(item.id, { description, supplier: supplier || item.supplier })}
+                              />
                             </div>
                           </TableCell>
                           <TableCell>

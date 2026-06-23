@@ -552,7 +552,8 @@
       "student": "Student",
       "manpower": "Manpower",
       "transport": "Transport",
-      "corporate": "Corporate Travel"
+      "corporate": "Corporate Travel",
+      "insurance": "Travel Insurance"
     },
     "ticketFields": {
       "flightNumber": "Flight Number",
@@ -661,6 +662,16 @@
         "failed": "Failed",
         "not_required": "Not Required"
       }
+    },
+    "insuranceFields": {
+      "plan": "Insurance Plan",
+      "provider": "Insurance Provider",
+      "providerPh": "e.g. Guardian Life",
+      "destination": "Coverage Country",
+      "policyNumber": "Policy Number",
+      "coverageStart": "Coverage Start",
+      "coverageEnd": "Coverage End",
+      "insuredCount": "Insured Persons"
     },
     "payments": {
       "all": "All Payments",

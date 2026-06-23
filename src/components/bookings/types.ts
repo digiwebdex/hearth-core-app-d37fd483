@@ -95,6 +95,15 @@ export interface BookingFormState {
   contractDuration: string;
   medicalStatus: MedicalStatus;
   bmetRegistration: string;
+
+  // Insurance
+  insurancePlan: string;
+  insuranceProvider: string;
+  insuranceDestination: string;
+  coverageStart: string;
+  coverageEnd: string;
+  insuredCount: number;
+  policyNumber: string;
 }
 
 export const emptyForm: BookingFormState = {
@@ -175,4 +184,12 @@ export const emptyForm: BookingFormState = {
   contractDuration: "",
   medicalStatus: "pending",
   bmetRegistration: "",
+
+  insurancePlan: "",
+  insuranceProvider: "",
+  insuranceDestination: "",
+  coverageStart: "",
+  coverageEnd: "",
+  insuredCount: 1,
+  policyNumber: "",
 };

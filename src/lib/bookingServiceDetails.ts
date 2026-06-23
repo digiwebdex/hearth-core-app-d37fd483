@@ -133,6 +133,18 @@ export function buildServiceDetailsFromForm(form: BookingFormState): ServiceDeta
         ...base,
         customizations: form.customizations || undefined,
       };
+    case "insurance":
+      return {
+        ...base,
+        insurancePlan: form.insurancePlan || undefined,
+        insuranceProvider: form.insuranceProvider || undefined,
+        insuranceDestination: form.insuranceDestination || undefined,
+        coverageStart: form.coverageStart || undefined,
+        coverageEnd: form.coverageEnd || undefined,
+        insuredCount: form.insuredCount,
+        policyNumber: form.policyNumber || undefined,
+        workflowStatus: (form as BookingFormState & { workflowStatus?: string }).workflowStatus || "pending",
+      };
     default:
       return base;
   }
@@ -209,6 +221,13 @@ export function applyServiceDetailsToForm(
   patch("medicalStatus", d.medicalStatus);
   patch("bmetRegistration", d.bmetRegistration);
   patch("customizations", d.customizations);
+  patch("insurancePlan", d.insurancePlan);
+  patch("insuranceProvider", d.insuranceProvider);
+  patch("insuranceDestination", d.insuranceDestination);
+  patch("coverageStart", d.coverageStart);
+  patch("coverageEnd", d.coverageEnd);
+  if (typeof d.insuredCount === "number") form.insuredCount = d.insuredCount;
+  patch("policyNumber", d.policyNumber);
 
   return form;
 }
