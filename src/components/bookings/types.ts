@@ -4,7 +4,21 @@ export type CabinClass = "economy" | "business" | "first";
 
 export type RoomType = "single" | "double" | "twin" | "triple" | "suite" | "other";
 
-export type VisaType = "tourist" | "business" | "transit" | "work" | "student" | "other";
+export type VisaType = string;
+
+/** Maps legacy enum values to master-data visa_type names */
+export const LEGACY_VISA_TYPE_MAP: Record<string, string> = {
+  tourist: "Tourist Visa",
+  business: "Business Visa",
+  student: "Student Visa",
+  work: "Work Visa",
+  transit: "Transit Visa",
+};
+
+export function normalizeVisaType(value?: string | null): string {
+  if (!value) return "";
+  return LEGACY_VISA_TYPE_MAP[value] || value;
+}
 
 export type MedicalStatus = "pending" | "cleared" | "failed" | "not_required";
 
@@ -150,7 +164,7 @@ export const emptyForm: BookingFormState = {
   confirmationNumber: "",
 
   visaCountry: "",
-  visaType: "tourist",
+  visaType: "",
   passportNumber: "",
   passportExpiry: "",
   applicationDate: "",

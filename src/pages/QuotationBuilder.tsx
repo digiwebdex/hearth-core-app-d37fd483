@@ -18,6 +18,8 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { getTenantServiceTypes, getTenantQuotationItemTypes } from "@/lib/bookingTypeOptions";
 import {
   quotationApi, type QuotationItem, type QuotationItemType,
   type ItineraryDay, type QuotationStatus,
@@ -85,6 +87,20 @@ const QuotationBuilder = () => {
   const [packagesLoading, setPackagesLoading] = useState(false);
   const [prefillApplied, setPrefillApplied] = useState(false);
   const { toast } = useToast();
+  const { tenant } = useAuth();
+
+  const allowedServiceTypes = useMemo(
+    () => getTenantServiceTypes(tenant?.enabledServiceTypes, tenant?.enabledSubcategories),
+    [tenant?.enabledServiceTypes, tenant?.enabledSubcategories],
+  );
+  const allowedItemTypes = useMemo(
+    () => getTenantQuotationItemTypes(tenant?.enabledServiceTypes, tenant?.enabledSubcategories),
+    [tenant?.enabledServiceTypes, tenant?.enabledSubcategories],
+  );
+  const visibleItemTypes = useMemo(
+    () => ITEM_TYPES.filter((it) => allowedItemTypes.includes(it.value)),
+    [allowedItemTypes],
+  );
 
   const packagePrefillId = searchParams.get("packageId");
 
@@ -125,6 +141,12 @@ const QuotationBuilder = () => {
     { dayNumber: 5, title: "Free Day & Shopping", description: "Day at leisure. Optional visits to Nong Nooch Tropical Garden, Sanctuary of Truth, or shopping at Central Festival Pattaya Beach mall. Pack and prepare for departure.", meals: "Breakfast", accommodation: "Hilton Pattaya" },
     { dayNumber: 6, title: "Departure", description: "After breakfast, check out from hotel. Private transfer to Suvarnabhumi Airport for your return flight to Dhaka. End of a memorable Thailand experience!", meals: "Breakfast", accommodation: "—" },
   ]);
+
+  useEffect(() => {
+    if (!allowedServiceTypes.includes(serviceType)) {
+      setServiceType(allowedServiceTypes[0] || "custom");
+    }
+  }, [allowedServiceTypes, serviceType]);
 
   useEffect(() => {
     setPackagesLoading(true);
@@ -411,7 +433,7 @@ const QuotationBuilder = () => {
                     <Select value={serviceType} onValueChange={(value: ServiceType) => { setServiceType(value); setPackageId("none"); }}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {SERVICE_TYPES.map((type) => (
+                        {allowedServiceTypes.map((type) => (
                           <SelectItem key={type} value={type}>{getServiceTypeLabel(type)}</SelectItem>
                         ))}
                       </SelectContent>
@@ -535,14 +557,14 @@ const QuotationBuilder = () => {
                   </TableHeader>
                   <TableBody>
                     {items.map((item) => {
-                      const Icon = ITEM_TYPES.find((it) => it.value === item.type)?.icon || FileText;
+                      const Icon = visibleItemTypes.find((it) => it.value === item.type)?.icon || FileText;
                       return (
                         <TableRow key={item.id}>
                           <TableCell>
                             <Select value={item.type} onValueChange={(v) => updateItem(item.id, { type: v as QuotationItemType })}>
                               <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                               <SelectContent>
-                                {ITEM_TYPES.map((it) => (
+                                {visibleItemTypes.map((it) => (
                                   <SelectItem key={it.value} value={it.value}>
                                     <div className="flex items-center gap-1.5"><it.icon className="h-3 w-3" />{t(`quotationBuilder.itemTypes.${it.labelKey}`)}</div>
                                   </SelectItem>

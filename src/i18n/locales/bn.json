@@ -529,7 +529,8 @@
       "student": "স্টুডেন্ট",
       "manpower": "ম্যানপাওয়ার",
       "transport": "ট্রান্সপোর্ট",
-      "corporate": "কর্পোরেট"
+      "corporate": "কর্পোরেট",
+      "insurance": "ইন্স্যুরেন্স"
     },
     "statuses": {
       "pending": "অপেক্ষমাণ",

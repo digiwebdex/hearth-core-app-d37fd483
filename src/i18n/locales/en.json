@@ -533,7 +533,8 @@
       "student": "Student",
       "manpower": "Manpower",
       "transport": "Transport",
-      "corporate": "Corporate"
+      "corporate": "Corporate",
+      "insurance": "Insurance"
     },
     "statuses": {
       "pending": "Pending",

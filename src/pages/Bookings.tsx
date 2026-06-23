@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { getTenantBookingTypes } from "@/lib/bookingTypeOptions";
+import { getTenantBookingTypes, getTenantBookingPresets } from "@/lib/bookingTypeOptions";
 import { bookingApi, quotationApi, type Booking, type BookingStatus, type BookingType, type Quotation } from "@/lib/api";
 import EmptyState from "@/components/EmptyState";
 import LoadingState from "@/components/LoadingState";
@@ -49,7 +49,6 @@ import {
   bookingMatchesPreset,
   bookingPresetPath,
   bookingPresetToTypeFilter,
-  BOOKING_PRESET_IDS,
   isBookingPreset,
   type BookingPresetId,
 } from "@/lib/bookingRoutePresets";
@@ -543,7 +542,10 @@ const Bookings = () => {
       ? t("sidebar.bookings")
       : t(`bookingsForm.categories.${activePreset}`);
 
-  const categoryPresets = BOOKING_PRESET_IDS.filter((id) => id !== "all");
+  const categoryPresets = useMemo(
+    () => getTenantBookingPresets(tenant?.enabledServiceTypes, tenant?.enabledSubcategories),
+    [tenant?.enabledServiceTypes, tenant?.enabledSubcategories],
+  );
 
   return (
     <DashboardLayout>

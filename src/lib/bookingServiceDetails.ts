@@ -1,5 +1,6 @@
 import type { BookingType } from "@/lib/api";
 import type { BookingFormState } from "@/components/bookings/types";
+import { normalizeVisaType } from "@/components/bookings/types";
 
 export type ServiceDeskId = "visa" | "ticket" | "hotel" | "transport" | "departures";
 
@@ -193,7 +194,7 @@ export function applyServiceDetailsToForm(
   if (typeof d.guestCount === "number") form.guestCount = d.guestCount;
   patch("confirmationNumber", d.confirmationNumber);
   patch("visaCountry", d.visaCountry);
-  patch("visaType", d.visaType);
+  patch("visaType", normalizeVisaType(d.visaType));
   patch("passportNumber", d.passportNumber);
   patch("passportExpiry", d.passportExpiry);
   patch("applicationDate", d.applicationDate);
