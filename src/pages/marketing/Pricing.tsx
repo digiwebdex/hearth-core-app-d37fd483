@@ -14,14 +14,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { PLANS, FEATURE_COMPARISON, getDisplayMonthlyPrice, type BillingCycle } from "@/lib/plans";
-import {
-  getPlanFeatureLabels,
-  getPlanRestrictionLabels,
-  translatePlanDescription,
-  translateComparisonCategory,
-  translateComparisonFeature,
-  translateComparisonValue,
-} from "@/lib/planDisplay";
 import { BillingCycleToggle } from "@/components/marketing/BillingCycleToggle";
 import {
   Check, X, ArrowRight, Star, Zap, Crown, Rocket, Gem,
@@ -126,7 +118,7 @@ const Pricing = () => {
                   <CardHeader className="pb-2 text-center">
                     <Icon className="mx-auto h-8 w-8 text-amber-400 mb-2" />
                     <CardTitle className="text-lg">{plan.name}</CardTitle>
-                    <CardDescription className="text-white/40 text-xs">{translatePlanDescription(t, plan.id, plan.description)}</CardDescription>
+                    <CardDescription className="text-white/40 text-xs">{plan.description}</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="text-center">
@@ -146,14 +138,14 @@ const Pricing = () => {
                     </div>
                     <Separator className="bg-white/8" />
                     <ul className="space-y-2">
-                      {getPlanFeatureLabels(plan, t).slice(0, 5).map((f) => (
+                      {plan.features.slice(0, 5).map((f) => (
                         <li key={f} className="flex items-start gap-2 text-xs"><Check className="h-3.5 w-3.5 text-emerald-400 mt-0.5 shrink-0" /><span className="text-white/60">{f}</span></li>
                       ))}
-                      {plan.featureKeys.length > 5 && <li className="text-xs text-white/35">+{plan.featureKeys.length - 5} {t("marketing.pricing.more")}</li>}
+                      {plan.features.length > 5 && <li className="text-xs text-white/35">+{plan.features.length - 5} {t("marketing.pricing.more")}</li>}
                     </ul>
-                    {plan.restrictionKeys.length > 0 && (
+                    {plan.restrictions.length > 0 && (
                       <ul className="space-y-1 pt-1 border-t border-white/5">
-                        {getPlanRestrictionLabels(plan, t).slice(0, 2).map((r) => (
+                        {plan.restrictions.slice(0, 2).map((r) => (
                           <li key={r} className="flex items-start gap-2 text-xs"><X className="h-3.5 w-3.5 text-red-400/50 mt-0.5 shrink-0" /><span className="text-white/35">{r}</span></li>
                         ))}
                       </ul>
@@ -226,16 +218,16 @@ const Pricing = () => {
                 {FEATURE_COMPARISON.map((cat) => (
                   <>
                     <TableRow key={cat.category} className="border-white/8 bg-white/[0.02]">
-                      <TableCell colSpan={5} className="font-semibold text-amber-400 text-sm py-2">{translateComparisonCategory(t, cat.category)}</TableCell>
+                      <TableCell colSpan={5} className="font-semibold text-amber-400 text-sm py-2">{cat.category}</TableCell>
                     </TableRow>
                     {cat.features.map((feat) => (
                       <TableRow key={feat.name} className="border-white/8 hover:bg-white/[0.04]">
-                        <TableCell className="text-sm text-white/60">{translateComparisonFeature(t, feat.name)}</TableCell>
+                        <TableCell className="text-sm text-white/60">{feat.name}</TableCell>
                         {(["basic", "pro", "business", "enterprise"] as const).map((planId) => {
                           const val = feat[planId];
                           return (
                             <TableCell key={planId} className="text-center">
-                              {val === true ? <Check className="h-4 w-4 text-emerald-400 mx-auto" /> : val === false ? <X className="h-4 w-4 text-white/15 mx-auto" /> : <span className="text-xs text-white/50">{translateComparisonValue(t, feat.name, val)}</span>}
+                              {val === true ? <Check className="h-4 w-4 text-emerald-400 mx-auto" /> : val === false ? <X className="h-4 w-4 text-white/15 mx-auto" /> : <span className="text-xs text-white/50">{val}</span>}
                             </TableCell>
                           );
                         })}
