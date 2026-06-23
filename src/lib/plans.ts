@@ -28,7 +28,11 @@ export interface PlanConfig {
   maxQuotations: number;
 
   // ── Feature flags ──
+  featureKeys: string[];
+  restrictionKeys: string[];
+  /** @deprecated Use featureKeys + planDisplay helpers */
   features: string[];
+  /** @deprecated Use restrictionKeys + planDisplay helpers */
   restrictions: string[];
   paymentGateways: ("manual" | "sslcommerz" | "bkash" | "custom")[];
   hasCustomDomain: boolean;
@@ -61,8 +65,18 @@ export const PLANS: PlanConfig[] = [
     maxClients: 500, maxBookings: 500, maxUsers: 3, maxDomains: 0,
     maxBranches: 1, maxSmsPerMonth: 0, maxStorageMB: 500, maxReports: 10,
     maxLeads: 500, maxQuotations: 500,
-    features: ["500 clients", "500 bookings", "Hajj, Umrah, Visa, Air Ticket, Hotel bookings", "Accounting", "Invoice + payments", "3 team members"],
-    restrictions: ["No custom domain", "No SMS/Email integration", "No website design"],
+    featureKeys: [
+      "clients500", "bookings500", "leadsQuotations500", "serviceCatalog14",
+      "workflowLeadQuotationBooking", "masterDataEssentials", "crmPipeline",
+      "accountingLedger", "invoiceManualPayment", "teamMembers3", "inAppNotifications", "storage500mb",
+    ],
+    restrictionKeys: ["noCustomDomain", "noWebsiteDesign", "noSmsEmailWhatsapp", "noOnlinePaymentGateway", "noAgentCommission"],
+    features: [
+      "500 clients & bookings", "500 leads & quotations", "14 service categories (Hajj, Umrah, Visa, Air, Hotel & more)",
+      "Lead → Quotation → Booking workflow", "Master data & CRM pipeline", "Accounting & manual invoice payments",
+      "3 team members", "In-app notifications", "500 MB storage",
+    ],
+    restrictions: ["No custom domain", "No website design", "No SMS / Email / WhatsApp", "No online payment gateway", "No agent commission"],
     paymentGateways: ["manual"],
     hasCustomDomain: false, hasWebsiteTemplates: false, hasSmsIntegration: false,
     hasWhatsApp: false, hasEmailNotifications: false, hasAgentCommission: false,
@@ -75,8 +89,19 @@ export const PLANS: PlanConfig[] = [
     maxClients: 1000, maxBookings: 1000, maxUsers: 10, maxDomains: 1,
     maxBranches: 2, maxSmsPerMonth: 500, maxStorageMB: 2048, maxReports: 30,
     maxLeads: 1000, maxQuotations: 1000,
-    features: ["1,000 clients", "1,000 bookings", "Hajj, Umrah, Visa, Air Ticket, Hotel bookings", "Company domain (domain charge excluded)", "Website design", "SMS & Email integration", "Accounting", "Invoice + payments", "10 team members"],
-    restrictions: ["No WhatsApp", "No advanced analytics"],
+    featureKeys: [
+      "clients1000", "bookings1000", "leadsQuotations1000", "serviceCatalog14",
+      "workflowLeadQuotationBooking", "masterDataFull", "customDomain1", "websiteDesignPublish",
+      "smsEmail500", "quotationSmsAutomation", "sslcommerzGateway", "agentCommission",
+      "accountingLedger", "invoicePayments", "teamMembers10", "branches2", "storage2gb",
+    ],
+    restrictionKeys: ["noWhatsapp", "noAdvancedAnalytics", "noBkashRefund"],
+    features: [
+      "1,000 clients, bookings, leads & quotations", "Company domain (domain charge excluded)", "Website design & package publish",
+      "SMS & Email (500/mo) + quotation send alerts", "SSLCommerz online payments", "Agent commission tracking",
+      "Full master data & sales workflow", "10 team members · 2 branches", "2 GB storage",
+    ],
+    restrictions: ["No WhatsApp", "No advanced analytics", "No bKash / refund system"],
     paymentGateways: ["manual", "sslcommerz"],
     hasCustomDomain: true, hasWebsiteTemplates: true, hasSmsIntegration: true,
     hasWhatsApp: false, hasEmailNotifications: true, hasAgentCommission: true,
@@ -89,13 +114,26 @@ export const PLANS: PlanConfig[] = [
     maxClients: 2000, maxBookings: 2000, maxUsers: 25, maxDomains: 2,
     maxBranches: 5, maxSmsPerMonth: 2000, maxStorageMB: 10240, maxReports: -1,
     maxLeads: 2000, maxQuotations: 2000,
-    features: ["2,000 clients", "2,000 bookings", "Hajj, Umrah, Visa, Air Ticket, Hotel bookings", "Company domain (domain charge excluded)", "Website design", "SMS & Email integration", "Accounting", "Invoice + payments", "25 team members"],
+    featureKeys: [
+      "clients2000", "bookings2000", "leadsQuotations2000", "serviceCatalog14",
+      "workflowLeadQuotationBooking", "masterDataFull", "customDomain2", "websiteDesignPublish",
+      "smsEmail2000", "whatsappIntegration", "notificationAutomation", "advancedAnalyticsReports",
+      "marketingTools", "bkashSslcommerz", "refundSystem", "activityAuditLog", "agentCommission",
+      "teamMembers25", "branches5", "storage10gb", "prioritySupport",
+    ],
+    restrictionKeys: [],
+    features: [
+      "2,000 clients, bookings, leads & quotations", "2 company domains + website design",
+      "SMS & Email (2,000/mo) + WhatsApp messaging", "Auto notifications (lead, booking, invoice, trial)",
+      "Advanced analytics & profitability reports", "bKash + SSLCommerz + refund system",
+      "Activity / audit log for managers", "25 team members · 5 branches", "10 GB storage · priority support",
+    ],
     restrictions: [],
     paymentGateways: ["manual", "sslcommerz", "bkash"],
     hasCustomDomain: true, hasWebsiteTemplates: true, hasSmsIntegration: true,
     hasWhatsApp: true, hasEmailNotifications: true, hasAgentCommission: true,
     hasAdvancedAnalytics: true, hasMarketingTools: true, hasApiAccess: false,
-    hasRefundSystem: true, hasHajjUmrah: true, hasPrioritySupport: false,
+    hasRefundSystem: true, hasHajjUmrah: true, hasPrioritySupport: true,
   },
   {
     id: "enterprise", name: "Unlimited", price: -1, monthlyPrice: -1, yearlyPrice: -1,
@@ -103,7 +141,18 @@ export const PLANS: PlanConfig[] = [
     maxClients: -1, maxBookings: -1, maxUsers: -1, maxDomains: -1,
     maxBranches: -1, maxSmsPerMonth: -1, maxStorageMB: -1, maxReports: -1,
     maxLeads: -1, maxQuotations: -1,
-    features: ["Unlimited clients", "Unlimited bookings", "Hajj, Umrah, Visa, Air Ticket, Hotel bookings", "Accounting", "All features unlocked", "Full automation", "Custom integrations", "Dedicated manager", "Priority 24/7 support"],
+    featureKeys: [
+      "unlimitedAll", "serviceCatalog14", "workflowLeadQuotationBooking", "fullAutomation",
+      "smsWhatsappEmailUnlimited", "allPaymentGateways", "advancedAnalyticsReports",
+      "apiAccess", "customIntegrations", "dedicatedManager", "support247",
+    ],
+    restrictionKeys: [],
+    features: [
+      "Unlimited clients, bookings, leads & quotations", "All 14 service modules + Hajj/Umrah",
+      "Full automation (SMS, WhatsApp, email, trial alerts)", "All payment gateways & refund system",
+      "Advanced analytics + API access", "Custom integrations & white-label options",
+      "Dedicated account manager", "Priority 24/7 support",
+    ],
     restrictions: [],
     paymentGateways: ["manual", "sslcommerz", "bkash", "custom"],
     hasCustomDomain: true, hasWebsiteTemplates: true, hasSmsIntegration: true,
@@ -208,27 +257,39 @@ export function checkUsage(sub: TenantSubscription): UsageCheck[] {
   });
 }
 
-// Feature comparison table
+// Feature comparison table (keys resolved via i18n on marketing pages)
 export const FEATURE_COMPARISON = [
   { category: "Core", features: [
     { name: "Dashboard", basic: true, pro: true, business: true, enterprise: true },
-    { name: "CRM System", basic: "500 clients", pro: "1,000 clients", business: "2,000 clients", enterprise: "Unlimited" },
+    { name: "CRM & Clients", basic: "500", pro: "1,000", business: "2,000", enterprise: "Unlimited" },
+    { name: "Leads & Quotations", basic: "500", pro: "1,000", business: "2,000", enterprise: "Unlimited" },
     { name: "Bookings", basic: "500", pro: "1,000", business: "2,000", enterprise: "Unlimited" },
     { name: "Team Members", basic: "3", pro: "10", business: "25", enterprise: "Unlimited" },
     { name: "Branches", basic: "1", pro: "2", business: "5", enterprise: "Unlimited" },
   ]},
+  { category: "Sales Workflow", features: [
+    { name: "Lead → Quotation → Booking", basic: true, pro: true, business: true, enterprise: true },
+    { name: "14 Service Categories", basic: true, pro: true, business: true, enterprise: true },
+    { name: "Master Data (Airlines, Hotels, etc.)", basic: "Essentials", pro: "Full", business: "Full", enterprise: "Full" },
+    { name: "Quotation SMS on Send", basic: false, pro: true, business: true, enterprise: true },
+    { name: "Package Publish to Website", basic: false, pro: true, business: true, enterprise: true },
+  ]},
   { category: "Billing & Payments", features: [
-    { name: "Accounting", basic: true, pro: true, business: true, enterprise: true },
+    { name: "Accounting & Ledger", basic: true, pro: true, business: true, enterprise: true },
     { name: "Invoice System", basic: true, pro: true, business: true, enterprise: true },
     { name: "Manual Payment", basic: true, pro: true, business: true, enterprise: true },
     { name: "SSLCommerz Gateway", basic: false, pro: true, business: true, enterprise: true },
     { name: "bKash Gateway", basic: false, pro: false, business: true, enterprise: true },
     { name: "Refund System", basic: false, pro: false, business: true, enterprise: true },
+    { name: "Agent Commission", basic: false, pro: true, business: true, enterprise: true },
   ]},
   { category: "Communication", features: [
+    { name: "In-app Notifications", basic: true, pro: true, business: true, enterprise: true },
     { name: "Email Integration", basic: false, pro: true, business: true, enterprise: true },
     { name: "SMS Integration", basic: "None", pro: "500/mo", business: "2,000/mo", enterprise: "Unlimited" },
     { name: "WhatsApp", basic: false, pro: false, business: true, enterprise: true },
+    { name: "Auto Alerts (Lead/Booking/Invoice)", basic: false, pro: "SMS + Email", business: "SMS + Email + WA", enterprise: "Full" },
+    { name: "Trial Expiry SMS/WhatsApp", basic: false, pro: false, business: true, enterprise: true },
   ]},
   { category: "Website & Storage", features: [
     { name: "Company Domain (charges excluded)", basic: false, pro: "1", business: "2", enterprise: "Unlimited" },
@@ -236,10 +297,11 @@ export const FEATURE_COMPARISON = [
     { name: "Storage", basic: "500 MB", pro: "2 GB", business: "10 GB", enterprise: "Unlimited" },
   ]},
   { category: "Advanced", features: [
-    { name: "Hajj, Umrah, Visa, Air Ticket, Hotel", basic: true, pro: true, business: true, enterprise: true },
-    { name: "Advanced Analytics", basic: false, pro: false, business: true, enterprise: true },
-    { name: "Full Automation", basic: false, pro: false, business: false, enterprise: true },
+    { name: "Hajj, Umrah, Visa, Air, Hotel & more", basic: true, pro: true, business: true, enterprise: true },
+    { name: "Advanced Analytics & Reports", basic: false, pro: false, business: true, enterprise: true },
+    { name: "Activity / Audit Log", basic: false, pro: false, business: true, enterprise: true },
+    { name: "Marketing Tools", basic: false, pro: false, business: true, enterprise: true },
     { name: "API Access", basic: false, pro: false, business: false, enterprise: true },
-    { name: "Priority Support", basic: false, pro: false, business: true, enterprise: true },
+    { name: "Priority Support", basic: false, pro: false, business: true, enterprise: "24/7" },
   ]},
 ];
