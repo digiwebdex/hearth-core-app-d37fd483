@@ -1,3 +1,4 @@
+const router = require("express").Router();
 const { normalizeEnabledSubcategories } = require("../constants/serviceSubcategories");
 
 const { authenticate, requireRole, requirePermission, checkPlanLimit, prisma } = require("../middleware/auth");

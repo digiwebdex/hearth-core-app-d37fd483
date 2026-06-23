@@ -4,12 +4,45 @@ const { enrichQuotationFromPackage } = require("../services/packageLinkage");
 
 router.use(authenticate);
 
+const QUOTATION_INCLUDE = {
+  client: { select: { name: true, phone: true, email: true } },
+  lead: { select: { name: true, phone: true, email: true } },
+};
+
+const QUOTATION_WRITE_FIELDS = new Set([
+  "title", "clientId", "leadId", "packageId", "serviceType",
+  "packageTitleSnapshot", "packageCodeSnapshot", "destination",
+  "travelDateFrom", "travelDateTo", "travelerCount", "status", "version",
+  "items", "itinerary", "totalCost", "totalSelling", "totalProfit",
+  "discountAmount", "taxAmount", "grandTotal", "validUntil", "notes", "termsAndConditions",
+]);
+
 function nonEmpty(value) {
   const normalized = String(value || "").trim();
   return normalized || null;
 }
 
-async function resolveClientForQuotation(quotation, tenantId) {
+function formatQuotation(row) {
+  if (!row) return row;
+  const { client, lead, ...rest } = row;
+  return {
+    ...rest,
+    clientName: client?.name || undefined,
+    leadName: lead?.name || undefined,
+  };
+}
+
+function parseQuotationBody(body) {
+  const clientName = nonEmpty(body.clientName);
+  const leadName = nonEmpty(body.leadName);
+  const prismaData = {};
+  for (const key of QUOTATION_WRITE_FIELDS) {
+    if (body[key] !== undefined) prismaData[key] = body[key];
+  }
+  return { prismaData, clientName, leadName };
+}
+
+async function resolveClientForQuotation(quotation, tenantId, { clientName: clientNameHint } = {}) {
   if (quotation.clientId) return quotation;
 
   if (quotation.leadId) {
@@ -19,7 +52,8 @@ async function resolveClientForQuotation(quotation, tenantId) {
     if (lead.clientId) {
       return prisma.quotation.update({
         where: { id: quotation.id },
-        data: { clientId: lead.clientId, clientName: lead.name },
+        data: { clientId: lead.clientId },
+        include: QUOTATION_INCLUDE,
       });
     }
 
@@ -43,11 +77,12 @@ async function resolveClientForQuotation(quotation, tenantId) {
 
     return prisma.quotation.update({
       where: { id: quotation.id },
-      data: { clientId: client.id, clientName: client.name },
+      data: { clientId: client.id },
+      include: QUOTATION_INCLUDE,
     });
   }
 
-  const name = nonEmpty(quotation.clientName);
+  const name = clientNameHint || null;
   if (name) {
     let client = await prisma.client.findFirst({
       where: { tenantId, name: { equals: name, mode: "insensitive" } },
@@ -63,7 +98,8 @@ async function resolveClientForQuotation(quotation, tenantId) {
 
     return prisma.quotation.update({
       where: { id: quotation.id },
-      data: { clientId: client.id, clientName: client.name },
+      data: { clientId: client.id },
+      include: QUOTATION_INCLUDE,
     });
   }
 
@@ -72,23 +108,24 @@ async function resolveClientForQuotation(quotation, tenantId) {
 
 async function dispatchQuotationSentAutomation(quotation, tenantId, userId) {
   const { dispatchTenantAutomation } = require("../services/tenantAutomationService");
+  const formatted = formatQuotation(quotation);
   let clientPhone = "";
-  let clientName = quotation.clientName || "";
+  let clientName = formatted.clientName || "";
 
   if (quotation.clientId) {
-    const client = await prisma.client.findFirst({
+    const client = quotation.client || await prisma.client.findFirst({
       where: { id: quotation.clientId, tenantId },
       select: { name: true, phone: true },
     });
     clientPhone = client?.phone || "";
     clientName = client?.name || clientName;
   } else if (quotation.leadId) {
-    const lead = await prisma.lead.findFirst({
+    const lead = quotation.lead || await prisma.lead.findFirst({
       where: { id: quotation.leadId, tenantId },
       select: { name: true, phone: true },
     });
     clientPhone = lead?.phone || "";
-    clientName = lead?.name || quotation.leadName || clientName;
+    clientName = lead?.name || formatted.leadName || clientName;
   }
 
   const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { name: true } });
@@ -109,45 +146,67 @@ async function dispatchQuotationSentAutomation(quotation, tenantId, userId) {
   }).catch((err) => console.error("[automation] quotation_sent:", err.message));
 }
 
-async function handleQuotationSentTransition(previousStatus, quotation, tenantId, userId) {
-  if (quotation.status !== "sent" || previousStatus === "sent") return quotation;
+async function handleQuotationSentTransition(previousStatus, quotation, tenantId, userId, hints = {}) {
+  if (quotation.status !== "sent" || previousStatus === "sent") {
+    return formatQuotation(quotation.client || quotation.lead ? quotation : await prisma.quotation.findFirst({
+      where: { id: quotation.id, tenantId },
+      include: QUOTATION_INCLUDE,
+    }));
+  }
 
-  let updated = await resolveClientForQuotation(quotation, tenantId);
+  let updated = await resolveClientForQuotation(quotation, tenantId, hints);
   await dispatchQuotationSentAutomation(updated, tenantId, userId);
-  return updated;
+  return formatQuotation(updated);
 }
 
 router.get("/", requirePermission("quotations", "view"), async (req, res) => {
-  try { res.json(await prisma.quotation.findMany({ where: { tenantId: req.tenantId }, orderBy: { createdAt: "desc" } })); }
+  try {
+    const rows = await prisma.quotation.findMany({
+      where: { tenantId: req.tenantId },
+      orderBy: { createdAt: "desc" },
+      include: QUOTATION_INCLUDE,
+    });
+    res.json(rows.map(formatQuotation));
+  }
   catch (err) { res.status(500).json({ message: err.message }); }
 });
 router.get("/:id", requirePermission("quotations", "view"), async (req, res) => {
   try {
-    const q = await prisma.quotation.findFirst({ where: { id: req.params.id, tenantId: req.tenantId } });
+    const q = await prisma.quotation.findFirst({
+      where: { id: req.params.id, tenantId: req.tenantId },
+      include: QUOTATION_INCLUDE,
+    });
     if (!q) return res.status(404).json({ message: "Not found" });
-    res.json(q);
+    res.json(formatQuotation(q));
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 router.post("/", requirePermission("quotations", "create"), checkPlanLimit("quotations"), async (req, res) => {
   try {
-    const data = await enrichQuotationFromPackage(req.body, req.tenantId);
-    const quotation = await prisma.quotation.create({ data: { ...data, createdBy: req.userId, tenantId: req.tenantId } });
-    if (data.leadId) {
+    const enriched = await enrichQuotationFromPackage(req.body, req.tenantId);
+    const { prismaData, clientName } = parseQuotationBody(enriched);
+    let quotation = await prisma.quotation.create({
+      data: { ...prismaData, createdBy: req.userId, tenantId: req.tenantId },
+      include: QUOTATION_INCLUDE,
+    });
+    if (clientName || prismaData.leadId) {
+      quotation = await resolveClientForQuotation(quotation, req.tenantId, { clientName });
+    }
+    if (prismaData.leadId) {
       await prisma.lead.updateMany({
-        where: { id: data.leadId, tenantId: req.tenantId, status: { notIn: ["won", "lost"] } },
+        where: { id: prismaData.leadId, tenantId: req.tenantId, status: { notIn: ["won", "lost"] } },
         data: { status: "quoted" },
       });
       await prisma.leadActivity.create({
         data: {
-          leadId: data.leadId,
+          leadId: prismaData.leadId,
           type: "status_change",
-          content: `Quotation created: ${data.title || data.destination || "New quote"}`,
+          content: `Quotation created: ${prismaData.title || prismaData.destination || "New quote"}`,
           newStatus: "quoted",
           createdBy: req.userId,
         },
       }).catch(() => {});
     }
-    const result = await handleQuotationSentTransition(null, quotation, req.tenantId, req.userId);
+    const result = await handleQuotationSentTransition(null, quotation, req.tenantId, req.userId, { clientName });
     res.status(201).json(result);
   }
   catch (err) { res.status(400).json({ message: err.message }); }
@@ -158,11 +217,19 @@ router.patch("/:id", requirePermission("quotations", "edit"), async (req, res) =
     if (!existing) return res.status(404).json({ message: "Not found" });
 
     const previousStatus = existing.status;
-    const result = await prisma.quotation.updateMany({ where: { id: req.params.id, tenantId: req.tenantId }, data: req.body });
-    if (!result.count) return res.status(404).json({ message: "Not found" });
+    const { prismaData, clientName } = parseQuotationBody(req.body);
+    if (Object.keys(prismaData).length) {
+      await prisma.quotation.updateMany({ where: { id: req.params.id, tenantId: req.tenantId }, data: prismaData });
+    }
 
-    let quotation = await prisma.quotation.findFirst({ where: { id: req.params.id, tenantId: req.tenantId } });
-    quotation = await handleQuotationSentTransition(previousStatus, quotation, req.tenantId, req.userId);
+    let quotation = await prisma.quotation.findFirst({
+      where: { id: req.params.id, tenantId: req.tenantId },
+      include: QUOTATION_INCLUDE,
+    });
+    if (clientName || prismaData.leadId) {
+      quotation = await resolveClientForQuotation(quotation, req.tenantId, { clientName });
+    }
+    quotation = await handleQuotationSentTransition(previousStatus, quotation, req.tenantId, req.userId, { clientName });
     res.json(quotation);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -184,7 +251,10 @@ router.patch("/:id/status", requirePermission("quotations", "edit"), async (req,
     const result = await prisma.quotation.updateMany({ where: { id: req.params.id, tenantId: req.tenantId }, data: { status } });
     if (!result.count) return res.status(404).json({ message: "Not found" });
 
-    let quotation = await prisma.quotation.findFirst({ where: { id: req.params.id, tenantId: req.tenantId } });
+    let quotation = await prisma.quotation.findFirst({
+      where: { id: req.params.id, tenantId: req.tenantId },
+      include: QUOTATION_INCLUDE,
+    });
     quotation = await handleQuotationSentTransition(previousStatus, quotation, req.tenantId, req.userId);
     res.json(quotation);
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -211,7 +281,10 @@ router.post("/:id/convert-to-booking", requirePermission("quotations", "approve"
     let q = await prisma.quotation.findFirst({ where: { id: req.params.id, tenantId: req.tenantId } });
     if (!q) return res.status(404).json({ message: "Not found" });
 
-    q = await resolveClientForQuotation(q, req.tenantId);
+    q = await resolveClientForQuotation(
+      await prisma.quotation.findFirst({ where: { id: req.params.id, tenantId: req.tenantId }, include: QUOTATION_INCLUDE }),
+      req.tenantId,
+    );
     if (!q.clientId) return res.status(400).json({ message: "Client is required before converting quotation to booking" });
 
     const booking = await prisma.booking.create({
