@@ -5,17 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { tenantApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import ServiceCatalogPicker from "@/components/ServiceCatalogPicker";
 import {
-  deriveModuleFlagsFromServiceTypes,
-  normalizeEnabledServiceTypes,
-  ONBOARDING_SERVICE_TYPES,
+  buildServiceSelectionPayload,
+  normalizeEnabledSubcategories,
 } from "@/lib/enabledServiceTypes";
-import { getLocalizedServiceTypeLabel } from "@/lib/serviceTypes";
-import type { ServiceType } from "@/lib/serviceTypes";
 
 export default function ModuleSettings() {
   const { t, i18n } = useTranslation();
@@ -24,35 +21,25 @@ export default function ModuleSettings() {
   const [saving, setSaving] = useState(false);
   const isBn = String(i18n.resolvedLanguage || i18n.language || "en").startsWith("bn");
 
-  const savedTypes = useMemo(
-    () => normalizeEnabledServiceTypes(tenant?.enabledServiceTypes),
-    [tenant?.enabledServiceTypes],
+  const savedSubs = useMemo(
+    () => normalizeEnabledSubcategories(tenant?.enabledSubcategories),
+    [tenant?.enabledSubcategories],
   );
-  const [selectedTypes, setSelectedTypes] = useState<ServiceType[]>(savedTypes);
+  const [selectedSubs, setSelectedSubs] = useState<string[]>(savedSubs);
 
   useEffect(() => {
-    setSelectedTypes(savedTypes);
-  }, [savedTypes]);
+    setSelectedSubs(savedSubs);
+  }, [savedSubs]);
 
   const hajjEnabled = tenant?.enableHajjUmrahModule !== false;
   const bdEnabled = tenant?.enableBdOperationsModule === true;
   const canEdit = appRole === "tenant_owner" || appRole === "owner";
 
-  const toggleServiceType = (type: ServiceType) => {
-    setSelectedTypes((prev) =>
-      prev.includes(type) ? prev.filter((item) => item !== type) : [...prev, type],
-    );
-  };
-
   const handleSaveServiceTypes = async () => {
     if (!canEdit) return;
     setSaving(true);
     try {
-      const moduleFlags = deriveModuleFlagsFromServiceTypes(selectedTypes);
-      await tenantApi.update({
-        enabledServiceTypes: selectedTypes,
-        ...moduleFlags,
-      });
+      await tenantApi.update(buildServiceSelectionPayload(selectedSubs));
       await refreshTenant();
       toast({ title: t("settingsModules.saved") });
     } catch (err: unknown) {
@@ -109,24 +96,7 @@ export default function ModuleSettings() {
             <Label>{t("settingsModules.serviceTypesLabel")}</Label>
           </div>
           <p className="text-sm text-muted-foreground">{t("settingsModules.serviceTypesDesc")}</p>
-          <div className="flex flex-wrap gap-2">
-            {ONBOARDING_SERVICE_TYPES.map((type) => {
-              const active = selectedTypes.includes(type);
-              return (
-                <Badge
-                  key={type}
-                  variant={active ? "default" : "outline"}
-                  className={canEdit ? "cursor-pointer" : ""}
-                  onClick={() => canEdit && toggleServiceType(type)}
-                >
-                  {getLocalizedServiceTypeLabel(type, isBn)}
-                </Badge>
-              );
-            })}
-          </div>
-          {selectedTypes.length === 0 ? (
-            <p className="text-xs text-muted-foreground">{t("settingsModules.serviceTypesAll")}</p>
-          ) : null}
+          <ServiceCatalogPicker value={selectedSubs} onChange={setSelectedSubs} disabled={!canEdit || saving} />
           {canEdit ? (
             <Button size="sm" disabled={saving} onClick={handleSaveServiceTypes}>
               {t("settingsModules.saveServiceTypes")}

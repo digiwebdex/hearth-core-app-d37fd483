@@ -37,6 +37,8 @@ import {
   filterServiceTypesForTenant,
   normalizeEnabledServiceTypes,
   presetAllowedForServiceTypes,
+  resolveEffectiveServiceTypes,
+  showsAllServiceTypes,
 } from "@/lib/enabledServiceTypes";
 import { Switch } from "@/components/ui/switch";
 import PackageWebsiteSyncCard, { PackageWebsiteSyncBadge } from "@/components/PackageWebsiteSyncCard";
@@ -118,9 +120,15 @@ const Packages = () => {
     () => normalizeEnabledServiceTypes(tenant?.enabledServiceTypes),
     [tenant?.enabledServiceTypes],
   );
+  const effectiveForPresets = useMemo(
+    () => resolveEffectiveServiceTypes(enabledServiceTypes, tenant?.enabledSubcategories),
+    [enabledServiceTypes, tenant?.enabledSubcategories],
+  );
   const visibleServiceTypes = useMemo(
-    () => filterServiceTypesForTenant(SERVICE_TYPES, enabledServiceTypes),
-    [enabledServiceTypes],
+    () => (showsAllServiceTypes(enabledServiceTypes, tenant?.enabledSubcategories)
+      ? [...SERVICE_TYPES]
+      : filterServiceTypesForTenant(SERVICE_TYPES, enabledServiceTypes, tenant?.enabledSubcategories)),
+    [enabledServiceTypes, tenant?.enabledSubcategories],
   );
   const [items, setItems] = useState<TravelPackage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -284,7 +292,7 @@ const Packages = () => {
   }, [items, activePreset, filterType]);
 
   const categoryPresets = PACKAGE_PRESET_IDS.filter(
-    (id) => id !== "all" && presetAllowedForServiceTypes(id, enabledServiceTypes),
+    (id) => id !== "all" && presetAllowedForServiceTypes(id, effectiveForPresets),
   );
 
   const categoryCounts = useMemo(() => {

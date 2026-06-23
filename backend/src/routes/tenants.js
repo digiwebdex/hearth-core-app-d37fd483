@@ -1,4 +1,5 @@
-const router = require("express").Router();
+const { normalizeEnabledSubcategories } = require("../constants/serviceSubcategories");
+
 const { authenticate, requireRole, requirePermission, checkPlanLimit, prisma } = require("../middleware/auth");
 const {
   ensureTenantSettings,
@@ -10,8 +11,8 @@ router.use(authenticate);
 // Allowed fields for tenant self-update (prevents privilege escalation)
 const ALLOWED_TENANT_FIELDS = [
   "name", "logo", "phone", "address", "city", "country",
-  "currency", "timezone", "websiteConfig", "enableHajjUmrahModule", "enableBdOperationsModule",
-  "enabledServiceTypes",
+  "currency", "timezone", "websiteConfig",   "enableHajjUmrahModule", "enableBdOperationsModule",
+  "enabledServiceTypes", "enabledSubcategories",
 ];
 
 function pickAllowed(body, allowedFields) {
@@ -45,6 +46,9 @@ router.patch("/me", requireRole("tenant_owner"), async (req, res) => {
     if (data.enabledServiceTypes !== undefined) {
       const raw = Array.isArray(data.enabledServiceTypes) ? data.enabledServiceTypes : [];
       data.enabledServiceTypes = [...new Set(raw.map((v) => String(v).trim().toLowerCase()).filter(Boolean))];
+    }
+    if (data.enabledSubcategories !== undefined) {
+      data.enabledSubcategories = normalizeEnabledSubcategories(data.enabledSubcategories);
     }
     const tenant = await prisma.tenant.update({ where: { id: req.tenantId }, data });
     res.json(tenant);

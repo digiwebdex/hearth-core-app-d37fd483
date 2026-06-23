@@ -6,6 +6,12 @@ const SERVICE_TYPES = [
   "air_ticket",
   "hotel",
   "transport",
+  "cruise",
+  "study_abroad",
+  "medical_tourism",
+  "corporate_travel",
+  "mice_event",
+  "b2b_agent",
   "custom",
 ];
 
@@ -30,6 +36,18 @@ function serviceTypeLabel(value) {
       return "Hotel";
     case "transport":
       return "Transport";
+    case "cruise":
+      return "Cruise / Launch";
+    case "study_abroad":
+      return "Study Abroad";
+    case "medical_tourism":
+      return "Medical Tourism";
+    case "corporate_travel":
+      return "Corporate Travel";
+    case "mice_event":
+      return "MICE / Event Travel";
+    case "b2b_agent":
+      return "B2B Agent / Sub-Agent";
     default:
       return "Custom";
   }

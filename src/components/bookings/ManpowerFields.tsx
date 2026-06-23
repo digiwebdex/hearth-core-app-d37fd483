@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import MasterDataSelect from "@/components/MasterDataSelect";
 import type { BookingFormState, MedicalStatus } from "./types";
 
 const MEDICAL_STATUSES: MedicalStatus[] = ["pending", "cleared", "failed", "not_required"];
@@ -23,7 +24,7 @@ export function ManpowerFields({ form, setForm }: ManpowerFieldsProps) {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="workCountry">{t("bookingsForm.manpowerFields.workCountry")}</Label>
-          <Input id="workCountry" value={form.workCountry} onChange={(e) => patch("workCountry", e.target.value)} />
+          <MasterDataSelect category="country" value={form.workCountry} onChange={(v) => patch("workCountry", v)} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="employer">{t("bookingsForm.manpowerFields.employer")}</Label>

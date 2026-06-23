@@ -36,6 +36,7 @@ export function AppSidebar() {
     enableHajjUmrahModule: tenant?.enableHajjUmrahModule !== false,
     enableBdOperationsModule: tenant?.enableBdOperationsModule === true,
     enabledServiceTypes: tenant?.enabledServiceTypes,
+    enabledSubcategories: tenant?.enabledSubcategories,
     showActivityLog: appRole === "tenant_owner" || appRole === "owner" || appRole === "manager",
   });
 

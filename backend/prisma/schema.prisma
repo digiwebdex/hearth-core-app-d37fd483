@@ -25,6 +25,7 @@ model Tenant {
   enableHajjUmrahModule Boolean               @default(true)
   enableBdOperationsModule Boolean              @default(false)
   enabledServiceTypes   String[]                @default([])
+  enabledSubcategories  String[]                @default([])
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
   users                 User[]
@@ -1002,4 +1003,25 @@ model NotificationDelivery {
   @@index([tenantId, eventType])
   @@index([tenantId, status])
   @@index([tenantId, channel])
+}
+
+/// Platform-wide reference data (super admin) — countries, cities, airlines, etc.
+model MasterReference {
+  id        String   @id @default(uuid())
+  category  String
+  code      String?
+  name      String
+  nameBn    String?
+  parentId  String?
+  parent    MasterReference?  @relation("MasterRefTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children  MasterReference[] @relation("MasterRefTree")
+  meta      Json?
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category, isActive])
+  @@index([parentId])
+  @@index([category, name])
 }

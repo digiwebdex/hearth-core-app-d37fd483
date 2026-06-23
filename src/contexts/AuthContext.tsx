@@ -16,7 +16,7 @@ interface AuthContextType {
   trialDaysLeft: number;
   loading: boolean;
   login: (email: string, password: string) => Promise<User>;
-  register: (data: { name: string; email: string; phone: string; password: string; tenantName: string; plan?: string }) => Promise<{ pendingApproval: boolean; message?: string; user?: User; trialDays?: number }>;
+  register: (data: { name: string; email: string; phone: string; password: string; tenantName: string; plan?: string; enabledSubcategories?: string[]; enabledServiceTypes?: string[] }) => Promise<{ pendingApproval: boolean; message?: string; user?: User; trialDays?: number }>;
   logout: () => void;
   refreshTenant: () => Promise<void>;
 }
@@ -112,7 +112,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const register = useCallback(
-    async (data: { name: string; email: string; password: string; tenantName: string; plan?: string }) => {
+    async (data: {
+      name: string;
+      email: string;
+      password: string;
+      tenantName: string;
+      plan?: string;
+      phone?: string;
+      enabledSubcategories?: string[];
+      enabledServiceTypes?: string[];
+    }) => {
       const res: any = await authApi.register(data);
       // New flow: instant token + 3-day trial
       if (res.token) {

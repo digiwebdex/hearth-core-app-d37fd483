@@ -2,6 +2,7 @@ const router = require("express").Router();
 const bcrypt = require("bcryptjs");
 const { authenticate, requireSuperAdmin, prisma } = require("../middleware/auth");
 const { validatePassword } = require("../utils/passwordPolicy");
+const { normalizeEnabledSubcategories } = require("../constants/serviceSubcategories");
 
 router.use(authenticate);
 router.use(requireSuperAdmin);
@@ -16,6 +17,8 @@ router.post("/tenants", async (req, res) => {
       subscriptionPlan = "basic",
       subscriptionStatus = "active",
       subscriptionMonths = 1,
+      enabledSubcategories,
+      enabledServiceTypes,
     } = req.body;
 
     if (!tenantName || !ownerName || !ownerEmail || !ownerPassword) {
@@ -50,6 +53,10 @@ router.post("/tenants", async (req, res) => {
         notes: companyNotes || null,
         subscriptionPlan, subscriptionStatus,
         subscriptionExpiry: expiry,
+        enabledSubcategories: normalizeEnabledSubcategories(enabledSubcategories),
+        enabledServiceTypes: Array.isArray(enabledServiceTypes)
+          ? [...new Set(enabledServiceTypes.map((v) => String(v).trim().toLowerCase()).filter(Boolean))]
+          : [],
       },
     });
 
@@ -113,6 +120,8 @@ router.get("/tenants/:id", async (req, res) => {
 const ADMIN_ALLOWED_TENANT_FIELDS = [
   "name", "subscriptionPlan", "subscriptionStatus", "subscriptionExpiry",
   "phone", "whatsapp", "address", "city", "country", "website", "notes",
+  "enabledServiceTypes", "enabledSubcategories",
+  "enableHajjUmrahModule", "enableBdOperationsModule",
 ];
 
 router.patch("/tenants/:id", async (req, res) => {
@@ -122,6 +131,15 @@ router.patch("/tenants/:id", async (req, res) => {
       if (req.body[key] !== undefined) data[key] = req.body[key];
     }
     if (data.subscriptionExpiry) data.subscriptionExpiry = new Date(data.subscriptionExpiry);
+    if (data.enableHajjUmrahModule !== undefined) data.enableHajjUmrahModule = Boolean(data.enableHajjUmrahModule);
+    if (data.enableBdOperationsModule !== undefined) data.enableBdOperationsModule = Boolean(data.enableBdOperationsModule);
+    if (data.enabledServiceTypes !== undefined) {
+      const raw = Array.isArray(data.enabledServiceTypes) ? data.enabledServiceTypes : [];
+      data.enabledServiceTypes = [...new Set(raw.map((v) => String(v).trim().toLowerCase()).filter(Boolean))];
+    }
+    if (data.enabledSubcategories !== undefined) {
+      data.enabledSubcategories = normalizeEnabledSubcategories(data.enabledSubcategories);
+    }
     const updated = await prisma.tenant.update({ where: { id: req.params.id }, data });
     const actor = await prisma.user.findUnique({ where: { id: req.userId }, select: { name: true, email: true, role: true } });
     await prisma.auditLog.create({

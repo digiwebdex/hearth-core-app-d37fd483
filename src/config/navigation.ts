@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import type { PlanType } from "@/lib/plans";
 import type { Module } from "@/lib/permissions";
-import { normalizeEnabledServiceTypes } from "@/lib/enabledServiceTypes";
+import { normalizeEnabledServiceTypes, resolveEffectiveServiceTypes } from "@/lib/enabledServiceTypes";
 
 export interface NavItemConfig {
   id: string;
@@ -62,16 +62,21 @@ export interface NavigationOptions {
   showActivityLog?: boolean;
   /** Empty or omitted = all service presets visible. */
   enabledServiceTypes?: string[];
+  enabledSubcategories?: string[];
 }
 
 export function getNavigationGroups(options: NavigationOptions = {}): NavGroupConfig[] {
-  const enabled = normalizeEnabledServiceTypes(options.enabledServiceTypes);
-  const showAllServices = enabled.length === 0;
+  const enabled = resolveEffectiveServiceTypes(
+    normalizeEnabledServiceTypes(options.enabledServiceTypes),
+    options.enabledSubcategories,
+  );
+  const showAllServices = enabled.length === 0
+    && !(options.enabledSubcategories?.length);
   let enableHajj = options.enableHajjUmrahModule !== false;
   let enableBd = options.enableBdOperationsModule === true;
   if (!showAllServices) {
     if (!enabled.includes("hajj_umrah")) enableHajj = false;
-    if (!enabled.includes("study_abroad")) enableBd = false;
+    if (!enabled.includes("study_abroad") && !enabled.includes("b2b_agent")) enableBd = false;
   }
   const showActivityLog = options.showActivityLog === true;
 

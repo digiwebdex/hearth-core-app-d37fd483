@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import MasterDataSelect from "@/components/MasterDataSelect";
 import type { BookingFormState, VisaType } from "./types";
 
 const VISA_TYPES: VisaType[] = ["tourist", "business", "transit", "work", "student", "other"];
@@ -23,7 +24,12 @@ export function VisaFields({ form, setForm }: VisaFieldsProps) {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="visaCountry">{t("bookingsForm.visaFields.visaCountry")}</Label>
-          <Input id="visaCountry" value={form.visaCountry} onChange={(e) => patch("visaCountry", e.target.value)} />
+          <MasterDataSelect
+            category="country"
+            value={form.visaCountry}
+            onChange={(v) => patch("visaCountry", v)}
+            placeholder={t("bookingsForm.visaFields.visaCountry")}
+          />
         </div>
         <div className="space-y-2">
           <Label>{t("bookingsForm.visaFields.visaType")}</Label>

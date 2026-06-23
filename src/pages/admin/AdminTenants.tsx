@@ -12,9 +12,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Ban, CheckCircle, Eye, Search, RefreshCw, Plus, Pencil, Trash2 } from "lucide-react";
+import { Ban, CheckCircle, Eye, Search, RefreshCw, Plus, Pencil, Trash2, Layers } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { adminApi, type AdminTenant } from "@/lib/api";
+import ServiceCatalogPicker from "@/components/ServiceCatalogPicker";
+import { buildServiceSelectionPayload, normalizeEnabledSubcategories } from "@/lib/enabledServiceTypes";
 
 const AdminTenants = () => {
   const { t: tt } = useTranslation();
@@ -30,6 +32,8 @@ const AdminTenants = () => {
   const [savingEdit, setSavingEdit] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AdminTenant | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [editSelectedSubs, setEditSelectedSubs] = useState<string[]>([]);
+  const [createSelectedSubs, setCreateSelectedSubs] = useState<string[]>([]);
   const [form, setForm] = useState({
     tenantName: "",
     ownerName: "",
@@ -49,13 +53,16 @@ const AdminTenants = () => {
     subscriptionMonths: 1,
   });
 
-  const resetForm = () => setForm({
-    tenantName: "", ownerName: "", ownerEmail: "", ownerPassword: "",
-    ownerPhone: "", ownerWhatsapp: "",
-    companyPhone: "", companyWhatsapp: "", companyAddress: "", companyCity: "",
-    companyCountry: "Bangladesh", companyWebsite: "", companyNotes: "",
-    subscriptionPlan: "basic", subscriptionStatus: "active", subscriptionMonths: 1,
-  });
+  const resetForm = () => {
+    setForm({
+      tenantName: "", ownerName: "", ownerEmail: "", ownerPassword: "",
+      ownerPhone: "", ownerWhatsapp: "",
+      companyPhone: "", companyWhatsapp: "", companyAddress: "", companyCity: "",
+      companyCountry: "Bangladesh", companyWebsite: "", companyNotes: "",
+      subscriptionPlan: "basic", subscriptionStatus: "active", subscriptionMonths: 1,
+    });
+    setCreateSelectedSubs([]);
+  };
 
   const handleCreate = async () => {
     if (!form.tenantName || !form.ownerName || !form.ownerEmail || !form.ownerPassword) {
@@ -64,7 +71,11 @@ const AdminTenants = () => {
     }
     setCreating(true);
     try {
-      await adminApi.createTenant({ ...form, subscriptionMonths: Number(form.subscriptionMonths) });
+      await adminApi.createTenant({
+        ...form,
+        subscriptionMonths: Number(form.subscriptionMonths),
+        ...buildServiceSelectionPayload(createSelectedSubs),
+      });
       toast({ title: tt("adminTenants.toast.agencyCreated"), description: form.tenantName });
       setCreateOpen(false);
       resetForm();
@@ -116,6 +127,7 @@ const AdminTenants = () => {
   const openEdit = (t: AdminTenant) => {
     const owner = t.users?.find((u) => u.role === "tenant_owner" || u.role === "owner") || t.users?.[0];
     setEditTenant(t);
+    setEditSelectedSubs(normalizeEnabledSubcategories(t.enabledSubcategories));
     setEditForm({
       name: t.name || "",
       subscriptionPlan: t.subscriptionPlan || "basic",
@@ -141,7 +153,10 @@ const AdminTenants = () => {
       const owner = editTenant.users?.find((u) => u.role === "tenant_owner" || u.role === "owner") || editTenant.users?.[0];
       const { ownerName, ownerEmail, ownerPassword, ...tenantPayload } = editForm as any;
       if (!tenantPayload.subscriptionExpiry) delete tenantPayload.subscriptionExpiry;
-      await adminApi.updateTenant(editTenant.id, tenantPayload);
+      await adminApi.updateTenant(editTenant.id, {
+        ...tenantPayload,
+        ...buildServiceSelectionPayload(editSelectedSubs),
+      });
 
       const ownerPayload: { name?: string; email?: string; password?: string } = {};
       if (ownerName && ownerName !== owner?.name) ownerPayload.name = ownerName;
@@ -295,6 +310,14 @@ const AdminTenants = () => {
                       <Input value={form.companyNotes} onChange={(e) => setForm({ ...form, companyNotes: e.target.value })} placeholder={tt("adminTenants.fields.notesPlaceholder")} />
                     </div>
                   </div>
+
+                  <div className="space-y-3 border-t pt-4">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                      <Layers className="h-4 w-4" />
+                      {tt("settingsModules.serviceTypesLabel", { defaultValue: "Agency services" })}
+                    </h3>
+                    <ServiceCatalogPicker value={createSelectedSubs} onChange={setCreateSelectedSubs} compact />
+                  </div>
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>{tt("adminTenants.actions.cancel")}</Button>
@@ -446,6 +469,15 @@ const AdminTenants = () => {
               <div className="grid gap-2"><Label>{tt("adminTenants.fields.website")}</Label><Input value={editForm.website} onChange={(e) => setEditForm({ ...editForm, website: e.target.value })} /></div>
             </div>
             <div className="grid gap-2"><Label>{tt("adminTenants.fields.notes")}</Label><Input value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} /></div>
+
+            <div className="space-y-3 border-t pt-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                <Layers className="h-4 w-4" />
+                {tt("settingsModules.serviceTypesLabel", { defaultValue: "Agency services" })}
+              </h3>
+              <p className="text-sm text-muted-foreground">{tt("settingsModules.serviceTypesDesc")}</p>
+              <ServiceCatalogPicker value={editSelectedSubs} onChange={setEditSelectedSubs} compact />
+            </div>
 
             <div className="space-y-3 border-t pt-4">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{tt("adminTenants.sections.ownerAccount")}</h3>

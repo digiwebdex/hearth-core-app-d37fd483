@@ -48,7 +48,7 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify({ email, password }),
     }),
-  register: (data: { name: string; email: string; phone: string; password: string; tenantName: string; plan?: string }) =>
+  register: (data: { name: string; email: string; phone: string; password: string; tenantName: string; plan?: string; enabledSubcategories?: string[]; enabledServiceTypes?: string[] }) =>
     request<{ token?: string; user?: User; tenant?: Tenant; pendingApproval?: boolean; message?: string; trialDays?: number; intendedPlan?: string }>("/auth/register", {
       method: "POST",
       body: JSON.stringify(data),
@@ -273,7 +273,7 @@ export const quotationApi = {
 
 // ── Types ──
 export interface User { id: string; name: string; email: string; role: "super_admin" | "tenant_owner" | "manager" | "sales_agent" | "accountant" | "operations" | "owner" | "admin" | "member"; tenantId: string; emailVerified?: boolean; createdAt: string; }
-export interface Tenant { id: string; name: string; ownerId: string; phone?: string; address?: string; subscriptionPlan: "free" | "basic" | "pro" | "business" | "enterprise"; subscriptionExpiry?: string; subscriptionStatus?: "active" | "trial" | "expired" | "cancelled" | "pending" | "suspended" | "overdue"; enableHajjUmrahModule?: boolean; enableBdOperationsModule?: boolean; enabledServiceTypes?: string[]; createdAt: string; }
+export interface Tenant { id: string; name: string; ownerId: string; phone?: string; address?: string; subscriptionPlan: "free" | "basic" | "pro" | "business" | "enterprise"; subscriptionExpiry?: string; subscriptionStatus?: "active" | "trial" | "expired" | "cancelled" | "pending" | "suspended" | "overdue"; enableHajjUmrahModule?: boolean; enableBdOperationsModule?: boolean; enabledServiceTypes?: string[]; enabledSubcategories?: string[]; createdAt: string; }
 export interface Client { id: string; name: string; phone: string; email: string; alternatePhone?: string; address?: string; dateOfBirth?: string; passportNumber?: string; passportExpiry?: string; nidNumber?: string; nationality?: string; emergencyContact?: string; emergencyPhone?: string; notes?: string; tags?: string[]; documents?: ClientDocument[]; tenantId: string; createdAt: string; updatedAt?: string; }
 export interface ClientDocument { id: string; clientId: string; name: string; type: string; url: string; uploadedAt: string; }
 export type AgentStatus = "active" | "inactive";
@@ -462,7 +462,7 @@ export interface PaymentRequest { id: string; tenantId: string; plan: string; am
 // ── Admin types and API ──
 export interface PendingUser { id: string; name: string; email: string; role: string; status: string; phone?: string; whatsapp?: string; tenantId: string; tenant?: { id: string; name: string; slug?: string }; createdAt: string; rejectionReason?: string | null; }
 export interface AdminStats { totalTenants: number; totalUsers: number; totalBookings: number; totalRevenue: number; }
-export interface AdminTenant { id: string; name: string; slug?: string | null; ownerId?: string | null; phone?: string | null; whatsapp?: string | null; address?: string | null; city?: string | null; country?: string | null; website?: string | null; notes?: string | null; subscriptionPlan?: string; subscriptionStatus?: string; subscriptionExpiry?: string | null; createdAt: string; updatedAt?: string; users?: Array<{ id: string; name: string; email: string; role: string; createdAt?: string }>; _count?: { users?: number; bookings?: number; clients?: number; invoices?: number }; }
+export interface AdminTenant { id: string; name: string; slug?: string | null; ownerId?: string | null; phone?: string | null; whatsapp?: string | null; address?: string | null; city?: string | null; country?: string | null; website?: string | null; notes?: string | null; subscriptionPlan?: string; subscriptionStatus?: string; subscriptionExpiry?: string | null; enableHajjUmrahModule?: boolean; enableBdOperationsModule?: boolean; enabledServiceTypes?: string[]; enabledSubcategories?: string[]; createdAt: string; updatedAt?: string; users?: Array<{ id: string; name: string; email: string; role: string; createdAt?: string }>; _count?: { users?: number; bookings?: number; clients?: number; invoices?: number }; }
 export interface AdminPaymentRequest extends PaymentRequest { tenant?: { name?: string }; }
 
 export const adminApi = {

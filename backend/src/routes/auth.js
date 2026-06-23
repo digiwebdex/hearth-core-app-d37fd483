@@ -5,6 +5,7 @@ const crypto = require("crypto");
 const { authenticate, prisma, SECRET } = require("../middleware/auth");
 const { validatePassword } = require("../utils/passwordPolicy");
 const { validatePhone, validateEmail } = require("../utils/contactValidation");
+const { normalizeEnabledSubcategories } = require("../constants/serviceSubcategories");
 
 // Login
 router.post("/login", async (req, res) => {
@@ -61,7 +62,7 @@ router.post("/login", async (req, res) => {
 // Register — auto-approved with 3-day Pro trial, returns JWT immediately (Pattern B)
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password, tenantName, plan, phone } = req.body;
+    const { name, email, password, tenantName, plan, phone, enabledSubcategories, enabledServiceTypes } = req.body;
 
     if (!String(name || "").trim()) return res.status(400).json({ message: "Full name is required" });
     if (!String(tenantName || "").trim()) return res.status(400).json({ message: "Agency name is required" });
@@ -105,6 +106,10 @@ router.post("/register", async (req, res) => {
         subscriptionPlan,
         subscriptionStatus,
         subscriptionExpiry,
+        enabledSubcategories: normalizeEnabledSubcategories(enabledSubcategories),
+        enabledServiceTypes: Array.isArray(enabledServiceTypes)
+          ? [...new Set(enabledServiceTypes.map((v) => String(v).trim().toLowerCase()).filter(Boolean))]
+          : [],
       },
     });
 

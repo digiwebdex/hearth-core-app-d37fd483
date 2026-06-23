@@ -112,6 +112,7 @@ function createApp() {
 
   app.use("/api/auth", authLimiter, require("./routes/auth"));
   app.use("/api/tenants", require("./routes/tenants"));
+  app.use("/api/master-data", require("./routes/masterData"));
   app.use("/api/tenant-domains", require("./routes/tenantDomains"));
   app.use("/api/dashboard", require("./routes/dashboard"));
   app.use("/api/clients", require("./routes/clients"));
@@ -137,6 +138,7 @@ function createApp() {
 
   app.use("/api/admin", require("./routes/adminSubscriptionWorkflow"));
   app.use("/api/admin", require("./routes/admin"));
+  app.use("/api/admin/master-data", require("./routes/adminMasterData"));
   const domainsRouter = require("./routes/domains");
   app.use("/api/admin/domains", domainsRouter);
   // Legacy path used by older frontend builds before domainApi pointed at /admin/domains

@@ -1,0 +1,33 @@
+/** Subcategory IDs — keep in sync with src/lib/serviceCatalog.ts */
+const ALL_SUBCATEGORY_IDS = [
+  "air_domestic_flight", "air_international_flight", "air_one_way", "air_round_trip", "air_multi_city",
+  "air_group_booking", "air_corporate_flight", "air_charter", "air_rescheduling", "air_cancellation_refund",
+  "hajj_package", "umrah_package", "ramadan_umrah", "vip_umrah", "family_umrah", "hajj_visa", "umrah_visa",
+  "makkah_hotel", "madinah_hotel", "ziyarah_tour", "hajj_airport_transfer",
+  "visa_tourist", "visa_business", "visa_student", "visa_medical", "visa_work", "visa_family_visit",
+  "visa_transit", "visa_extension", "visa_consultation", "visa_document_verification",
+  "mp_overseas_recruitment", "mp_work_permit", "mp_employer_demand", "mp_candidate_registration",
+  "mp_cv_preparation", "mp_interview_scheduling", "mp_medical_processing", "mp_bmet_processing",
+  "mp_immigration_clearance", "mp_job_placement", "mp_training_orientation",
+  "hotel_booking", "resort_booking", "apartment_booking", "villa_booking", "guest_house",
+  "hostel_booking", "corporate_accommodation", "group_accommodation",
+  "trans_airport_pickup", "trans_airport_drop", "trans_car_rental", "trans_microbus", "trans_bus_rental",
+  "trans_chauffeur", "trans_vip", "trans_city", "trans_intercity",
+  "tour_domestic", "tour_coxs_bazar", "tour_sundarbans", "tour_sajek", "tour_sylhet", "tour_international",
+  "tour_thailand", "tour_malaysia", "tour_singapore", "tour_dubai", "tour_turkey", "tour_europe",
+  "tour_family", "tour_honeymoon", "tour_group", "tour_corporate", "tour_educational", "tour_adventure", "tour_medical",
+  "cruise_ocean", "cruise_river", "cruise_luxury", "holiday_package", "beach_holiday", "island_holiday",
+  "luxury_vacation", "weekend_getaway",
+  "study_university", "study_college", "study_student_visa", "study_scholarship", "study_sop",
+  "study_application", "study_accommodation", "study_pre_departure",
+  "corp_travel_mgmt", "corp_employee_booking", "corp_conference", "corp_event", "corp_incentive",
+  "corp_visa", "corp_hotel", "corp_reporting",
+  "doc_passport", "doc_passport_renewal", "doc_e_passport", "doc_travel_permit", "doc_immigration",
+  "doc_notary", "doc_attestation", "doc_embassy_legalization",
+  "evt_theme_park", "evt_museum", "evt_concert", "evt_sports", "evt_expo", "evt_festival", "evt_entertainment", "evt_city_pass",
+  "ins_single_trip", "ins_multi_trip", "ins_student", "ins_family", "ins_medical", "ins_hajj_umrah", "ins_business",
+  "add_consultation", "add_currency_exchange", "add_intl_sim", "add_esim", "add_tour_guide", "add_meet_greet",
+  "add_vip_airport", "add_lounge", "add_translation", "add_concierge",
+];
+
+module.exports = { ALL_SUBCATEGORY_IDS };
