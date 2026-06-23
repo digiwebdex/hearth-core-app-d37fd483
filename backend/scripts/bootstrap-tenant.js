@@ -21,6 +21,11 @@ async function main() {
   console.log(`Bootstrapping tenant: ${slug}`);
   run("provision-full-services-tenant.js", slug);
   run("seed-demo-packages.js", slug);
+  try {
+  run("seed-master-data.js");
+  } catch {
+    console.warn("Master data seed skipped (non-fatal).");
+  }
   console.log("\nBootstrap complete.");
 }
 

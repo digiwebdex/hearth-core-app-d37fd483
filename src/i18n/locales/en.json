@@ -1794,6 +1794,7 @@
     "actions": {
       "view": "View",
       "edit": "Edit",
+      "send": "Send to client",
       "duplicate": "Duplicate",
       "convert": "Convert to Booking",
       "delete": "Delete"
@@ -1802,6 +1803,7 @@
       "deleted": "Quotation deleted",
       "duplicated": "Quotation duplicated",
       "converted": "Booking created from quotation!",
+      "sent": "Quotation sent to client",
       "error": "Error"
     }
   },
@@ -1814,6 +1816,7 @@
     "errorLoading": "Error loading quotation",
     "updated": "Quotation updated",
     "created": "Quotation created",
+    "sent": "Quotation sent to client",
     "error": "Error",
     "catalogPicker": "Pick from catalog…",
     "pickDate": "Pick a date",
@@ -2586,14 +2589,17 @@
     },
     "channels": {
       "sms": "SMS",
-      "email": "Email"
+      "email": "Email",
+      "inApp": "In-app"
     },
     "events": {
+      "lead_created": "Lead Created",
+      "booking_created": "Booking Created",
+      "payment_received": "Payment Received",
       "lead_assigned": "Lead Assigned",
       "quotation_sent": "Quotation Sent",
       "quotation_approved": "Quotation Approved",
       "booking_confirmed": "Booking Confirmed",
-      "payment_received": "Payment Received",
       "payment_overdue": "Payment Overdue",
       "subscription_expiring": "Subscription Expiring"
     },

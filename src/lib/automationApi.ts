@@ -20,7 +20,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return res.json();
 }
 
-export type AutomationEventType = "lead_created" | "booking_created" | "payment_received";
+export type AutomationEventType = "lead_created" | "booking_created" | "payment_received" | "quotation_sent";
 export type AutomationChannel = "sms" | "in_app";
 export type DeliveryStatus = "pending" | "sent" | "failed";
 

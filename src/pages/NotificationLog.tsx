@@ -29,12 +29,13 @@ const STATUS_META: Record<DeliveryStatus, { icon: typeof CheckCircle; className:
   failed: { icon: XCircle, className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200" },
 };
 
-const EVENT_KEYS: AutomationEventType[] = ["lead_created", "booking_created", "payment_received"];
+const EVENT_KEYS: AutomationEventType[] = ["lead_created", "booking_created", "payment_received", "quotation_sent"];
 
 const EVENT_LABELS: Record<AutomationEventType, string> = {
   lead_created: "Lead Created",
   booking_created: "Booking Created",
   payment_received: "Payment Received",
+  quotation_sent: "Quotation Sent",
 };
 
 const NotificationLog = () => {

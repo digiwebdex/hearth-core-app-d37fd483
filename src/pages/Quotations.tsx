@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { quotationApi, type Quotation, type QuotationStatus } from "@/lib/api";
 import {
-  FileText, Plus, Search, Eye, Pencil, Trash2, Copy, ArrowRight,
+  FileText, Plus, Search, Eye, Pencil, Trash2, Copy, ArrowRight, Send,
   DollarSign, Users, MapPin, CalendarIcon,
 } from "lucide-react";
 import {
@@ -95,9 +95,19 @@ const Quotations = () => {
 
   const handleConvert = async (q: Quotation) => {
     try {
-      await quotationApi.convertToBooking(q.id);
+      const booking = await quotationApi.convertToBooking(q.id);
       toast({ title: t("quotationsForm.toast.converted") });
-      navigate("/bookings");
+      navigate(`/bookings?highlight=${booking.id}`);
+    } catch (err: any) {
+      toast({ variant: "destructive", title: t("quotationsForm.toast.error"), description: err.message });
+    }
+  };
+
+  const handleSend = async (q: Quotation) => {
+    try {
+      const updated = await quotationApi.updateStatus(q.id, "sent");
+      setQuotations((prev) => prev.map((row) => (row.id === q.id ? updated : row)));
+      toast({ title: t("quotationsForm.toast.sent", "Quotation sent to client") });
     } catch (err: any) {
       toast({ variant: "destructive", title: t("quotationsForm.toast.error"), description: err.message });
     }
@@ -238,6 +248,11 @@ const Quotations = () => {
                                 <Eye className="h-4 w-4" />
                               </Button>
                               <PermissionGate module="quotations" action="edit">
+                                {q.status === "draft" && (
+                                  <Button variant="ghost" size="icon" title={t("quotationsForm.actions.send", "Send to client")} onClick={() => handleSend(q)}>
+                                    <Send className="h-4 w-4 text-blue-600" />
+                                  </Button>
+                                )}
                                 <Button variant="ghost" size="icon" title={t("quotationsForm.actions.edit")} onClick={() => navigate(`/quotations/${q.id}/edit`)}>
                                   <Pencil className="h-4 w-4" />
                                 </Button>
@@ -247,7 +262,7 @@ const Quotations = () => {
                                   <Copy className="h-4 w-4" />
                                 </Button>
                               </PermissionGate>
-                              {q.status === "approved" && (
+                              {(q.status === "approved" || q.status === "sent") && (
                                 <PermissionGate module="quotations" action="approve">
                                   <Button variant="ghost" size="icon" title={t("quotationsForm.actions.convert")} onClick={() => handleConvert(q)}>
                                     <ArrowRight className="h-4 w-4 text-green-600" />
