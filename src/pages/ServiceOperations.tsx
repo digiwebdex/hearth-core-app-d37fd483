@@ -11,16 +11,19 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { bookingApi, type Booking, type BookingStatus } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { getTenantServiceDesks } from "@/lib/bookingTypeOptions";
 import {
   deskToBookingType,
   getWorkflowStatus,
   groupDepartures,
+  mergeServiceDetailsIntoBooking,
   type ServiceDeskId,
 } from "@/lib/bookingServiceDetails";
-import { Stamp, Ticket, Hotel, Car, Users, Search, Eye, CalendarDays } from "lucide-react";
+import { Stamp, Ticket, Hotel, Car, Users, Search, Eye, CalendarDays, Shield } from "lucide-react";
 
 const ACTIVE_STATUSES: BookingStatus[] = ["pending", "confirmed", "ticketed", "traveling"];
-const DESK_IDS: ServiceDeskId[] = ["visa", "ticket", "hotel", "transport", "departures"];
+const ALL_DESK_IDS: ServiceDeskId[] = ["visa", "ticket", "hotel", "transport", "insurance", "departures"];
 
 function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
@@ -40,21 +43,32 @@ function deskIcon(desk: ServiceDeskId) {
       return Hotel;
     case "transport":
       return Car;
+    case "insurance":
+      return Shield;
     case "departures":
       return Users;
   }
 }
 
 function isServiceDeskId(value: string | null): value is ServiceDeskId {
-  return DESK_IDS.includes(value as ServiceDeskId);
+  return ALL_DESK_IDS.includes(value as ServiceDeskId);
 }
 
 const ServiceOperations = () => {
   const { t } = useTranslation();
+  const { tenant } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const deskParam = searchParams.get("desk");
-  const desk: ServiceDeskId = isServiceDeskId(deskParam) ? deskParam : "visa";
+
+  const allowedDesks = useMemo(
+    () => getTenantServiceDesks(tenant?.enabledServiceTypes, tenant?.enabledSubcategories),
+    [tenant?.enabledServiceTypes, tenant?.enabledSubcategories],
+  );
+
+  const desk: ServiceDeskId = isServiceDeskId(deskParam) && allowedDesks.includes(deskParam)
+    ? deskParam
+    : allowedDesks[0] || "visa";
 
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,12 +76,18 @@ const ServiceOperations = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"active" | "all">("active");
 
+  useEffect(() => {
+    if (deskParam && isServiceDeskId(deskParam) && !allowedDesks.includes(deskParam)) {
+      setSearchParams({ desk: allowedDesks[0] || "visa" });
+    }
+  }, [deskParam, allowedDesks, setSearchParams]);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
       const data = await bookingApi.list({ limit: 1000 });
-      setBookings(data);
+      setBookings(data.map((b) => mergeServiceDetailsIntoBooking(b)));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t("serviceOps.loadFailed"));
     } finally {
@@ -90,6 +110,7 @@ const ServiceOperations = () => {
       ticket: countType("ticket"),
       hotel: countType("hotel"),
       transport: countType("transport"),
+      insurance: countType("insurance"),
       departures: groupDepartures(bookings).length,
     };
   }, [bookings]);
@@ -145,7 +166,9 @@ const ServiceOperations = () => {
           ? "/bookings/hotel"
           : desk === "transport"
             ? "/bookings/transport"
-            : "/bookings/tour";
+            : desk === "insurance"
+              ? "/bookings/insurance"
+              : "/bookings/tour";
 
   const renderDeskRow = (b: Booking) => {
     const workflow = getWorkflowStatus(b);
@@ -185,6 +208,17 @@ const ServiceOperations = () => {
             <TableCell>{b.routeDescription || b.destination || "—"}</TableCell>
             <TableCell>{b.pickupLocation || "—"}</TableCell>
             <TableCell>{b.vehicleType || b.supplierRef || "—"}</TableCell>
+            <TableCell><Badge variant="outline">{workflowLabel}</Badge></TableCell>
+          </>
+        );
+      case "insurance":
+        return (
+          <>
+            <TableCell>{(b as Booking & { insurancePlan?: string }).insurancePlan || b.supplierName || "—"}</TableCell>
+            <TableCell>{(b as Booking & { insuranceDestination?: string }).insuranceDestination || b.destination || "—"}</TableCell>
+            <TableCell>
+              {[b.travelDateFrom, b.travelDateTo].filter(Boolean).join(" → ") || "—"}
+            </TableCell>
             <TableCell><Badge variant="outline">{workflowLabel}</Badge></TableCell>
           </>
         );
@@ -231,6 +265,15 @@ const ServiceOperations = () => {
             <TableHead>{t("serviceOps.columns.workflow")}</TableHead>
           </>
         );
+      case "insurance":
+        return (
+          <>
+            <TableHead>{t("serviceOps.columns.plan")}</TableHead>
+            <TableHead>{t("serviceOps.columns.coverage")}</TableHead>
+            <TableHead>{t("serviceOps.columns.dates")}</TableHead>
+            <TableHead>{t("serviceOps.columns.workflow")}</TableHead>
+          </>
+        );
       default:
         return null;
     }
@@ -248,7 +291,7 @@ const ServiceOperations = () => {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {DESK_IDS.map((id) => {
+          {allowedDesks.map((id) => {
             const Icon = deskIcon(id);
             return (
               <TabButton key={id} active={desk === id} onClick={() => setDesk(id)}>

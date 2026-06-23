@@ -1,5 +1,6 @@
 import type { BookingType, QuotationItemType } from "@/lib/api";
 import type { BookingPresetId } from "@/lib/bookingRoutePresets";
+import type { ServiceDeskId } from "@/lib/bookingServiceDetails";
 import { SERVICE_TYPES, type ServiceType } from "@/lib/serviceTypes";
 import {
   resolveEffectiveServiceTypes,
@@ -122,4 +123,19 @@ export function bookingTypeFromServiceTypes(
 ): BookingType {
   const list = getTenantBookingTypes(enabledServiceTypes, enabledSubcategories);
   return list[0] || "tour";
+}
+
+export function getTenantServiceDesks(
+  enabledServiceTypes?: string[] | null,
+  enabledSubcategories?: string[] | null,
+): ServiceDeskId[] {
+  const types = new Set(getTenantBookingTypes(enabledServiceTypes, enabledSubcategories));
+  const desks: ServiceDeskId[] = [];
+  if (types.has("visa")) desks.push("visa");
+  if (types.has("ticket")) desks.push("ticket");
+  if (types.has("hotel")) desks.push("hotel");
+  if (types.has("transport")) desks.push("transport");
+  if (types.has("insurance")) desks.push("insurance");
+  if (types.has("tour") || types.has("package")) desks.push("departures");
+  return desks.length > 0 ? desks : ["visa", "ticket", "hotel", "transport", "departures"];
 }

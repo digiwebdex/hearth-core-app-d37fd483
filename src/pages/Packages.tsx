@@ -42,6 +42,8 @@ import {
 } from "@/lib/enabledServiceTypes";
 import { Switch } from "@/components/ui/switch";
 import PackageWebsiteSyncCard, { PackageWebsiteSyncBadge } from "@/components/PackageWebsiteSyncCard";
+import MasterDataSelect from "@/components/MasterDataSelect";
+import { getPackageQuickTemplates, type PackageQuickTemplate } from "@/lib/packageQuickTemplates";
 import { ArrowRight, FileText, Globe, GraduationCap, Loader2, Moon, Package2, Plus, Save, Trash2, UploadCloud, Wand2 } from "lucide-react";
 
 const emptyForm = {
@@ -142,6 +144,14 @@ const Packages = () => {
   const [pricing, setPricing] = useState<TravelPackagePricing[]>([]);
   const [media, setMedia] = useState<TravelPackageMedia[]>([]);
 
+  const quickTemplates = useMemo(
+    () => getPackageQuickTemplates(
+      form.serviceType as ServiceType,
+      visibleServiceTypes as ServiceType[],
+    ),
+    [form.serviceType, visibleServiceTypes],
+  );
+
   const hajjModuleEnabled = useHajjModuleEnabled();
   const bdModuleEnabled = useBdModuleEnabled();
   const showHajjOpsButton = hajjModuleEnabled && (activePreset === "hajj" || activePreset === "umrah");
@@ -204,6 +214,9 @@ const Packages = () => {
     visaRequired: isBn ? "ভিসা প্রয়োজন" : "Visa required",
     cancellationPolicy: isBn ? "বাতিল নীতি" : "Cancellation policy",
     featured: isBn ? "ওয়েবসাইটে ফিচার্ড" : "Featured on website",
+    quickTemplate: isBn ? "দ্রুত টেমপ্লেট" : "Quick template",
+    quickTemplatePlaceholder: isBn ? "টেমপ্লেট বেছে নিন…" : "Choose a starter template…",
+    quickTemplateApplied: isBn ? "টেমপ্লেট লোড হয়েছে — প্রয়োজনে সম্পাদনা করুন" : "Template loaded — edit as needed",
   };
 
   const selected = useMemo(() => items.find((item) => item.id === selectedId) || null, [items, selectedId]);
@@ -346,6 +359,23 @@ const Packages = () => {
     if (defaultType) {
       setForm({ ...emptyForm, serviceType: defaultType });
     }
+  };
+
+  const applyQuickTemplate = (tpl: PackageQuickTemplate) => {
+    setSelectedId(null);
+    setForm({
+      ...emptyForm,
+      ...tpl.form,
+      slug: slugify(tpl.form.title),
+      status: "draft",
+      isFeatured: false,
+      heroImage: "",
+    });
+    setDays(tpl.days.map((d) => ({ ...d })));
+    setInclusions(tpl.inclusions.map((inc) => ({ ...inc })));
+    setPricing(tpl.pricing.map((p) => ({ ...p })));
+    setMedia([]);
+    toast({ title: text.quickTemplateApplied });
   };
 
   const normalizeDays = () => days.map((item, index) => ({ ...item, dayNumber: index + 1, title: String(item.title || `Day ${index + 1}`).trim(), description: item.description || "", overnightLocation: item.overnightLocation || "" })).filter((item) => item.title);
@@ -518,13 +548,31 @@ const Packages = () => {
                     </TabsList>
 
                     <TabsContent value="basic" className="space-y-4">
+                      {!selectedId && quickTemplates.length > 0 ? (
+                        <div className="space-y-2 rounded-lg border border-dashed p-3 bg-muted/30">
+                          <Label>{text.quickTemplate}</Label>
+                          <Select onValueChange={(id) => {
+                            const tpl = quickTemplates.find((t) => t.id === id);
+                            if (tpl) applyQuickTemplate(tpl);
+                          }}>
+                            <SelectTrigger><SelectValue placeholder={text.quickTemplatePlaceholder} /></SelectTrigger>
+                            <SelectContent>
+                              {quickTemplates.map((tpl) => (
+                                <SelectItem key={tpl.id} value={tpl.id}>
+                                  {isBn ? tpl.labelBn : tpl.labelEn}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ) : null}
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2"><Label>{text.packageCode}</Label><Input value={form.code} onChange={(e) => setForm((prev) => ({ ...prev, code: e.target.value }))} /></div>
                         <div className="space-y-2"><Label>{text.serviceType}</Label><Select value={form.serviceType} onValueChange={(value) => setForm((prev) => ({ ...prev, serviceType: value as ServiceType }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{visibleServiceTypes.map((type) => <SelectItem key={type} value={type}>{getLocalizedServiceTypeLabel(type, isBn)}</SelectItem>)}</SelectContent></Select></div>
                         <div className="space-y-2 md:col-span-2"><Label>{text.packageTitle}</Label><Input value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value, slug: slugify(e.target.value) }))} /></div>
                         <div className="space-y-2 md:col-span-2"><Label>{text.summary}</Label><Textarea value={form.summary} rows={4} onChange={(e) => setForm((prev) => ({ ...prev, summary: e.target.value }))} /></div>
-                        <div className="space-y-2"><Label>{text.destination}</Label><Input value={form.destination} onChange={(e) => setForm((prev) => ({ ...prev, destination: e.target.value }))} /></div>
-                        <div className="space-y-2"><Label>{text.country}</Label><Input value={form.country} onChange={(e) => setForm((prev) => ({ ...prev, country: e.target.value }))} /></div>
+                        <div className="space-y-2"><Label>{text.destination}</Label><MasterDataSelect category="city" value={form.destination} onChange={(v) => setForm((prev) => ({ ...prev, destination: v }))} placeholder={text.destination} /></div>
+                        <div className="space-y-2"><Label>{text.country}</Label><MasterDataSelect category="country" value={form.country} onChange={(v) => setForm((prev) => ({ ...prev, country: v }))} placeholder={text.country} /></div>
                         <div className="space-y-2"><Label>{text.days}</Label><Input type="number" min={1} value={form.durationDays} onChange={(e) => setForm((prev) => ({ ...prev, durationDays: Number(e.target.value || 1) }))} /></div>
                         <div className="space-y-2"><Label>{text.nights}</Label><Input type="number" min={0} value={form.durationNights} onChange={(e) => setForm((prev) => ({ ...prev, durationNights: Number(e.target.value || 0) }))} /></div>
                         <div className="space-y-2"><Label>{text.basePrice}</Label><Input type="number" min={0} value={form.basePrice} onChange={(e) => setForm((prev) => ({ ...prev, basePrice: Number(e.target.value || 0) }))} /></div>

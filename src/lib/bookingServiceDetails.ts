@@ -2,7 +2,7 @@ import type { BookingType } from "@/lib/api";
 import type { BookingFormState } from "@/components/bookings/types";
 import { normalizeVisaType } from "@/components/bookings/types";
 
-export type ServiceDeskId = "visa" | "ticket" | "hotel" | "transport" | "departures";
+export type ServiceDeskId = "visa" | "ticket" | "hotel" | "transport" | "insurance" | "departures";
 
 export type VisaWorkflowStatus =
   | "not_started"
@@ -35,6 +35,7 @@ export const SERVICE_DESK_BOOKING_TYPES: Record<Exclude<ServiceDeskId, "departur
   ticket: "ticket",
   hotel: "hotel",
   transport: "transport",
+  insurance: "insurance",
 };
 
 export function deskToBookingType(desk: Exclude<ServiceDeskId, "departures">): BookingType {

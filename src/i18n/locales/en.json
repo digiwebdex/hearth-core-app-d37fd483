@@ -225,6 +225,7 @@
       "ticket": "Ticketing",
       "hotel": "Hotel",
       "transport": "Transport",
+      "insurance": "Insurance",
       "departures": "Group departures"
     },
     "columns": {
@@ -239,7 +240,10 @@
       "checkIn": "Check-in",
       "confirmation": "Confirmation",
       "pickup": "Pickup",
-      "vehicle": "Vehicle"
+      "vehicle": "Vehicle",
+      "plan": "Plan",
+      "policy": "Policy",
+      "coverage": "Coverage"
     },
     "departures": {
       "emptyTitle": "No upcoming departures",
@@ -301,6 +305,13 @@
         "assigned": "Driver assigned",
         "in_transit": "In transit",
         "completed": "Completed",
+        "cancelled": "Cancelled"
+      },
+      "insurance": {
+        "pending": "Pending",
+        "quoted": "Quoted",
+        "purchased": "Purchased",
+        "policy_issued": "Policy issued",
         "cancelled": "Cancelled"
       }
     }
@@ -1796,6 +1807,7 @@
     "updated": "Quotation updated",
     "created": "Quotation created",
     "error": "Error",
+    "catalogPicker": "Pick from catalog…",
     "pickDate": "Pick a date",
     "tabs": {
       "details": "Details",

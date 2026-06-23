@@ -225,6 +225,7 @@
       "ticket": "টিকেটিং",
       "hotel": "হোটেল",
       "transport": "ট্রান্সপোর্ট",
+      "insurance": "ইন্স্যুরেন্স",
       "departures": "গ্রুপ ডিপারচার"
     },
     "columns": {
@@ -239,7 +240,10 @@
       "checkIn": "চেক-ইন",
       "confirmation": "কনফার্মেশন",
       "pickup": "পিকআপ",
-      "vehicle": "যান"
+      "vehicle": "যান",
+      "plan": "প্ল্যান",
+      "policy": "পলিসি",
+      "coverage": "কভারেজ"
     },
     "departures": {
       "emptyTitle": "কোনো আসন্ন ডিপারচার নেই",
@@ -301,6 +305,13 @@
         "assigned": "ড্রাইভার অ্যাসাইন",
         "in_transit": "রাস্তায়",
         "completed": "সম্পন্ন",
+        "cancelled": "বাতিল"
+      },
+      "insurance": {
+        "pending": "অপেক্ষমাণ",
+        "quoted": "কোট দেওয়া",
+        "purchased": "ক্রয় সম্পন্ন",
+        "policy_issued": "পলিসি ইস্যু",
         "cancelled": "বাতিল"
       }
     }
@@ -1792,6 +1803,7 @@
     "updated": "কোটেশন আপডেট হয়েছে",
     "created": "কোটেশন তৈরি হয়েছে",
     "error": "ত্রুটি",
+    "catalogPicker": "ক্যাটালগ থেকে বেছে নিন…",
     "pickDate": "তারিখ নির্বাচন করুন",
     "tabs": {
       "details": "বিস্তারিত",
