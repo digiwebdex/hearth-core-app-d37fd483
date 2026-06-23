@@ -103,9 +103,12 @@ const QuotationBuilder = () => {
   );
 
   const packagePrefillId = searchParams.get("packageId");
+  const leadPrefillId = searchParams.get("leadId");
+  const isLeadPrefill = !!leadPrefillId && !isEdit;
 
-  const [title, setTitle] = useState("Thailand Family Tour — 5 Nights / 6 Days");
-  const [destination, setDestination] = useState("Bangkok & Pattaya, Thailand");
+  const [leadId, setLeadId] = useState("");
+  const [title, setTitle] = useState(isLeadPrefill ? "" : "Thailand Family Tour — 5 Nights / 6 Days");
+  const [destination, setDestination] = useState(isLeadPrefill ? "" : "Bangkok & Pattaya, Thailand");
   const [clientName, setClientName] = useState("");
   const [clientId, setClientId] = useState("");
   const [leadName, setLeadName] = useState("");
@@ -122,7 +125,10 @@ const QuotationBuilder = () => {
   const [terms, setTerms] = useState(
     "• 50% advance payment required at the time of booking confirmation.\n• Balance payment due 15 days before departure.\n• Cancellation charges apply as per company policy.\n• Passport must be valid for at least 6 months from travel date.\n• Prices are subject to change based on availability and exchange rates.\n• Travel insurance is strongly recommended for all passengers."
   );
-  const [items, setItems] = useState<QuotationItem[]>([
+  const [items, setItems] = useState<QuotationItem[]>(
+    isLeadPrefill
+      ? [emptyItem()]
+      : [
     { id: makeId(), type: "flight", description: "Dhaka → Bangkok (Round Trip) — Thai Airways", details: "Economy class, 30kg baggage", supplier: "Thai Airways", costPrice: 32000, markupPercent: 10, sellingPrice: 35200, quantity: 2, subtotal: 70400 },
     { id: makeId(), type: "hotel", description: "Novotel Bangkok Sukhumvit — Deluxe Room", details: "Breakfast included, city view", supplier: "Novotel Hotels", costPrice: 5500, markupPercent: 20, sellingPrice: 6600, quantity: 1, nights: 3, subtotal: 19800 },
     { id: makeId(), type: "hotel", description: "Hilton Pattaya — Sea View Room", details: "Breakfast included, beachfront", supplier: "Hilton Hotels", costPrice: 7000, markupPercent: 20, sellingPrice: 8400, quantity: 1, nights: 2, subtotal: 16800 },
@@ -132,15 +138,20 @@ const QuotationBuilder = () => {
     { id: makeId(), type: "visa", description: "Thailand Visa on Arrival Assistance", details: "Document preparation, fast track", supplier: "In-house", costPrice: 500, markupPercent: 100, sellingPrice: 1000, quantity: 2, subtotal: 2000 },
     { id: makeId(), type: "insurance", description: "Travel Insurance — 7 Days Coverage", details: "Medical, trip cancellation, baggage loss", supplier: "Guardian Life", costPrice: 800, markupPercent: 25, sellingPrice: 1000, quantity: 2, subtotal: 2000 },
     { id: makeId(), type: "service_fee", description: "Service & Processing Fee", supplier: "In-house", costPrice: 0, markupPercent: 0, sellingPrice: 3000, quantity: 1, subtotal: 3000 },
-  ]);
-  const [itinerary, setItinerary] = useState<ItineraryDay[]>([
+  ],
+  );
+  const [itinerary, setItinerary] = useState<ItineraryDay[]>(
+    isLeadPrefill
+      ? []
+      : [
     { dayNumber: 1, title: "Arrival in Bangkok", description: "Arrive at Suvarnabhumi Airport. Meet & greet by our representative. Private transfer to Novotel Bangkok Sukhumvit. Check-in and rest. Evening free for exploring nearby street food markets and Sukhumvit nightlife.", meals: "Dinner on own", accommodation: "Novotel Bangkok Sukhumvit" },
     { dayNumber: 2, title: "Bangkok City Tour", description: "Full-day guided tour of Bangkok's iconic landmarks. Visit the magnificent Grand Palace, the ancient Wat Pho with its famous Reclining Buddha, and cross the river to the stunning Wat Arun (Temple of Dawn). Lunch at a riverside Thai restaurant.", meals: "Breakfast, Lunch", accommodation: "Novotel Bangkok Sukhumvit" },
     { dayNumber: 3, title: "Bangkok → Pattaya", description: "After breakfast, check out and private transfer to Pattaya (approx. 2 hours). Check in at Hilton Pattaya. Afternoon free to explore Walking Street, enjoy the beachfront promenade, or relax at the hotel pool.", meals: "Breakfast", accommodation: "Hilton Pattaya" },
     { dayNumber: 4, title: "Coral Island Excursion", description: "Speedboat to Coral Island (Koh Larn). Full day of beach activities including snorkeling in crystal-clear waters, optional parasailing, and a delicious seafood lunch on the island. Return to hotel by late afternoon.", meals: "Breakfast, Lunch", accommodation: "Hilton Pattaya" },
     { dayNumber: 5, title: "Free Day & Shopping", description: "Day at leisure. Optional visits to Nong Nooch Tropical Garden, Sanctuary of Truth, or shopping at Central Festival Pattaya Beach mall. Pack and prepare for departure.", meals: "Breakfast", accommodation: "Hilton Pattaya" },
     { dayNumber: 6, title: "Departure", description: "After breakfast, check out from hotel. Private transfer to Suvarnabhumi Airport for your return flight to Dhaka. End of a memorable Thailand experience!", meals: "Breakfast", accommodation: "—" },
-  ]);
+  ],
+  );
 
   useEffect(() => {
     if (!allowedServiceTypes.includes(serviceType)) {
@@ -268,10 +279,46 @@ const QuotationBuilder = () => {
   };
 
   useEffect(() => {
-    if (isEdit || prefillApplied || !packagePrefillId || availablePackages.length === 0) return;
+    if (isEdit || prefillApplied || !leadPrefillId) return;
+    setPrefillApplied(true);
+    setLeadId(leadPrefillId);
+    const name = searchParams.get("leadName");
+    if (name) {
+      setLeadName(name);
+      setClientName(name);
+    }
+    const dest = searchParams.get("destination");
+    if (dest) {
+      setDestination(dest);
+      setTitle(`${dest} — Quotation`);
+    }
+    const travelers = searchParams.get("travelerCount");
+    if (travelers) setTravelerCount(Math.max(1, Number(travelers)));
+    const from = searchParams.get("travelDateFrom");
+    const to = searchParams.get("travelDateTo");
+    if (from) setTravelFrom(new Date(from));
+    if (to) setTravelTo(new Date(to));
+    const budget = Number(searchParams.get("budget") || 0);
+    if (budget > 0) {
+      const cost = Math.round(budget * 0.85);
+      setItems([{
+        ...emptyItem(),
+        type: "tour",
+        description: dest || "Travel package",
+        costPrice: cost,
+        markupPercent: Math.round(((budget - cost) / cost) * 100) || 15,
+        sellingPrice: budget,
+        quantity: Math.max(1, Number(travelers) || 1),
+        subtotal: budget * Math.max(1, Number(travelers) || 1),
+      }]);
+    }
+  }, [isEdit, prefillApplied, leadPrefillId, searchParams]);
+
+  useEffect(() => {
+    if (isEdit || prefillApplied || leadPrefillId || !packagePrefillId || availablePackages.length === 0) return;
     setPrefillApplied(true);
     void handlePackageChange(packagePrefillId);
-  }, [isEdit, prefillApplied, packagePrefillId, availablePackages]);
+  }, [isEdit, prefillApplied, leadPrefillId, packagePrefillId, availablePackages]);
 
   const updateItem = (itemId: string, updates: Partial<QuotationItem>) => {
     setItems((prev) => prev.map((item) => {
@@ -326,6 +373,7 @@ const QuotationBuilder = () => {
       destination,
       clientId: clientId || undefined,
       clientName: clientName || undefined,
+      leadId: leadId || undefined,
       leadName: leadName || undefined,
       serviceType,
       packageId: packageId === "none" ? undefined : packageId,

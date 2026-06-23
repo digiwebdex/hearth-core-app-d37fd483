@@ -22,10 +22,11 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { leadApi, type Lead, type LeadStatus } from "@/lib/api";
+import { buildLeadQuotationParams, buildLeadBookingParams } from "@/lib/leadNavigation";
 import {
   Target, Plus, Search, Filter, LayoutGrid, List, CalendarIcon,
   Phone, Mail, MapPin, Users, DollarSign, ArrowRight, Pencil, Trash2,
-  Eye, UserPlus, ChevronDown, SortAsc, SortDesc,
+  Eye, UserPlus, ChevronDown, SortAsc, SortDesc, FileText, Plane,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -341,6 +342,16 @@ const Leads = () => {
                     <TableCell className="text-sm text-muted-foreground">{lead.createdAt?.slice(0, 10)}</TableCell>
                     <TableCell>
                       <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                        <PermissionGate module="quotations" action="create">
+                          <Button variant="ghost" size="icon" title={t("leadsForm.createQuotation")} onClick={() => navigate(`/quotations/new?${buildLeadQuotationParams(lead).toString()}`)}>
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                        </PermissionGate>
+                        <PermissionGate module="bookings" action="create">
+                          <Button variant="ghost" size="icon" title={t("leadsForm.createBooking")} onClick={() => navigate(`/bookings?${buildLeadBookingParams(lead).toString()}`)}>
+                            <Plane className="h-4 w-4" />
+                          </Button>
+                        </PermissionGate>
                         <Button variant="ghost" size="icon" title={t("leadsForm.view")} onClick={() => navigate(`/leads/${lead.id}`)}>
                           <Eye className="h-4 w-4" />
                         </Button>

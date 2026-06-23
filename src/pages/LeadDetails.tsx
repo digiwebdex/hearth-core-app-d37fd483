@@ -17,11 +17,12 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { leadApi, taskApi, type Lead, type LeadActivity, type LeadStatus, type Quotation } from "@/lib/api";
+import { leadApi, taskApi, quotationApi, type Lead, type LeadActivity, type LeadStatus, type Quotation } from "@/lib/api";
+import { buildLeadQuotationParams, buildLeadBookingParams } from "@/lib/leadNavigation";
 import {
   ArrowLeft, Phone, Mail, MapPin, CalendarIcon, Users, DollarSign, UserPlus,
   MessageSquare, Clock, ArrowRight, RefreshCw, Send, FileText, CheckSquare,
-  AlertTriangle, ExternalLink,
+  AlertTriangle, ExternalLink, Plane,
 } from "lucide-react";
 
 const LEAD_STATUSES: { value: LeadStatus; label: string; color: string }[] = [
@@ -157,15 +158,27 @@ const LeadDetails = () => {
   // ── Create Quotation ──
   const handleCreateQuotation = () => {
     if (!lead) return;
-    const params = new URLSearchParams();
-    params.set("leadId", lead.id);
-    params.set("leadName", lead.name);
-    if (lead.destination) params.set("destination", lead.destination);
-    if (lead.travelDateFrom) params.set("travelDateFrom", lead.travelDateFrom);
-    if (lead.travelDateTo) params.set("travelDateTo", lead.travelDateTo);
-    if (lead.travelerCount) params.set("travelerCount", String(lead.travelerCount));
-    if (lead.budget) params.set("budget", String(lead.budget));
-    navigate(`/quotations/new?${params.toString()}`);
+    navigate(`/quotations/new?${buildLeadQuotationParams(lead).toString()}`);
+  };
+
+  const handleCreateBooking = () => {
+    if (!lead) return;
+    navigate(`/bookings?${buildLeadBookingParams(lead).toString()}`);
+  };
+
+  const handleConvertQuotation = async (quotation: Quotation, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const booking = await quotationApi.convertToBooking(quotation.id);
+      toast({ title: "Booking created from quotation" });
+      navigate(`/bookings/${booking.id}`);
+    } catch (err: unknown) {
+      toast({
+        variant: "destructive",
+        title: "Could not convert quotation",
+        description: err instanceof Error ? err.message : String(err),
+      });
+    }
   };
 
   // ── Schedule Follow-up Task ──
@@ -237,6 +250,11 @@ const LeadDetails = () => {
             <PermissionGate module="quotations" action="create">
               <Button variant="outline" onClick={handleCreateQuotation}>
                 <FileText className="mr-2 h-4 w-4" /> Create Quotation
+              </Button>
+            </PermissionGate>
+            <PermissionGate module="bookings" action="create">
+              <Button variant="outline" onClick={handleCreateBooking}>
+                <Plane className="mr-2 h-4 w-4" /> Create Booking
               </Button>
             </PermissionGate>
             <PermissionGate module="leads" action="edit">
@@ -327,6 +345,18 @@ const LeadDetails = () => {
                           <span className={`inline-flex items-center rounded-full px-1.5 py-0 text-[10px] font-medium ${QUOTATION_STATUS_COLORS[q.status] || "bg-muted text-muted-foreground"}`}>
                             {q.status}
                           </span>
+                          {q.status === "approved" && (
+                            <PermissionGate module="quotations" action="approve">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-xs"
+                                onClick={(e) => handleConvertQuotation(q, e)}
+                              >
+                                Book
+                              </Button>
+                            </PermissionGate>
+                          )}
                           <ExternalLink className="h-3 w-3 text-muted-foreground" />
                         </div>
                       </div>

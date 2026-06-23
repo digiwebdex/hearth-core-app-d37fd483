@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { useLocation, useMatch, useNavigate } from "react-router-dom";
+import { useLocation, useMatch, useNavigate, useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import PermissionGate from "@/components/PermissionGate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +23,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { getTenantBookingTypes, getTenantBookingPresets } from "@/lib/bookingTypeOptions";
-import { bookingApi, quotationApi, type Booking, type BookingStatus, type BookingType, type Quotation } from "@/lib/api";
+import { parseLeadBookingPrefill } from "@/lib/leadNavigation";
+import { bookingApi, quotationApi, leadApi, type Booking, type BookingStatus, type BookingType, type Quotation } from "@/lib/api";
 import EmptyState from "@/components/EmptyState";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
@@ -349,6 +350,8 @@ const Bookings = () => {
   );
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [leadPrefillId, setLeadPrefillId] = useState("");
   const presetMatch = useMatch("/bookings/:segment");
   const routeSegment = presetMatch?.params.segment;
   const activePreset: BookingPresetId =
@@ -381,6 +384,27 @@ const Bookings = () => {
   }, [fetchBookings]);
 
   useEffect(() => {
+    const prefill = parseLeadBookingPrefill(searchParams);
+    if (!prefill) return;
+    const type = allowedBookingTypes.includes(prefill.type) ? prefill.type : (allowedBookingTypes[0] || "tour");
+    setForm({
+      ...emptyForm,
+      type,
+      clientName: prefill.clientName,
+      title: prefill.destination ? `${prefill.destination} Booking` : `${prefill.clientName} Booking`,
+      destination: prefill.destination,
+      amount: prefill.amount,
+      cost: prefill.amount ? Math.round(prefill.amount * 0.85) : 0,
+      travelerCount: prefill.travelerCount,
+      travelDateFrom: prefill.travelDateFrom,
+      travelDateTo: prefill.travelDateTo,
+    });
+    setLeadPrefillId(prefill.leadId);
+    setDialogOpen(true);
+    setSearchParams({}, { replace: true });
+  }, [searchParams, setSearchParams, allowedBookingTypes]);
+
+  useEffect(() => {
     if (routeSegment && isBookingPreset(routeSegment)) {
       setTypeFilter(bookingPresetToTypeFilter(routeSegment));
     } else if (location.pathname === "/bookings") {
@@ -405,8 +429,12 @@ const Bookings = () => {
         toast({ title: t("bookingsForm.updateFailed"), description: err.message, variant: "destructive" });
       });
     } else {
-      bookingApi.create(payload).then((created: Booking) => {
+      bookingApi.create(payload).then(async (created: Booking) => {
         setItems((prev) => [...prev, mergeServiceDetailsIntoBooking(created)]);
+        if (leadPrefillId) {
+          await leadApi.updateStatus(leadPrefillId, "won").catch(() => {});
+          setLeadPrefillId("");
+        }
         toast({ title: t("bookingsForm.bookingCreated") });
       }).catch((err: any) => {
         toast({ title: t("bookingsForm.createFailed"), description: err.message, variant: "destructive" });

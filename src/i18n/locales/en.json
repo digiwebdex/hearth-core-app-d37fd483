@@ -510,6 +510,8 @@
     "edit": "Edit",
     "delete": "Delete",
     "convertToClient": "Convert to Client",
+    "createQuotation": "Create quotation from lead",
+    "createBooking": "Create booking from lead",
     "editLead": "Edit Lead",
     "newLead": "New Lead",
     "phone": "Phone",

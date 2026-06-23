@@ -18,7 +18,23 @@ router.get("/:id", requirePermission("quotations", "view"), async (req, res) => 
 router.post("/", requirePermission("quotations", "create"), checkPlanLimit("quotations"), async (req, res) => {
   try {
     const data = await enrichQuotationFromPackage(req.body, req.tenantId);
-    res.status(201).json(await prisma.quotation.create({ data: { ...data, createdBy: req.userId, tenantId: req.tenantId } }));
+    const quotation = await prisma.quotation.create({ data: { ...data, createdBy: req.userId, tenantId: req.tenantId } });
+    if (data.leadId) {
+      await prisma.lead.updateMany({
+        where: { id: data.leadId, tenantId: req.tenantId, status: { notIn: ["won", "lost"] } },
+        data: { status: "quoted" },
+      });
+      await prisma.leadActivity.create({
+        data: {
+          leadId: data.leadId,
+          type: "status_change",
+          content: `Quotation created: ${data.title || data.destination || "New quote"}`,
+          newStatus: "quoted",
+          createdBy: req.userId,
+        },
+      }).catch(() => {});
+    }
+    res.status(201).json(quotation);
   }
   catch (err) { res.status(400).json({ message: err.message }); }
 });

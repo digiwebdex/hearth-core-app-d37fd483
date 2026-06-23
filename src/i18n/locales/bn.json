@@ -506,6 +506,8 @@
     "edit": "সম্পাদনা",
     "delete": "মুছুন",
     "convertToClient": "ক্লায়েন্টে রূপান্তর",
+    "createQuotation": "লিড থেকে কোটেশন তৈরি",
+    "createBooking": "লিড থেকে বুকিং তৈরি",
     "editLead": "লিড সম্পাদনা",
     "newLead": "নতুন লিড",
     "phone": "ফোন",
