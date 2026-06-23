@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,9 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { adminApi, type AdminTenant } from "@/lib/api";
+import { adminApi, type AdminTenant, type TrialExpiryAlert } from "@/lib/api";
 import { adminSubscriptionWorkflowApi } from "@/lib/subscriptionWorkflowApi";
 import { PLANS, type BillingCycle, type PlanType } from "@/lib/plans";
+import { MessageSquare, Phone, AlertTriangle } from "lucide-react";
 
 const statusClasses: Record<string, string> = {
   trial: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
@@ -40,6 +41,9 @@ const AdminSubscriptions = () => {
   const [months, setMonths] = useState("1");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [trialAlerts, setTrialAlerts] = useState<TrialExpiryAlert[]>([]);
+  const [alertsLoading, setAlertsLoading] = useState(true);
+  const [notifySending, setNotifySending] = useState<string | null>(null);
 
   const loadTenants = async () => {
     setLoading(true);
@@ -54,6 +58,37 @@ const AdminSubscriptions = () => {
   };
 
   useEffect(() => { loadTenants(); }, []);
+
+  const loadTrialAlerts = async () => {
+    setAlertsLoading(true);
+    try {
+      const data = await adminApi.getTrialExpiryAlerts();
+      setTrialAlerts(data.items || []);
+    } catch {
+      setTrialAlerts([]);
+    } finally {
+      setAlertsLoading(false);
+    }
+  };
+
+  useEffect(() => { loadTrialAlerts(); }, []);
+
+  const sendTrialNotify = async (tenantId: string, channels: ("sms" | "whatsapp")[]) => {
+    setNotifySending(`${tenantId}:${channels.join(",")}`);
+    try {
+      const res = await adminApi.sendTrialExpiryNotify(tenantId, channels);
+      toast({
+        title: channels.includes("sms") && channels.includes("whatsapp") ? "SMS & WhatsApp sent" : channels[0] === "whatsapp" ? "WhatsApp sent" : "SMS sent",
+        description: res.phone || res.whatsapp ? `To: ${res.phone || res.whatsapp}` : undefined,
+      });
+      await loadTrialAlerts();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Send failed";
+      toast({ title: "Notification failed", description: message, variant: "destructive" });
+    } finally {
+      setNotifySending(null);
+    }
+  };
 
   const filtered = useMemo(() => tenants.filter((tenant) => {
     const q = search.toLowerCase();
@@ -100,6 +135,7 @@ const AdminSubscriptions = () => {
     total: tenants.length,
     active: tenants.filter((tenant) => tenant.subscriptionStatus === "active").length,
     trial: tenants.filter((tenant) => tenant.subscriptionStatus === "trial").length,
+    expired: tenants.filter((tenant) => tenant.subscriptionStatus === "expired").length,
     suspended: tenants.filter((tenant) => tenant.subscriptionStatus === "suspended").length,
   }), [tenants]);
 
@@ -111,13 +147,95 @@ const AdminSubscriptions = () => {
             <h1 className="text-3xl font-bold tracking-tight">Subscriptions</h1>
             <p className="text-muted-foreground">Manage agency plans, skip trials, extend expiry, or suspend service.</p>
           </div>
-          <Button variant="outline" onClick={loadTenants} disabled={loading}>Refresh</Button>
+          <Button variant="outline" onClick={() => { loadTenants(); loadTrialAlerts(); }} disabled={loading}>Refresh</Button>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-4">
+        {trialAlerts.length > 0 && (
+          <Card className="border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+                ট্রায়াল / সাবস্ক্রিপশন শেষ — ফলো-আপ করুন
+              </CardTitle>
+              <CardDescription>
+                নিচের এজেন্সিগুলোর ট্রায়াল শেষ হয়েছে। অটো SMS/WhatsApp যায়েছে (কনফিগ থাকলে)। আবার পাঠাতে বাটন ব্যবহার করুন।
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>এজেন্সি</TableHead>
+                    <TableHead>মালিক</TableHead>
+                    <TableHead>ফোন</TableHead>
+                    <TableHead>শেষ তারিখ</TableHead>
+                    <TableHead>অটো</TableHead>
+                    <TableHead className="text-right">পাঠান</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {trialAlerts.filter((a) => a.wasTrial).slice(0, 20).map((alert) => (
+                    <TableRow key={alert.tenantId}>
+                      <TableCell className="font-medium">
+                        {alert.tenantName}
+                        {alert.wasTrial && <Badge variant="outline" className="ml-2 text-xs">Trial</Badge>}
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">{alert.ownerName || "—"}</div>
+                        <div className="text-xs text-muted-foreground">{alert.ownerEmail || ""}</div>
+                      </TableCell>
+                      <TableCell className="text-sm">{alert.ownerPhone || "—"}</TableCell>
+                      <TableCell className="text-sm">
+                        {alert.subscriptionExpiry ? new Date(alert.subscriptionExpiry).toLocaleDateString() : "—"}
+                      </TableCell>
+                      <TableCell>
+                        {alert.autoNotified ? (
+                          <Badge variant="secondary" className="text-xs">Auto ✓</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs">—</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right space-x-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={!alert.ownerPhone || !!notifySending}
+                          onClick={() => sendTrialNotify(alert.tenantId, ["sms"])}
+                        >
+                          <Phone className="h-3.5 w-3.5 mr-1" />
+                          SMS
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={!alert.ownerWhatsapp && !alert.ownerPhone || !!notifySending}
+                          onClick={() => sendTrialNotify(alert.tenantId, ["whatsapp"])}
+                        >
+                          <MessageSquare className="h-3.5 w-3.5 mr-1" />
+                          WhatsApp
+                        </Button>
+                        <Button
+                          size="sm"
+                          disabled={(!alert.ownerPhone && !alert.ownerWhatsapp) || !!notifySending}
+                          onClick={() => sendTrialNotify(alert.tenantId, ["sms", "whatsapp"])}
+                        >
+                          Both
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {alertsLoading && <p className="text-sm text-muted-foreground mt-2">Loading alerts…</p>}
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="grid gap-4 md:grid-cols-5">
           <Card><CardContent className="pt-6"><p className="text-2xl font-bold">{stats.total}</p><p className="text-sm text-muted-foreground">Total agencies</p></CardContent></Card>
           <Card><CardContent className="pt-6"><p className="text-2xl font-bold">{stats.active}</p><p className="text-sm text-muted-foreground">Active</p></CardContent></Card>
           <Card><CardContent className="pt-6"><p className="text-2xl font-bold">{stats.trial}</p><p className="text-sm text-muted-foreground">On trial</p></CardContent></Card>
+          <Card><CardContent className="pt-6"><p className="text-2xl font-bold text-amber-600">{stats.expired}</p><p className="text-sm text-muted-foreground">Expired</p></CardContent></Card>
           <Card><CardContent className="pt-6"><p className="text-2xl font-bold">{stats.suspended}</p><p className="text-sm text-muted-foreground">Suspended</p></CardContent></Card>
         </div>
 
@@ -175,6 +293,16 @@ const AdminSubscriptions = () => {
                         <Button size="sm" variant="outline" onClick={() => openAction(tenant, "extend")}>Extend</Button>
                         {tenant.subscriptionStatus === "trial" && <Button size="sm" variant="outline" onClick={() => openAction(tenant, "skip_trial")}>Skip trial</Button>}
                         {tenant.subscriptionStatus !== "suspended" && <Button size="sm" variant="destructive" onClick={() => openAction(tenant, "suspend")}>Suspend</Button>}
+                        {tenant.subscriptionStatus === "expired" && (
+                          <>
+                            <Button size="sm" variant="outline" onClick={() => sendTrialNotify(tenant.id, ["sms"])} disabled={!!notifySending}>
+                              <Phone className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => sendTrialNotify(tenant.id, ["whatsapp"])} disabled={!!notifySending}>
+                              <MessageSquare className="h-3.5 w-3.5" />
+                            </Button>
+                          </>
+                        )}
                       </TableCell>
                     </TableRow>
                   );

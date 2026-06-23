@@ -107,6 +107,15 @@ const templates = {
   subscriptionExpiringAdmin: (data) =>
     `Renewal soon: ${data.tenantName || "Agency"} plan ${data.plan} expires on ${data.expiryDate}. Contact the agency for renewal.`,
 
+  trialExpired: (data) =>
+    `Dear ${data.ownerName || "Agency Owner"}, your Travel Agency Web trial has ended. Renew: app.travelagencyweb.com/subscription — Travel Agency Web`,
+
+  trialExpiredBn: (data) =>
+    `প্রিয় ${data.ownerName || "এজেন্সি মালিক"}, আপনার Travel Agency Web ট্রায়াল শেষ। প্ল্যান রিনিউ: app.travelagencyweb.com/subscription`,
+
+  trialExpiredAdmin: (data) =>
+    `TRIAL ENDED: ${data.tenantName || "Agency"} (${data.ownerPhone || "no phone"}). Expired ${data.expiryDate || "N/A"}. Follow up for renewal.`,
+
   subscriptionOrderAlert: (data) =>
     `NEW PAYMENT: ${data.tenantName || "Agency"} · Plan ${data.plan} · ৳${data.amount} · ${data.method} · Trx ${data.trxId || "N/A"}. Review in Admin → Payment Requests.`,
 

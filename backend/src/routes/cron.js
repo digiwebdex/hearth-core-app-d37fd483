@@ -3,6 +3,7 @@
 const router = require("express").Router();
 const { prisma } = require("../middleware/auth");
 const { notifyEvent } = require("../services/notificationService");
+const { resolveTenantOwnerContact } = require("../lib/tenantOwnerContact");
 
 const CRON_SECRET = process.env.CRON_SECRET || "";
 
@@ -16,10 +17,14 @@ function verifyCronSecret(req, res, next) {
 router.use(verifyCronSecret);
 
 async function getTenantOwnerContact(tenantId) {
-  return prisma.user.findFirst({
-    where: { tenantId, role: "tenant_owner" },
-    select: { name: true, email: true, phone: true },
-  }).catch(() => null);
+  const contact = await resolveTenantOwnerContact(prisma, tenantId);
+  if (!contact) return null;
+  return {
+    name: contact.ownerName,
+    email: contact.ownerEmail,
+    phone: contact.phone,
+    whatsapp: contact.whatsapp,
+  };
 }
 
 router.post("/process-expiry", async (_req, res) => {
@@ -110,6 +115,40 @@ router.post("/process-expiry", async (_req, res) => {
           metadata: { plan: tenant.subscriptionPlan, expiry: tenant.subscriptionExpiry?.toISOString() },
         },
       }).catch(() => {});
+
+      const owner = await getTenantOwnerContact(tenant.id);
+      const notifyPayload = {
+        tenantName: tenant.name,
+        ownerName: owner?.name || null,
+        ownerEmail: owner?.email || null,
+        ownerPhone: owner?.phone || null,
+        ownerWhatsapp: owner?.whatsapp || null,
+        phone: owner?.phone || null,
+        whatsapp: owner?.whatsapp || null,
+        plan: tenant.subscriptionPlan,
+        expiryDate: tenant.subscriptionExpiry?.toISOString().slice(0, 10),
+        wasTrial: oldStatus === "trial",
+      };
+      const eventType = oldStatus === "trial" ? "trial_expired" : "subscription_expired";
+      await notifyEvent(eventType, notifyPayload).catch(() => {});
+
+      await prisma.auditLog.create({
+        data: {
+          actorId: "system",
+          actorName: "System Cron",
+          actorEmail: "system",
+          actorRole: "system",
+          tenantId: tenant.id,
+          tenantName: tenant.name,
+          module: "subscription",
+          action: "trial_expiry_auto_notify",
+          targetType: "tenant",
+          targetId: tenant.id,
+          targetLabel: tenant.name,
+          newValue: JSON.stringify({ eventType, phone: owner?.phone, whatsapp: owner?.whatsapp }),
+        },
+      }).catch(() => {});
+
       processed += 1;
     }
 

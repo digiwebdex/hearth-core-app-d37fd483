@@ -95,7 +95,7 @@ router.get("/tenants", async (req, res) => {
       orderBy: { createdAt: "desc" },
       include: {
         _count: { select: { users: true, bookings: true } },
-        users: { select: { id: true, name: true, email: true, role: true, createdAt: true } },
+        users: { select: { id: true, name: true, email: true, role: true, phone: true, whatsapp: true, createdAt: true } },
       },
     });
     res.json(tenants);
@@ -107,7 +107,7 @@ router.get("/tenants/:id", async (req, res) => {
     const t = await prisma.tenant.findUnique({
       where: { id: req.params.id },
       include: {
-        users: { select: { id: true, name: true, email: true, role: true, createdAt: true } },
+        users: { select: { id: true, name: true, email: true, role: true, phone: true, whatsapp: true, createdAt: true } },
         _count: { select: { users: true, bookings: true, clients: true, invoices: true } },
       },
     });
@@ -409,6 +409,145 @@ router.post("/users/:id/reject", async (req, res) => {
 
     res.json({ id: updated.id, status: updated.status, rejectionReason: updated.rejectionReason });
   } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+/** Expired trials / subscriptions needing follow-up (super admin). */
+router.get("/trial-expiry-alerts", async (_req, res) => {
+  try {
+    const tenants = await prisma.tenant.findMany({
+      where: { subscriptionStatus: "expired" },
+      orderBy: { subscriptionExpiry: "desc" },
+      include: {
+        users: {
+          where: { role: "tenant_owner" },
+          select: { id: true, name: true, email: true, phone: true, whatsapp: true },
+        },
+      },
+      take: 200,
+    });
+
+    const alerts = [];
+    for (const tenant of tenants) {
+      const autoExpired = await prisma.auditLog.findFirst({
+        where: { tenantId: tenant.id, module: "subscription", action: "auto_expired" },
+        orderBy: { createdAt: "desc" },
+      });
+      const wasTrial = autoExpired?.oldValue === "trial" || String(tenant.subscriptionPlan || "").toLowerCase() === "free";
+
+      const notifyLogs = await prisma.auditLog.findMany({
+        where: {
+          tenantId: tenant.id,
+          module: "subscription",
+          action: { in: ["trial_expiry_auto_notify", "trial_expiry_manual_sms", "trial_expiry_manual_whatsapp"] },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      });
+
+      const owner = tenant.users?.[0];
+      const phone = owner?.phone || owner?.whatsapp || tenant.phone || tenant.whatsapp || "";
+      const whatsapp = owner?.whatsapp || tenant.whatsapp || owner?.phone || tenant.phone || "";
+
+      alerts.push({
+        tenantId: tenant.id,
+        tenantName: tenant.name,
+        ownerName: owner?.name || null,
+        ownerEmail: owner?.email || null,
+        ownerPhone: phone || null,
+        ownerWhatsapp: whatsapp || null,
+        subscriptionPlan: tenant.subscriptionPlan,
+        subscriptionExpiry: tenant.subscriptionExpiry,
+        wasTrial,
+        expiredAt: autoExpired?.createdAt || tenant.subscriptionExpiry,
+        autoNotified: notifyLogs.some((l) => l.action === "trial_expiry_auto_notify"),
+        smsSent: notifyLogs.some((l) => l.action === "trial_expiry_manual_sms" || (l.action === "trial_expiry_auto_notify" && String(l.newValue || "").includes("sms"))),
+        whatsappSent: notifyLogs.some((l) => l.action === "trial_expiry_manual_whatsapp" || (l.action === "trial_expiry_auto_notify" && String(l.newValue || "").includes("whatsapp"))),
+        lastNotifyAt: notifyLogs[0]?.createdAt || null,
+      });
+    }
+
+    res.json({ items: alerts, total: alerts.length });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+/** Manually send trial-expiry SMS and/or WhatsApp to agency owner. */
+router.post("/tenants/:id/trial-expiry-notify", async (req, res) => {
+  try {
+    const channels = Array.isArray(req.body?.channels) ? req.body.channels : ["sms", "whatsapp"];
+    const sendSmsChannel = channels.includes("sms");
+    const sendWaChannel = channels.includes("whatsapp");
+    if (!sendSmsChannel && !sendWaChannel) {
+      return res.status(400).json({ message: "channels must include sms and/or whatsapp" });
+    }
+
+    const contact = await resolveTenantOwnerContact(prisma, req.params.id);
+    if (!contact?.tenant) return res.status(404).json({ message: "Tenant not found" });
+
+    const { sendTrialExpiryChannels } = require("../services/notificationService");
+    const payload = {
+      tenantName: contact.tenant.name,
+      ownerName: contact.ownerName,
+      ownerEmail: contact.ownerEmail,
+      ownerPhone: contact.phone,
+      ownerWhatsapp: contact.whatsapp,
+      phone: contact.phone,
+      whatsapp: contact.whatsapp,
+      plan: contact.tenant.subscriptionPlan,
+      expiryDate: contact.tenant.subscriptionExpiry?.toISOString().slice(0, 10),
+    };
+
+    const results = await sendTrialExpiryChannels(payload, { sms: sendSmsChannel, whatsapp: sendWaChannel });
+
+    const actor = await prisma.user.findUnique({ where: { id: req.userId }, select: { name: true, email: true, role: true } });
+
+    if (sendSmsChannel) {
+      await prisma.auditLog.create({
+        data: {
+          actorId: req.userId,
+          actorName: actor?.name || "",
+          actorEmail: actor?.email || "",
+          actorRole: actor?.role || "",
+          tenantId: contact.tenant.id,
+          tenantName: contact.tenant.name,
+          module: "subscription",
+          action: "trial_expiry_manual_sms",
+          targetType: "tenant",
+          targetId: contact.tenant.id,
+          targetLabel: contact.tenant.name,
+          newValue: JSON.stringify({ phone: contact.phone, success: results.sms?.success }),
+        },
+      }).catch(() => {});
+    }
+    if (sendWaChannel) {
+      await prisma.auditLog.create({
+        data: {
+          actorId: req.userId,
+          actorName: actor?.name || "",
+          actorEmail: actor?.email || "",
+          actorRole: actor?.role || "",
+          tenantId: contact.tenant.id,
+          tenantName: contact.tenant.name,
+          module: "subscription",
+          action: "trial_expiry_manual_whatsapp",
+          targetType: "tenant",
+          targetId: contact.tenant.id,
+          targetLabel: contact.tenant.name,
+          newValue: JSON.stringify({ whatsapp: contact.whatsapp, success: results.whatsapp?.success }),
+        },
+      }).catch(() => {});
+    }
+
+    res.json({
+      ok: true,
+      phone: contact.phone,
+      whatsapp: contact.whatsapp,
+      results,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 module.exports = router;

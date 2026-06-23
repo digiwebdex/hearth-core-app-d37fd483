@@ -462,7 +462,24 @@ export interface PaymentRequest { id: string; tenantId: string; plan: string; am
 // ── Admin types and API ──
 export interface PendingUser { id: string; name: string; email: string; role: string; status: string; phone?: string; whatsapp?: string; tenantId: string; tenant?: { id: string; name: string; slug?: string }; createdAt: string; rejectionReason?: string | null; }
 export interface AdminStats { totalTenants: number; totalUsers: number; totalBookings: number; totalRevenue: number; }
-export interface AdminTenant { id: string; name: string; slug?: string | null; ownerId?: string | null; phone?: string | null; whatsapp?: string | null; address?: string | null; city?: string | null; country?: string | null; website?: string | null; notes?: string | null; subscriptionPlan?: string; subscriptionStatus?: string; subscriptionExpiry?: string | null; enableHajjUmrahModule?: boolean; enableBdOperationsModule?: boolean; enabledServiceTypes?: string[]; enabledSubcategories?: string[]; createdAt: string; updatedAt?: string; users?: Array<{ id: string; name: string; email: string; role: string; createdAt?: string }>; _count?: { users?: number; bookings?: number; clients?: number; invoices?: number }; }
+export interface AdminTenant { id: string; name: string; slug?: string | null; ownerId?: string | null; phone?: string | null; whatsapp?: string | null; address?: string | null; city?: string | null; country?: string | null; website?: string | null; notes?: string | null; subscriptionPlan?: string; subscriptionStatus?: string; subscriptionExpiry?: string | null; enableHajjUmrahModule?: boolean; enableBdOperationsModule?: boolean; enabledServiceTypes?: string[]; enabledSubcategories?: string[]; createdAt: string; updatedAt?: string; users?: Array<{ id: string; name: string; email: string; role: string; phone?: string | null; whatsapp?: string | null; createdAt?: string }>; _count?: { users?: number; bookings?: number; clients?: number; invoices?: number }; }
+
+export interface TrialExpiryAlert {
+  tenantId: string;
+  tenantName: string;
+  ownerName?: string | null;
+  ownerEmail?: string | null;
+  ownerPhone?: string | null;
+  ownerWhatsapp?: string | null;
+  subscriptionPlan?: string;
+  subscriptionExpiry?: string | null;
+  wasTrial: boolean;
+  expiredAt?: string | null;
+  autoNotified: boolean;
+  smsSent: boolean;
+  whatsappSent: boolean;
+  lastNotifyAt?: string | null;
+}
 export interface AdminPaymentRequest extends PaymentRequest { tenant?: { name?: string }; }
 
 export const adminApi = {
@@ -478,6 +495,12 @@ export const adminApi = {
   getPendingUsers: () => request<PendingUser[]>("/admin/pending-users"),
   approveUser: (id: string) => request<{ success: boolean }>(`/admin/users/${id}/approve`, { method: "POST" }),
   rejectUser: (id: string, reason?: string) => request<{ success: boolean }>(`/admin/users/${id}/reject`, { method: "POST", body: JSON.stringify({ reason }) }),
+  getTrialExpiryAlerts: () => request<{ items: TrialExpiryAlert[]; total: number }>("/admin/trial-expiry-alerts"),
+  sendTrialExpiryNotify: (tenantId: string, channels: ("sms" | "whatsapp")[]) =>
+    request<{ ok: boolean; phone?: string; whatsapp?: string; results?: unknown }>(`/admin/tenants/${tenantId}/trial-expiry-notify`, {
+      method: "POST",
+      body: JSON.stringify({ channels }),
+    }),
 };
 
 // ── Domain types and API ──
