@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { adminApi, type AdminTenant, type TrialExpiryAlert } from "@/lib/api";
 import { adminSubscriptionWorkflowApi } from "@/lib/subscriptionWorkflowApi";
 import { PLANS, type BillingCycle, type PlanType } from "@/lib/plans";
-import { MessageSquare, Phone, AlertTriangle } from "lucide-react";
+import { MessageSquare, Phone, AlertTriangle, Mail } from "lucide-react";
 
 const statusClasses: Record<string, string> = {
   trial: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
@@ -73,13 +73,26 @@ const AdminSubscriptions = () => {
 
   useEffect(() => { loadTrialAlerts(); }, []);
 
-  const sendTrialNotify = async (tenantId: string, channels: ("sms" | "whatsapp")[]) => {
+  const sendTrialNotify = async (tenantId: string, channels: ("sms" | "whatsapp" | "email")[]) => {
     setNotifySending(`${tenantId}:${channels.join(",")}`);
     try {
       const res = await adminApi.sendTrialExpiryNotify(tenantId, channels);
+      const label = channels.length === 3
+        ? "Email, SMS & WhatsApp sent"
+        : channels.includes("email") && channels.includes("sms")
+          ? "Email & SMS sent"
+          : channels.includes("email") && channels.includes("whatsapp")
+            ? "Email & WhatsApp sent"
+            : channels.includes("sms") && channels.includes("whatsapp")
+              ? "SMS & WhatsApp sent"
+              : channels[0] === "email"
+                ? "Email sent"
+                : channels[0] === "whatsapp"
+                  ? "WhatsApp sent"
+                  : "SMS sent";
       toast({
-        title: channels.includes("sms") && channels.includes("whatsapp") ? "SMS & WhatsApp sent" : channels[0] === "whatsapp" ? "WhatsApp sent" : "SMS sent",
-        description: res.phone || res.whatsapp ? `To: ${res.phone || res.whatsapp}` : undefined,
+        title: label,
+        description: res.email || res.phone || res.whatsapp ? `To: ${res.email || res.phone || res.whatsapp}` : undefined,
       });
       await loadTrialAlerts();
     } catch (err: unknown) {
@@ -155,10 +168,10 @@ const AdminSubscriptions = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <AlertTriangle className="h-5 w-5 text-amber-600" />
-                ট্রায়াল / সাবস্ক্রিপশন শেষ — ফলো-আপ করুন
+                ট্রায়াল / সাবস্ক্রিপশন মেয়াদ শেষ — রিনিউ করুন
               </CardTitle>
               <CardDescription>
-                নিচের এজেন্সিগুলোর ট্রায়াল শেষ হয়েছে। অটো SMS/WhatsApp যায়েছে (কনফিগ থাকলে)। আবার পাঠাতে বাটন ব্যবহার করুন।
+                নিচের এজেন্সিগুলোর ট্রায়াল বা সাবস্ক্রিপশন শেষ হয়েছে। অটো ইমেইল, SMS ও WhatsApp যায় (কনফিগ থাকলে)। আবার পাঠাতে বাটন ব্যবহার করুন।
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -168,34 +181,50 @@ const AdminSubscriptions = () => {
                     <TableHead>এজেন্সি</TableHead>
                     <TableHead>মালিক</TableHead>
                     <TableHead>ফোন</TableHead>
+                    <TableHead>প্ল্যান</TableHead>
                     <TableHead>শেষ তারিখ</TableHead>
-                    <TableHead>অটো</TableHead>
-                    <TableHead className="text-right">পাঠান</TableHead>
+                    <TableHead>অটো নোটিফাই</TableHead>
+                    <TableHead className="text-right">রিনিউ রিমাইন্ডার পাঠান</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {trialAlerts.filter((a) => a.wasTrial).slice(0, 20).map((alert) => (
+                  {trialAlerts.slice(0, 30).map((alert) => (
                     <TableRow key={alert.tenantId}>
                       <TableCell className="font-medium">
                         {alert.tenantName}
-                        {alert.wasTrial && <Badge variant="outline" className="ml-2 text-xs">Trial</Badge>}
+                        {alert.wasTrial ? (
+                          <Badge variant="outline" className="ml-2 text-xs">Trial</Badge>
+                        ) : (
+                          <Badge variant="outline" className="ml-2 text-xs capitalize">{alert.subscriptionPlan || "plan"}</Badge>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="text-sm">{alert.ownerName || "—"}</div>
                         <div className="text-xs text-muted-foreground">{alert.ownerEmail || ""}</div>
                       </TableCell>
                       <TableCell className="text-sm">{alert.ownerPhone || "—"}</TableCell>
+                      <TableCell className="text-sm capitalize">{alert.subscriptionPlan || "—"}</TableCell>
                       <TableCell className="text-sm">
                         {alert.subscriptionExpiry ? new Date(alert.subscriptionExpiry).toLocaleDateString() : "—"}
                       </TableCell>
                       <TableCell>
-                        {alert.autoNotified ? (
-                          <Badge variant="secondary" className="text-xs">Auto ✓</Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-xs">—</Badge>
-                        )}
+                        <div className="flex flex-wrap gap-1">
+                          {alert.autoNotified ? <Badge variant="secondary" className="text-xs">Auto ✓</Badge> : <Badge variant="outline" className="text-xs">—</Badge>}
+                          {alert.emailSent && <Badge variant="outline" className="text-xs">Email</Badge>}
+                          {alert.smsSent && <Badge variant="outline" className="text-xs">SMS</Badge>}
+                          {alert.whatsappSent && <Badge variant="outline" className="text-xs">WA</Badge>}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right space-x-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={!alert.ownerEmail || !!notifySending}
+                          onClick={() => sendTrialNotify(alert.tenantId, ["email"])}
+                        >
+                          <Mail className="h-3.5 w-3.5 mr-1" />
+                          Email
+                        </Button>
                         <Button
                           size="sm"
                           variant="outline"
@@ -212,14 +241,14 @@ const AdminSubscriptions = () => {
                           onClick={() => sendTrialNotify(alert.tenantId, ["whatsapp"])}
                         >
                           <MessageSquare className="h-3.5 w-3.5 mr-1" />
-                          WhatsApp
+                          WA
                         </Button>
                         <Button
                           size="sm"
-                          disabled={(!alert.ownerPhone && !alert.ownerWhatsapp) || !!notifySending}
-                          onClick={() => sendTrialNotify(alert.tenantId, ["sms", "whatsapp"])}
+                          disabled={(!alert.ownerEmail && !alert.ownerPhone && !alert.ownerWhatsapp) || !!notifySending}
+                          onClick={() => sendTrialNotify(alert.tenantId, ["email", "sms", "whatsapp"])}
                         >
-                          Both
+                          All
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -295,10 +324,13 @@ const AdminSubscriptions = () => {
                         {tenant.subscriptionStatus !== "suspended" && <Button size="sm" variant="destructive" onClick={() => openAction(tenant, "suspend")}>Suspend</Button>}
                         {tenant.subscriptionStatus === "expired" && (
                           <>
-                            <Button size="sm" variant="outline" onClick={() => sendTrialNotify(tenant.id, ["sms"])} disabled={!!notifySending}>
+                            <Button size="sm" variant="outline" title="Send renewal email" onClick={() => sendTrialNotify(tenant.id, ["email"])} disabled={!!notifySending}>
+                              <Mail className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="sm" variant="outline" title="Send renewal SMS" onClick={() => sendTrialNotify(tenant.id, ["sms"])} disabled={!!notifySending}>
                               <Phone className="h-3.5 w-3.5" />
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => sendTrialNotify(tenant.id, ["whatsapp"])} disabled={!!notifySending}>
+                            <Button size="sm" variant="outline" title="Send renewal WhatsApp" onClick={() => sendTrialNotify(tenant.id, ["whatsapp"])} disabled={!!notifySending}>
                               <MessageSquare className="h-3.5 w-3.5" />
                             </Button>
                           </>

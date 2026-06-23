@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const { prisma, SECRET } = require("./auth");
+const { expireTenantIfNeeded } = require("../services/subscriptionExpiryService");
 
 const EXEMPT_PREFIXES = [
   "/auth",
@@ -54,16 +55,23 @@ async function subscriptionAccessGate(req, res, next) {
 
     const tenant = await prisma.tenant.findUnique({
       where: { id: decoded.tenantId },
-      select: { subscriptionPlan: true, subscriptionStatus: true, subscriptionExpiry: true },
+      select: { id: true, name: true, subscriptionPlan: true, subscriptionStatus: true, subscriptionExpiry: true },
     });
 
-    if (!tenantIsBlocked(tenant)) return next();
+    if (!tenant) return next();
+
+    await expireTenantIfNeeded(prisma, tenant.id);
+    const refreshed = await prisma.tenant.findUnique({
+      where: { id: tenant.id },
+      select: { subscriptionPlan: true, subscriptionStatus: true, subscriptionExpiry: true },
+    });
+    if (!tenantIsBlocked(refreshed)) return next();
 
     return res.status(402).json({
       message: "Subscription inactive. Renew your plan to continue.",
       code: "SUBSCRIPTION_INACTIVE",
-      subscriptionStatus: tenant?.subscriptionStatus,
-      subscriptionExpiry: tenant?.subscriptionExpiry,
+      subscriptionStatus: refreshed?.subscriptionStatus,
+      subscriptionExpiry: refreshed?.subscriptionExpiry,
     });
   } catch {
     return next();

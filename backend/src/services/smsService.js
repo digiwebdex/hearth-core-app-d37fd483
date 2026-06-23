@@ -240,6 +240,12 @@ const templates = {
   trialExpiredBn: (data) =>
     `প্রিয় ${data.ownerName || "এজেন্সি মালিক"}, আপনার Travel Agency Web ট্রায়াল শেষ। প্ল্যান রিনিউ: app.travelagencyweb.com/subscription`,
 
+  subscriptionExpired: (data) =>
+    `Dear ${data.ownerName || "Agency Owner"}, your ${data.plan || ""} plan has expired. Renew now: app.travelagencyweb.com/subscription — Travel Agency Web`,
+
+  subscriptionExpiredBn: (data) =>
+    `প্রিয় ${data.ownerName || "এজেন্সি মালিক"}, আপনার ${data.plan || ""} প্ল্যানের মেয়াদ শেষ। রিনিউ করুন: app.travelagencyweb.com/subscription`,
+
   trialExpiredAdmin: (data) =>
     `TRIAL ENDED: ${data.tenantName || "Agency"} (${data.ownerPhone || "no phone"}). Expired ${data.expiryDate || "N/A"}. Follow up for renewal.`,
 

@@ -139,15 +139,19 @@ function renderSubscriptionExpiringAdminEmail(data) {
   };
 }
 
-function renderTrialExpiredOwnerEmail(data) {
+function renderSubscriptionExpiredOwnerEmail(data) {
   const renewUrl = process.env.FRONTEND_URL || "https://app.travelagencyweb.com";
+  const headline = data.wasTrial ? "Your trial period has ended" : "Your subscription has expired";
+  const body = data.wasTrial
+    ? `Your agency <strong>${data.tenantName || ""}</strong> trial expired on <strong>${data.expiryDate || ""}</strong>.`
+    : `Your <strong>${data.plan || ""}</strong> subscription for <strong>${data.tenantName || ""}</strong> expired on <strong>${data.expiryDate || ""}</strong>.`;
   return {
-    subject: `Trial ended — ${data.tenantName || "Your agency"} | Travel Agency Web`,
+    subject: `${data.wasTrial ? "Trial ended" : "Subscription expired"} — ${data.tenantName || "Your agency"} | Travel Agency Web`,
     html: `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
-        <h2 style="color:#0f172a;">Your trial period has ended</h2>
+        <h2 style="color:#0f172a;">${headline}</h2>
         <p>Hello ${data.ownerName || ""},</p>
-        <p>Your agency <strong>${data.tenantName || ""}</strong> trial expired on <strong>${data.expiryDate || ""}</strong>.</p>
+        <p>${body}</p>
         <p>Renew your subscription to continue using bookings, quotations, and your website.</p>
         <p style="margin:24px 0;">
           <a href="${renewUrl}/subscription" style="background:#ea580c;color:white;padding:12px 24px;text-decoration:none;border-radius:6px;display:inline-block;">
@@ -157,6 +161,10 @@ function renderTrialExpiredOwnerEmail(data) {
       </div>
     `,
   };
+}
+
+function renderTrialExpiredOwnerEmail(data) {
+  return renderSubscriptionExpiredOwnerEmail({ ...data, wasTrial: true });
 }
 
 function renderTrialExpiredAdminEmail(data) {
@@ -180,11 +188,25 @@ function buildTrialExpiredMessage(data, useBn = false) {
   return tmpl || `Your trial has ended. Renew at app.travelagencyweb.com/subscription`;
 }
 
-async function sendTrialExpiryChannels(data, { sms = true, whatsapp = true } = {}) {
+function buildRenewalExpiredMessage(data, useBn = false) {
+  const wasTrial = Boolean(data.wasTrial);
+  if (wasTrial) {
+    return buildTrialExpiredMessage(data, useBn);
+  }
+  if (useBn) {
+    const bn = getSmsTemplate("subscriptionExpiredBn", data);
+    if (bn) return bn;
+  }
+  const en = getSmsTemplate("subscriptionExpired", data);
+  return en || `Your ${data.plan || ""} subscription has expired. Renew: app.travelagencyweb.com/subscription`;
+}
+
+async function sendRenewalExpiryChannels(data, { sms = true, whatsapp = true, email = true } = {}) {
   const results = { sms: null, whatsapp: null, email: null };
   const phone = data.ownerPhone || data.phone;
   const wa = data.ownerWhatsapp || data.whatsapp || phone;
-  const msg = buildTrialExpiredMessage(data, String(process.env.TRIAL_EXPIRY_SMS_LANG || "").toLowerCase() === "bn");
+  const useBn = String(process.env.TRIAL_EXPIRY_SMS_LANG || "").toLowerCase() === "bn";
+  const msg = buildRenewalExpiredMessage(data, useBn);
 
   if (sms && phone) {
     results.sms = await sendSms({ to: phone, message: msg });
@@ -192,11 +214,16 @@ async function sendTrialExpiryChannels(data, { sms = true, whatsapp = true } = {
   if (whatsapp && wa) {
     results.whatsapp = await sendWhatsApp({ to: wa, message: msg });
   }
-  if (data.ownerEmail) {
-    const mail = renderTrialExpiredOwnerEmail(data);
+  if (email && data.ownerEmail) {
+    const mail = renderSubscriptionExpiredOwnerEmail(data);
     results.email = await sendEmail({ to: data.ownerEmail, subject: mail.subject, html: mail.html });
   }
   return results;
+}
+
+/** @deprecated Use sendRenewalExpiryChannels */
+async function sendTrialExpiryChannels(data, options = {}) {
+  return sendRenewalExpiryChannels(data, options);
 }
 
 // ── Event Handlers ──
@@ -348,6 +375,13 @@ const EVENT_HANDLERS = {
       }
     },
     async (data) => {
+      const wa = data.ownerWhatsapp || data.ownerPhone;
+      if (wa) {
+        const msg = getSmsTemplate("subscriptionExpiring", data);
+        if (msg) await sendWhatsApp({ to: wa, message: msg });
+      }
+    },
+    async (data) => {
       if (SUPER_ADMIN_ALERT_EMAIL) {
         const mail = renderSubscriptionExpiringAdminEmail(data);
         await sendEmail({ to: SUPER_ADMIN_ALERT_EMAIL, subject: mail.subject, html: mail.html });
@@ -361,9 +395,9 @@ const EVENT_HANDLERS = {
     },
   ],
 
-  // Trial or subscription expired → SMS + WhatsApp + email to agency owner; alert super admin
+  // Trial or subscription expired → email + SMS + WhatsApp to agency owner; alert super admin
   trial_expired: [
-    async (data) => sendTrialExpiryChannels(data, { sms: true, whatsapp: true }),
+    async (data) => sendRenewalExpiryChannels({ ...data, wasTrial: true }, { sms: true, whatsapp: true, email: true }),
     async (data) => {
       if (SUPER_ADMIN_ALERT_EMAIL) {
         const mail = renderTrialExpiredAdminEmail(data);
@@ -379,11 +413,17 @@ const EVENT_HANDLERS = {
   ],
 
   subscription_expired: [
-    async (data) => sendTrialExpiryChannels(data, { sms: true, whatsapp: true }),
+    async (data) => sendRenewalExpiryChannels({ ...data, wasTrial: false }, { sms: true, whatsapp: true, email: true }),
     async (data) => {
       if (SUPER_ADMIN_ALERT_EMAIL) {
-        const mail = renderTrialExpiredAdminEmail(data);
+        const mail = renderTrialExpiredAdminEmail({ ...data, wasTrial: false });
         await sendEmail({ to: SUPER_ADMIN_ALERT_EMAIL, subject: mail.subject, html: mail.html });
+      }
+    },
+    async (data) => {
+      if (SUPER_ADMIN_ALERT_PHONE) {
+        const msg = getSmsTemplate("trialExpiredAdmin", data);
+        if (msg) await sendSms({ to: SUPER_ADMIN_ALERT_PHONE, message: msg });
       }
     },
   ],
@@ -419,4 +459,11 @@ const EVENT_HANDLERS = {
   ],
 };
 
-module.exports = { notifyEvent, sendTrialExpiryChannels, buildTrialExpiredMessage, resolveTenantOwnerContact };
+module.exports = {
+  notifyEvent,
+  sendRenewalExpiryChannels,
+  sendTrialExpiryChannels,
+  buildTrialExpiredMessage,
+  buildRenewalExpiredMessage,
+  resolveTenantOwnerContact,
+};

@@ -476,6 +476,7 @@ export interface TrialExpiryAlert {
   wasTrial: boolean;
   expiredAt?: string | null;
   autoNotified: boolean;
+  emailSent: boolean;
   smsSent: boolean;
   whatsappSent: boolean;
   lastNotifyAt?: string | null;
@@ -496,7 +497,7 @@ export const adminApi = {
   approveUser: (id: string) => request<{ success: boolean }>(`/admin/users/${id}/approve`, { method: "POST" }),
   rejectUser: (id: string, reason?: string) => request<{ success: boolean }>(`/admin/users/${id}/reject`, { method: "POST", body: JSON.stringify({ reason }) }),
   getTrialExpiryAlerts: () => request<{ items: TrialExpiryAlert[]; total: number }>("/admin/trial-expiry-alerts"),
-  sendTrialExpiryNotify: (tenantId: string, channels: ("sms" | "whatsapp")[]) =>
+  sendTrialExpiryNotify: (tenantId: string, channels: ("sms" | "whatsapp" | "email")[]) =>
     request<{ ok: boolean; phone?: string; whatsapp?: string; results?: unknown }>(`/admin/tenants/${tenantId}/trial-expiry-notify`, {
       method: "POST",
       body: JSON.stringify({ channels }),

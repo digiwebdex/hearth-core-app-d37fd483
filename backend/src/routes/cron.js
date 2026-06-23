@@ -4,6 +4,7 @@ const router = require("express").Router();
 const { prisma } = require("../middleware/auth");
 const { notifyEvent } = require("../services/notificationService");
 const { resolveTenantOwnerContact } = require("../lib/tenantOwnerContact");
+const { expireTenantAndNotify } = require("../services/subscriptionExpiryService");
 
 const CRON_SECRET = process.env.CRON_SECRET || "";
 
@@ -61,6 +62,7 @@ router.post("/process-expiry", async (_req, res) => {
         tenantName: tenant.name,
         ownerEmail: owner?.email || null,
         ownerPhone: owner?.phone || null,
+        ownerWhatsapp: owner?.whatsapp || null,
         ownerName: owner?.name || null,
         plan: tenant.subscriptionPlan,
         expiryDate: tenant.subscriptionExpiry?.toISOString().slice(0, 10),
@@ -95,61 +97,8 @@ router.post("/process-expiry", async (_req, res) => {
 
     let processed = 0;
     for (const tenant of expiredTenants) {
-      const oldStatus = tenant.subscriptionStatus;
-      await prisma.tenant.update({ where: { id: tenant.id }, data: { subscriptionStatus: "expired" } });
-      await prisma.auditLog.create({
-        data: {
-          actorId: "system",
-          actorName: "System Cron",
-          actorEmail: "system",
-          actorRole: "system",
-          tenantId: tenant.id,
-          tenantName: tenant.name,
-          module: "subscription",
-          action: "auto_expired",
-          targetType: "tenant",
-          targetId: tenant.id,
-          targetLabel: tenant.name,
-          oldValue: oldStatus,
-          newValue: "expired",
-          metadata: { plan: tenant.subscriptionPlan, expiry: tenant.subscriptionExpiry?.toISOString() },
-        },
-      }).catch(() => {});
-
-      const owner = await getTenantOwnerContact(tenant.id);
-      const notifyPayload = {
-        tenantName: tenant.name,
-        ownerName: owner?.name || null,
-        ownerEmail: owner?.email || null,
-        ownerPhone: owner?.phone || null,
-        ownerWhatsapp: owner?.whatsapp || null,
-        phone: owner?.phone || null,
-        whatsapp: owner?.whatsapp || null,
-        plan: tenant.subscriptionPlan,
-        expiryDate: tenant.subscriptionExpiry?.toISOString().slice(0, 10),
-        wasTrial: oldStatus === "trial",
-      };
-      const eventType = oldStatus === "trial" ? "trial_expired" : "subscription_expired";
-      await notifyEvent(eventType, notifyPayload).catch(() => {});
-
-      await prisma.auditLog.create({
-        data: {
-          actorId: "system",
-          actorName: "System Cron",
-          actorEmail: "system",
-          actorRole: "system",
-          tenantId: tenant.id,
-          tenantName: tenant.name,
-          module: "subscription",
-          action: "trial_expiry_auto_notify",
-          targetType: "tenant",
-          targetId: tenant.id,
-          targetLabel: tenant.name,
-          newValue: JSON.stringify({ eventType, phone: owner?.phone, whatsapp: owner?.whatsapp }),
-        },
-      }).catch(() => {});
-
-      processed += 1;
+      const result = await expireTenantAndNotify(prisma, tenant);
+      if (result.expired) processed += 1;
     }
 
     const scheduledSubscriptions = await prisma.subscription.findMany({
