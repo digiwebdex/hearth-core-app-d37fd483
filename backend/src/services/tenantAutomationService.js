@@ -71,6 +71,8 @@ function buildVariableMap(payload) {
     balance: payload.balance != null ? String(payload.balance) : "0",
   };
 }
+
+async function ensureTenantSettings(tenantId) {
   let settings = await prisma.smsSettings.findUnique({ where: { tenantId } });
   if (!settings) {
     settings = await prisma.smsSettings.create({

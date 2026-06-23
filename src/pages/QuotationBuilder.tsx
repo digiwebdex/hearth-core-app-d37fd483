@@ -393,10 +393,14 @@ const QuotationBuilder = () => {
     try {
       if (isEdit) {
         await quotationApi.update(id!, payload);
-        toast({ title: t("quotationBuilder.updated") });
+        toast({
+          title: status === "sent" ? t("quotationBuilder.sent", "Quotation sent") : t("quotationBuilder.updated"),
+        });
       } else {
         const created = await quotationApi.create(payload);
-        toast({ title: t("quotationBuilder.created") });
+        toast({
+          title: status === "sent" ? t("quotationBuilder.sent", "Quotation sent") : t("quotationBuilder.created"),
+        });
         navigate(`/quotations/${created.id}`);
       }
     } catch (err: any) {
