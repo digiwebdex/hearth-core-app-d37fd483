@@ -43,10 +43,13 @@ const Onboarding = () => {
   const [createdClientId, setCreatedClientId] = useState("");
 
   const demoBookingTypes = useMemo(
-    () => getTenantBookingTypes(tenant?.enabledServiceTypes, tenant?.enabledSubcategories),
-    [tenant?.enabledServiceTypes, tenant?.enabledSubcategories],
+    () => (selectedSubs.length
+      ? getTenantBookingTypes(null, selectedSubs)
+      : getTenantBookingTypes(tenant?.enabledServiceTypes, tenant?.enabledSubcategories)),
+    [selectedSubs, tenant?.enabledServiceTypes, tenant?.enabledSubcategories],
   );
   const [bookingType, setBookingType] = useState<BookingType>("tour");
+  const [bookingTitle, setBookingTitle] = useState("");
 
   useEffect(() => {
     if (demoBookingTypes.length && !demoBookingTypes.includes(bookingType)) {
@@ -93,8 +96,13 @@ const Onboarding = () => {
     try {
       const profit = bookingAmount - bookingCost;
       const booking = await bookingApi.create({
-        type: bookingType, clientId: createdClientId,
-        amount: bookingAmount, cost: bookingCost, profit, status: "confirmed",
+        type: bookingType,
+        title: bookingTitle || `${t(`bookingsForm.types.${bookingType}`)} — ${clientName}`,
+        clientId: createdClientId,
+        amount: bookingAmount,
+        cost: bookingCost,
+        profit,
+        status: "confirmed",
       } as any);
       setCreatedBookingId(booking.id);
       toast({ title: t("marketing.onboarding.savedBooking") });
@@ -212,6 +220,10 @@ const Onboarding = () => {
 
           {step === 3 && (
             <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>{t("marketing.onboarding.bookingTitle")}</Label>
+                <Input value={bookingTitle} onChange={(e) => setBookingTitle(e.target.value)} placeholder={t("marketing.onboarding.bookingTitlePh")} />
+              </div>
               <div className="space-y-2">
                 <Label>{t("marketing.onboarding.bookingType")}</Label>
                 <Select value={bookingType} onValueChange={(v) => setBookingType(v as BookingType)}>

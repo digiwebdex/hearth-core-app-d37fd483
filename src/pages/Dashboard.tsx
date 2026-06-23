@@ -27,6 +27,10 @@ import {
   Building2,
   Package2,
   UploadCloud,
+  Shield,
+  Stamp,
+  Hotel,
+  Car,
 } from "lucide-react";
 import {
   dashboardApi,
@@ -41,6 +45,9 @@ import {
   vendorApi,
 } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { getTenantBookingPresets } from "@/lib/bookingTypeOptions";
+import { bookingPresetPath } from "@/lib/bookingRoutePresets";
 import EmptyState from "@/components/EmptyState";
 
 const statusColors: Record<string, string> = {
@@ -59,9 +66,37 @@ const Dashboard = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { tenant } = useAuth();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const isBn = String(i18n.resolvedLanguage || i18n.language || "en").startsWith("bn");
+
+  const serviceShortcuts = useMemo(() => {
+    const presets = getTenantBookingPresets(tenant?.enabledServiceTypes, tenant?.enabledSubcategories).slice(0, 4);
+    const iconFor = (preset: string) => {
+      switch (preset) {
+        case "visa": return Stamp;
+        case "flight": return Plane;
+        case "hotel": return Hotel;
+        case "transport": return Car;
+        case "insurance": return Shield;
+        default: return Briefcase;
+      }
+    };
+    return presets.map((preset) => ({
+      label: t(`bookingsForm.categories.${preset}`),
+      icon: iconFor(preset),
+      path: bookingPresetPath(preset),
+    }));
+  }, [tenant?.enabledServiceTypes, tenant?.enabledSubcategories, t]);
+
+  const packagesPath = useMemo(() => {
+    const presets = getTenantBookingPresets(tenant?.enabledServiceTypes, tenant?.enabledSubcategories);
+    if (presets.includes("tour")) return "/packages/tour";
+    if (presets.includes("hajj") || presets.includes("umrah")) return "/packages/hajj";
+    if (presets.includes("visa")) return "/packages/visa";
+    return "/packages/all";
+  }, [tenant?.enabledServiceTypes, tenant?.enabledSubcategories]);
 
   const text = {
     packagesServices: isBn ? "প্যাকেজ ও সার্ভিসেস" : "Packages & Services",
@@ -83,9 +118,15 @@ const Dashboard = () => {
     {
       label: text.packagesServices,
       icon: Package2,
-      path: "/packages/tour",
+      path: packagesPath,
       variant: "outline" as const,
     },
+    ...serviceShortcuts.map((item) => ({
+      label: item.label,
+      icon: item.icon,
+      path: item.path,
+      variant: "outline" as const,
+    })),
     {
       label: t("sidebar.quotations"),
       icon: Send,

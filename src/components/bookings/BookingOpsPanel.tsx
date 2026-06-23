@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import type { Booking, BookingType } from "@/lib/api";
 import {
   getWorkflowStatus,
+  mergeServiceDetailsIntoBooking,
   type HotelWorkflowStatus,
+  type InsuranceWorkflowStatus,
   type TicketWorkflowStatus,
   type TransportWorkflowStatus,
   type VisaWorkflowStatus,
@@ -51,7 +53,25 @@ const TRANSPORT_STATUSES: TransportWorkflowStatus[] = [
   "cancelled",
 ];
 
-const SERVICE_OPS_TYPES = new Set<BookingType>(["visa", "ticket", "hotel", "transport"]);
+const INSURANCE_STATUSES: InsuranceWorkflowStatus[] = [
+  "pending",
+  "quoted",
+  "purchased",
+  "policy_issued",
+  "cancelled",
+];
+
+const SERVICE_OPS_TYPES = new Set<BookingType>(["visa", "ticket", "hotel", "transport", "insurance"]);
+
+type OpsBooking = Booking & {
+  insurancePlan?: string;
+  insuranceProvider?: string;
+  insuranceDestination?: string;
+  policyNumber?: string;
+  coverageStart?: string;
+  coverageEnd?: string;
+  insuredCount?: number;
+};
 
 function statusOptions(type: BookingType): string[] {
   switch (type) {
@@ -63,12 +83,14 @@ function statusOptions(type: BookingType): string[] {
       return HOTEL_STATUSES;
     case "transport":
       return TRANSPORT_STATUSES;
+    case "insurance":
+      return INSURANCE_STATUSES;
     default:
       return [];
   }
 }
 
-function detailRows(booking: Booking, t: (key: string) => string): Array<{ label: string; value: string }> {
+function detailRows(booking: OpsBooking, t: (key: string) => string): Array<{ label: string; value: string }> {
   switch (booking.type) {
     case "visa":
       return [
@@ -98,6 +120,16 @@ function detailRows(booking: Booking, t: (key: string) => string): Array<{ label
         { label: t("serviceOps.panel.vehicle"), value: booking.vehicleType || "—" },
         { label: t("serviceOps.panel.driver"), value: booking.driverName || "—" },
       ];
+    case "insurance":
+      return [
+        { label: t("serviceOps.panel.insurancePlan"), value: booking.insurancePlan || booking.supplierName || "—" },
+        { label: t("serviceOps.panel.policy"), value: booking.policyNumber || booking.supplierRef || "—" },
+        { label: t("serviceOps.panel.insuranceDestination"), value: booking.insuranceDestination || booking.destination || "—" },
+        {
+          label: t("serviceOps.panel.coverageDates"),
+          value: [booking.coverageStart || booking.travelDateFrom, booking.coverageEnd || booking.travelDateTo].filter(Boolean).join(" → ") || "—",
+        },
+      ];
     default:
       return [];
   }
@@ -111,26 +143,27 @@ interface BookingOpsPanelProps {
 export function BookingOpsPanel({ booking, onUpdated }: BookingOpsPanelProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const [workflowStatus, setWorkflowStatus] = useState(getWorkflowStatus(booking));
+  const merged = mergeServiceDetailsIntoBooking(booking) as OpsBooking;
+  const [workflowStatus, setWorkflowStatus] = useState(getWorkflowStatus(merged));
   const [saving, setSaving] = useState(false);
 
-  if (!SERVICE_OPS_TYPES.has(booking.type)) return null;
+  if (!SERVICE_OPS_TYPES.has(merged.type)) return null;
 
-  const options = statusOptions(booking.type);
-  const rows = detailRows(booking, t);
+  const options = statusOptions(merged.type);
+  const rows = detailRows(merged, t);
 
   const handleSave = async () => {
     setSaving(true);
     try {
       const serviceDetails = {
-        ...(booking.serviceDetails || {}),
+        ...(merged.serviceDetails || {}),
         workflowStatus,
       };
-      const updated = await bookingApi.update(booking.id, {
+      const updated = await bookingApi.update(merged.id, {
         serviceDetails,
         opsStatus: workflowStatus,
       });
-      onUpdated?.({ ...booking, ...updated, serviceDetails, opsStatus: workflowStatus, workflowStatus });
+      onUpdated?.({ ...merged, ...updated, serviceDetails, opsStatus: workflowStatus, workflowStatus });
       toast({ title: t("serviceOps.panel.saved") });
     } catch (err: unknown) {
       toast({
@@ -148,7 +181,7 @@ export function BookingOpsPanel({ booking, onUpdated }: BookingOpsPanelProps) {
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center gap-2">
           {t("serviceOps.panel.title")}
-          <Badge variant="outline" className="capitalize">{t(`bookingsForm.types.${booking.type}`)}</Badge>
+          <Badge variant="outline" className="capitalize">{t(`bookingsForm.types.${merged.type}`)}</Badge>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -168,7 +201,7 @@ export function BookingOpsPanel({ booking, onUpdated }: BookingOpsPanelProps) {
             <SelectContent>
               {options.map((status) => (
                 <SelectItem key={status} value={status}>
-                  {t(`serviceOps.workflow.${booking.type}.${status}`, { defaultValue: status })}
+                  {t(`serviceOps.workflow.${merged.type}.${status}`, { defaultValue: status })}
                 </SelectItem>
               ))}
             </SelectContent>

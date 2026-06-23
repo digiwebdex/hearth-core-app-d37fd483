@@ -274,7 +274,11 @@
       "guests": "Guests",
       "pickup": "Pickup",
       "vehicle": "Vehicle",
-      "driver": "Driver"
+      "driver": "Driver",
+      "insurancePlan": "Insurance plan",
+      "policy": "Policy number",
+      "insuranceDestination": "Coverage country",
+      "coverageDates": "Coverage dates"
     },
     "workflow": {
       "visa": {
@@ -1349,6 +1353,8 @@
       "email": "Email",
       "emailPh": "client@email.com",
       "bookingType": "Booking Type",
+      "bookingTitle": "Booking Title",
+      "bookingTitlePh": "e.g. Thailand Family Tour",
       "tour": "Tour Package",
       "ticket": "Air Ticket",
       "hotel": "Hotel",

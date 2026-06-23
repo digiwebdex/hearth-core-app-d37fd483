@@ -24,6 +24,8 @@ export type HotelWorkflowStatus = "pending" | "confirmed" | "voucher_sent" | "ch
 
 export type TransportWorkflowStatus = "pending" | "assigned" | "in_transit" | "completed" | "cancelled";
 
+export type InsuranceWorkflowStatus = "pending" | "quoted" | "purchased" | "policy_issued" | "cancelled";
+
 export type ServiceDetails = Record<string, unknown> & {
   workflowStatus?: string;
 };

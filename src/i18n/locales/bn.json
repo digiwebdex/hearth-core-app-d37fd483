@@ -274,7 +274,11 @@
       "guests": "অতিথি",
       "pickup": "পিকআপ",
       "vehicle": "যান",
-      "driver": "ড্রাইভার"
+      "driver": "ড্রাইভার",
+      "insurancePlan": "ইন্স্যুরেন্স প্ল্যান",
+      "policy": "পলিসি নম্বর",
+      "insuranceDestination": "কভারেজ দেশ",
+      "coverageDates": "কভারেজ তারিখ"
     },
     "workflow": {
       "visa": {
@@ -1345,6 +1349,8 @@
       "email": "ইমেইল",
       "emailPh": "client@email.com",
       "bookingType": "বুকিং প্রকার",
+      "bookingTitle": "বুকিং শিরোনাম",
+      "bookingTitlePh": "যেমন: থাইল্যান্ড ফ্যামিলি ট্যুর",
       "tour": "ট্যুর প্যাকেজ",
       "ticket": "এয়ার টিকেট",
       "hotel": "হোটেল",
