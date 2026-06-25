@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /var/www/hearth-core-app && git add -A && git diff --cached --quiet || git commit -m \"chore: auto-deploy $(date '+%Y-%m-%d %H:%M') [Claude Code]\" && git push origin main 2>/dev/null; npm run build 2>/dev/null; cd backend && pm2 restart hearth-api 2>/dev/null",
+            "timeout": 120,
+            "statusMessage": "Deploying to VPS and pushing to GitHub..."
+          }
+        ]
+      }
+    ]
+  }
+}
