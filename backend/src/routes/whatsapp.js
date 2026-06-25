@@ -1,8 +1,22 @@
 const router = require("express").Router();
 const { authenticate, requireSuperAdmin, prisma } = require("../middleware/auth");
 const { extractVariables } = require("../services/whatsappTemplateService");
+const { sendWhatsApp, getWhatsAppConfig } = require("../services/whatsappService");
 
 router.use(authenticate);
+
+// GET /api/whatsapp/config — return current provider config (no secrets)
+router.get("/config", async (req, res) => {
+  res.json(getWhatsAppConfig());
+});
+
+// POST /api/whatsapp/test — send a test message
+router.post("/test", async (req, res) => {
+  const { to, message } = req.body;
+  if (!to) return res.status(400).json({ message: "Recipient phone number required" });
+  const result = await sendWhatsApp({ to, message: message || "Test message from your Travel Agency ERP system." });
+  res.json(result);
+});
 
 router.get("/templates", async (_req, res) => {
   try {

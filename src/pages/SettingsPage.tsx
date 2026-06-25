@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import SmtpSettings from "@/components/SmtpSettings";
+import WhatsAppSettings from "@/components/WhatsAppSettings";
 import DataExport from "@/components/DataExport";
 import ModuleSettings from "@/components/ModuleSettings";
 import { CreditCard, ArrowRight } from "lucide-react";
@@ -55,6 +56,7 @@ const SettingsPage = () => {
           </CardContent>
         </Card>
         <SmtpSettings />
+        <WhatsAppSettings />
         <DataExport />
 
         <Card>
