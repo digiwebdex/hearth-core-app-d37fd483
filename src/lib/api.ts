@@ -114,6 +114,10 @@ export interface DashboardStats {
   vendorDues: number;
   salesThisMonth: number;
   topDestinations: { destination: string; count: number }[];
+  bookingsByType?: { type: string; count: number }[];
+  openSupportTickets?: number;
+  passportsExpiringSoon?: number;
+  passportsExpired?: number;
 }
 
 export const dashboardApi = {
@@ -126,6 +130,12 @@ export const clientApi = {
   getBookings: (id: string) => request<Booking[]>(`/clients/${id}/bookings`),
   getInvoices: (id: string) => request<Invoice[]>(`/clients/${id}/invoices`),
   getPayments: (id: string) => request<Payment[]>(`/clients/${id}/payments`),
+  getCorporateSummary: (month?: string) =>
+    request<CorporateSummary>(`/clients/corporate-summary${month ? `?month=${month}` : ""}`),
+  getExpiringPassports: (days = 30, includeExpired = true) =>
+    request<ExpiringPassportsResponse>(
+      `/clients/expiring-passports?days=${days}&includeExpired=${includeExpired ? "true" : "false"}`,
+    ),
   uploadDocument: (id: string, data: FormData) =>
     fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000/api"}/clients/${id}/documents`, {
       method: "POST",
@@ -165,7 +175,19 @@ export const leadApi = {
   getQuotations: (id: string) => request<Quotation[]>(`/leads/${id}/quotations`).catch(() => []),
   checkDuplicateClient: (email: string, phone: string) =>
     request<{ exists: boolean; client?: Client }>(`/leads/check-duplicate?email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}`).catch(() => ({ exists: false })),
+  getPipelineStats: () =>
+    request<LeadPipelineStats>("/leads/pipeline-stats"),
 };
+
+export interface LeadPipelineStats {
+  total: number;
+  won: number;
+  lost: number;
+  active: number;
+  conversionRate: string;
+  byStage: Array<{ status: string; count: number }>;
+  bySource: Array<{ source: string; total: number; won: number; conversionRate: string }>;
+}
 
 export interface HubDocument {
   id: string;
@@ -182,6 +204,159 @@ export const documentHubApi = {
   list: () => request<HubDocument[]>("/documents"),
 };
 export const taskApi = createCrudApi<Task>("tasks");
+
+export type SupportTicketStatus = "open" | "assigned" | "in_progress" | "resolved" | "closed";
+export type SupportTicketPriority = "low" | "medium" | "high" | "urgent";
+
+export interface SupportTicket {
+  id: string;
+  ticketNumber: string;
+  subject: string;
+  description: string;
+  status: SupportTicketStatus;
+  priority: SupportTicketPriority;
+  category: string;
+  source: string;
+  clientId?: string | null;
+  bookingId?: string | null;
+  assignedTo?: string | null;
+  createdBy?: string | null;
+  resolutionNotes?: string | null;
+  resolvedAt?: string | null;
+  clientName?: string;
+  clientPhone?: string;
+  assigneeName?: string;
+  creatorName?: string;
+  client?: { id: string; name: string; phone?: string; email?: string };
+  booking?: { id: string; title?: string; type?: string };
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export const supportTicketApi = {
+  list: (params?: { status?: string; assignedTo?: string; clientId?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.status) qs.set("status", params.status);
+    if (params?.assignedTo) qs.set("assignedTo", params.assignedTo);
+    if (params?.clientId) qs.set("clientId", params.clientId);
+    const q = qs.toString();
+    return request<SupportTicket[]>(`/support-tickets${q ? `?${q}` : ""}`);
+  },
+  get: (id: string) => request<SupportTicket>(`/support-tickets/${id}`),
+  create: (data: Partial<SupportTicket>) =>
+    request<SupportTicket>("/support-tickets", { method: "POST", body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<SupportTicket>) =>
+    request<SupportTicket>(`/support-tickets/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  assign: (id: string, assignedTo: string | null) =>
+    request<SupportTicket>(`/support-tickets/${id}/assign`, {
+      method: "POST",
+      body: JSON.stringify({ assignedTo }),
+    }),
+  resolve: (id: string, resolutionNotes?: string) =>
+    request<SupportTicket>(`/support-tickets/${id}/resolve`, {
+      method: "POST",
+      body: JSON.stringify({ resolutionNotes }),
+    }),
+  delete: (id: string) => request<{ success: boolean }>(`/support-tickets/${id}`, { method: "DELETE" }),
+};
+
+export interface BlogPost {
+  id: string;
+  tenantId: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  body: string;
+  coverImage?: string | null;
+  status: "draft" | "published";
+  publishedAt?: string | null;
+  authorName?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const blogApi = {
+  list: (status?: string) =>
+    request<BlogPost[]>(`/blogs${status ? `?status=${encodeURIComponent(status)}` : ""}`),
+  get: (id: string) => request<BlogPost>(`/blogs/${id}`),
+  create: (data: Partial<BlogPost>) =>
+    request<BlogPost>("/blogs", { method: "POST", body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<BlogPost>) =>
+    request<BlogPost>(`/blogs/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  delete: (id: string) => request<{ success: boolean }>(`/blogs/${id}`, { method: "DELETE" }),
+};
+
+export interface StaffProfile {
+  id: string;
+  userId: string;
+  tenantId: string;
+  jobTitle?: string | null;
+  department?: string | null;
+  joinDate?: string | null;
+  emergencyContact?: string | null;
+  emergencyPhone?: string | null;
+  notes?: string | null;
+}
+
+export interface StaffMemberRow {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  phone?: string | null;
+  status: string;
+  createdAt: string;
+  profile: StaffProfile | null;
+}
+
+export type AttendanceStatus = "present" | "absent" | "half_day" | "remote" | "on_leave";
+export type LeaveType = "annual" | "sick" | "unpaid" | "other";
+export type LeaveStatus = "pending" | "approved" | "rejected";
+
+export interface StaffAttendanceRow {
+  id: string;
+  userId: string;
+  date: string;
+  status: AttendanceStatus;
+  checkIn?: string | null;
+  checkOut?: string | null;
+  notes?: string | null;
+  userName?: string;
+}
+
+export interface StaffLeaveRow {
+  id: string;
+  userId: string;
+  leaveType: LeaveType;
+  startDate: string;
+  endDate: string;
+  reason: string;
+  status: LeaveStatus;
+  userName?: string;
+  reviewerName?: string;
+  reviewNotes?: string | null;
+  createdAt: string;
+}
+
+export const hrmApi = {
+  listProfiles: () => request<StaffMemberRow[]>("/hrm/profiles"),
+  upsertProfile: (userId: string, data: Partial<StaffProfile>) =>
+    request<StaffProfile>(`/hrm/profiles/${userId}`, { method: "PUT", body: JSON.stringify(data) }),
+  listAttendance: (date: string) =>
+    request<StaffAttendanceRow[]>(`/hrm/attendance?date=${encodeURIComponent(date)}`),
+  markAttendance: (data: { userId: string; date: string; status: AttendanceStatus; checkIn?: string; checkOut?: string; notes?: string }) =>
+    request<StaffAttendanceRow>("/hrm/attendance", { method: "POST", body: JSON.stringify(data) }),
+  listLeave: (status?: string) =>
+    request<StaffLeaveRow[]>(`/hrm/leave${status ? `?status=${encodeURIComponent(status)}` : ""}`),
+  createLeave: (data: { startDate: string; endDate: string; leaveType?: LeaveType; reason?: string }) =>
+    request<StaffLeaveRow>("/hrm/leave", { method: "POST", body: JSON.stringify(data) }),
+  reviewLeave: (id: string, status: "approved" | "rejected", reviewNotes?: string) =>
+    request<StaffLeaveRow>(`/hrm/leave/${id}/review`, {
+      method: "PATCH",
+      body: JSON.stringify({ status, reviewNotes }),
+    }),
+};
+
 export const bookingApi = {
   ...createCrudApi<Booking>("bookings"),
   list: (params?: BookingListParams) => {
@@ -242,6 +417,55 @@ export const financeApi = {
   getReminders: () => request<FinanceRemindersPayload>("/finance/reminders"),
   sendInvoiceReminder: (invoiceId: string) =>
     request<{ success: boolean }>(`/finance/reminders/${invoiceId}/send`, { method: "POST" }),
+  getPL: (from?: string, to?: string) => {
+    const q = new URLSearchParams();
+    if (from) q.set("from", from);
+    if (to) q.set("to", to);
+    return request<PLReport>(`/finance/pl?${q}`);
+  },
+  getBalanceSheet: () => request<BalanceSheet>("/finance/balance-sheet"),
+  getCashFlow: (from?: string, to?: string) => {
+    const q = new URLSearchParams();
+    if (from) q.set("from", from);
+    if (to) q.set("to", to);
+    return request<CashFlowReport>(`/finance/cash-flow?${q}`);
+  },
+  getTaxReport: (from?: string, to?: string) => {
+    const q = new URLSearchParams();
+    if (from) q.set("from", from);
+    if (to) q.set("to", to);
+    return request<TaxReport>(`/finance/tax-report?${q}`);
+  },
+};
+
+// ── Tax Rules API ──
+export const taxRuleApi = {
+  list: () => request<TaxRule[]>("/tax-rules"),
+  create: (data: Omit<TaxRule, "id" | "tenantId" | "createdAt" | "updatedAt">) =>
+    request<TaxRule>("/tax-rules", { method: "POST", body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<TaxRule>) =>
+    request<TaxRule>(`/tax-rules/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  delete: (id: string) => request<void>(`/tax-rules/${id}`, { method: "DELETE" }),
+  getDefault: () => request<TaxRule | null>("/tax-rules/default"),
+};
+
+// ── Payroll API ──
+export const payrollApi = {
+  getSalaryStructure: (staffProfileId: string) =>
+    request<SalaryStructure | null>(`/payroll/salary-structures/${staffProfileId}`),
+  upsertSalaryStructure: (staffProfileId: string, data: Partial<SalaryStructure>) =>
+    request<SalaryStructure>(`/payroll/salary-structures/${staffProfileId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  listRuns: () => request<PayrollRun[]>("/payroll/runs"),
+  createRun: (data: { month: string; year: number; notes?: string }) =>
+    request<PayrollRun>("/payroll/runs", { method: "POST", body: JSON.stringify(data) }),
+  getRun: (id: string) => request<PayrollRun>(`/payroll/runs/${id}`),
+  updateRun: (id: string, data: { status: string }) =>
+    request<PayrollRun>(`/payroll/runs/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  payPayslip: (id: string, data: { paymentMethod: string; paymentReference?: string }) =>
+    request<PayslipEntry>(`/payroll/payslips/${id}/pay`, { method: "PATCH", body: JSON.stringify(data) }),
 };
 export const paymentApi = createCrudApi<Payment>("payments");
 export const accountApi = {
@@ -273,9 +497,51 @@ export const quotationApi = {
 
 // ── Types ──
 export interface User { id: string; name: string; email: string; role: "super_admin" | "tenant_owner" | "manager" | "sales_agent" | "accountant" | "operations" | "owner" | "admin" | "member"; tenantId: string; emailVerified?: boolean; createdAt: string; }
-export interface Tenant { id: string; name: string; ownerId: string; phone?: string; address?: string; subscriptionPlan: "free" | "basic" | "pro" | "business" | "enterprise"; subscriptionExpiry?: string; subscriptionStatus?: "active" | "trial" | "expired" | "cancelled" | "pending" | "suspended" | "overdue"; enableHajjUmrahModule?: boolean; enableBdOperationsModule?: boolean; enabledServiceTypes?: string[]; enabledSubcategories?: string[]; createdAt: string; }
-export interface Client { id: string; name: string; phone: string; email: string; alternatePhone?: string; address?: string; dateOfBirth?: string; passportNumber?: string; passportExpiry?: string; nidNumber?: string; nationality?: string; emergencyContact?: string; emergencyPhone?: string; notes?: string; tags?: string[]; documents?: ClientDocument[]; tenantId: string; createdAt: string; updatedAt?: string; }
+export interface Tenant { id: string; name: string; ownerId: string; phone?: string; address?: string; subscriptionPlan: "free" | "basic" | "pro" | "business" | "enterprise"; subscriptionExpiry?: string; subscriptionStatus?: "active" | "trial" | "expired" | "cancelled" | "pending" | "suspended" | "overdue"; enableHajjUmrahModule?: boolean; enableBdOperationsModule?: boolean; enabledServiceTypes?: string[]; enabledSubcategories?: string[]; createdAt: string; trialDaysConfigured?: number; }
+export interface Client { id: string; name: string; phone: string; email: string; alternatePhone?: string; address?: string; dateOfBirth?: string; passportNumber?: string; passportExpiry?: string; nidNumber?: string; nationality?: string; emergencyContact?: string; emergencyPhone?: string; notes?: string; tags?: string[]; documents?: ClientDocument[]; companyName?: string; clientType?: "individual" | "corporate"; tenantId: string; createdAt: string; updatedAt?: string; }
 export interface ClientDocument { id: string; clientId: string; name: string; type: string; url: string; uploadedAt: string; }
+export interface CorporateSummaryRow {
+  clientId: string;
+  name: string;
+  companyName: string;
+  email: string;
+  phone: string;
+  month: string;
+  invoiceCount: number;
+  monthTotal: number;
+  monthPaid: number;
+  monthDue: number;
+  openInvoices: number;
+}
+export interface CorporateSummary {
+  month: string;
+  clients: CorporateSummaryRow[];
+  totals: {
+    clients: number;
+    invoiceCount: number;
+    monthTotal: number;
+    monthPaid: number;
+    monthDue: number;
+  };
+}
+
+export interface ExpiringPassportClient {
+  id: string;
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  passportNumber?: string | null;
+  passportExpiry?: string | null;
+  nationality?: string | null;
+  daysLeft: number;
+  status: "expiring" | "expired";
+}
+
+export interface ExpiringPassportsResponse {
+  windowDays: number;
+  summary: { expiring: number; expired: number; total: number };
+  items: ExpiringPassportClient[];
+}
 export type AgentStatus = "active" | "inactive";
 export type AgentCommissionStatus = "pending" | "paid";
 
@@ -415,7 +681,7 @@ export interface BookingTimelineEvent { id: string; bookingId?: string; type: "s
 export interface BookingDocument { id: string; bookingId?: string; name: string; type: string; url: string; uploadedAt: string; uploadedBy?: string; }
 export type InvoiceStatus = "unpaid" | "partial" | "paid" | "overdue" | "refunded" | "cancelled";
 export type PaymentMethod = "cash" | "bank" | "card" | "mobile_banking" | "cheque" | "online";
-export interface Invoice { id: string; invoiceNumber?: string; bookingId: string; bookingTitle?: string; clientId?: string; clientName?: string; totalAmount: number; paidAmount: number; dueAmount: number; refundedAmount?: number; bookingCost?: number; status: InvoiceStatus; dueDate?: string; issuedDate?: string; notes?: string; payments?: Payment[]; refunds?: InvoiceRefund[]; auditTrail?: InvoiceAuditEvent[]; tenantId: string; createdAt: string; updatedAt?: string; }
+export interface Invoice { id: string; invoiceNumber?: string; bookingId: string; bookingTitle?: string; clientId?: string; clientName?: string; totalAmount: number; paidAmount: number; dueAmount: number; refundedAmount?: number; subTotal?: number; taxAmount?: number; taxRate?: number; taxRuleId?: string; status: InvoiceStatus; dueDate?: string; issuedDate?: string; notes?: string; payments?: Payment[]; refunds?: InvoiceRefund[]; auditTrail?: InvoiceAuditEvent[]; tenantId: string; createdAt: string; updatedAt?: string; }
 export interface Payment { id: string; invoiceId: string; bookingId: string; amount: number; method: PaymentMethod | string; transactionRef?: string; proofUrl?: string; date: string; notes?: string; receivedBy?: string; tenantId: string; createdAt: string; }
 export interface InvoiceRefund { id: string; invoiceId: string; amount: number; reason: string; method?: PaymentMethod | string; processedBy?: string; createdAt: string; }
 export interface InvoiceInstallment {
@@ -485,11 +751,12 @@ export interface AdminPaymentRequest extends PaymentRequest { tenant?: { name?: 
 
 export const adminApi = {
   getStats: () => request<AdminStats>("/admin/stats"),
-  getTenants: () => request<AdminTenant[]>("/admin/tenants"),
+  getTenants: (opts?: { excludePlatform?: boolean }) =>
+    request<AdminTenant[]>(`/admin/tenants${opts?.excludePlatform ? "?excludePlatform=1" : ""}`),
   getTenant: (id: string) => request<AdminTenant>(`/admin/tenants/${id}`),
   createTenant: (data: Record<string, unknown>) => request<{ tenant: AdminTenant }>("/admin/tenants", { method: "POST", body: JSON.stringify(data) }),
   updateTenant: (id: string, data: Record<string, unknown>) => request<AdminTenant>(`/admin/tenants/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
-  updateTenantOwner: (id: string, data: { name?: string; email?: string; password?: string }) => request<{ id: string; name: string; email: string; role: string }>(`/admin/tenants/${id}/owner`, { method: "PATCH", body: JSON.stringify(data) }),
+  updateTenantOwner: (id: string, data: { name?: string; email?: string; password?: string; phone?: string; whatsapp?: string }) => request<{ id: string; name: string; email: string; role: string }>(`/admin/tenants/${id}/owner`, { method: "PATCH", body: JSON.stringify(data) }),
   deleteTenant: (id: string) => request<{ success: boolean }>(`/admin/tenants/${id}`, { method: "DELETE" }),
   getPaymentRequests: () => request<AdminPaymentRequest[]>("/admin/payment-requests"),
   updatePaymentRequest: (id: string, data: { status: string; reviewerComment?: string }) => request<AdminPaymentRequest>(`/admin/payment-requests/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
@@ -502,6 +769,23 @@ export const adminApi = {
       method: "POST",
       body: JSON.stringify({ channels }),
     }),
+  sendBulkTrialExpiryNotify: (tenantIds: string[], channels: ("sms" | "whatsapp" | "email")[]) =>
+    request<{ ok: boolean; sent: number; failed: number; total: number; results: Array<{ ok: boolean; tenantId: string; tenantName?: string; error?: string }> }>(
+      "/admin/trial-expiry-notify-bulk",
+      { method: "POST", body: JSON.stringify({ tenantIds, channels }) },
+    ),
+  getGatewayStatus: () =>
+    request<{
+      bkash: { configured: boolean; sandbox: boolean; mode: string };
+      sslcommerz: { configured: boolean; sandbox: boolean; mode: string };
+      manual: { configured: boolean; methodsEnabled: number };
+      apiBaseUrl: string;
+      callbacks: {
+        sslcommerz: { success: string; fail: string; cancel: string; ipn: string };
+        bkash: { callback: string };
+      };
+      manualMethods: Array<{ methodCode: string; label: string; enabled: boolean; hasAccount: boolean }>;
+    }>("/admin/gateway-status"),
 };
 
 // ── Domain types and API ──
@@ -530,4 +814,540 @@ export const domainApi = {
   updateStatus: (id: string, status: "active" | "pending" | "error") => request<TenantDomainRecord>(`/admin/domains/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
   setPrimary: (id: string) => request<TenantDomainRecord>(`/admin/domains/${id}/primary`, { method: "PATCH" }),
   remove: (id: string) => request<{ message: string }>(`/admin/domains/${id}`, { method: "DELETE" }),
+};
+
+// ── Loyalty API ──
+export const loyaltyApi = {
+  getRules: () => request<LoyaltyRule | null>("/loyalty/rules"),
+  upsertRules: (data: Partial<LoyaltyRule>) =>
+    request<LoyaltyRule>("/loyalty/rules", { method: "PUT", body: JSON.stringify(data) }),
+  getAccount: (clientId: string) => request<LoyaltyAccount>(`/loyalty/accounts/${clientId}`),
+  awardPoints: (clientId: string, data: { points: number; description?: string; referenceId?: string }) =>
+    request<{ success: boolean; pointsAwarded: number }>(`/loyalty/accounts/${clientId}/award`, { method: "POST", body: JSON.stringify(data) }),
+  redeemPoints: (clientId: string, data: { points: number; invoiceId?: string }) =>
+    request<{ success: boolean; pointsRedeemed: number; discountAmount: number }>(`/loyalty/accounts/${clientId}/redeem`, { method: "POST", body: JSON.stringify(data) }),
+  getLeaderboard: () => request<LoyaltyAccount[]>("/loyalty/leaderboard"),
+};
+
+// ── Referral API ──
+export const referralApi = {
+  list: () => request<ReferralCode[]>("/referrals"),
+  create: (data: { ownerType: string; ownerId: string; commissionRate?: number }) =>
+    request<ReferralCode>("/referrals", { method: "POST", body: JSON.stringify(data) }),
+  getByOwner: (ownerId: string) => request<ReferralCode[]>(`/referrals/owner/${ownerId}`),
+  convert: (data: { code: string; referredClientId?: string; bookingId?: string; commissionEarned?: number }) =>
+    request<ReferralConversion>("/referrals/convert", { method: "POST", body: JSON.stringify(data) }),
+  payConversion: (id: string) =>
+    request<ReferralConversion>(`/referrals/conversions/${id}/pay`, { method: "PATCH" }),
+  getSummary: () => request<ReferralSummary[]>("/referrals/summary"),
+};
+
+// ── Group Tour API ──
+export const groupTourApi = {
+  list: () => request<GroupTour[]>("/group-tours"),
+  create: (data: Omit<GroupTour, "id" | "tenantId" | "createdAt" | "updatedAt">) =>
+    request<GroupTour>("/group-tours", { method: "POST", body: JSON.stringify(data) }),
+  get: (id: string) => request<GroupTour>(`/group-tours/${id}`),
+  update: (id: string, data: Partial<GroupTour>) =>
+    request<GroupTour>(`/group-tours/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  delete: (id: string) => request<void>(`/group-tours/${id}`, { method: "DELETE" }),
+  addBooking: (tourId: string, data: { bookingId: string; seatNumber?: string; roomNumber?: string; roomType?: string }) =>
+    request<GroupTourBooking>(`/group-tours/${tourId}/bookings`, { method: "POST", body: JSON.stringify(data) }),
+  removeBooking: (tourId: string, bookingId: string) =>
+    request<void>(`/group-tours/${tourId}/bookings/${bookingId}`, { method: "DELETE" }),
+};
+
+// ── Advanced Analytics API ──
+export const analyticsApi = {
+  getSalesAnalytics: (params?: { from?: string; to?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.from) q.set("from", params.from);
+    if (params?.to) q.set("to", params.to);
+    return request<SalesAnalytics>(`/finance/sales-analytics?${q}`);
+  },
+};
+
+// ── New Phase 1 Types ──
+
+export interface TaxRule {
+  id: string;
+  tenantId: string;
+  name: string;
+  rate: number;
+  type: "percentage" | "fixed";
+  appliesTo: string;
+  isDefault: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SalaryStructure {
+  id: string;
+  staffProfileId: string;
+  tenantId: string;
+  basicSalary: number;
+  houseAllowance: number;
+  transportAllowance: number;
+  medicalAllowance: number;
+  otherAllowance: number;
+  taxDeduction: number;
+  providentFund: number;
+  otherDeduction: number;
+  currency: string;
+  effectiveFrom?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PayslipEntry {
+  id: string;
+  payrollRunId: string;
+  staffProfileId: string;
+  tenantId: string;
+  staffName: string;
+  basicSalary: number;
+  houseAllowance: number;
+  transportAllowance: number;
+  medicalAllowance: number;
+  otherAllowance: number;
+  grossSalary: number;
+  taxDeduction: number;
+  providentFund: number;
+  otherDeduction: number;
+  totalDeductions: number;
+  netSalary: number;
+  presentDays: number;
+  absentDays: number;
+  leaveDays: number;
+  status: "pending" | "paid";
+  paidAt?: string;
+  paymentMethod?: string;
+  paymentReference?: string;
+  staffProfile?: { user?: { name: string; email: string } };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PayrollRun {
+  id: string;
+  tenantId: string;
+  month: string;
+  year: number;
+  status: "draft" | "approved" | "paid";
+  totalAmount: number;
+  paidCount: number;
+  processedBy?: string;
+  processedAt?: string;
+  notes?: string;
+  payslips?: PayslipEntry[];
+  _count?: { payslips: number };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PLReport {
+  period: { from?: string; to?: string };
+  revenue: { total: number; taxCollected: number; netRevenue: number };
+  costOfSales: { vendorCosts: number };
+  grossProfit: number;
+  operatingExpenses: { total: number; byCategory: Record<string, number> };
+  netProfit: number;
+}
+
+export interface BalanceSheet {
+  assets: { cashAndBank: { total: number; accounts: { id: string; name: string; type: string; balance: number }[] }; accountsReceivable: number; totalAssets: number };
+  liabilities: { accountsPayable: number; totalLiabilities: number };
+  equity: number;
+}
+
+export interface CashFlowReport {
+  period: { from?: string; to?: string };
+  summary: { totalInflows: number; totalOutflows: number; net: number };
+  monthly: { month: string; inflows: number; outflows: number; net: number }[];
+}
+
+export interface TaxReport {
+  period: { from?: string; to?: string };
+  summary: { totalSubTotal: number; totalTaxCollected: number; invoiceCount: number };
+  invoices: { id: string; invoiceNumber?: string; clientName?: string; issuedDate?: string; subTotal: number; taxAmount: number; taxRate: number; totalAmount: number }[];
+}
+
+// ── Phase 2 Types ──
+
+export interface LoyaltyRule {
+  id: string;
+  tenantId: string;
+  pointsPerUnit: number;
+  unitAmount: number;
+  redemptionValue: number;
+  expiryDays: number;
+  silverThreshold: number;
+  goldThreshold: number;
+  platinumThreshold: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LoyaltyTransaction {
+  id: string;
+  accountId: string;
+  tenantId: string;
+  type: "earned" | "redeemed" | "expired" | "adjusted";
+  points: number;
+  description: string;
+  referenceId?: string;
+  referenceType?: string;
+  expiresAt?: string;
+  createdAt: string;
+}
+
+export interface LoyaltyAccount {
+  id: string;
+  clientId: string;
+  tenantId: string;
+  totalPoints: number;
+  usedPoints: number;
+  expiredPoints: number;
+  availablePoints?: number;
+  tier: "standard" | "silver" | "gold" | "platinum";
+  transactions?: LoyaltyTransaction[];
+  rule?: LoyaltyRule;
+  client?: { id: string; name: string; phone: string; email: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReferralCode {
+  id: string;
+  tenantId: string;
+  code: string;
+  ownerType: "agent" | "client";
+  ownerId: string;
+  commissionRate: number;
+  usageCount: number;
+  isActive: boolean;
+  conversions?: ReferralConversion[];
+  _count?: { conversions: number };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReferralConversion {
+  id: string;
+  referralCodeId: string;
+  tenantId: string;
+  referredClientId?: string;
+  bookingId?: string;
+  commissionEarned: number;
+  status: "pending" | "paid";
+  paidAt?: string;
+  createdAt: string;
+}
+
+export interface ReferralSummary {
+  id: string;
+  code: string;
+  ownerType: string;
+  ownerId: string;
+  usageCount: number;
+  totalEarned: number;
+  paidEarned: number;
+  pendingEarned: number;
+  isActive: boolean;
+}
+
+export interface GroupTourBooking {
+  id: string;
+  groupTourId: string;
+  bookingId: string;
+  seatNumber?: string;
+  roomNumber?: string;
+  roomType?: string;
+  notes?: string;
+  addedAt: string;
+  booking?: {
+    id: string;
+    client?: { id: string; name: string; phone: string; email: string };
+    travelers?: { id: string; name: string; passportNumber?: string; nationality?: string }[];
+  };
+}
+
+export interface GroupTour {
+  id: string;
+  tenantId: string;
+  name: string;
+  destination?: string;
+  departureDate?: string;
+  returnDate?: string;
+  capacity: number;
+  status: "upcoming" | "ongoing" | "completed" | "cancelled";
+  notes?: string;
+  createdBy?: string;
+  bookings?: GroupTourBooking[];
+  _count?: { bookings: number };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SalesAnalytics {
+  period: { from?: string; to?: string };
+  summary: { totalBookings: number; totalRevenue: number; totalProfit: number; avgBookingValue: number };
+  topDestinations: { destination: string; bookings: number; revenue: number; profit: number }[];
+  agentPerformance: { agentId: string; agentName: string; bookings: number; revenue: number; profit: number }[];
+  serviceBreakdown: { serviceType: string; bookings: number; revenue: number }[];
+  monthlyTrend: { month: string; bookings: number; revenue: number }[];
+  conversionFunnel: { leads: number; leadsConverted: number; leadConversionRate: number; quotations: number; quotationsAccepted: number; quotationConversionRate: number; bookings: number; bookingsConfirmed: number };
+}
+
+// ── Phase 3 Types ──
+
+export interface MiceEventItem {
+  id: string;
+  miceEventId: string;
+  itemType: string;
+  description?: string;
+  quantity: number;
+  unitCost: number;
+  totalCost: number;
+  vendorId?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface MiceEvent {
+  id: string;
+  tenantId: string;
+  title: string;
+  eventType: string;
+  clientId?: string;
+  client?: { id: string; name: string; phone: string; email?: string };
+  venue?: string;
+  city?: string;
+  country?: string;
+  startDate?: string;
+  endDate?: string;
+  pax: number;
+  budget: number;
+  status: string;
+  notes?: string;
+  items?: MiceEventItem[];
+  _count?: { items: number };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TravelPolicy {
+  id: string;
+  name: string;
+  maxFlightBudget?: number;
+  maxHotelPerNight?: number;
+  maxMealPerDay?: number;
+  requiresApproval: boolean;
+  approverRole: string;
+  advanceNoticeDays: number;
+  allowedClasses: string[];
+  isActive: boolean;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TravelApprovalRequest {
+  id: string;
+  policyId?: string;
+  policy?: { id: string; name: string };
+  requestedBy: string;
+  approvedBy?: string;
+  destination?: string;
+  travelDate?: string;
+  returnDate?: string;
+  purpose?: string;
+  estimatedCost?: number;
+  status: "pending" | "approved" | "rejected" | "cancelled";
+  rejectionNote?: string;
+  bookingId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VisaApplication {
+  id: string;
+  clientId?: string;
+  client?: { id: string; name: string; phone: string };
+  bookingId?: string;
+  booking?: { id: string; bookingNumber?: string };
+  applicantName: string;
+  passportNumber?: string;
+  nationality?: string;
+  visaType?: string;
+  destination?: string;
+  appliedDate?: string;
+  appointmentDate?: string;
+  decisionDate?: string;
+  expiryDate?: string;
+  status: string;
+  referenceNo?: string;
+  embassyFee?: number;
+  serviceFee?: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HotelContract {
+  id: string;
+  vendorId?: string;
+  hotelName: string;
+  city?: string;
+  country?: string;
+  starRating?: number;
+  contractStart?: string;
+  contractEnd?: string;
+  totalRooms: number;
+  allocatedRooms: number;
+  ratePerNight?: number;
+  mealPlan?: string;
+  status: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TransportContract {
+  id: string;
+  vendorId?: string;
+  transportType: string;
+  vehicleModel?: string;
+  capacity: number;
+  registrationNo?: string;
+  driverName?: string;
+  driverPhone?: string;
+  ratePerDay?: number;
+  ratePerTrip?: number;
+  contractStart?: string;
+  contractEnd?: string;
+  status: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface JobPosting {
+  id: string;
+  title: string;
+  department?: string;
+  location?: string;
+  jobType: string;
+  salaryMin?: number;
+  salaryMax?: number;
+  description?: string;
+  requirements?: string;
+  openings: number;
+  deadline?: string;
+  status: string;
+  _count?: { applications: number };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface JobApplication {
+  id: string;
+  jobPostingId: string;
+  applicantName: string;
+  email?: string;
+  phone?: string;
+  resumeUrl?: string;
+  coverLetter?: string;
+  experience?: number;
+  currentSalary?: number;
+  expectedSalary?: number;
+  stage: string;
+  rating?: number;
+  notes?: string;
+  appliedAt: string;
+  updatedAt: string;
+}
+
+// ── Phase 3 API objects ──
+
+export const miceApi = {
+  list: (params?: { status?: string; search?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set("status", params.status);
+    if (params?.search) q.set("search", params.search);
+    return request<MiceEvent[]>(`/mice?${q}`);
+  },
+  get: (id: string) => request<MiceEvent>(`/mice/${id}`),
+  create: (data: Partial<MiceEvent>) => request<MiceEvent>("/mice", { method: "POST", body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<MiceEvent>) => request<MiceEvent>(`/mice/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  delete: (id: string) => request<{ message: string }>(`/mice/${id}`, { method: "DELETE" }),
+  addItem: (id: string, data: Partial<MiceEventItem>) => request<MiceEventItem>(`/mice/${id}/items`, { method: "POST", body: JSON.stringify(data) }),
+  updateItem: (id: string, itemId: string, data: Partial<MiceEventItem>) => request<MiceEventItem>(`/mice/${id}/items/${itemId}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteItem: (id: string, itemId: string) => request<{ message: string }>(`/mice/${id}/items/${itemId}`, { method: "DELETE" }),
+};
+
+export const travelPolicyApi = {
+  listPolicies: () => request<TravelPolicy[]>("/travel-policy/policies"),
+  createPolicy: (data: Partial<TravelPolicy>) => request<TravelPolicy>("/travel-policy/policies", { method: "POST", body: JSON.stringify(data) }),
+  updatePolicy: (id: string, data: Partial<TravelPolicy>) => request<TravelPolicy>(`/travel-policy/policies/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deletePolicy: (id: string) => request<{ message: string }>(`/travel-policy/policies/${id}`, { method: "DELETE" }),
+  listApprovals: (status?: string) => {
+    const q = status ? `?status=${status}` : "";
+    return request<TravelApprovalRequest[]>(`/travel-policy/approvals${q}`);
+  },
+  createApproval: (data: Partial<TravelApprovalRequest>) => request<TravelApprovalRequest>("/travel-policy/approvals", { method: "POST", body: JSON.stringify(data) }),
+  updateApproval: (id: string, data: { status: string; rejectionNote?: string }) => request<TravelApprovalRequest>(`/travel-policy/approvals/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+};
+
+export const visaApi = {
+  list: (params?: { status?: string; search?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set("status", params.status);
+    if (params?.search) q.set("search", params.search);
+    return request<VisaApplication[]>(`/visa?${q}`);
+  },
+  get: (id: string) => request<VisaApplication>(`/visa/${id}`),
+  create: (data: Partial<VisaApplication>) => request<VisaApplication>("/visa", { method: "POST", body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<VisaApplication>) => request<VisaApplication>(`/visa/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  delete: (id: string) => request<{ message: string }>(`/visa/${id}`, { method: "DELETE" }),
+  summary: () => request<Record<string, number>>("/visa/stats/summary"),
+};
+
+export const inventoryApi = {
+  listHotels: (params?: { status?: string; search?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set("status", params.status);
+    if (params?.search) q.set("search", params.search);
+    return request<HotelContract[]>(`/inventory/hotels?${q}`);
+  },
+  createHotel: (data: Partial<HotelContract>) => request<HotelContract>("/inventory/hotels", { method: "POST", body: JSON.stringify(data) }),
+  updateHotel: (id: string, data: Partial<HotelContract>) => request<HotelContract>(`/inventory/hotels/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteHotel: (id: string) => request<{ message: string }>(`/inventory/hotels/${id}`, { method: "DELETE" }),
+  listTransport: (params?: { status?: string; transportType?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set("status", params.status);
+    if (params?.transportType) q.set("transportType", params.transportType);
+    return request<TransportContract[]>(`/inventory/transport?${q}`);
+  },
+  createTransport: (data: Partial<TransportContract>) => request<TransportContract>("/inventory/transport", { method: "POST", body: JSON.stringify(data) }),
+  updateTransport: (id: string, data: Partial<TransportContract>) => request<TransportContract>(`/inventory/transport/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteTransport: (id: string) => request<{ message: string }>(`/inventory/transport/${id}`, { method: "DELETE" }),
+};
+
+export const recruitmentApi = {
+  listJobs: (status?: string) => {
+    const q = status ? `?status=${status}` : "";
+    return request<JobPosting[]>(`/recruitment/jobs${q}`);
+  },
+  createJob: (data: Partial<JobPosting>) => request<JobPosting>("/recruitment/jobs", { method: "POST", body: JSON.stringify(data) }),
+  updateJob: (id: string, data: Partial<JobPosting>) => request<JobPosting>(`/recruitment/jobs/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteJob: (id: string) => request<{ message: string }>(`/recruitment/jobs/${id}`, { method: "DELETE" }),
+  listApplications: (jobId: string) => request<JobApplication[]>(`/recruitment/jobs/${jobId}/applications`),
+  addApplication: (jobId: string, data: Partial<JobApplication>) => request<JobApplication>(`/recruitment/jobs/${jobId}/applications`, { method: "POST", body: JSON.stringify(data) }),
+  updateApplication: (id: string, data: Partial<JobApplication>) => request<JobApplication>(`/recruitment/applications/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteApplication: (id: string) => request<{ message: string }>(`/recruitment/applications/${id}`, { method: "DELETE" }),
+  pipeline: () => request<Record<string, number>>("/recruitment/pipeline"),
 };

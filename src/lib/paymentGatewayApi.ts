@@ -21,8 +21,15 @@ function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export type PaymentGateway = "sslcommerz" | "bkash" | "cod";
 
+export interface GatewayStatusResponse {
+  bkash: { configured: boolean; sandbox: boolean; mode: "sandbox" | "live" | "disabled" };
+  sslcommerz: { configured: boolean; sandbox: boolean; mode: "sandbox" | "live" | "disabled" };
+  manual: { configured: boolean };
+}
+
 export interface PaymentInitRequest {
-  invoiceId: string;
+  invoiceId?: string;
+  paymentRequestId?: string;
   amount: number;
   gateway: PaymentGateway;
   customerName: string;
@@ -47,6 +54,9 @@ export interface PaymentStatusResponse {
 }
 
 export const paymentGatewayApi = {
+  /** Which online gateways are configured on the server */
+  gatewayStatus: () => request<GatewayStatusResponse>("/payments/gateway-status"),
+
   /** Initiate payment — returns redirect URL for SSLCommerz/bKash, or confirms COD */
   initiate: (data: PaymentInitRequest) =>
     request<PaymentInitResponse>("/payments/initiate", {

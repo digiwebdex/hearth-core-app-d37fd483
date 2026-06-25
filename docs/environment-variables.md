@@ -21,10 +21,13 @@ Single source of truth: `/srv/travelagencyweb/app/.env` (used by `docker compose
 | `ADMIN_NOTIFICATION_EMAIL` | Demo/contact form alerts |
 | `PUBLIC_UPLOAD_URL` | Absolute URL prefix for uploaded files |
 | `FRONTEND_URL`, `API_BASE_URL`, `PORTAL_URL` | Used inside emails and payment callbacks |
+| `TRIAL_DAYS` | New signup Pro trial length in days (default `7`, max `90`) |
 
 ## Payment gateways (only if used)
-- `SSLCOMMERZ_STORE_ID`, `SSLCOMMERZ_STORE_PASSWORD`, `SSLCOMMERZ_SANDBOX`
-- `BKASH_APP_KEY`, `BKASH_APP_SECRET`, `BKASH_USERNAME`, `BKASH_PASSWORD`, `BKASH_SANDBOX`
+- `SSLCOMMERZ_STORE_ID`, `SSLCOMMERZ_STORE_PASSWORD`, `SSLCOMMERZ_SANDBOX` (`false` for live)
+- `BKASH_APP_KEY`, `BKASH_APP_SECRET`, `BKASH_USERNAME`, `BKASH_PASSWORD`, `BKASH_SANDBOX` (`false` for live)
+- Manual proof receivers: `BKASH_ACCOUNT_NUMBER`, `NAGAD_ACCOUNT_NUMBER`, `BANK_ACCOUNT_NUMBER`, etc.
+- Callback base: `API_BASE_URL` must be public HTTPS (e.g. `https://api.travelagencyweb.com/api`)
 
 ## Seed (development / controlled production re-seed)
 - `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_DEMO_EMAIL`, `SEED_DEMO_PASSWORD`

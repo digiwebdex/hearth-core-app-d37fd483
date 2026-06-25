@@ -1,4 +1,4 @@
-import { LayoutDashboard, Building2, CreditCard, Crown, Ban, LogOut, ArrowLeft, Globe, ListChecks, Settings, Shield, MessageSquare, ScrollText, UserCog, FileText, BarChart3, UserPlus, Database } from "lucide-react";
+import { LayoutDashboard, Building2, CreditCard, Crown, Ban, LogOut, ArrowLeft, Globe, ListChecks, Settings, Shield, MessageSquare, ScrollText, UserCog, FileText, BarChart3, UserPlus, Database, MessageCircle, Tag } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
@@ -28,6 +28,8 @@ const adminItems = [
   { title: "Feature Control", url: "/admin/features", icon: Shield },
   { title: "Roles & Permissions", url: "/admin/roles", icon: UserCog },
   { title: "SMS Templates", url: "/admin/sms-templates", icon: MessageSquare },
+  { title: "WhatsApp Templates", url: "/admin/whatsapp-templates", icon: MessageCircle },
+  { title: "Coupons", url: "/admin/coupons", icon: Tag },
   { title: "SMS Logs", url: "/admin/sms-logs", icon: ScrollText },
   { title: "Audit Log", url: "/admin/audit-log", icon: FileText },
   { title: "Reports", url: "/admin/reports", icon: BarChart3 },

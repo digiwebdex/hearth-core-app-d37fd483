@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import DashboardLayout from "@/components/DashboardLayout";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
@@ -24,6 +25,9 @@ import {
 import { bookingPresetPath, bookingTypeToPreset } from "@/lib/bookingRoutePresets";
 import { mergeServiceDetailsIntoBooking } from "@/lib/bookingServiceDetails";
 import { BookingOpsPanel, SERVICE_OPS_TYPES } from "@/components/bookings/BookingOpsPanel";
+import { WorkflowNextStep } from "@/components/WorkflowNextStep";
+import { InlineEmpty } from "@/components/EmptyState";
+import { useHumanError } from "@/hooks/useHumanError";
 import {
   ArrowLeft, MapPin, CalendarIcon, Users, DollarSign, Plane, Hotel,
   Car, Stamp, Package, Bike, Plus, Trash2, Upload, FileText, Clock,
@@ -58,6 +62,8 @@ const BookingDetails = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const { t } = useTranslation();
+  const { formatError, errorTitle } = useHumanError();
   const initialTab = searchParams.get("tab") || "segments";
   const [activeTab, setActiveTab] = useState(initialTab);
 
@@ -117,7 +123,7 @@ const BookingDetails = () => {
       setBooking((p) => p ? { ...p, status } : p);
       toast({ title: `Status updated to ${getStatusMeta(status).label}` });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: err.message });
+      toast({ variant: "destructive", title: errorTitle(), description: formatError(err) });
     }
   };
 
@@ -130,7 +136,7 @@ const BookingDetails = () => {
       setSegmentDialog(false);
       toast({ title: "Segment added" });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: err.message });
+      toast({ variant: "destructive", title: errorTitle(), description: formatError(err) });
     }
   };
 
@@ -141,7 +147,7 @@ const BookingDetails = () => {
       setSegments((p) => p.filter((s) => s.id !== segId));
       toast({ title: "Segment removed" });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: err.message });
+      toast({ variant: "destructive", title: errorTitle(), description: formatError(err) });
     }
   };
 
@@ -154,7 +160,7 @@ const BookingDetails = () => {
       setTravelerDialog(false);
       toast({ title: "Traveler added" });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: err.message });
+      toast({ variant: "destructive", title: errorTitle(), description: formatError(err) });
     }
   };
 
@@ -164,7 +170,7 @@ const BookingDetails = () => {
       await bookingApi.deleteTraveler(bookingId, tId);
       setTravelers((p) => p.filter((t) => t.id !== tId));
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: err.message });
+      toast({ variant: "destructive", title: errorTitle(), description: formatError(err) });
     }
   };
 
@@ -174,7 +180,7 @@ const BookingDetails = () => {
       await bookingApi.updateChecklistItem(bookingId, item.id, !item.done);
       setChecklist((p) => p.map((c) => c.id === item.id ? { ...c, done: !c.done } : c));
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: err.message });
+      toast({ variant: "destructive", title: errorTitle(), description: formatError(err) });
     }
   };
 
@@ -185,7 +191,7 @@ const BookingDetails = () => {
       setChecklist((p) => [...p, item]);
       setNewCheckItem("");
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: err.message });
+      toast({ variant: "destructive", title: errorTitle(), description: formatError(err) });
     }
   };
 
@@ -197,7 +203,7 @@ const BookingDetails = () => {
       setNewNote("");
       toast({ title: "Note added" });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: err.message });
+      toast({ variant: "destructive", title: errorTitle(), description: formatError(err) });
     }
   };
 
@@ -210,7 +216,7 @@ const BookingDetails = () => {
       setDocuments((p) => [...p, doc]);
       toast({ title: "Document uploaded" });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Upload failed", description: err.message });
+      toast({ variant: "destructive", title: t("humanErrors.upload"), description: formatError(err) });
     }
   };
 
@@ -220,7 +226,7 @@ const BookingDetails = () => {
       await bookingApi.deleteDocument(bookingId, docId);
       setDocuments((p) => p.filter((d) => d.id !== docId));
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: err.message });
+      toast({ variant: "destructive", title: errorTitle(), description: formatError(err) });
     }
   };
 
@@ -235,6 +241,13 @@ const BookingDetails = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <WorkflowNextStep
+          current="booking"
+          next="invoice"
+          nextLabel="Create invoice"
+          nextHref="/invoices"
+        />
+
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
@@ -425,7 +438,7 @@ const BookingDetails = () => {
             </div>
 
             {segments.length === 0 ? (
-              <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No segments added yet. Add hotel, flight, transfer, and other trip components.</CardContent></Card>
+              <Card><CardContent className="py-8"><InlineEmpty title={t("emptyStates.noSegments")} hint={t("emptyStates.noSegmentsHint")} /></CardContent></Card>
             ) : (
               <div className="space-y-3">
                 {segments.map((seg) => {
@@ -544,7 +557,7 @@ const BookingDetails = () => {
             </div>
 
             {travelers.length === 0 ? (
-              <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No travelers added. Add passenger details and passport information.</CardContent></Card>
+              <Card><CardContent className="py-8"><InlineEmpty title={t("emptyStates.noTravelers")} hint={t("emptyStates.noTravelersHint")} /></CardContent></Card>
             ) : (
               <Card>
                 <CardContent className="p-0">
@@ -609,7 +622,7 @@ const BookingDetails = () => {
                   </div>
                 ))}
                 {checklist.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">No checklist items. Add tasks for the operations team.</p>
+                  <InlineEmpty title={t("emptyStates.noChecklist")} hint={t("emptyStates.noChecklistHint")} />
                 )}
                 <Separator />
                 <div className="flex gap-2">
@@ -634,7 +647,7 @@ const BookingDetails = () => {
               </PermissionGate>
             </div>
             {documents.length === 0 ? (
-              <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No documents uploaded. Upload e-tickets, hotel vouchers, visa copies, etc.</CardContent></Card>
+              <Card><CardContent className="py-8"><InlineEmpty title={t("emptyStates.noDocuments")} hint={t("emptyStates.noDocumentsHint")} /></CardContent></Card>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {documents.map((doc) => (
@@ -679,7 +692,7 @@ const BookingDetails = () => {
             </Card>
 
             {timeline.length === 0 ? (
-              <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No timeline events yet.</CardContent></Card>
+              <Card><CardContent className="py-8"><InlineEmpty title={t("emptyStates.noTimeline")} hint={t("emptyStates.noTimelineHint")} /></CardContent></Card>
             ) : (
               <div className="space-y-3">
                 {timeline.map((event) => {

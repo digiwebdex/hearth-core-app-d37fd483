@@ -31,6 +31,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { LeadPipelineSummary } from "@/components/leads/LeadPipelineSummary";
 
 const LEAD_STATUSES: { value: LeadStatus; color: string }[] = [
   { value: "new", color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200" },
@@ -71,7 +72,8 @@ const Leads = () => {
   const [followUpDate, setFollowUpDate] = useState<Date | undefined>();
   const [travelFrom, setTravelFrom] = useState<Date | undefined>();
   const [travelTo, setTravelTo] = useState<Date | undefined>();
-  const { toast } = useToast();
+  const [pipelineNonce, setPipelineNonce] = useState(0);
+  const bumpPipeline = () => setPipelineNonce((n) => n + 1);
   const navigate = useNavigate();
 
   const fetchLeads = useCallback(async () => {
@@ -80,6 +82,7 @@ const Leads = () => {
     try {
       const data = await leadApi.list();
       setLeads(data);
+      bumpPipeline();
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -170,10 +173,12 @@ const Leads = () => {
       if (editingId) {
         const updated = await leadApi.update(editingId, payload);
         setLeads((p) => p.map((l) => (l.id === editingId ? { ...l, ...updated } : l)));
+        bumpPipeline();
         toast({ title: t("leadsForm.leadUpdated") });
       } else {
         const created = await leadApi.create(payload as any);
         setLeads((p) => [created, ...p]);
+        bumpPipeline();
         toast({ title: t("leadsForm.leadCreated") });
       }
       setDialogOpen(false);
@@ -196,6 +201,7 @@ const Leads = () => {
     try {
       await leadApi.updateStatus(id, status);
       setLeads((p) => p.map((l) => (l.id === id ? { ...l, status } : l)));
+      bumpPipeline();
       toast({ title: t("leadsForm.statusUpdated", { status: t(`leadsForm.statuses.${status}`) }) });
     } catch {
       setLeads((p) => p.map((l) => (l.id === id ? { ...l, status } : l)));
@@ -510,6 +516,8 @@ const Leads = () => {
         ) : leads.length === 0 ? (
           <EmptyState icon={Target} title={t("leadsForm.noLeadsYet")} description={t("leadsForm.noLeadsDesc")} actionLabel={t("leadsForm.addLead")} onAction={openNew} />
         ) : (
+          <>
+          <LeadPipelineSummary refreshKey={pipelineNonce} />
           <Tabs defaultValue="kanban" className="space-y-4">
             <TabsList>
               <TabsTrigger value="kanban" className="gap-1.5"><LayoutGrid className="h-4 w-4" /> {t("leadsForm.kanban")}</TabsTrigger>
@@ -518,6 +526,7 @@ const Leads = () => {
             <TabsContent value="kanban"><KanbanView /></TabsContent>
             <TabsContent value="table"><TableView /></TabsContent>
           </Tabs>
+          </>
         )}
 
         {/* Lead Form Dialog */}

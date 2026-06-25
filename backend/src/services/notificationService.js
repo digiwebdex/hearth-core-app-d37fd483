@@ -7,6 +7,7 @@
 const { sendEmail, sendBookingConfirmation, sendInvoiceEmail } = require("./emailService");
 const { sendSms, getSmsTemplate } = require("./smsService");
 const { sendWhatsApp } = require("./whatsappService");
+const { getWhatsAppTemplate } = require("./whatsappTemplateService");
 const { resolveTenantOwnerContact } = require("../lib/tenantOwnerContact");
 
 const SUPER_ADMIN_ALERT_PHONE = process.env.SUPER_ADMIN_ALERT_PHONE || "+8801674533303";
@@ -212,7 +213,13 @@ async function sendRenewalExpiryChannels(data, { sms = true, whatsapp = true, em
     results.sms = await sendSms({ to: phone, message: msg });
   }
   if (whatsapp && wa) {
-    results.whatsapp = await sendWhatsApp({ to: wa, message: msg });
+    const tmpl = await getWhatsAppTemplate(data.wasTrial ? "subscriptionRenewal" : "subscriptionRenewal", data, { useBn });
+    const waMessage = tmpl?.message || msg;
+    results.whatsapp = await sendWhatsApp({
+      to: wa,
+      message: waMessage,
+      templateName: tmpl?.metaTemplateName || undefined,
+    });
   }
   if (email && data.ownerEmail) {
     const mail = renderSubscriptionExpiredOwnerEmail(data);
@@ -227,6 +234,59 @@ async function sendTrialExpiryChannels(data, options = {}) {
 }
 
 // ── Event Handlers ──
+
+function renderTrialDripEmail(data, variant) {
+  const appUrl = process.env.APP_URL || "https://app.travelagencyweb.com";
+  const guides = {
+    day1: {
+      subject: `Day 1 — add your first lead · ${data.tenantName || "Travel Agency Web"}`,
+      body: `<p>Welcome back! Today, add <strong>one lead</strong> under CRM → Leads.</p><p>Then open the <a href="${appUrl}/user-guide">User Guide</a> checklist on your dashboard.</p>`,
+    },
+    day2: {
+      subject: `Day 2 — send a quotation · ${data.tenantName || ""}`,
+      body: `<p>Pick a package from <strong>Packages &amp; Services</strong> and send a quotation to your lead.</p><p>Trial days left: <strong>${data.daysLeft ?? "—"}</strong></p>`,
+    },
+    last: {
+      subject: `Trial ending soon — renew your plan`,
+      body: `<p>Your <strong>${data.trialDays || 7}-day</strong> Pro trial ends on <strong>${data.expiryDate || "soon"}</strong>.</p><p><a href="${appUrl}/subscription">Renew now</a> with bKash, SSLCommerz, or bank transfer to keep your portal active.</p>`,
+    },
+  };
+  const v = guides[variant] || guides.day1;
+  return {
+    subject: v.subject,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+        <h2 style="color:#0f172a;">Hi ${data.ownerName || "there"},</h2>
+        ${v.body}
+        <p style="color:#666;font-size:13px;">— Travel Agency Web</p>
+      </div>
+    `,
+  };
+}
+
+function sendTrialDripChannels(data, variant, smsKey, smsKeyBn) {
+  return [
+    async (d) => {
+      if (d.ownerEmail) {
+        const mail = renderTrialDripEmail(d, variant);
+        await sendEmail({ to: d.ownerEmail, subject: mail.subject, html: mail.html });
+      }
+    },
+    async (d) => {
+      if (d.ownerPhone) {
+        const msg = getSmsTemplate(smsKeyBn, d) || getSmsTemplate(smsKey, d);
+        if (msg) await sendSms({ to: d.ownerPhone, message: msg });
+      }
+    },
+    async (d) => {
+      const wa = d.ownerWhatsapp || d.ownerPhone;
+      if (wa) {
+        const msg = getSmsTemplate(smsKeyBn, d) || getSmsTemplate(smsKey, d);
+        if (msg) await sendWhatsApp({ to: wa, message: msg });
+      }
+    },
+  ];
+}
 
 const EVENT_HANDLERS = {
   agency_signup: [
@@ -377,8 +437,11 @@ const EVENT_HANDLERS = {
     async (data) => {
       const wa = data.ownerWhatsapp || data.ownerPhone;
       if (wa) {
-        const msg = getSmsTemplate("subscriptionExpiring", data);
-        if (msg) await sendWhatsApp({ to: wa, message: msg });
+        const tmpl = await getWhatsAppTemplate("subscriptionExpiring", data);
+        const msg = tmpl?.message || getSmsTemplate("subscriptionExpiring", data);
+        if (msg) {
+          await sendWhatsApp({ to: wa, message: msg, templateName: tmpl?.metaTemplateName || undefined });
+        }
       }
     },
     async (data) => {
@@ -451,7 +514,100 @@ const EVENT_HANDLERS = {
         if (msg) await sendSms({ to: data.clientPhone, message: msg });
       }
     },
+    async (data) => {
+      if (data.clientPhone) {
+        const tmpl = await getWhatsAppTemplate("paymentReminder", data);
+        const msg = tmpl?.message || getSmsTemplate("invoiceReminder", data);
+        if (msg) {
+          await sendWhatsApp({
+            to: data.clientPhone,
+            message: msg,
+            templateName: tmpl?.metaTemplateName || undefined,
+          });
+        }
+      }
+    },
   ],
+
+  passport_expiry_alert: [
+    async (data) => {
+      const useBn = String(process.env.PASSPORT_ALERT_SMS_LANG || "").toLowerCase() === "bn";
+      if (data.clientPhone) {
+        const msg = getSmsTemplate(useBn ? "passportExpiryAlertBn" : "passportExpiryAlert", data);
+        if (msg) await sendSms({ to: data.clientPhone, message: msg });
+      }
+    },
+    async (data) => {
+      if (data.clientEmail) {
+        await sendEmail({
+          to: data.clientEmail,
+          subject: `Passport expiring in ${data.daysLeft} days`,
+          html: `
+            <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+              <h2>Passport renewal reminder</h2>
+              <p>Dear ${data.clientName},</p>
+              <p>Your passport${data.passportNumber ? ` (<strong>${data.passportNumber}</strong>)` : ""} expires on <strong>${data.expiryDate}</strong> (${data.daysLeft} days remaining).</p>
+              <p>Please renew before your next trip.</p>
+              <p>— ${data.companyName || "Travel Agency"}</p>
+            </div>
+          `,
+        });
+      }
+    },
+    async (data) => {
+      if (data.clientPhone) {
+        const useBn = String(process.env.PASSPORT_ALERT_SMS_LANG || "").toLowerCase() === "bn";
+        const tmpl = await getWhatsAppTemplate("passportExpiryAlert", {
+          ...data,
+          passportNumber: data.passportNumber ? ` (${data.passportNumber})` : "",
+        }, { useBn });
+        const msg = tmpl?.message || getSmsTemplate(useBn ? "passportExpiryAlertBn" : "passportExpiryAlert", data);
+        if (msg) await sendWhatsApp({ to: data.clientPhone, message: msg, templateName: tmpl?.metaTemplateName || undefined });
+      }
+    },
+  ],
+
+  travel_departure_reminder: [
+    async (data) => {
+      const useBn = String(process.env.TRAVEL_REMINDER_SMS_LANG || "").toLowerCase() === "bn";
+      if (data.clientPhone) {
+        const msg = getSmsTemplate(useBn ? "travelDepartureReminderBn" : "travelDepartureReminder", data);
+        if (msg) await sendSms({ to: data.clientPhone, message: msg });
+      }
+    },
+    async (data) => {
+      if (data.clientEmail) {
+        await sendEmail({
+          to: data.clientEmail,
+          subject: `Trip reminder — departing ${data.travelDate}`,
+          html: `
+            <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+              <h2>Travel reminder</h2>
+              <p>Dear ${data.clientName},</p>
+              <p>Your trip${data.destination ? ` to <strong>${data.destination}</strong>` : ""} departs on <strong>${data.travelDate}</strong> (${data.daysLeft} day${data.daysLeft === 1 ? "" : "s"} from now).</p>
+              <p>Safe travels!</p>
+              <p>— ${data.companyName || "Travel Agency"}</p>
+            </div>
+          `,
+        });
+      }
+    },
+    async (data) => {
+      if (data.clientPhone) {
+        const useBn = String(process.env.TRAVEL_REMINDER_SMS_LANG || "").toLowerCase() === "bn";
+        const tmpl = await getWhatsAppTemplate("travelDepartureReminder", {
+          ...data,
+          destination: data.destination ? ` to ${data.destination}` : "",
+        }, { useBn });
+        const msg = tmpl?.message || getSmsTemplate(useBn ? "travelDepartureReminderBn" : "travelDepartureReminder", data);
+        if (msg) await sendWhatsApp({ to: data.clientPhone, message: msg, templateName: tmpl?.metaTemplateName || undefined });
+      }
+    },
+  ],
+
+  trial_drip_day1: sendTrialDripChannels({}, "day1", "trialDripDay1", "trialDripDay1Bn"),
+  trial_drip_day2: sendTrialDripChannels({}, "day2", "trialDripDay2", "trialDripDay2Bn"),
+  trial_drip_last: sendTrialDripChannels({}, "last", "trialDripLast", "trialDripLastBn"),
 
   // Password reset — email only (already handled by emailService, but registered for completeness)
   password_reset: [

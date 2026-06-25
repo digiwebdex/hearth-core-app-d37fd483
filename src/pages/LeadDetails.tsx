@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import DashboardLayout from "@/components/DashboardLayout";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
@@ -19,6 +20,9 @@ import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { leadApi, taskApi, quotationApi, type Lead, type LeadActivity, type LeadStatus, type Quotation } from "@/lib/api";
 import { buildLeadQuotationParams, buildLeadBookingParams } from "@/lib/leadNavigation";
+import { WorkflowNextStep } from "@/components/WorkflowNextStep";
+import { InlineEmpty } from "@/components/EmptyState";
+import { useHumanError } from "@/hooks/useHumanError";
 import {
   ArrowLeft, Phone, Mail, MapPin, CalendarIcon, Users, DollarSign, UserPlus,
   MessageSquare, Clock, ArrowRight, RefreshCw, Send, FileText, CheckSquare,
@@ -76,6 +80,8 @@ const LeadDetails = () => {
   const [followUpNote, setFollowUpNote] = useState("");
   const [creatingTask, setCreatingTask] = useState(false);
   const { toast } = useToast();
+  const { t } = useTranslation();
+  const { formatError, errorTitle } = useHumanError();
 
   const fetchData = useCallback(async () => {
     if (!id) return;
@@ -148,7 +154,7 @@ const LeadDetails = () => {
       toast({ title: "Lead converted to client!", description: `${lead.name} is now a client.` });
       navigate("/clients");
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: err.message });
+      toast({ variant: "destructive", title: errorTitle(), description: formatError(err) });
     } finally {
       setConverting(false);
       setConvertDialogOpen(false);
@@ -209,7 +215,7 @@ const LeadDetails = () => {
       setFollowUpDate(undefined);
       setFollowUpNote("");
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: err.message });
+      toast({ variant: "destructive", title: errorTitle(), description: formatError(err) });
     } finally {
       setCreatingTask(false);
     }
@@ -223,6 +229,13 @@ const LeadDetails = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <WorkflowNextStep
+          current="lead"
+          next="client"
+          nextLabel="Convert to client"
+          onNextClick={handleConvertClick}
+        />
+
         {/* Back + Header */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
@@ -328,7 +341,7 @@ const LeadDetails = () => {
               </CardHeader>
               <CardContent>
                 {quotations.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-2">No quotations linked yet.</p>
+                  <InlineEmpty title={t("emptyStates.noQuotationsLinked")} hint={t("emptyStates.noQuotationsHint")} />
                 ) : (
                   <div className="space-y-2">
                     {quotations.map((q) => (
@@ -418,7 +431,7 @@ const LeadDetails = () => {
               </CardHeader>
               <CardContent>
                 {activities.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-4 text-center">No activities yet. Add a note to get started.</p>
+                  <InlineEmpty title={t("emptyStates.noActivities")} hint={t("emptyStates.noActivitiesHint")} />
                 ) : (
                   <div className="space-y-0">
                     {activities.map((act, i) => {

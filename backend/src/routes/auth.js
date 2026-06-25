@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { authenticate, prisma, SECRET } = require("../middleware/auth");
 const { validatePassword } = require("../utils/passwordPolicy");
+const { getTrialDays, addTrialExpiry } = require("../lib/trialConfig");
 const { validatePhone, validateEmail } = require("../utils/contactValidation");
 const { normalizeEnabledSubcategories } = require("../constants/serviceSubcategories");
 
@@ -39,6 +40,10 @@ router.post("/login", async (req, res) => {
     }
 
     const token = jwt.sign({ userId: user.id, tenantId: user.tenantId, role: user.role }, SECRET, { expiresIn: "7d" });
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    }).catch(() => {});
     const { password: _, resetToken: _r, resetTokenExpiry: _e, ...safeUser } = user;
 
     // Audit log — login
@@ -59,7 +64,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// Register — auto-approved with 3-day Pro trial, returns JWT immediately (Pattern B)
+// Register — auto-approved with Pro trial, returns JWT immediately (Pattern B)
 router.post("/register", async (req, res) => {
   try {
     const { name, email, password, tenantName, plan, phone, enabledSubcategories, enabledServiceTypes } = req.body;
@@ -80,13 +85,13 @@ router.post("/register", async (req, res) => {
     if (exists) return res.status(400).json({ message: "Email already registered" });
     const hashed = await bcrypt.hash(password, 10);
 
-    // 3-day Pro trial — starts immediately
-    const trialEnd = new Date();
-    trialEnd.setDate(trialEnd.getDate() + 3);
+    // Pro trial — length from TRIAL_DAYS env (default 7)
+    const trialEnd = addTrialExpiry();
+    const trialDays = getTrialDays();
 
     const allowedPlans = ["free", "basic", "pro", "business", "enterprise"];
     const requestedPlan = allowedPlans.includes(plan) ? plan : "pro";
-    // Free → no trial, instant active; everyone else → 3-day Pro trial regardless of intended plan
+    // Free → no trial, instant active; everyone else → Pro trial regardless of intended plan
     const subscriptionPlan = requestedPlan === "free" ? "free" : "pro";
     const subscriptionStatus = requestedPlan === "free" ? "active" : "trial";
     const subscriptionExpiry = requestedPlan === "free" ? null : trialEnd;
@@ -173,11 +178,11 @@ router.post("/register", async (req, res) => {
       user: safeUser,
       tenant,
       intendedPlan: requestedPlan,
-      trialDays: requestedPlan === "free" ? 0 : 3,
+      trialDays: requestedPlan === "free" ? 0 : trialDays,
       emailVerificationSent: true,
       message: requestedPlan === "free"
         ? "Welcome! Your free account is ready. Please verify your email."
-        : "Welcome! Your 3-day Pro trial has started. Please verify your email.",
+        : `Welcome! Your ${trialDays}-day Pro trial has started. Please verify your email.`,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

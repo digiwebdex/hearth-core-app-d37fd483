@@ -84,9 +84,19 @@ const Register = () => {
         toast({ title: "Account submitted", description: result.message || "Pending admin approval." });
         navigate("/login");
       } else {
+        const trialDays = result.trialDays ?? 7;
         toast({
-          title: isFree ? t("common.welcome") : "🎉 3-day Pro Trial Started!",
-          description: isFree ? "Your free account is ready." : "Explore all Pro features for the next 3 days.",
+          title: isFree
+            ? t("common.welcome")
+            : t("register.trialStarted", { days: trialDays, defaultValue: `🎉 ${trialDays}-Day Pro Trial Started!` }),
+          description: isFree
+            ? (isBn ? "আপনার ফ্রি অ্যাকাউন্ট প্রস্তুত।" : "Your free account is ready.")
+            : t("register.trialDesc", {
+                days: trialDays,
+                defaultValue: isBn
+                  ? `পরবর্তী ${trialDays} দিন সব Pro ফিচার ব্যবহার করুন।`
+                  : `Explore all Pro features for the next ${trialDays} days.`,
+              }),
         });
         navigate("/onboarding");
       }

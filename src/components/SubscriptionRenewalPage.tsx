@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { SubscriptionPaymentDialog } from "@/components/SubscriptionPaymentDialog";
+import { useGatewayStatus } from "@/hooks/useGatewayStatus";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { nextSuggestedPlan, useSubscriptionPayment } from "@/hooks/useSubscriptionPayment";
@@ -42,6 +43,7 @@ const SubscriptionRenewalPage = ({ reason }: Props) => {
   const { canManageSubscription } = usePermissions();
   const blockReason = reason || subscriptionBlockReason || "expired";
   const Icon = reasonIcon[blockReason] || AlertTriangle;
+  const { hasOnlineGateway } = useGatewayStatus();
 
   const payment = useSubscriptionPayment();
   const {
@@ -59,6 +61,13 @@ const SubscriptionRenewalPage = ({ reason }: Props) => {
     submitting,
     proofUploading,
     payableAmount,
+    listPrice,
+    couponCode,
+    setCouponCode,
+    appliedCoupon,
+    couponLoading,
+    applyCoupon,
+    clearCoupon,
     selectedMethodMeta,
     selectedMethodHasReceiverDetails,
     openRequestDialog,
@@ -241,7 +250,12 @@ const SubscriptionRenewalPage = ({ reason }: Props) => {
                   <Skeleton className="h-20 w-full" />
                 </>
               ) : summaryMethods.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t("subscriptionRenewal.noMethods")}</p>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <p>{t("subscriptionRenewal.noMethods")}</p>
+                  {hasOnlineGateway && (
+                    <p className="text-xs text-primary">{t("subscriptionRenewal.onlinePayAvailable")}</p>
+                  )}
+                </div>
               ) : (
                 summaryMethods.map((method) => (
                   <div key={method.methodCode} className="rounded-lg border p-3 text-sm space-y-1">
@@ -322,6 +336,13 @@ const SubscriptionRenewalPage = ({ reason }: Props) => {
         selectedMethodMeta={selectedMethodMeta}
         selectedMethodHasReceiverDetails={selectedMethodHasReceiverDetails}
         payableAmount={payableAmount}
+        listPrice={listPrice}
+        couponCode={couponCode}
+        setCouponCode={setCouponCode}
+        appliedCoupon={appliedCoupon}
+        couponLoading={couponLoading}
+        onApplyCoupon={applyCoupon}
+        onClearCoupon={clearCoupon}
         selectedPlan={selectedPlan}
         submitting={submitting}
         proofUploading={proofUploading}

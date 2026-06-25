@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { tenantDomainApi, type TenantDomainRecord, type TenantDomainSummary } from "@/lib/tenantDomainApi";
-import { Copy, ExternalLink, Globe, LayoutTemplate, Loader2, Package2, UploadCloud, Wand2 } from "lucide-react";
+import { Copy, ExternalLink, FileText, Globe, LayoutTemplate, Loader2, Package2, UploadCloud, Wand2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 const WebsiteBuilderHome = () => {
@@ -26,6 +26,8 @@ const WebsiteBuilderHome = () => {
     publishDomainDesc: isBn ? "live URL, custom domain, verify status এবং publish flow check করুন" : "Check live URL, custom domains, verification status, and publish flow",
     packagesServices: isBn ? "প্যাকেজ ও সার্ভিসেস" : "Packages & Services",
     packagesServicesDesc: isBn ? "published package template তৈরি ও update করুন" : "Create and update published package templates",
+    blogPosts: isBn ? "ব্লগ পোস্ট" : "Blog Posts",
+    blogPostsDesc: isBn ? "ওয়েবসাইটে প্রকাশের জন্য ট্রাভেল টিপস ও আপডেট লিখুন" : "Write travel tips and updates for your public website",
     publicSite: isBn ? "পাবলিক ওয়েবসাইট" : "Public Website",
     publicSiteDesc: isBn ? "customer side output browser-এ দেখে নিন" : "Preview the customer-facing output in the browser",
     defaultUrl: isBn ? "ডিফল্ট লাইভ URL" : "Default live URL",
@@ -51,6 +53,7 @@ const WebsiteBuilderHome = () => {
     manageBuilder: isBn ? "বিল্ডার ম্যানেজ করুন" : "Manage Builder",
     managePublish: isBn ? "পাবলিশ ম্যানেজ করুন" : "Manage Publish",
     managePackages: isBn ? "প্যাকেজ ম্যানেজ করুন" : "Manage Packages",
+    manageBlog: isBn ? "ব্লগ ম্যানেজ করুন" : "Manage Blog",
     previewSite: isBn ? "সাইট প্রিভিউ" : "Preview Site",
   };
 
@@ -134,7 +137,7 @@ const WebsiteBuilderHome = () => {
           </Card>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-5">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><LayoutTemplate className="h-5 w-5" /> {text.themeBuilder}</CardTitle>
@@ -160,6 +163,15 @@ const WebsiteBuilderHome = () => {
             </CardHeader>
             <CardContent>
               <Link to="/packages/all"><Button className="w-full" variant="outline">{text.managePackages}</Button></Link>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" /> {text.blogPosts}</CardTitle>
+              <CardDescription>{text.blogPostsDesc}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link to="/website/blog"><Button className="w-full" variant="outline">{text.manageBlog}</Button></Link>
             </CardContent>
           </Card>
           <Card>

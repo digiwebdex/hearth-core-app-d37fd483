@@ -7,6 +7,7 @@ import {
   type WorkflowPaymentMethod,
   type WorkflowPaymentRequest,
 } from "@/lib/subscriptionWorkflowApi";
+import { subscriptionCouponApi, type CouponValidation } from "@/lib/platformAdminApi";
 
 const emptyForm = {
   billingCycle: "monthly" as BillingCycle,
@@ -40,6 +41,9 @@ export function useSubscriptionPayment() {
   const [form, setForm] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [proofUploading, setProofUploading] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponValidation | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -70,10 +74,21 @@ export function useSubscriptionPayment() {
     () => PLANS.find((plan) => plan.id === selectedPlan),
     [selectedPlan]
   );
-  const payableAmount = useMemo(
+
+  const listPrice = useMemo(
     () => (selectedPlanMeta ? getPlanPrice(selectedPlanMeta.id, form.billingCycle) : 0),
-    [selectedPlanMeta, form.billingCycle]
+    [selectedPlanMeta, form.billingCycle],
   );
+
+  const payableAmount = useMemo(() => {
+    if (appliedCoupon?.valid && appliedCoupon.finalAmount != null) return appliedCoupon.finalAmount;
+    return listPrice;
+  }, [appliedCoupon, listPrice]);
+
+  useEffect(() => {
+    setAppliedCoupon(null);
+    setCouponCode("");
+  }, [form.billingCycle, selectedPlan]);
 
   const selectedMethodMeta = summaryMethods.find((method) => method.methodCode === form.paymentMethod);
   const selectedMethodHasReceiverDetails = Boolean(
@@ -119,6 +134,36 @@ export function useSubscriptionPayment() {
     setEditingRequest(null);
     setForm(emptyForm);
     setProofUploading(false);
+    setCouponCode("");
+    setAppliedCoupon(null);
+  };
+
+  const applyCoupon = async () => {
+    if (!selectedPlan || !couponCode.trim()) return;
+    setCouponLoading(true);
+    try {
+      const result = await subscriptionCouponApi.validate(couponCode.trim(), selectedPlan, form.billingCycle);
+      setAppliedCoupon(result);
+      setForm((prev) => ({ ...prev, amountSent: String(result.finalAmount ?? payableAmount) }));
+      toast({ title: "Coupon applied", description: result.description || `You save ৳${result.discountAmount}` });
+    } catch (err: unknown) {
+      setAppliedCoupon(null);
+      toast({
+        variant: "destructive",
+        title: "Invalid coupon",
+        description: err instanceof Error ? err.message : undefined,
+      });
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const clearCoupon = () => {
+    setCouponCode("");
+    setAppliedCoupon(null);
+    if (selectedPlanMeta) {
+      setForm((prev) => ({ ...prev, amountSent: String(listPrice || "") }));
+    }
   };
 
   const uploadProof = async (file: File | null) => {
@@ -149,7 +194,8 @@ export function useSubscriptionPayment() {
         billingCycle: form.billingCycle,
         paymentMethod: form.paymentMethod,
         amountSent: Number(form.amountSent || payableAmount),
-        expectedAmount: payableAmount,
+        expectedAmount: listPrice,
+        couponCode: appliedCoupon?.code || (couponCode.trim() || undefined),
         senderAccountOrNumber: form.senderAccountOrNumber,
         transactionId: form.transactionId,
         paymentDate: form.paymentDate,
@@ -206,6 +252,13 @@ export function useSubscriptionPayment() {
     submitting,
     proofUploading,
     payableAmount,
+    listPrice,
+    couponCode,
+    setCouponCode,
+    appliedCoupon,
+    couponLoading,
+    applyCoupon,
+    clearCoupon,
     selectedMethodMeta,
     selectedMethodHasReceiverDetails,
     openRequestDialog,

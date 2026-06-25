@@ -8,58 +8,26 @@ import type { Booking, BookingType } from "@/lib/api";
 import {
   getWorkflowStatus,
   mergeServiceDetailsIntoBooking,
+  HOTEL_WORKFLOW_STATUSES,
+  INSURANCE_WORKFLOW_STATUSES,
+  TICKET_WORKFLOW_STATUSES,
+  TRANSPORT_WORKFLOW_STATUSES,
+  VISA_WORKFLOW_STATUSES,
   type HotelWorkflowStatus,
   type InsuranceWorkflowStatus,
   type TicketWorkflowStatus,
   type TransportWorkflowStatus,
-  type VisaWorkflowStatus,
 } from "@/lib/bookingServiceDetails";
 import { useState } from "react";
 import { bookingApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Save } from "lucide-react";
 
-const VISA_STATUSES: VisaWorkflowStatus[] = [
-  "not_started",
-  "documents_pending",
-  "submitted",
-  "interview_scheduled",
-  "approved",
-  "rejected",
-  "passport_returned",
-];
-
-const TICKET_STATUSES: TicketWorkflowStatus[] = [
-  "pending",
-  "issued",
-  "reissued",
-  "refund_requested",
-  "refunded",
-];
-
-const HOTEL_STATUSES: HotelWorkflowStatus[] = [
-  "pending",
-  "confirmed",
-  "voucher_sent",
-  "checked_in",
-  "cancelled",
-];
-
-const TRANSPORT_STATUSES: TransportWorkflowStatus[] = [
-  "pending",
-  "assigned",
-  "in_transit",
-  "completed",
-  "cancelled",
-];
-
-const INSURANCE_STATUSES: InsuranceWorkflowStatus[] = [
-  "pending",
-  "quoted",
-  "purchased",
-  "policy_issued",
-  "cancelled",
-];
+const VISA_STATUSES = VISA_WORKFLOW_STATUSES;
+const TICKET_STATUSES = TICKET_WORKFLOW_STATUSES;
+const HOTEL_STATUSES = HOTEL_WORKFLOW_STATUSES;
+const TRANSPORT_STATUSES = TRANSPORT_WORKFLOW_STATUSES;
+const INSURANCE_STATUSES = INSURANCE_WORKFLOW_STATUSES;
 
 const SERVICE_OPS_TYPES = new Set<BookingType>(["visa", "ticket", "hotel", "transport", "insurance"]);
 

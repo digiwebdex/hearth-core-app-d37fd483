@@ -36,6 +36,17 @@ export interface PackagePublic {
   serviceType?: string;
 }
 
+export interface BlogPostPublic {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  body?: string;
+  coverImage?: string | null;
+  publishedAt?: string | null;
+  authorName?: string | null;
+}
+
 /** Normalize domain — strip www prefix for consistent lookups */
 function normalizeDomain(domain: string): string {
   return domain.replace(/^www\./, "").toLowerCase();
@@ -48,6 +59,9 @@ export const publicApi = {
     publicRequest<TenantPublic>(`/public/domain/${normalizeDomain(domain)}`),
   getPackagesByDomain: (domain: string) =>
     publicRequest<PackagePublic[]>(`/public/domain/${normalizeDomain(domain)}/packages`),
+  getBlogPosts: (slug: string) => publicRequest<BlogPostPublic[]>(`/public/${slug}/blog-posts`),
+  getBlogPost: (slug: string, postSlug: string) =>
+    publicRequest<BlogPostPublic>(`/public/${slug}/blog-posts/${postSlug}`),
   submitContact: (data: { name: string; email: string; phone?: string; subject?: string; message: string; tenantSlug?: string }) =>
     publicPost<{ success: boolean; id: string }>("/contact", data),
   submitDemo: (data: { name: string; email: string; phone?: string; company?: string; teamSize?: string; message?: string }) =>

@@ -14,6 +14,7 @@ import {
   Send, Eye, EyeOff, Shield, MessageSquare, Smartphone,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { GatewayStatusPanel } from "@/components/admin/GatewayStatusPanel";
 import { smsApi, type SmsConfig } from "@/lib/smsApi";
 
 // ── Types ──
@@ -397,6 +398,7 @@ const AdminSettings = () => {
           {/* ════════ PAYMENT ════════ */}
           <TabsContent value="payment">
             <div className="space-y-4">
+            <GatewayStatusPanel />
               {/* SSLCommerz */}
               <Card>
                 <CardHeader>

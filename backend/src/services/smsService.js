@@ -260,6 +260,36 @@ const templates = {
 
   invoiceReminder: (data) =>
     `Reminder: Invoice ${data.invoiceNumber} for ৳${data.dueAmount} is due on ${data.dueDate}. Please make payment promptly.`,
+
+  trialDripDay1: (data) =>
+    `Day 1 tip: Add your first lead in CRM → Leads. Need help? app.travelagencyweb.com/user-guide — Travel Agency Web`,
+
+  trialDripDay1Bn: (data) =>
+    `দিন ১: CRM → Leads থেকে প্রথম লিড যোগ করুন। গাইড: app.travelagencyweb.com/user-guide — Travel Agency Web`,
+
+  trialDripDay2: (data) =>
+    `Day 2: Send a quotation from your catalog. Trial: ${data.daysLeft ?? ""} days left. — Travel Agency Web`,
+
+  trialDripDay2Bn: (data) =>
+    `দিন ২: ক্যাটালগ থেকে কোটেশন পাঠান। ট্রায়াল বাকি ${data.daysLeft ?? ""} দিন। — Travel Agency Web`,
+
+  trialDripLast: (data) =>
+    `Last day! Your ${data.trialDays || 7}-day trial ends ${data.expiryDate || "soon"}. Renew: app.travelagencyweb.com/subscription`,
+
+  trialDripLastBn: (data) =>
+    `শেষ দিন! ${data.trialDays || 7} দিনের ট্রায়াল ${data.expiryDate || "শীঘ্রই"} শেষ। রিনিউ: app.travelagencyweb.com/subscription`,
+
+  passportExpiryAlert: (data) =>
+    `Dear ${data.clientName}, your passport${data.passportNumber ? ` (${data.passportNumber})` : ""} expires on ${data.expiryDate} (${data.daysLeft} days). Please renew soon. — ${data.companyName || "Travel Agency"}`,
+
+  passportExpiryAlertBn: (data) =>
+    `প্রিয় ${data.clientName}, পাসপোর্ট${data.passportNumber ? ` (${data.passportNumber})` : ""} মেয়াদ শেষ ${data.expiryDate} (${data.daysLeft} দিন বাকি)। দয়া করে নবায়ন করুন। — ${data.companyName || "Travel Agency"}`,
+
+  travelDepartureReminder: (data) =>
+    `Dear ${data.clientName}, your trip${data.destination ? ` to ${data.destination}` : ""} departs on ${data.travelDate} (${data.daysLeft} day${data.daysLeft === 1 ? "" : "s"}). Safe travels! — ${data.companyName || "Travel Agency"}`,
+
+  travelDepartureReminderBn: (data) =>
+    `প্রিয় ${data.clientName}, আপনার ভ্রমণ${data.destination ? ` (${data.destination})` : ""} শুরু ${data.travelDate} (${data.daysLeft} দিন পর)। শুভ যাত্রা! — ${data.companyName || "Travel Agency"}`,
 };
 
 function getSmsTemplate(templateName, data) {

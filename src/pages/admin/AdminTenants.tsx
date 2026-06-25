@@ -15,20 +15,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Ban, CheckCircle, Eye, Search, RefreshCw, Plus, Pencil, Trash2, Layers } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { adminApi, type AdminTenant } from "@/lib/api";
+import { tenantHealthApi, type TenantHealthRow } from "@/lib/platformAdminApi";
 import ServiceCatalogPicker from "@/components/ServiceCatalogPicker";
 import { buildServiceSelectionPayload, normalizeEnabledSubcategories } from "@/lib/enabledServiceTypes";
+import { normalizePhoneInput } from "@/lib/phoneNormalize";
 
 const AdminTenants = () => {
   const { t: tt } = useTranslation();
   const navigate = useNavigate();
   const [tenants, setTenants] = useState<AdminTenant[]>([]);
+  const [healthMap, setHealthMap] = useState<Record<string, TenantHealthRow>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const { toast } = useToast();
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [editTenant, setEditTenant] = useState<AdminTenant | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", subscriptionPlan: "basic", subscriptionStatus: "active", subscriptionExpiry: "", phone: "", whatsapp: "", address: "", city: "", country: "", website: "", notes: "", ownerName: "", ownerEmail: "", ownerPassword: "" });
+  const [editForm, setEditForm] = useState({ name: "", subscriptionPlan: "basic", subscriptionStatus: "active", subscriptionExpiry: "", phone: "", whatsapp: "", address: "", city: "", country: "", website: "", notes: "", ownerName: "", ownerEmail: "", ownerPhone: "", ownerWhatsapp: "", ownerPassword: "" });
   const [savingEdit, setSavingEdit] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AdminTenant | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -90,8 +93,14 @@ const AdminTenants = () => {
   const fetchTenants = async () => {
     setLoading(true);
     try {
-      const data = await adminApi.getTenants();
+      const [data, health] = await Promise.all([
+        adminApi.getTenants({ excludePlatform: true }),
+        tenantHealthApi.list().catch(() => ({ tenants: [] as TenantHealthRow[] })),
+      ]);
       setTenants(data);
+      const map: Record<string, TenantHealthRow> = {};
+      for (const row of health.tenants || []) map[row.tenantId] = row;
+      setHealthMap(map);
     } catch (err: any) {
       toast({ title: tt("adminTenants.toast.loadFailed"), description: err.message, variant: "destructive" });
     } finally {
@@ -142,6 +151,8 @@ const AdminTenants = () => {
       notes: (t as any).notes || "",
       ownerName: owner?.name || "",
       ownerEmail: owner?.email || "",
+      ownerPhone: owner?.phone || "",
+      ownerWhatsapp: owner?.whatsapp || "",
       ownerPassword: "",
     });
   };
@@ -150,21 +161,22 @@ const AdminTenants = () => {
     if (!editTenant) return;
     setSavingEdit(true);
     try {
-      const owner = editTenant.users?.find((u) => u.role === "tenant_owner" || u.role === "owner") || editTenant.users?.[0];
-      const { ownerName, ownerEmail, ownerPassword, ...tenantPayload } = editForm as any;
+      const { ownerName, ownerEmail, ownerPassword, ownerPhone, ownerWhatsapp, ...tenantPayload } = editForm as any;
       if (!tenantPayload.subscriptionExpiry) delete tenantPayload.subscriptionExpiry;
+      tenantPayload.phone = normalizePhoneInput(tenantPayload.phone) || null;
+      tenantPayload.whatsapp = normalizePhoneInput(tenantPayload.whatsapp) || null;
       await adminApi.updateTenant(editTenant.id, {
         ...tenantPayload,
         ...buildServiceSelectionPayload(editSelectedSubs),
       });
 
-      const ownerPayload: { name?: string; email?: string; password?: string } = {};
-      if (ownerName && ownerName !== owner?.name) ownerPayload.name = ownerName;
-      if (ownerEmail && ownerEmail !== (owner?.email || "")) ownerPayload.email = ownerEmail;
-      if (ownerPassword) ownerPayload.password = ownerPassword;
-      if (Object.keys(ownerPayload).length > 0) {
-        await adminApi.updateTenantOwner(editTenant.id, ownerPayload);
-      }
+      await adminApi.updateTenantOwner(editTenant.id, {
+        name: ownerName?.trim(),
+        email: ownerEmail?.trim(),
+        phone: normalizePhoneInput(ownerPhone),
+        whatsapp: normalizePhoneInput(ownerWhatsapp),
+        ...(ownerPassword ? { password: ownerPassword } : {}),
+      });
 
       toast({ title: tt("adminTenants.toast.agencyUpdated"), description: editForm.name });
       setEditTenant(null);
@@ -351,6 +363,7 @@ const AdminTenants = () => {
                     <TableHead className="text-center">{tt("adminTenants.table.users")}</TableHead>
                     <TableHead className="text-center">{tt("adminTenants.table.bookings")}</TableHead>
                     <TableHead>{tt("adminTenants.table.status")}</TableHead>
+                    <TableHead>Health</TableHead>
                     <TableHead>{tt("adminTenants.table.created")}</TableHead>
                     <TableHead className="w-[200px]">{tt("adminTenants.table.actions")}</TableHead>
                   </TableRow>
@@ -358,7 +371,7 @@ const AdminTenants = () => {
                 <TableBody>
                   {filtered.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center text-muted-foreground py-8">{tt("adminTenants.noAgencies")}</TableCell>
+                      <TableCell colSpan={9} className="text-center text-muted-foreground py-8">{tt("adminTenants.noAgencies")}</TableCell>
                     </TableRow>
                   ) : (
                     filtered.map((tn) => {
@@ -385,6 +398,23 @@ const AdminTenants = () => {
                             ) : (
                               <Badge variant="secondary">{tt(`adminTenants.status.${tn.subscriptionStatus}`, { defaultValue: tn.subscriptionStatus || "—" })}</Badge>
                             )}
+                          </TableCell>
+                          <TableCell>
+                            {(() => {
+                              const h = healthMap[tn.id];
+                              if (!h) return <span className="text-muted-foreground text-sm">—</span>;
+                              const variant =
+                                h.healthLabel === "healthy"
+                                  ? "default"
+                                  : h.healthLabel === "moderate"
+                                    ? "secondary"
+                                    : "destructive";
+                              return (
+                                <Badge variant={variant} title={`Score ${h.healthScore} · Last login ${h.lastLoginAt ? new Date(h.lastLoginAt).toLocaleDateString() : "never"}`}>
+                                  {h.healthScore}
+                                </Badge>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell className="text-muted-foreground text-sm">{new Date(tn.createdAt).toLocaleDateString()}</TableCell>
                           <TableCell>
@@ -484,6 +514,10 @@ const AdminTenants = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div className="grid gap-2"><Label>{tt("adminTenants.fields.ownerName")}</Label><Input value={editForm.ownerName} onChange={(e) => setEditForm({ ...editForm, ownerName: e.target.value })} /></div>
                 <div className="grid gap-2"><Label>{tt("adminTenants.fields.ownerEmail")}</Label><Input type="email" value={editForm.ownerEmail} onChange={(e) => setEditForm({ ...editForm, ownerEmail: e.target.value })} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-2"><Label>{tt("adminTenants.fields.ownerMobile")}</Label><Input value={editForm.ownerPhone} onChange={(e) => setEditForm({ ...editForm, ownerPhone: e.target.value })} placeholder="+8801XXXXXXXXX" /></div>
+                <div className="grid gap-2"><Label>{tt("adminTenants.fields.ownerWhatsapp")}</Label><Input value={editForm.ownerWhatsapp} onChange={(e) => setEditForm({ ...editForm, ownerWhatsapp: e.target.value })} placeholder="+8801XXXXXXXXX" /></div>
               </div>
               <div className="grid gap-2">
                 <Label>{tt("adminTenants.fields.resetPassword")}</Label>

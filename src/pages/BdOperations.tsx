@@ -11,7 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { bookingApi, type Booking, type BookingStatus } from "@/lib/api";
-import { GraduationCap, HardHat, Search, Eye } from "lucide-react";
+import { GraduationCap, HardHat, Search, Eye, LayoutGrid, List } from "lucide-react";
+import { OpsKanbanBoard } from "@/components/operations/OpsKanbanBoard";
+import {
+  MANPOWER_WORKFLOW_STATUSES,
+  STUDENT_WORKFLOW_STATUSES,
+  mergeServiceDetailsIntoBooking,
+} from "@/lib/bookingServiceDetails";
 
 type DeskType = "student" | "manpower";
 
@@ -30,7 +36,9 @@ const BdOperations = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const deskParam = searchParams.get("desk");
+  const viewParam = searchParams.get("view");
   const desk: DeskType = deskParam === "manpower" ? "manpower" : "student";
+  const viewMode = viewParam === "board" ? "board" : "table";
 
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +64,11 @@ const BdOperations = () => {
   }, [load]);
 
   const setDesk = (next: DeskType) => {
-    setSearchParams({ desk: next });
+    setSearchParams({ desk: next, ...(viewMode === "board" ? { view: "board" } : {}) });
+  };
+
+  const setViewMode = (mode: "table" | "board") => {
+    setSearchParams({ desk, ...(mode === "board" ? { view: "board" } : {}) });
   };
 
   const typed = useMemo(() => bookings.filter((b) => b.type === desk), [bookings, desk]);
@@ -171,6 +183,22 @@ const BdOperations = () => {
               {t("bdOps.viewAllBookings")}
             </Link>
           </Button>
+          <Button
+            size="sm"
+            variant={viewMode === "table" ? "default" : "outline"}
+            onClick={() => setViewMode("table")}
+          >
+            <List className="mr-2 h-4 w-4" />
+            {t("serviceOps.viewTable")}
+          </Button>
+          <Button
+            size="sm"
+            variant={viewMode === "board" ? "default" : "outline"}
+            onClick={() => setViewMode("board")}
+          >
+            <LayoutGrid className="mr-2 h-4 w-4" />
+            {t("serviceOps.viewBoard")}
+          </Button>
         </div>
 
         {loading ? (
@@ -184,6 +212,21 @@ const BdOperations = () => {
             description={t("bdOps.emptyDesc")}
             actionLabel={t("bdOps.createBooking")}
             onAction={() => navigate(desk === "student" ? "/bookings/student" : "/bookings/manpower")}
+          />
+        ) : viewMode === "board" ? (
+          <OpsKanbanBoard
+            bookings={filtered.map((b) => mergeServiceDetailsIntoBooking(b))}
+            workflowType={desk}
+            statuses={desk === "student" ? STUDENT_WORKFLOW_STATUSES : MANPOWER_WORKFLOW_STATUSES}
+            onOpen={(id) => navigate(`/bookings/${id}`)}
+            onBookingUpdated={(updated) =>
+              setBookings((prev) => prev.map((b) => (b.id === updated.id ? { ...b, ...updated } : b)))
+            }
+            subtitleFor={(b) =>
+              desk === "student"
+                ? [b.instituteName, b.courseProgram].filter(Boolean).join(" · ")
+                : [b.employer, b.jobTitle].filter(Boolean).join(" · ")
+            }
           />
         ) : (
           <Card>

@@ -205,6 +205,15 @@ export const tenantSubscriptionWorkflowApi = {
   },
   createRequest: (data: Record<string, unknown>) =>
     request<WorkflowPaymentRequest>("/payment-requests", { method: "POST", body: JSON.stringify(data) }),
+  onlineCheckout: (data: Record<string, unknown>) =>
+    request<{
+      paymentRequestId: string;
+      amount: number;
+      gateway: string;
+      customerName?: string;
+      customerEmail?: string;
+      customerPhone?: string;
+    }>("/payment-requests/online-checkout", { method: "POST", body: JSON.stringify(data) }),
   resubmitRequest: (id: string, data: Record<string, unknown>) =>
     request<WorkflowPaymentRequest>(`/payment-requests/${id}/resubmit`, { method: "POST", body: JSON.stringify(data) }),
   cancelRequest: (id: string, note?: string) =>

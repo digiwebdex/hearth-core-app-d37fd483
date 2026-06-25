@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import DashboardLayout from "@/components/DashboardLayout";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
@@ -18,6 +19,9 @@ import {
   ArrowLeft, Phone, Mail, MapPin, CreditCard, User, CalendarIcon, Upload,
   Plane, Receipt, Wallet, FileText, AlertTriangle, Shield,
 } from "lucide-react";
+import { WorkflowNextStep } from "@/components/WorkflowNextStep";
+import { InlineEmpty } from "@/components/EmptyState";
+import { useHumanError } from "@/hooks/useHumanError";
 
 const ClientProfile = () => {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +33,8 @@ const ClientProfile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const { toast } = useToast();
+  const { t } = useTranslation();
+  const { formatError } = useHumanError();
 
   const fetchData = useCallback(async () => {
     if (!id) return;
@@ -62,7 +68,7 @@ const ClientProfile = () => {
       toast({ title: "Document uploaded" });
       fetchData();
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Upload failed", description: err.message });
+      toast({ variant: "destructive", title: t("humanErrors.upload"), description: formatError(err) });
     }
   };
 
@@ -87,6 +93,13 @@ const ClientProfile = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <WorkflowNextStep
+          current="client"
+          next="quotation"
+          nextLabel="Create quotation"
+          nextHref={id ? `/quotations/new?clientId=${id}&clientName=${encodeURIComponent(client.name)}` : "/quotations/new"}
+        />
+
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
@@ -183,7 +196,7 @@ const ClientProfile = () => {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No documents uploaded.</p>
+                  <InlineEmpty title={t("emptyStates.noClientDocuments")} />
                 )}
               </CardContent>
             </Card>
@@ -202,7 +215,7 @@ const ClientProfile = () => {
                 <Card>
                   <CardContent className="p-0">
                     {bookings.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-8 text-center">No bookings for this client.</p>
+                      <InlineEmpty title={t("emptyStates.noClientBookings")} hint={t("emptyStates.noClientBookingsHint")} />
                     ) : (
                       <Table>
                         <TableHeader>
@@ -235,7 +248,7 @@ const ClientProfile = () => {
                 <Card>
                   <CardContent className="p-0">
                     {invoices.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-8 text-center">No invoices for this client.</p>
+                      <InlineEmpty title={t("emptyStates.noClientInvoices")} hint={t("emptyStates.noClientInvoicesHint")} />
                     ) : (
                       <Table>
                         <TableHeader>
@@ -268,7 +281,7 @@ const ClientProfile = () => {
                 <Card>
                   <CardContent className="p-0">
                     {payments.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-8 text-center">No payments for this client.</p>
+                      <InlineEmpty title={t("emptyStates.noClientPayments")} />
                     ) : (
                       <Table>
                         <TableHeader>

@@ -287,6 +287,49 @@ router.get("/:slug/packages", async (req, res) => {
   }
 });
 
+// GET /api/public/:slug/blog-posts - published blog posts
+router.get("/:slug/blog-posts", async (req, res) => {
+  try {
+    const slug = String(req.params.slug || "").toLowerCase();
+    const tenant = await prisma.tenant.findFirst({ where: { slug } });
+    if (!tenant) return res.status(404).json({ message: "Tenant not found" });
+    const posts = await prisma.websitePost.findMany({
+      where: { tenantId: tenant.id, status: "published" },
+      orderBy: { publishedAt: "desc" },
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        excerpt: true,
+        coverImage: true,
+        publishedAt: true,
+        authorName: true,
+      },
+    });
+    res.json(posts);
+  } catch (e) {
+    console.error("public/:slug/blog-posts error", e);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.get("/:slug/blog-posts/:postSlug", async (req, res) => {
+  try {
+    const slug = String(req.params.slug || "").toLowerCase();
+    const postSlug = String(req.params.postSlug || "").toLowerCase();
+    const tenant = await prisma.tenant.findFirst({ where: { slug } });
+    if (!tenant) return res.status(404).json({ message: "Tenant not found" });
+    const post = await prisma.websitePost.findFirst({
+      where: { tenantId: tenant.id, slug: postSlug, status: "published" },
+    });
+    if (!post) return res.status(404).json({ message: "Post not found" });
+    res.json(post);
+  } catch (e) {
+    console.error("public/:slug/blog-posts/:postSlug error", e);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // GET /api/public/:slug/website - saved website config by slug
 router.get("/:slug/website", async (req, res) => {
   try {
@@ -344,6 +387,62 @@ router.get("/domain/:domain/website", async (req, res) => {
   } catch (e) {
     console.error("public/domain/:domain/website error", e);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// GET /api/public/sitemap/:slug — generate sitemap XML for a tenant site
+router.get("/sitemap/:slug", async (req, res) => {
+  try {
+    const tenant = await prisma.tenant.findFirst({
+      where: { slug: req.params.slug },
+      select: { id: true, slug: true },
+    });
+    if (!tenant) return res.status(404).send("Not found");
+
+    const [packages, posts] = await Promise.all([
+      prisma.travelPackage.findMany({
+        where: { tenantId: tenant.id, status: "published" },
+        select: { slug: true, updatedAt: true },
+      }),
+      prisma.websitePost.findMany({
+        where: { tenantId: tenant.id, status: "published" },
+        select: { slug: true, updatedAt: true },
+      }),
+    ]);
+
+    const baseUrl = `https://${tenant.slug}.travelagencyweb.com`;
+    const formatDate = (d) => new Date(d).toISOString().slice(0, 10);
+
+    const urls = [
+      `<url><loc>${baseUrl}/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>`,
+      `<url><loc>${baseUrl}/packages</loc><changefreq>daily</changefreq><priority>0.9</priority></url>`,
+      `<url><loc>${baseUrl}/about</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>`,
+      `<url><loc>${baseUrl}/contact</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>`,
+      ...packages.map((p) => `<url><loc>${baseUrl}/packages/${p.slug}</loc><lastmod>${formatDate(p.updatedAt)}</lastmod><priority>0.8</priority></url>`),
+      ...posts.map((p) => `<url><loc>${baseUrl}/blog/${p.slug}</loc><lastmod>${formatDate(p.updatedAt)}</lastmod><priority>0.6</priority></url>`),
+    ];
+
+    res.set("Content-Type", "application/xml");
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>`);
+  } catch (e) {
+    console.error("sitemap error", e);
+    res.status(500).send("Server error");
+  }
+});
+
+// GET /api/public/robots/:slug — robots.txt for a tenant
+router.get("/robots/:slug", async (req, res) => {
+  try {
+    const tenant = await prisma.tenant.findFirst({
+      where: { slug: req.params.slug },
+      select: { slug: true },
+    });
+    if (!tenant) return res.status(404).send("Not found");
+    const baseUrl = `https://${tenant.slug}.travelagencyweb.com`;
+    res.set("Content-Type", "text/plain");
+    res.send(`User-agent: *\nAllow: /\nSitemap: ${baseUrl}/sitemap.xml`);
+  } catch (e) {
+    res.status(500).send("Server error");
   }
 });
 

@@ -56,6 +56,24 @@ const SettingsPage = () => {
         </Card>
         <SmtpSettings />
         <DataExport />
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  Tax &amp; VAT Rules
+                </CardTitle>
+                <CardDescription>Configure tax rates for invoices and quotations</CardDescription>
+              </div>
+              <Button asChild variant="outline">
+                <Link to="/settings/tax">
+                  Manage Tax Rules <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+          </CardHeader>
+        </Card>
       </div>
     </DashboardLayout>
   );

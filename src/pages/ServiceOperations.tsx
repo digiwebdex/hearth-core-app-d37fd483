@@ -20,7 +20,13 @@ import {
   mergeServiceDetailsIntoBooking,
   type ServiceDeskId,
 } from "@/lib/bookingServiceDetails";
-import { Stamp, Ticket, Hotel, Car, Users, Search, Eye, CalendarDays, Shield } from "lucide-react";
+import { Stamp, Ticket, Hotel, Car, Users, Search, Eye, CalendarDays, Shield, LayoutGrid, List } from "lucide-react";
+import { OpsKanbanBoard } from "@/components/operations/OpsKanbanBoard";
+import {
+  HOTEL_WORKFLOW_STATUSES,
+  TICKET_WORKFLOW_STATUSES,
+  VISA_WORKFLOW_STATUSES,
+} from "@/lib/bookingServiceDetails";
 
 const ACTIVE_STATUSES: BookingStatus[] = ["pending", "confirmed", "ticketed", "traveling"];
 const ALL_DESK_IDS: ServiceDeskId[] = ["visa", "ticket", "hotel", "transport", "insurance", "departures"];
@@ -50,6 +56,8 @@ function deskIcon(desk: ServiceDeskId) {
   }
 }
 
+const KANBAN_DESKS = new Set<ServiceDeskId>(["visa", "ticket", "hotel"]);
+
 function isServiceDeskId(value: string | null): value is ServiceDeskId {
   return ALL_DESK_IDS.includes(value as ServiceDeskId);
 }
@@ -60,6 +68,7 @@ const ServiceOperations = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const deskParam = searchParams.get("desk");
+  const viewParam = searchParams.get("view");
 
   const allowedDesks = useMemo(
     () => getTenantServiceDesks(tenant?.enabledServiceTypes, tenant?.enabledSubcategories),
@@ -69,6 +78,10 @@ const ServiceOperations = () => {
   const desk: ServiceDeskId = isServiceDeskId(deskParam) && allowedDesks.includes(deskParam)
     ? deskParam
     : allowedDesks[0] || "visa";
+
+  const supportsKanban = KANBAN_DESKS.has(desk);
+  const view: "table" | "board" =
+    supportsKanban && viewParam === "board" ? "board" : "table";
 
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,8 +113,48 @@ const ServiceOperations = () => {
   }, [load]);
 
   const setDesk = (next: ServiceDeskId) => {
-    setSearchParams({ desk: next });
+    const params: Record<string, string> = { desk: next };
+    if (KANBAN_DESKS.has(next) && view === "board") params.view = "board";
+    setSearchParams(params);
   };
+
+  const setView = (next: "table" | "board") => {
+    setSearchParams({ desk, view: next });
+  };
+
+  const handleBookingPatched = (updated: Booking) => {
+    setBookings((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+  };
+
+  const kanbanConfig = useMemo(() => {
+    switch (desk) {
+      case "visa":
+        return {
+          workflowType: "visa" as const,
+          statuses: VISA_WORKFLOW_STATUSES,
+          subtitleFor: (b: Booking) =>
+            [b.visaCountry || b.destination, b.passportNumber].filter(Boolean).join(" · ") || "—",
+        };
+      case "ticket":
+        return {
+          workflowType: "ticket" as const,
+          statuses: TICKET_WORKFLOW_STATUSES,
+          subtitleFor: (b: Booking) =>
+            [b.pnrNumber || b.supplierRef, b.airline, [b.fromCity, b.toCity].filter(Boolean).join(" → ")]
+              .filter(Boolean)
+              .join(" · ") || "—",
+        };
+      case "hotel":
+        return {
+          workflowType: "hotel" as const,
+          statuses: HOTEL_WORKFLOW_STATUSES,
+          subtitleFor: (b: Booking) =>
+            [b.hotelName || b.supplierName, b.confirmationNumber || b.supplierRef].filter(Boolean).join(" · ") || "—",
+        };
+      default:
+        return null;
+    }
+  }, [desk]);
 
   const counts = useMemo(() => {
     const countType = (type: string) => bookings.filter((b) => b.type === type).length;
@@ -336,6 +389,26 @@ const ServiceOperations = () => {
               <Link to={bookingPath}>{t("serviceOps.viewAllBookings")}</Link>
             </Button>
           )}
+          {supportsKanban && (
+            <>
+              <Button
+                size="sm"
+                variant={view === "table" ? "default" : "outline"}
+                onClick={() => setView("table")}
+              >
+                <List className="h-3.5 w-3.5 mr-1" />
+                {t("serviceOps.view.table")}
+              </Button>
+              <Button
+                size="sm"
+                variant={view === "board" ? "default" : "outline"}
+                onClick={() => setView("board")}
+              >
+                <LayoutGrid className="h-3.5 w-3.5 mr-1" />
+                {t("serviceOps.view.board")}
+              </Button>
+            </>
+          )}
         </div>
 
         {loading ? (
@@ -386,6 +459,25 @@ const ServiceOperations = () => {
                 </Table>
               </CardContent>
             </Card>
+          )
+        ) : view === "board" && kanbanConfig ? (
+          filtered.length === 0 ? (
+            <EmptyState
+              icon={DeskIcon}
+              title={t("serviceOps.emptyTitle")}
+              description={t("serviceOps.emptyDesc")}
+              actionLabel={t("serviceOps.createBooking")}
+              onAction={() => navigate(bookingPath)}
+            />
+          ) : (
+            <OpsKanbanBoard
+              bookings={filtered}
+              workflowType={kanbanConfig.workflowType}
+              statuses={[...kanbanConfig.statuses]}
+              subtitleFor={kanbanConfig.subtitleFor}
+              onOpen={(id) => navigate(`/bookings/${id}?tab=operations`)}
+              onBookingUpdated={handleBookingPatched}
+            />
           )
         ) : filtered.length === 0 ? (
           <EmptyState

@@ -8,8 +8,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Building2, CreditCard, Users, Crown,
   DollarSign, UserPlus, RefreshCw, ListOrdered,
+  AlertTriangle,
 } from "lucide-react";
 import { adminApi, type AdminStats, type AdminTenant, type AdminPaymentRequest } from "@/lib/api";
+import { tenantHealthApi, type TenantHealthRow } from "@/lib/platformAdminApi";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 
@@ -18,6 +20,7 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [tenants, setTenants] = useState<AdminTenant[]>([]);
   const [paymentRequests, setPaymentRequests] = useState<AdminPaymentRequest[]>([]);
+  const [healthRows, setHealthRows] = useState<TenantHealthRow[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -25,14 +28,16 @@ const AdminDashboard = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [s, tn, pr] = await Promise.all([
+      const [s, tn, pr, health] = await Promise.all([
         adminApi.getStats().catch(() => null),
-        adminApi.getTenants().catch(() => []),
+        adminApi.getTenants({ excludePlatform: true }).catch(() => []),
         adminApi.getPaymentRequests().catch(() => []),
+        tenantHealthApi.list().catch(() => ({ tenants: [] as TenantHealthRow[] })),
       ]);
       if (s) setStats(s);
       setTenants(tn);
       setPaymentRequests(pr);
+      setHealthRows(health.tenants || []);
     } catch {
       toast({ title: t("adminDashboard.loadFailed"), variant: "destructive" });
     } finally {
@@ -68,6 +73,11 @@ const AdminDashboard = () => {
   const recentPayments = useMemo(() =>
     [...paymentRequests].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 6),
     [paymentRequests]
+  );
+
+  const atRiskTenants = useMemo(
+    () => healthRows.filter((r) => r.healthLabel === "at_risk").sort((a, b) => a.healthScore - b.healthScore).slice(0, 6),
+    [healthRows],
   );
 
   const statCards = [
@@ -149,6 +159,43 @@ const AdminDashboard = () => {
             </Card>
           ))}
         </div>
+
+        <Card className="border-amber-200 dark:border-amber-900">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+                At-risk agencies
+              </CardTitle>
+              <CardDescription>Low health score — inactive login or no recent bookings</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => navigate("/admin/tenants")}>
+              View all
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
+            ) : atRiskTenants.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">No at-risk agencies right now.</p>
+            ) : (
+              <div className="space-y-2">
+                {atRiskTenants.map((row) => (
+                  <div key={row.tenantId} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+                    <div>
+                      <p className="font-medium">{row.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {row.subscriptionPlan} · {row.subscriptionStatus}
+                        {row.lastLoginAt ? ` · Last login ${new Date(row.lastLoginAt).toLocaleDateString()}` : " · Never logged in"}
+                      </p>
+                    </div>
+                    <Badge variant="destructive">{row.healthScore}</Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Plan Distribution + Status */}
         <div className="grid gap-4 lg:grid-cols-2">

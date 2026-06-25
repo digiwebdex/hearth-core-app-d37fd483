@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import type { BillingCycle, PlanType } from "@/lib/plans";
 import { getPlanPrice } from "@/lib/plans";
 import type { WorkflowPaymentMethod, WorkflowPaymentRequest } from "@/lib/subscriptionWorkflowApi";
+import { SubscriptionOnlinePay } from "@/components/SubscriptionOnlinePay";
 
 const friendlyMethodName = (method?: string | null) => {
   if (!method) return "Manual payment";
@@ -44,6 +45,13 @@ type Props = {
   selectedMethodMeta?: WorkflowPaymentMethod;
   selectedMethodHasReceiverDetails: boolean;
   payableAmount: number;
+  listPrice?: number;
+  couponCode?: string;
+  setCouponCode?: (value: string) => void;
+  appliedCoupon?: { valid?: boolean; discountAmount?: number; code?: string } | null;
+  couponLoading?: boolean;
+  onApplyCoupon?: () => void;
+  onClearCoupon?: () => void;
   selectedPlan: PlanType | null;
   submitting: boolean;
   proofUploading: boolean;
@@ -64,6 +72,13 @@ export function SubscriptionPaymentDialog({
   selectedMethodMeta,
   selectedMethodHasReceiverDetails,
   payableAmount,
+  listPrice = payableAmount,
+  couponCode = "",
+  setCouponCode,
+  appliedCoupon,
+  couponLoading,
+  onApplyCoupon,
+  onClearCoupon,
   selectedPlan,
   submitting,
   proofUploading,
@@ -87,6 +102,14 @@ export function SubscriptionPaymentDialog({
         </DialogHeader>
         <div className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
           <div className="space-y-3">
+            {!editingRequest && selectedPlan && (
+              <SubscriptionOnlinePay
+                plan={selectedPlan as PlanType}
+                billingCycle={form.billingCycle}
+                amount={payableAmount}
+                disabled={submitting}
+              />
+            )}
             <div>
               <Label>{t("subscriptionRenewal.billingCycle")}</Label>
               <Select
@@ -110,6 +133,31 @@ export function SubscriptionPaymentDialog({
                 </SelectContent>
               </Select>
             </div>
+            {!editingRequest && setCouponCode && onApplyCoupon ? (
+              <div className="space-y-2 rounded-md border p-3 bg-muted/20">
+                <Label>{t("subscriptionRenewal.couponCode")}</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    placeholder={t("subscriptionRenewal.couponPlaceholder")}
+                  />
+                  <Button type="button" variant="secondary" onClick={onApplyCoupon} disabled={couponLoading || !couponCode}>
+                    {couponLoading ? "…" : t("subscriptionRenewal.applyCoupon")}
+                  </Button>
+                </div>
+                {appliedCoupon?.valid ? (
+                  <div className="flex items-center justify-between text-sm text-green-700">
+                    <span>{t("subscriptionRenewal.couponApplied", { amount: appliedCoupon.discountAmount })}</span>
+                    {onClearCoupon ? (
+                      <Button type="button" variant="ghost" size="sm" onClick={onClearCoupon}>
+                        {t("common.remove")}
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             <div>
               <Label>{t("subscriptionRenewal.paymentMethod")}</Label>
               <Select
@@ -198,6 +246,9 @@ export function SubscriptionPaymentDialog({
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t("subscriptionRenewal.expectedAmount")}</p>
+              {appliedCoupon?.valid && listPrice > payableAmount ? (
+                <p className="text-sm text-muted-foreground line-through">৳{listPrice.toLocaleString()}</p>
+              ) : null}
               <p className="text-2xl font-bold">৳{payableAmount.toLocaleString()}</p>
             </div>
             {selectedMethodMeta && (

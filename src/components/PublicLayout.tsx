@@ -8,6 +8,7 @@ const previewNavLinks = [
   { label: "Home", path: "/site" },
   { label: "About", path: "/site/about" },
   { label: "Packages", path: "/site/packages" },
+  { label: "Blog", path: "/site/blog" },
   { label: "Pricing", path: "/site/pricing" },
   { label: "Contact", path: "/site/contact" },
 ];
@@ -16,6 +17,7 @@ const tenantNavLinks = [
   { label: "Home", path: "/" },
   { label: "About", path: "/about" },
   { label: "Packages", path: "/packages" },
+  { label: "Blog", path: "/blog" },
   { label: "Contact", path: "/contact" },
 ];
 

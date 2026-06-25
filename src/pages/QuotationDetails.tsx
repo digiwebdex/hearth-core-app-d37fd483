@@ -21,6 +21,7 @@ import {
   MapPin, CalendarIcon, Users, DollarSign, Hotel, Plane, Stamp,
   Car, Map, Bike, Shield, Percent, Receipt, FileText, History, Eye,
 } from "lucide-react";
+import { WorkflowNextStep } from "@/components/WorkflowNextStep";
 
 const STATUS_META: { value: QuotationStatus; color: string }[] = [
   { value: "draft", color: "bg-muted text-muted-foreground" },
@@ -107,6 +108,13 @@ const QuotationDetails = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <WorkflowNextStep
+          current="quotation"
+          next="booking"
+          nextLabel={t("quotationDetails.actions.convertBooking", { defaultValue: "Create booking" })}
+          onNextClick={quotation.status === "approved" ? handleConvert : undefined}
+        />
+
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">

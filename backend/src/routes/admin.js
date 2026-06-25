@@ -3,6 +3,10 @@ const bcrypt = require("bcryptjs");
 const { authenticate, requireSuperAdmin, prisma } = require("../middleware/auth");
 const { validatePassword } = require("../utils/passwordPolicy");
 const { normalizeEnabledSubcategories } = require("../constants/serviceSubcategories");
+const { isPlatformTenant } = require("../lib/platformTenant");
+const { addTrialExpiry } = require("../lib/trialConfig");
+const { normalizePhoneOptional, phonesEquivalent } = require("../lib/phoneNormalize");
+const { getGatewayStatusDetailed } = require("../lib/paymentGatewayConfig");
 
 router.use(authenticate);
 router.use(requireSuperAdmin);
@@ -89,6 +93,75 @@ router.post("/tenants", async (req, res) => {
 });
 
 // All tenants
+router.get("/tenants/health", async (req, res) => {
+  try {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const tenants = await prisma.tenant.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        users: { select: { id: true, lastLoginAt: true, role: true } },
+        _count: { select: { bookings: true, clients: true } },
+      },
+    });
+
+    const recentBookings = await prisma.booking.groupBy({
+      by: ["tenantId"],
+      where: { createdAt: { gte: thirtyDaysAgo } },
+      _count: { id: true },
+    });
+    const bookingsByTenant = new Map(recentBookings.map((r) => [r.tenantId, r._count.id]));
+
+    const rows = tenants
+      .filter((t) => !isPlatformTenant(t))
+      .map((tenant) => {
+        const lastLoginAt = tenant.users.reduce((latest, user) => {
+          if (!user.lastLoginAt) return latest;
+          const ts = new Date(user.lastLoginAt).getTime();
+          return ts > latest ? ts : latest;
+        }, 0);
+
+        const lastLogin = lastLoginAt ? new Date(lastLoginAt) : null;
+        const status = String(tenant.subscriptionStatus || "").toLowerCase();
+        const isActiveSub = status === "active" || status === "trial";
+        const loggedInRecently = lastLogin && lastLogin >= sevenDaysAgo;
+        const bookings30d = bookingsByTenant.get(tenant.id) || 0;
+        const hasClients = (tenant._count?.clients || 0) > 0;
+
+        let healthScore = 0;
+        if (isActiveSub) healthScore += 40;
+        if (loggedInRecently) healthScore += 30;
+        if (bookings30d > 0) healthScore += 20;
+        if (hasClients) healthScore += 10;
+
+        let healthLabel = "at_risk";
+        if (healthScore >= 80) healthLabel = "healthy";
+        else if (healthScore >= 50) healthLabel = "moderate";
+
+        return {
+          tenantId: tenant.id,
+          name: tenant.name,
+          slug: tenant.slug,
+          subscriptionPlan: tenant.subscriptionPlan,
+          subscriptionStatus: tenant.subscriptionStatus,
+          subscriptionExpiry: tenant.subscriptionExpiry,
+          lastLoginAt: lastLogin,
+          bookingsLast30d: bookings30d,
+          clientCount: tenant._count?.clients || 0,
+          userCount: tenant.users.length,
+          healthScore,
+          healthLabel,
+        };
+      });
+
+    res.json({ generatedAt: now.toISOString(), tenants: rows });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 router.get("/tenants", async (req, res) => {
   try {
     const tenants = await prisma.tenant.findMany({
@@ -98,7 +171,8 @@ router.get("/tenants", async (req, res) => {
         users: { select: { id: true, name: true, email: true, role: true, phone: true, whatsapp: true, createdAt: true } },
       },
     });
-    res.json(tenants);
+    const excludePlatform = req.query.excludePlatform === "true" || req.query.excludePlatform === "1";
+    res.json(excludePlatform ? tenants.filter((t) => !isPlatformTenant(t)) : tenants);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
@@ -126,6 +200,11 @@ const ADMIN_ALLOWED_TENANT_FIELDS = [
 
 router.patch("/tenants/:id", async (req, res) => {
   try {
+    const existing = await prisma.tenant.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ message: "Tenant not found" });
+    if (isPlatformTenant(existing)) {
+      return res.status(400).json({ message: "Platform admin tenant cannot be modified from Agencies" });
+    }
     const data = {};
     for (const key of ADMIN_ALLOWED_TENANT_FIELDS) {
       if (req.body[key] !== undefined) data[key] = req.body[key];
@@ -158,7 +237,7 @@ router.patch("/tenants/:id", async (req, res) => {
 // Update tenant owner (name/email/password) — super admin
 router.patch("/tenants/:id/owner", async (req, res) => {
   try {
-    const { name, email, password } = req.body || {};
+    const { name, email, password, phone, whatsapp } = req.body || {};
     const tenant = await prisma.tenant.findUnique({ where: { id: req.params.id } });
     if (!tenant) return res.status(404).json({ message: "Tenant not found" });
 
@@ -187,8 +266,18 @@ router.patch("/tenants/:id/owner", async (req, res) => {
       if (String(password).length < 6) return res.status(400).json({ message: "Password must be at least 6 characters" });
       data.password = await bcrypt.hash(String(password), 10);
     }
+    if (phone !== undefined) {
+      const next = normalizePhoneOptional(phone);
+      if (!phonesEquivalent(next, owner.phone)) data.phone = next;
+    }
+    if (whatsapp !== undefined) {
+      const next = normalizePhoneOptional(whatsapp);
+      if (!phonesEquivalent(next, owner.whatsapp)) data.whatsapp = next;
+    }
 
-    if (Object.keys(data).length === 0) return res.status(400).json({ message: "No changes provided" });
+    if (Object.keys(data).length === 0) {
+      return res.json({ id: owner.id, name: owner.name, email: owner.email, role: owner.role, unchanged: true });
+    }
 
     const updated = await prisma.user.update({ where: { id: owner.id }, data });
 
@@ -212,6 +301,9 @@ router.delete("/tenants/:id", async (req, res) => {
   try {
     const t = await prisma.tenant.findUnique({ where: { id: req.params.id } });
     if (!t) return res.status(404).json({ message: "Not found" });
+    if (isPlatformTenant(t)) {
+      return res.status(400).json({ message: "Platform admin tenant cannot be deleted" });
+    }
 
     // Best-effort cascade — delete dependent rows that may not have ON DELETE CASCADE
     const tx = [];
@@ -343,9 +435,8 @@ router.post("/users/:id/approve", async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
     if (user.status === "active") return res.status(400).json({ message: "User is already active" });
 
-    // 3-day Pro trial (matches self-registration flow)
-    const trialEnd = new Date();
-    trialEnd.setDate(trialEnd.getDate() + 3);
+    // Pro trial (matches self-registration flow)
+    const trialEnd = addTrialExpiry();
 
     const updated = await prisma.user.update({
       where: { id: user.id },
@@ -427,7 +518,7 @@ router.get("/trial-expiry-alerts", async (_req, res) => {
     });
 
     const alerts = [];
-    for (const tenant of tenants) {
+    for (const tenant of tenants.filter((t) => !isPlatformTenant(t))) {
       const autoExpired = await prisma.auditLog.findFirst({
         where: { tenantId: tenant.id, module: "subscription", action: "auto_expired" },
         orderBy: { createdAt: "desc" },
@@ -500,103 +591,57 @@ router.get("/trial-expiry-alerts", async (_req, res) => {
 router.post("/tenants/:id/trial-expiry-notify", async (req, res) => {
   try {
     const channels = Array.isArray(req.body?.channels) ? req.body.channels : ["sms", "whatsapp", "email"];
-    const sendSmsChannel = channels.includes("sms");
-    const sendWaChannel = channels.includes("whatsapp");
-    const sendEmailChannel = channels.includes("email");
-    if (!sendSmsChannel && !sendWaChannel && !sendEmailChannel) {
-      return res.status(400).json({ message: "channels must include sms, whatsapp, and/or email" });
+    const { sendManualRenewalNotify } = require("../services/subscriptionExpiryService");
+    const result = await sendManualRenewalNotify(prisma, req.userId, req.params.id, channels);
+    if (!result.ok) {
+      return res.status(result.error === "Tenant not found" ? 404 : 400).json({ message: result.error });
     }
-
-    const contact = await resolveTenantOwnerContact(prisma, req.params.id);
-    if (!contact?.tenant) return res.status(404).json({ message: "Tenant not found" });
-
-    const { sendRenewalExpiryChannels } = require("../services/notificationService");
-    const wasTrial = String(contact.tenant.subscriptionStatus || "").toLowerCase() === "trial"
-      || String(contact.tenant.subscriptionPlan || "").toLowerCase() === "free";
-    const payload = {
-      tenantName: contact.tenant.name,
-      ownerName: contact.ownerName,
-      ownerEmail: contact.ownerEmail,
-      ownerPhone: contact.phone,
-      ownerWhatsapp: contact.whatsapp,
-      phone: contact.phone,
-      whatsapp: contact.whatsapp,
-      plan: contact.tenant.subscriptionPlan,
-      expiryDate: contact.tenant.subscriptionExpiry?.toISOString().slice(0, 10),
-      wasTrial,
-    };
-
-    const results = await sendRenewalExpiryChannels(payload, {
-      sms: sendSmsChannel,
-      whatsapp: sendWaChannel,
-      email: sendEmailChannel,
-    });
-
-    const actor = await prisma.user.findUnique({ where: { id: req.userId }, select: { name: true, email: true, role: true } });
-
-    if (sendSmsChannel) {
-      await prisma.auditLog.create({
-        data: {
-          actorId: req.userId,
-          actorName: actor?.name || "",
-          actorEmail: actor?.email || "",
-          actorRole: actor?.role || "",
-          tenantId: contact.tenant.id,
-          tenantName: contact.tenant.name,
-          module: "subscription",
-          action: "trial_expiry_manual_sms",
-          targetType: "tenant",
-          targetId: contact.tenant.id,
-          targetLabel: contact.tenant.name,
-          newValue: JSON.stringify({ phone: contact.phone, success: results.sms?.success }),
-        },
-      }).catch(() => {});
-    }
-    if (sendWaChannel) {
-      await prisma.auditLog.create({
-        data: {
-          actorId: req.userId,
-          actorName: actor?.name || "",
-          actorEmail: actor?.email || "",
-          actorRole: actor?.role || "",
-          tenantId: contact.tenant.id,
-          tenantName: contact.tenant.name,
-          module: "subscription",
-          action: "trial_expiry_manual_whatsapp",
-          targetType: "tenant",
-          targetId: contact.tenant.id,
-          targetLabel: contact.tenant.name,
-          newValue: JSON.stringify({ whatsapp: contact.whatsapp, success: results.whatsapp?.success }),
-        },
-      }).catch(() => {});
-    }
-
-    if (sendEmailChannel) {
-      await prisma.auditLog.create({
-        data: {
-          actorId: req.userId,
-          actorName: actor?.name || "",
-          actorEmail: actor?.email || "",
-          actorRole: actor?.role || "",
-          tenantId: contact.tenant.id,
-          tenantName: contact.tenant.name,
-          module: "subscription",
-          action: "trial_expiry_manual_email",
-          targetType: "tenant",
-          targetId: contact.tenant.id,
-          targetLabel: contact.tenant.name,
-          newValue: JSON.stringify({ email: contact.ownerEmail, success: results.email?.success !== false }),
-        },
-      }).catch(() => {});
-    }
-
     res.json({
       ok: true,
-      phone: contact.phone,
-      whatsapp: contact.whatsapp,
-      email: contact.ownerEmail,
-      results,
+      phone: result.phone,
+      whatsapp: result.whatsapp,
+      email: result.email,
+      results: result.results,
+      warnings: [
+        result.results?.sms?.success === false ? result.results.sms.error : null,
+        result.results?.whatsapp?.success === false ? result.results.whatsapp.error : null,
+        ...(result.warnings || []),
+      ].filter(Boolean),
     });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+/** Bulk renewal reminders to multiple agencies. */
+router.post("/trial-expiry-notify-bulk", async (req, res) => {
+  try {
+    const tenantIds = [...new Set(
+      (Array.isArray(req.body?.tenantIds) ? req.body.tenantIds : [])
+        .map((id) => String(id).trim())
+        .filter(Boolean),
+    )];
+    const channels = Array.isArray(req.body?.channels) ? req.body.channels : ["email", "sms", "whatsapp"];
+    if (!tenantIds.length) return res.status(400).json({ message: "tenantIds required" });
+    if (tenantIds.length > 100) return res.status(400).json({ message: "Maximum 100 agencies per batch" });
+
+    const { sendManualRenewalNotify } = require("../services/subscriptionExpiryService");
+    const results = [];
+    for (const tenantId of tenantIds) {
+      results.push(await sendManualRenewalNotify(prisma, req.userId, tenantId, channels));
+    }
+
+    const sent = results.filter((r) => r.ok).length;
+    const failed = results.filter((r) => !r.ok).length;
+    res.json({ ok: true, sent, failed, total: results.length, results });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.get("/gateway-status", async (_req, res) => {
+  try {
+    res.json(getGatewayStatusDetailed());
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

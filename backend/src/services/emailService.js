@@ -209,6 +209,8 @@ async function testSmtpConnection(config) {
 }
 
 async function sendEmailVerification(email, name, token) {
+  const { getTrialDays } = require("../lib/trialConfig");
+  const trialDays = getTrialDays();
   const verifyUrl = `${getFrontendUrl()}/verify-email?token=${token}`;
   return sendEmail({
     to: email,
@@ -216,7 +218,7 @@ async function sendEmailVerification(email, name, token) {
     html: `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
         <h2 style="color:#0f172a;">Welcome${name ? `, ${name}` : ""}!</h2>
-        <p>Please confirm your email address to activate full access to your 3-day Pro trial.</p>
+        <p>Please confirm your email address to activate full access to your ${trialDays}-day Pro trial.</p>
         <p style="margin:30px 0;">
           <a href="${verifyUrl}" style="background:#3b82f6;color:white;padding:12px 30px;text-decoration:none;border-radius:6px;display:inline-block;">
             Verify Email

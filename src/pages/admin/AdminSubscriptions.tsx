@@ -14,7 +14,9 @@ import { useToast } from "@/hooks/use-toast";
 import { adminApi, type AdminTenant, type TrialExpiryAlert } from "@/lib/api";
 import { adminSubscriptionWorkflowApi } from "@/lib/subscriptionWorkflowApi";
 import { PLANS, type BillingCycle, type PlanType } from "@/lib/plans";
-import { MessageSquare, Phone, AlertTriangle, Mail } from "lucide-react";
+import { MessageSquare, Phone, AlertTriangle, Mail, Pencil } from "lucide-react";
+import { normalizePhoneInput } from "@/lib/phoneNormalize";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const statusClasses: Record<string, string> = {
   trial: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
@@ -44,11 +46,17 @@ const AdminSubscriptions = () => {
   const [trialAlerts, setTrialAlerts] = useState<TrialExpiryAlert[]>([]);
   const [alertsLoading, setAlertsLoading] = useState(true);
   const [notifySending, setNotifySending] = useState<string | null>(null);
+  const [selectedAlertIds, setSelectedAlertIds] = useState<Set<string>>(new Set());
+  const [editContactTenant, setEditContactTenant] = useState<AdminTenant | null>(null);
+  const [editContactForm, setEditContactForm] = useState({
+    phone: "", whatsapp: "", ownerName: "", ownerEmail: "", ownerPhone: "", ownerWhatsapp: "",
+  });
+  const [savingContact, setSavingContact] = useState(false);
 
   const loadTenants = async () => {
     setLoading(true);
     try {
-      const data = await adminApi.getTenants();
+      const data = await adminApi.getTenants({ excludePlatform: true });
       setTenants(data);
     } catch (err: any) {
       toast({ title: "Failed to load subscriptions", description: err.message, variant: "destructive" });
@@ -100,6 +108,94 @@ const AdminSubscriptions = () => {
       toast({ title: "Notification failed", description: message, variant: "destructive" });
     } finally {
       setNotifySending(null);
+    }
+  };
+
+  const toggleAlertSelection = (tenantId: string, checked: boolean) => {
+    setSelectedAlertIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(tenantId);
+      else next.delete(tenantId);
+      return next;
+    });
+  };
+
+  const toggleSelectAllAlerts = (checked: boolean) => {
+    if (checked) {
+      setSelectedAlertIds(new Set(trialAlerts.map((a) => a.tenantId)));
+    } else {
+      setSelectedAlertIds(new Set());
+    }
+  };
+
+  const allAlertsSelected = trialAlerts.length > 0 && trialAlerts.every((a) => selectedAlertIds.has(a.tenantId));
+  const someAlertsSelected = selectedAlertIds.size > 0 && !allAlertsSelected;
+
+  const sendBulkTrialNotify = async (channels: ("sms" | "whatsapp" | "email")[]) => {
+    const ids = [...selectedAlertIds];
+    if (!ids.length) {
+      toast({ title: "কোনো এজেন্সি সিলেক্ট করা হয়নি", variant: "destructive" });
+      return;
+    }
+    setNotifySending(`bulk:${channels.join(",")}`);
+    try {
+      const res = await adminApi.sendBulkTrialExpiryNotify(ids, channels);
+      toast({
+        title: `নোটিফিকেশন পাঠানো হয়েছে`,
+        description: `${res.sent} সফল, ${res.failed} ব্যর্থ (মোট ${res.total})`,
+        variant: res.failed > 0 && res.sent === 0 ? "destructive" : undefined,
+      });
+      setSelectedAlertIds(new Set());
+      await loadTrialAlerts();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Send failed";
+      toast({ title: "বাল্ক নোটিফিকেশন ব্যর্থ", description: message, variant: "destructive" });
+    } finally {
+      setNotifySending(null);
+    }
+  };
+
+  const openEditContact = async (tenant: AdminTenant) => {
+    let data = tenant;
+    try {
+      data = await adminApi.getTenant(tenant.id);
+    } catch {
+      // use list row if detail fetch fails
+    }
+    const owner = data.users?.find((user) => user.role === "tenant_owner" || user.role === "owner") || data.users?.[0];
+    setEditContactTenant(data);
+    setEditContactForm({
+      phone: data.phone || "",
+      whatsapp: data.whatsapp || "",
+      ownerName: owner?.name || "",
+      ownerEmail: owner?.email || "",
+      ownerPhone: owner?.phone || "",
+      ownerWhatsapp: owner?.whatsapp || "",
+    });
+  };
+
+  const saveEditContact = async () => {
+    if (!editContactTenant) return;
+    setSavingContact(true);
+    try {
+      await adminApi.updateTenant(editContactTenant.id, {
+        phone: normalizePhoneInput(editContactForm.phone) || null,
+        whatsapp: normalizePhoneInput(editContactForm.whatsapp) || null,
+      });
+      await adminApi.updateTenantOwner(editContactTenant.id, {
+        name: editContactForm.ownerName.trim(),
+        email: editContactForm.ownerEmail.trim(),
+        phone: normalizePhoneInput(editContactForm.ownerPhone),
+        whatsapp: normalizePhoneInput(editContactForm.ownerWhatsapp),
+      });
+      toast({ title: "Contact updated", description: editContactTenant.name });
+      setEditContactTenant(null);
+      await Promise.all([loadTenants(), loadTrialAlerts()]);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Update failed";
+      toast({ title: "Update failed", description: message, variant: "destructive" });
+    } finally {
+      setSavingContact(false);
     }
   };
 
@@ -175,9 +271,38 @@ const AdminSubscriptions = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {selectedAlertIds.size > 0 && (
+                <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 p-3">
+                  <span className="text-sm font-medium mr-2">
+                    {selectedAlertIds.size} টি সিলেক্ট — পাঠান:
+                  </span>
+                  <Button size="sm" variant="outline" disabled={!!notifySending} onClick={() => sendBulkTrialNotify(["email"])}>
+                    <Mail className="h-3.5 w-3.5 mr-1" /> Email
+                  </Button>
+                  <Button size="sm" variant="outline" disabled={!!notifySending} onClick={() => sendBulkTrialNotify(["sms"])}>
+                    <Phone className="h-3.5 w-3.5 mr-1" /> SMS
+                  </Button>
+                  <Button size="sm" variant="outline" disabled={!!notifySending} onClick={() => sendBulkTrialNotify(["whatsapp"])}>
+                    <MessageSquare className="h-3.5 w-3.5 mr-1" /> WhatsApp
+                  </Button>
+                  <Button size="sm" disabled={!!notifySending} onClick={() => sendBulkTrialNotify(["email", "sms", "whatsapp"])}>
+                    সব চ্যানেল (All)
+                  </Button>
+                  <Button size="sm" variant="ghost" disabled={!!notifySending} onClick={() => setSelectedAlertIds(new Set())}>
+                    সিলেক্ট বাতিল
+                  </Button>
+                </div>
+              )}
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={allAlertsSelected ? true : someAlertsSelected ? "indeterminate" : false}
+                        onCheckedChange={(v) => toggleSelectAllAlerts(v === true)}
+                        aria-label="সব সিলেক্ট করুন"
+                      />
+                    </TableHead>
                     <TableHead>এজেন্সি</TableHead>
                     <TableHead>মালিক</TableHead>
                     <TableHead>ফোন</TableHead>
@@ -188,8 +313,15 @@ const AdminSubscriptions = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {trialAlerts.slice(0, 30).map((alert) => (
-                    <TableRow key={alert.tenantId}>
+                  {trialAlerts.map((alert) => (
+                    <TableRow key={alert.tenantId} data-state={selectedAlertIds.has(alert.tenantId) ? "selected" : undefined}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedAlertIds.has(alert.tenantId)}
+                          onCheckedChange={(v) => toggleAlertSelection(alert.tenantId, v === true)}
+                          aria-label={`Select ${alert.tenantName}`}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">
                         {alert.tenantName}
                         {alert.wasTrial ? (
@@ -310,13 +442,19 @@ const AdminSubscriptions = () => {
                   return (
                     <TableRow key={tenant.id}>
                       <TableCell className="font-medium">{tenant.name}</TableCell>
-                      <TableCell>{owner?.email || "—"}</TableCell>
+                      <TableCell>
+                        <div className="text-sm">{owner?.email || "—"}</div>
+                        <div className="text-xs text-muted-foreground">{owner?.phone || tenant.phone || "—"}</div>
+                      </TableCell>
                       <TableCell className="capitalize">{tenant.subscriptionPlan}</TableCell>
                       <TableCell><span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusClasses[tenant.subscriptionStatus] || ""}`}>{tenant.subscriptionStatus}</span></TableCell>
                       <TableCell>{tenant.subscriptionExpiry ? new Date(tenant.subscriptionExpiry).toLocaleDateString() : "—"}</TableCell>
                       <TableCell>{tenant._count?.users || tenant.users?.length || 0}</TableCell>
                       <TableCell>{tenant._count?.bookings || 0}</TableCell>
                       <TableCell className="text-right space-x-2">
+                        <Button size="sm" variant="outline" onClick={() => openEditContact(tenant)} title="Edit contact">
+                          <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+                        </Button>
                         <Button size="sm" variant="outline" onClick={() => navigate(`/admin/tenants/${tenant.id}`, { state: { tenant } })}>View</Button>
                         <Button size="sm" variant="outline" onClick={() => openAction(tenant, "activate")}>Activate / change</Button>
                         <Button size="sm" variant="outline" onClick={() => openAction(tenant, "extend")}>Extend</Button>
@@ -397,6 +535,53 @@ const AdminSubscriptions = () => {
                 </div>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!editContactTenant} onOpenChange={(open) => !open && setEditContactTenant(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Edit agency contact — {editContactTenant?.name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Company phone</Label>
+                  <Input value={editContactForm.phone} onChange={(e) => setEditContactForm({ ...editContactForm, phone: e.target.value })} placeholder="+8801XXXXXXXXX" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Company WhatsApp</Label>
+                  <Input value={editContactForm.whatsapp} onChange={(e) => setEditContactForm({ ...editContactForm, whatsapp: e.target.value })} placeholder="+8801XXXXXXXXX" />
+                </div>
+              </div>
+              <div className="border-t pt-4 space-y-3">
+                <p className="text-sm font-medium text-muted-foreground">Owner account</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Owner name</Label>
+                    <Input value={editContactForm.ownerName} onChange={(e) => setEditContactForm({ ...editContactForm, ownerName: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Owner email</Label>
+                    <Input type="email" value={editContactForm.ownerEmail} onChange={(e) => setEditContactForm({ ...editContactForm, ownerEmail: e.target.value })} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Owner mobile (SMS)</Label>
+                    <Input value={editContactForm.ownerPhone} onChange={(e) => setEditContactForm({ ...editContactForm, ownerPhone: e.target.value })} placeholder="+8801XXXXXXXXX" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Owner WhatsApp</Label>
+                    <Input value={editContactForm.ownerWhatsapp} onChange={(e) => setEditContactForm({ ...editContactForm, ownerWhatsapp: e.target.value })} placeholder="+8801XXXXXXXXX" />
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setEditContactTenant(null)} disabled={savingContact}>Cancel</Button>
+                <Button onClick={saveEditContact} disabled={savingContact}>{savingContact ? "Saving..." : "Save contact"}</Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
       </div>

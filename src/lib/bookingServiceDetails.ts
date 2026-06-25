@@ -13,6 +13,16 @@ export type VisaWorkflowStatus =
   | "rejected"
   | "passport_returned";
 
+export const VISA_WORKFLOW_STATUSES: VisaWorkflowStatus[] = [
+  "not_started",
+  "documents_pending",
+  "submitted",
+  "interview_scheduled",
+  "approved",
+  "rejected",
+  "passport_returned",
+];
+
 export type TicketWorkflowStatus =
   | "pending"
   | "issued"
@@ -20,11 +30,83 @@ export type TicketWorkflowStatus =
   | "refund_requested"
   | "refunded";
 
+export const TICKET_WORKFLOW_STATUSES: TicketWorkflowStatus[] = [
+  "pending",
+  "issued",
+  "reissued",
+  "refund_requested",
+  "refunded",
+];
+
 export type HotelWorkflowStatus = "pending" | "confirmed" | "voucher_sent" | "checked_in" | "cancelled";
+
+export const HOTEL_WORKFLOW_STATUSES: HotelWorkflowStatus[] = [
+  "pending",
+  "confirmed",
+  "voucher_sent",
+  "checked_in",
+  "cancelled",
+];
 
 export type TransportWorkflowStatus = "pending" | "assigned" | "in_transit" | "completed" | "cancelled";
 
+export const TRANSPORT_WORKFLOW_STATUSES: TransportWorkflowStatus[] = [
+  "pending",
+  "assigned",
+  "in_transit",
+  "completed",
+  "cancelled",
+];
+
 export type InsuranceWorkflowStatus = "pending" | "quoted" | "purchased" | "policy_issued" | "cancelled";
+
+export const INSURANCE_WORKFLOW_STATUSES: InsuranceWorkflowStatus[] = [
+  "pending",
+  "quoted",
+  "purchased",
+  "policy_issued",
+  "cancelled",
+];
+
+export type StudentWorkflowStatus =
+  | "inquiry"
+  | "docs_collected"
+  | "application_submitted"
+  | "offer_received"
+  | "visa_processing"
+  | "enrolled"
+  | "completed"
+  | "cancelled";
+
+export const STUDENT_WORKFLOW_STATUSES: StudentWorkflowStatus[] = [
+  "inquiry",
+  "docs_collected",
+  "application_submitted",
+  "offer_received",
+  "visa_processing",
+  "enrolled",
+  "completed",
+  "cancelled",
+];
+
+export type ManpowerWorkflowStatus =
+  | "registered"
+  | "medical"
+  | "bmet"
+  | "visa"
+  | "deployed"
+  | "completed"
+  | "cancelled";
+
+export const MANPOWER_WORKFLOW_STATUSES: ManpowerWorkflowStatus[] = [
+  "registered",
+  "medical",
+  "bmet",
+  "visa",
+  "deployed",
+  "completed",
+  "cancelled",
+];
 
 export type ServiceDetails = Record<string, unknown> & {
   workflowStatus?: string;
@@ -121,6 +203,7 @@ export function buildServiceDetailsFromForm(form: BookingFormState): ServiceDeta
         courseProgram: form.courseProgram || undefined,
         enrollmentDate: form.enrollmentDate || undefined,
         visaCountry: form.visaCountry || undefined,
+        workflowStatus: (form as BookingFormState & { workflowStatus?: string }).workflowStatus || "inquiry",
       };
     case "manpower":
       return {
@@ -131,6 +214,7 @@ export function buildServiceDetailsFromForm(form: BookingFormState): ServiceDeta
         contractDuration: form.contractDuration || undefined,
         medicalStatus: form.medicalStatus,
         bmetRegistration: form.bmetRegistration || undefined,
+        workflowStatus: (form as BookingFormState & { workflowStatus?: string }).workflowStatus || "registered",
       };
     case "package":
       return {

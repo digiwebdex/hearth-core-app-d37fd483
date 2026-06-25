@@ -48,6 +48,34 @@ router.get("/stats", requirePermission("dashboard", "view"), async (req, res) =>
     bookings.forEach((b) => { if (b.destination) destMap[b.destination] = (destMap[b.destination] || 0) + 1; });
     const topDestinations = Object.entries(destMap).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([destination, count]) => ({ destination, count }));
 
+    const typeMap = {};
+    bookings.forEach((b) => {
+      const key = String(b.type || "other").trim() || "other";
+      typeMap[key] = (typeMap[key] || 0) + 1;
+    });
+    const bookingsByType = Object.entries(typeMap)
+      .sort((a, b) => b[1] - a[1])
+      .map(([type, count]) => ({ type, count }));
+
+    const openSupportTickets = await prisma.supportTicket.count({
+      where: { tenantId: tid, status: { in: ["open", "assigned", "in_progress"] } },
+    }).catch(() => 0);
+
+    const passportWindowEnd = new Date(now.getTime() + 30 * 86400000).toISOString().slice(0, 10);
+    const tenantClients = await prisma.client.findMany({
+      where: { tenantId: tid, passportExpiry: { not: null } },
+      select: { passportExpiry: true },
+    });
+    const todayStr = today;
+    let passportsExpiringSoon = 0;
+    let passportsExpired = 0;
+    for (const c of tenantClients) {
+      const exp = String(c.passportExpiry || "").slice(0, 10);
+      if (!exp) continue;
+      if (exp < todayStr) passportsExpired += 1;
+      else if (exp <= passportWindowEnd) passportsExpiringSoon += 1;
+    }
+
     const base = {
       totalUsers: users,
       totalClients: clients,
@@ -60,6 +88,10 @@ router.get("/stats", requirePermission("dashboard", "view"), async (req, res) =>
       confirmedBookings: confirmed,
       upcomingDepartures: upcoming,
       topDestinations,
+      bookingsByType,
+      openSupportTickets,
+      passportsExpiringSoon,
+      passportsExpired,
     };
 
     // Finance-sensitive widgets: show only to finance roles.

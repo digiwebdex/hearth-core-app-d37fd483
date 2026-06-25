@@ -4,15 +4,13 @@ const path = require("path");
 const router = require("express").Router();
 const { authenticate, requireRole, prisma } = require("../middleware/auth");
 const { notifySubscriptionPaymentSubmitted } = require("../services/subscriptionNotificationService");
+const { getDefaultManualPaymentMethods, isOnlinePaymentMethod, getGatewayStatus } = require("../lib/paymentGatewayConfig");
+const { applyCouponToPaymentRequest } = require("../services/subscriptionCouponService");
+const { getPlanPrice } = require("../lib/planPricing");
+
+const DEFAULT_PAYMENT_METHODS = getDefaultManualPaymentMethods();
 
 router.use(authenticate);
-
-const DEFAULT_PAYMENT_METHODS = [
-  { methodCode: "bkash", label: "bKash", enabled: true, accountName: process.env.BKASH_ACCOUNT_NAME || "Md. Iqbal Hossain", accountNumber: process.env.BKASH_ACCOUNT_NUMBER || "01674533303", bankName: null, branchName: null, instructions: process.env.BKASH_INSTRUCTIONS || "Send money to this mobile banking number from your bKash account and submit the transaction ID.", sortOrder: 1 },
-  { methodCode: "nagad", label: "Nagad", enabled: true, accountName: process.env.NAGAD_ACCOUNT_NAME || "Md. Iqbal Hossain", accountNumber: process.env.NAGAD_ACCOUNT_NUMBER || "01674533303", bankName: null, branchName: null, instructions: process.env.NAGAD_INSTRUCTIONS || "Send money to this mobile banking number from your Nagad account and submit the transaction ID.", sortOrder: 2 },
-  { methodCode: "rocket", label: "Rocket", enabled: true, accountName: process.env.ROCKET_ACCOUNT_NAME || "Md. Iqbal Hossain", accountNumber: process.env.ROCKET_ACCOUNT_NUMBER || "01674533303", bankName: null, branchName: null, instructions: process.env.ROCKET_INSTRUCTIONS || "Send money to this mobile banking number from your Rocket account and submit the transaction ID.", sortOrder: 3 },
-  { methodCode: "bank_transfer", label: "Bank Transfer", enabled: true, accountName: process.env.BANK_ACCOUNT_NAME || "Md. Iqbal Hossain", accountNumber: process.env.BANK_ACCOUNT_NUMBER || "2706101077904", bankName: process.env.BANK_NAME || "Pubali Bank Limited", branchName: process.env.BANK_BRANCH || "Asad Avenue, Mohammadpur, Dhaka-1207", instructions: process.env.BANK_TRANSFER_INSTRUCTIONS || "Transfer to the savings account and submit the transfer reference. Routing Number: 175260162.", sortOrder: 4 },
-];
 
 const PENDING_REVIEW_STATUSES = ["pending", "submitted", "pending_review", "needs_info"];
 const ALLOWED_PROOF_MIME = {
@@ -143,15 +141,40 @@ async function buildPaymentRequestInput(req, body, tenant) {
   const requestedPlan = normalizePlan(body.requestedPlan || body.plan);
   if (!requestedPlan) throw new Error("requestedPlan or plan is required");
 
-  const amountSent = Number(body.amountSent ?? body.amount ?? 0);
+  const billingCycle = normalizeBillingCycle(body.billingCycle);
+  const listPrice = getPlanPrice(requestedPlan, billingCycle);
+
+  let couponCode = body.couponCode ? String(body.couponCode).trim().toUpperCase() : null;
+  let originalAmount = listPrice > 0 ? listPrice : null;
+  let discountAmount = 0;
+  let couponResult = null;
+
+  if (couponCode) {
+    couponResult = await applyCouponToPaymentRequest(couponCode, requestedPlan, billingCycle);
+    originalAmount = couponResult.originalAmount;
+    discountAmount = couponResult.discountAmount;
+    couponCode = couponResult.code;
+  }
+
+  let amountSent = Number(body.amountSent ?? body.amount ?? 0);
+  if (couponResult) {
+    amountSent = couponResult.finalAmount;
+  } else if (!Number.isFinite(amountSent) || amountSent <= 0) {
+    if (listPrice > 0) amountSent = listPrice;
+  }
   if (!Number.isFinite(amountSent) || amountSent <= 0) throw new Error("A valid amountSent is required");
 
   const paymentMethod = String(body.paymentMethod || body.method || "manual").trim().toLowerCase();
   const transactionId = String(body.transactionId || body.trxId || "").trim();
-  if (["bkash", "nagad", "rocket", "bank_transfer"].includes(paymentMethod) && !transactionId) throw new Error("Transaction ID / reference is required");
+  if (
+    !isOnlinePaymentMethod(paymentMethod) &&
+    ["bkash", "nagad", "rocket", "bank_transfer"].includes(paymentMethod) &&
+    !transactionId
+  ) {
+    throw new Error("Transaction ID / reference is required");
+  }
 
   const currentPlan = normalizePlan(body.currentPlan || tenant.subscriptionPlan || "free");
-  const billingCycle = normalizeBillingCycle(body.billingCycle);
   const requestType = resolveRequestType({ currentPlan, requestedPlan, subscriptionStatus: tenant.subscriptionStatus, explicitRequestType: body.requestType });
 
   if (transactionId) {
@@ -175,9 +198,12 @@ async function buildPaymentRequestInput(req, body, tenant) {
     requestType,
     paymentMethod,
     method: paymentMethod,
-    expectedAmount: Number(body.expectedAmount ?? body.amount ?? amountSent),
+    expectedAmount: originalAmount ?? Number(body.expectedAmount ?? amountSent),
     amountSent,
     amount: amountSent,
+    couponCode: couponCode || null,
+    discountAmount,
+    originalAmount,
     senderAccountOrNumber: body.senderAccountOrNumber || null,
     transactionId: transactionId || null,
     trxId: transactionId || `manual-${Date.now()}`,
@@ -246,6 +272,63 @@ router.get("/:id", async (req, res) => {
     res.json(item);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+
+router.post("/online-checkout", requireRole("tenant_owner"), async (req, res) => {
+  try {
+    const tenant = await prisma.tenant.findUnique({ where: { id: req.tenantId } });
+    if (!tenant) return res.status(404).json({ message: "Tenant not found" });
+
+    const openRequest = await prisma.paymentRequest.findFirst({
+      where: { tenantId: req.tenantId, status: { in: PENDING_REVIEW_STATUSES } },
+      select: { id: true, status: true },
+    });
+    if (openRequest) {
+      return res.status(409).json({
+        message: `A payment request is already ${openRequest.status}`,
+        requestId: openRequest.id,
+      });
+    }
+
+    const gateway = String(req.body.gateway || "").toLowerCase();
+    if (!["sslcommerz", "bkash"].includes(gateway)) {
+      return res.status(400).json({ message: "gateway must be sslcommerz or bkash" });
+    }
+
+    const gateways = getGatewayStatus();
+    if (gateway === "bkash" && !gateways.bkash.configured) {
+      return res.status(503).json({ message: "bKash online checkout is not configured on the server" });
+    }
+    if (gateway === "sslcommerz" && !gateways.sslcommerz.configured) {
+      return res.status(503).json({ message: "SSLCommerz is not configured on the server" });
+    }
+
+    const owner = await prisma.user.findFirst({
+      where: { tenantId: req.tenantId, role: "tenant_owner" },
+      select: { name: true, email: true, phone: true },
+    });
+
+    const checkoutBody = {
+      ...req.body,
+      paymentMethod: `online_${gateway}`,
+      transactionId: `online-pending-${Date.now()}`,
+      requestSource: "online_checkout",
+      status: "pending",
+    };
+    const data = await buildPaymentRequestInput(req, checkoutBody, tenant);
+    const item = await prisma.paymentRequest.create({ data: { ...data, tenantId: req.tenantId } });
+
+    res.status(201).json({
+      paymentRequestId: item.id,
+      amount: data.amountSent,
+      gateway,
+      customerName: req.body.customerName || owner?.name || tenant.name,
+      customerEmail: req.body.customerEmail || owner?.email || "",
+      customerPhone: req.body.customerPhone || owner?.phone || "",
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
   }
 });
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import DashboardLayout from "@/components/DashboardLayout";
 import LoadingState from "@/components/LoadingState";
@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -21,17 +22,34 @@ import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { clientApi, type Client } from "@/lib/api";
 import {
-  UserCheck, Plus, Search, Eye, Pencil, Trash2, Phone, Mail, CalendarIcon, CreditCard,
+  UserCheck, Plus, Search, Eye, Pencil, Trash2, Phone, Mail, CalendarIcon, CreditCard, AlertTriangle, X,
 } from "lucide-react";
 
 const emptyForm = {
   name: "", phone: "", email: "", alternatePhone: "", address: "",
   dateOfBirth: "", passportNumber: "", passportExpiry: "", nidNumber: "",
   nationality: "", emergencyContact: "", emergencyPhone: "", notes: "",
+  clientType: "individual" as "individual" | "corporate",
+  companyName: "",
 };
 
+function getPassportMeta(expiry?: string | null): { status: "expiring" | "expired"; daysLeft: number } | null {
+  if (!expiry) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const exp = new Date(String(expiry).slice(0, 10));
+  if (Number.isNaN(exp.getTime())) return null;
+  exp.setHours(0, 0, 0, 0);
+  const daysLeft = Math.round((exp.getTime() - today.getTime()) / 86400000);
+  if (daysLeft < 0) return { status: "expired", daysLeft };
+  if (daysLeft <= 30) return { status: "expiring", daysLeft };
+  return null;
+}
+
+type ClientRow = Client & { _passportStatus?: "expiring" | "expired"; _daysLeft?: number };
+
 const Clients = () => {
-  const [clients, setClients] = useState<Client[]>([]);
+  const [clients, setClients] = useState<ClientRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -42,20 +60,42 @@ const Clients = () => {
   const [passportExpiry, setPassportExpiry] = useState<Date | undefined>();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const passportFilter = searchParams.get("filter") === "passport";
   const { t } = useTranslation();
 
   const fetchClients = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const data = await clientApi.list();
-      setClients(data);
+      if (passportFilter) {
+        const data = await clientApi.getExpiringPassports(30, true);
+        setClients(data.items.map((item) => ({
+          id: item.id,
+          name: item.name,
+          phone: item.phone || "",
+          email: item.email || "",
+          passportNumber: item.passportNumber || "",
+          passportExpiry: item.passportExpiry || "",
+          nationality: item.nationality || "",
+          tenantId: "",
+          createdAt: "",
+          _passportStatus: item.status,
+          _daysLeft: item.daysLeft,
+        })));
+      } else {
+        const data = await clientApi.list();
+        setClients(data.map((c) => {
+          const meta = getPassportMeta(c.passportExpiry);
+          return meta ? { ...c, _passportStatus: meta.status, _daysLeft: meta.daysLeft } : c;
+        }));
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [passportFilter]);
 
   useEffect(() => { fetchClients(); }, [fetchClients]);
 
@@ -84,6 +124,8 @@ const Clients = () => {
       passportExpiry: c.passportExpiry || "", nidNumber: c.nidNumber || "",
       nationality: c.nationality || "", emergencyContact: c.emergencyContact || "",
       emergencyPhone: c.emergencyPhone || "", notes: c.notes || "",
+      clientType: c.clientType === "corporate" ? "corporate" : "individual",
+      companyName: c.companyName || "",
     });
     setEditingId(c.id);
     setDobDate(c.dateOfBirth ? new Date(c.dateOfBirth) : undefined);
@@ -154,9 +196,20 @@ const Clients = () => {
           </PermissionGate>
         </div>
 
-        <div className="flex items-center gap-2 max-w-sm">
-          <Search className="h-4 w-4 text-muted-foreground" />
-          <Input placeholder={t("clientsForm.searchPlaceholder")} value={search} onChange={(e) => setSearch(e.target.value)} />
+        <div className="flex flex-wrap items-center gap-2 max-w-full">
+          <div className="flex items-center gap-2 max-w-sm flex-1 min-w-[200px]">
+            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+            <Input placeholder={t("clientsForm.searchPlaceholder")} value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          {passportFilter ? (
+            <Badge variant="secondary" className="gap-1 py-1.5 px-3">
+              <AlertTriangle className="h-3 w-3 text-amber-600" />
+              {t("clientsForm.passportFilterActive")}
+              <button type="button" className="ml-1 rounded hover:bg-muted p-0.5" onClick={() => setSearchParams({})} aria-label={t("clientsForm.clearFilter")}>
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ) : null}
         </div>
 
         {loading ? (
@@ -193,8 +246,24 @@ const Clients = () => {
                           </div>
                         </TableCell>
                         <TableCell className="text-sm">
-                          {c.passportNumber ? (
-                            <div className="flex items-center gap-1 text-xs"><CreditCard className="h-3 w-3" /> {c.passportNumber}</div>
+                          {c.passportNumber || c.passportExpiry ? (
+                            <div className="space-y-1">
+                              {c.passportNumber ? (
+                                <div className="flex items-center gap-1 text-xs"><CreditCard className="h-3 w-3" /> {c.passportNumber}</div>
+                              ) : null}
+                              {c.passportExpiry ? (
+                                <div className="flex items-center gap-1 flex-wrap">
+                                  <span className="text-xs text-muted-foreground">{c.passportExpiry}</span>
+                                  {c._passportStatus === "expired" ? (
+                                    <Badge variant="destructive" className="text-[10px]">{t("clientsForm.passportExpired")}</Badge>
+                                  ) : c._daysLeft != null && c._daysLeft <= 30 ? (
+                                    <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700">
+                                      {t("clientsForm.passportDaysLeft", { count: c._daysLeft })}
+                                    </Badge>
+                                  ) : null}
+                                </div>
+                              ) : null}
+                            </div>
                           ) : "—"}
                         </TableCell>
                         <TableCell className="text-sm">{c.nationality || "—"}</TableCell>
@@ -236,6 +305,25 @@ const Clients = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{t("clientsForm.contactInfo")}</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>{t("clientsForm.clientType")}</Label>
+                  <Select
+                    value={form.clientType}
+                    onValueChange={(v: "individual" | "corporate") => setForm((f) => ({ ...f, clientType: v }))}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="individual">{t("clientsForm.clientTypeIndividual")}</SelectItem>
+                      <SelectItem value="corporate">{t("clientsForm.clientTypeCorporate")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {form.clientType === "corporate" ? (
+                  <div className="space-y-2">
+                    <Label>{t("clientsForm.companyName")}</Label>
+                    <Input value={form.companyName} onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))} />
+                  </div>
+                ) : null}
                 <div className="space-y-2"><Label>{t("clientsForm.name")} *</Label><Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required /></div>
                 <div className="space-y-2"><Label>{t("clientsForm.phone")}</Label><Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} /></div>
                 <div className="space-y-2"><Label>{t("clientsForm.email")}</Label><Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} /></div>

@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { useTranslation } from "react-i18next";
+import { InlineEmpty } from "@/components/EmptyState";
 import { Plus, Wallet, Building2 } from "lucide-react";
 import PermissionGate from "@/components/PermissionGate";
 import { useToast } from "@/hooks/use-toast";
@@ -21,6 +23,7 @@ const emptyForm = { name: "", type: "cash" as "cash" | "bank", balance: 0, accou
 
 export default function CashBankAccountsTab({ accounts, onRefresh }: Props) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -109,7 +112,7 @@ export default function CashBankAccountsTab({ accounts, onRefresh }: Props) {
       </div>
 
       {accounts.length === 0 ? (
-        <Card><CardContent className="py-12 text-center text-muted-foreground">No accounts created yet. Add a cash drawer or bank account to start tracking balances.</CardContent></Card>
+        <Card><CardContent className="py-12"><InlineEmpty title={t("emptyStates.noAccounts")} hint={t("emptyStates.noAccountsHint")} /></CardContent></Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {accounts.map((acc) => (

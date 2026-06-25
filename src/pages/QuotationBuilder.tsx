@@ -279,6 +279,16 @@ const QuotationBuilder = () => {
   };
 
   useEffect(() => {
+    if (isEdit || prefillApplied || leadPrefillId) return;
+    const prefillClientId = searchParams.get("clientId");
+    if (!prefillClientId) return;
+    setPrefillApplied(true);
+    setClientId(prefillClientId);
+    const name = searchParams.get("clientName");
+    if (name) setClientName(name);
+  }, [isEdit, prefillApplied, leadPrefillId, searchParams]);
+
+  useEffect(() => {
     if (isEdit || prefillApplied || !leadPrefillId) return;
     setPrefillApplied(true);
     setLeadId(leadPrefillId);

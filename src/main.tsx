@@ -13,3 +13,9 @@ createRoot(document.getElementById("root")!).render(
     <Root />
   </ErrorBoundary>,
 );
+
+if (!isPortalHost() && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}

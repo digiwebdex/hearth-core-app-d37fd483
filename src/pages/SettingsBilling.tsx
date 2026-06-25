@@ -8,10 +8,14 @@ import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
 import { paymentRequestApi } from "@/lib/api";
 import { PLANS } from "@/lib/plans";
+import { DEFAULT_TRIAL_DAYS, trialProgressPercent } from "@/lib/trialConfig";
+import { useTranslation } from "react-i18next";
+import { InlineEmpty } from "@/components/EmptyState";
 import { Sparkles, Clock, CheckCircle2, CreditCard, Receipt, ArrowUpRight, AlertCircle } from "lucide-react";
 
 const SettingsBilling = () => {
   const { tenant, currentPlan, isTrialActive, trialDaysLeft, isSubscriptionExpired } = useAuth();
+  const { t } = useTranslation();
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -24,7 +28,10 @@ const SettingsBilling = () => {
   }, []);
 
   const plan = PLANS.find((p) => p.id === currentPlan) || PLANS[0];
-  const trialProgress = isTrialActive ? ((3 - trialDaysLeft) / 3) * 100 : 0;
+  const configuredTrialDays = tenant?.trialDaysConfigured ?? DEFAULT_TRIAL_DAYS;
+  const trialProgress = isTrialActive
+    ? trialProgressPercent(trialDaysLeft, tenant?.subscriptionExpiry, tenant?.createdAt, configuredTrialDays)
+    : 0;
 
   return (
     <DashboardLayout>
@@ -40,7 +47,7 @@ const SettingsBilling = () => {
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
                 <Clock className="h-5 w-5 text-amber-600" />
-                <CardTitle className="text-lg">3-Day Pro Trial Active</CardTitle>
+                <CardTitle className="text-lg">{configuredTrialDays}-Day Pro Trial Active</CardTitle>
               </div>
               <CardDescription>
                 {trialDaysLeft > 0
@@ -133,7 +140,7 @@ const SettingsBilling = () => {
             ) : payments.length === 0 ? (
               <div className="text-center py-8">
                 <Receipt className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground">No payments yet.</p>
+                <InlineEmpty title={t("emptyStates.noBillingPayments")} hint={t("emptyStates.noBillingPaymentsHint")} />
               </div>
             ) : (
               <div className="divide-y">

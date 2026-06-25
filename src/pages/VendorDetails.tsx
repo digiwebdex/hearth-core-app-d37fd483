@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import DashboardLayout from "@/components/DashboardLayout";
 import PermissionGate from "@/components/PermissionGate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +21,7 @@ import {
   Clock, AlertTriangle, DollarSign,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { InlineEmpty } from "@/components/EmptyState";
 import {
   vendorApi, bookingApi,
   type Vendor, type VendorCategory, type VendorBill, type VendorBillStatus,
@@ -56,6 +58,7 @@ const VendorDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [bills, setBills] = useState<VendorBill[]>([]);
@@ -226,7 +229,7 @@ const VendorDetails = () => {
               {vendor.address && <div className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-muted-foreground" />{vendor.address}</div>}
               {vendor.serviceAreas && <div className="flex items-center gap-2"><Globe className="h-3.5 w-3.5 text-muted-foreground" />{vendor.serviceAreas}</div>}
               {!vendor.contactPerson && !vendor.phone && !vendor.email && (
-                <p className="text-muted-foreground">No contact info added yet.</p>
+                <InlineEmpty title={t("emptyStates.noContactInfo")} />
               )}
             </CardContent>
           </Card>
@@ -267,8 +270,8 @@ const VendorDetails = () => {
           <TabsContent value="bills" className="mt-4">
             {bills.length === 0 ? (
               <Card>
-                <CardContent className="py-8 text-center text-muted-foreground">
-                  No bills yet. Create a payable entry when this vendor provides services for a booking.
+                <CardContent className="py-8">
+                  <InlineEmpty title={t("emptyStates.noVendorBills")} hint={t("emptyStates.noVendorBillsHint")} />
                 </CardContent>
               </Card>
             ) : (
@@ -325,8 +328,8 @@ const VendorDetails = () => {
           <TabsContent value="notes" className="mt-4">
             {notes.length === 0 ? (
               <Card>
-                <CardContent className="py-8 text-center text-muted-foreground">
-                  No interaction history yet. Add notes about calls, meetings, or issues with this vendor.
+                <CardContent className="py-8">
+                  <InlineEmpty title={t("emptyStates.noVendorHistory")} hint={t("emptyStates.noVendorHistoryHint")} />
                 </CardContent>
               </Card>
             ) : (

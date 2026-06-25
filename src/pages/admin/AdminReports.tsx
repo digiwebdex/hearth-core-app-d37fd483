@@ -48,7 +48,7 @@ const AdminReports = () => {
       try {
         const [s, tn, pr] = await Promise.all([
           adminApi.getStats().catch(() => null),
-          adminApi.getTenants().catch(() => []),
+          adminApi.getTenants({ excludePlatform: true }).catch(() => []),
           adminApi.getPaymentRequests().catch(() => []),
         ]);
         if (s) setPlatformStats(s);

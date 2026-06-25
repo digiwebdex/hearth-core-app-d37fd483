@@ -5,6 +5,9 @@ const { prisma } = require("../middleware/auth");
 const { notifyEvent } = require("../services/notificationService");
 const { resolveTenantOwnerContact } = require("../lib/tenantOwnerContact");
 const { expireTenantAndNotify } = require("../services/subscriptionExpiryService");
+const { processTrialDrips } = require("../services/trialDripService");
+const { processPassportExpiryAlerts } = require("../services/passportExpiryAlertService");
+const { processTravelDepartureReminders } = require("../services/travelDepartureReminderService");
 
 const CRON_SECRET = process.env.CRON_SECRET || "";
 
@@ -101,6 +104,21 @@ router.post("/process-expiry", async (_req, res) => {
       if (result.expired) processed += 1;
     }
 
+    const trialDrip = await processTrialDrips(prisma).catch((err) => {
+      console.error("[cron] trial drip:", err.message);
+      return { sent: 0, skipped: 0, error: err.message };
+    });
+
+    const passportAlerts = await processPassportExpiryAlerts(prisma).catch((err) => {
+      console.error("[cron] passport alerts:", err.message);
+      return { sent: 0, skipped: 0, error: err.message };
+    });
+
+    const travelReminders = await processTravelDepartureReminders(prisma).catch((err) => {
+      console.error("[cron] travel reminders:", err.message);
+      return { sent: 0, skipped: 0, error: err.message };
+    });
+
     const scheduledSubscriptions = await prisma.subscription.findMany({
       where: { status: "scheduled", startDate: { lte: now } },
       orderBy: { createdAt: "asc" },
@@ -165,6 +183,9 @@ router.post("/process-expiry", async (_req, res) => {
       processed,
       remindersSent,
       scheduledActivated,
+      trialDrip,
+      passportAlerts,
+      travelReminders,
       total: expiredTenants.length,
       totalScheduled: scheduledSubscriptions.length,
       totalExpiringSoon: expiringSoonTenants.length,

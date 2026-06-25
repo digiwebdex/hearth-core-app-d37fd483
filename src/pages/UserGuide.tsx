@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import {
   LayoutDashboard, Users, UserCheck, UserCog, Store, Target, ListTodo, FileText, Plane, Package2,
   Receipt, Wallet, BarChart3, Bell, Moon, Building2, Globe, Crown, Settings, BookOpen,
-  ListOrdered, Briefcase, Clock, FolderOpen, ArrowRight,
+  ListOrdered, Briefcase, Clock, FolderOpen, ArrowRight, PlayCircle,
 } from "lucide-react";
 
 const sectionIcons: Record<string, typeof BookOpen> = {
@@ -83,6 +83,14 @@ const UserGuide = () => {
     desc: string;
   }>;
 
+  const quickStart = t("userGuide.quickStartVideo", { returnObjects: true }) as {
+    title: string;
+    subtitle: string;
+    duration: string;
+    steps: string[];
+    note: string;
+  };
+
   const sections = sectionIds
     .filter((id) => sectionIcons[id])
     .map((id) => {
@@ -111,6 +119,27 @@ const UserGuide = () => {
             {t("userGuide.badge")}
           </Badge>
         </div>
+
+        {quickStart?.title && (
+          <Card className="border-amber-500/30 bg-amber-500/5">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <PlayCircle className="h-5 w-5 text-amber-600" />
+                {quickStart.title}
+                <Badge variant="outline" className="ml-1">{quickStart.duration}</Badge>
+              </CardTitle>
+              <CardDescription>{quickStart.subtitle}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <ol className="list-decimal list-inside space-y-1.5 text-sm text-muted-foreground">
+                {quickStart.steps?.map((step, i) => (
+                  <li key={i}>{step}</li>
+                ))}
+              </ol>
+              <p className="text-xs text-muted-foreground border-t pt-3">{quickStart.note}</p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Main business workflow */}
         <Card className="border-primary/40 bg-primary/5">

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -31,6 +32,8 @@ import {
   Stamp,
   Hotel,
   Car,
+  Headphones,
+  IdCard,
 } from "lucide-react";
 import {
   dashboardApi,
@@ -201,6 +204,15 @@ const Dashboard = () => {
           .slice(0, 5)
           .map(([destination, count]) => ({ destination, count }));
 
+        const typeMap: Record<string, number> = {};
+        bookings.forEach((b: { type?: string }) => {
+          const key = String(b.type || "other").trim() || "other";
+          typeMap[key] = (typeMap[key] || 0) + 1;
+        });
+        const bookingsByType = Object.entries(typeMap)
+          .sort((a, b) => b[1] - a[1])
+          .map(([type, count]) => ({ type, count }));
+
         setStats({
           totalUsers: members.length,
           totalClients: clients.length,
@@ -219,6 +231,10 @@ const Dashboard = () => {
           vendorDues,
           salesThisMonth,
           topDestinations,
+          bookingsByType,
+          openSupportTickets: 0,
+          passportsExpiringSoon: 0,
+          passportsExpired: 0,
         });
       } catch {
         toast({ title: t("dashboard.loadFailed"), variant: "destructive" });
@@ -247,6 +263,8 @@ const Dashboard = () => {
             {t("common.refresh")}
           </Button>
         </div>
+
+        <OnboardingChecklist />
 
         {!loading && !hasAnyData && (
           <Card className="border-dashed">
@@ -302,7 +320,7 @@ const Dashboard = () => {
             icon={Plane}
             color="text-violet-600"
             loading={loading}
-            onClick={() => navigate("/bookings")}
+            onClick={() => navigate("/operations/services?desk=departures")}
             subtitle={t("dashboard.next7Days")}
           />
         </div>
@@ -339,6 +357,32 @@ const Dashboard = () => {
             icon={DollarSign}
             color="text-amber-600"
             loading={loading}
+          />
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <WidgetCard
+            title={t("dashboard.openSupportTickets")}
+            value={stats?.openSupportTickets ?? 0}
+            icon={Headphones}
+            color="text-rose-600"
+            loading={loading}
+            onClick={() => navigate("/support")}
+            subtitle={t("dashboard.viewSupport")}
+          />
+          <WidgetCard
+            title={t("dashboard.passportsExpiringSoon")}
+            value={stats?.passportsExpiringSoon ?? 0}
+            icon={IdCard}
+            color="text-amber-600"
+            loading={loading}
+            onClick={() => navigate("/clients?filter=passport")}
+            subtitle={
+              stats?.passportsExpired
+                ? t("dashboard.passportsExpiredCount", { count: stats.passportsExpired })
+                : t("dashboard.passportsWindow")
+            }
+            subtitleColor={stats?.passportsExpired ? "text-destructive" : undefined}
           />
         </div>
 
@@ -391,6 +435,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
+          <div className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg"><MapPin className="h-5 w-5" /> {t("dashboard.topDestinations")}</CardTitle>
@@ -419,6 +464,38 @@ const Dashboard = () => {
               )}
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg"><Briefcase className="h-5 w-5" /> {t("dashboard.bookingsByType")}</CardTitle>
+              <CardDescription>{t("dashboard.bookingsByTypeHint")}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="space-y-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
+              ) : !stats?.bookingsByType?.length ? (
+                <p className="text-sm text-muted-foreground text-center py-6">{t("dashboard.noBookings")}</p>
+              ) : (
+                <div className="space-y-3">
+                  {stats.bookingsByType.map((row) => {
+                    const maxCount = stats.bookingsByType![0]?.count || 1;
+                    return (
+                      <div key={row.type} className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium capitalize">
+                            {t(`bookingsForm.types.${row.type}`, { defaultValue: row.type })}
+                          </span>
+                          <Badge variant="secondary">{row.count}</Badge>
+                        </div>
+                        <Progress value={(row.count / maxCount) * 100} className="h-1.5" />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">

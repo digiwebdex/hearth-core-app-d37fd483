@@ -4,6 +4,8 @@ const path = require("path");
 const { PrismaClient } = require("@prisma/client");
 const { authLimiter } = require("./middleware/rateLimit");
 const { portalAuthLimiter } = require("./middleware/rateLimit");
+const { getTrialDays } = require("./lib/trialConfig");
+const { getGatewayStatus } = require("./lib/paymentGatewayConfig");
 
 const prismaHealth = new PrismaClient();
 
@@ -107,6 +109,9 @@ function createApp() {
   app.use(express.json({ limit: "12mb" }));
   app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
+  const { securityHeaders } = require("./middleware/security");
+  app.use(securityHeaders);
+
   const { subscriptionAccessGate } = require("./middleware/subscriptionAccess");
   app.use("/api", subscriptionAccessGate);
 
@@ -121,6 +126,9 @@ function createApp() {
   app.use("/api/vendors", require("./routes/vendors"));
   app.use("/api/leads", require("./routes/leads"));
   app.use("/api/tasks", require("./routes/crud")("task"));
+  app.use("/api/support-tickets", require("./routes/supportTickets"));
+  app.use("/api/hrm", require("./routes/hrm"));
+  app.use("/api/blogs", require("./routes/blogs"));
   app.use("/api/bookings", require("./routes/bookings"));
   app.use("/api/invoices", require("./routes/invoices"));
   app.use("/api/finance", require("./routes/finance"));
@@ -130,6 +138,16 @@ function createApp() {
   app.use("/api/accounts", require("./routes/accounts"));
   app.use("/api/transactions", require("./routes/crud")("transaction"));
   app.use("/api/expenses", require("./routes/expenses"));
+  app.use("/api/tax-rules", require("./routes/taxRules"));
+  app.use("/api/payroll", require("./routes/payroll"));
+  app.use("/api/loyalty", require("./routes/loyalty"));
+  app.use("/api/referrals", require("./routes/referrals"));
+  app.use("/api/group-tours", require("./routes/groupTours"));
+  app.use("/api/mice", require("./routes/mice"));
+  app.use("/api/travel-policy", require("./routes/travelPolicy"));
+  app.use("/api/visa", require("./routes/visa"));
+  app.use("/api/inventory", require("./routes/inventory"));
+  app.use("/api/recruitment", require("./routes/recruitment"));
   app.use("/api/hajj", require("./routes/hajj"));
   app.use("/api/subscriptions", require("./routes/crud")("subscription"));
   app.use("/api/payment-requests", require("./routes/paymentRequests"));
@@ -154,6 +172,8 @@ function createApp() {
 
   app.use("/api/email", require("./routes/email"));
   app.use("/api/sms", require("./routes/sms"));
+  app.use("/api/whatsapp", require("./routes/whatsapp"));
+  app.use("/api/subscription-coupons", require("./routes/subscriptionCoupons"));
   app.use("/api/notifications", require("./routes/notifications"));
   app.use("/api/cron", require("./routes/cron"));
 
@@ -172,8 +192,14 @@ function createApp() {
       environment: process.env.NODE_ENV || "development",
       uptime: Math.floor(process.uptime()),
       timestamp: new Date().toISOString(),
+      trialDays: getTrialDays(),
+      paymentGateways: getGatewayStatus(),
     });
   });
+
+  const { notFoundHandler, globalErrorHandler } = require("./middleware/security");
+  app.use(notFoundHandler);
+  app.use(globalErrorHandler);
 
   return app;
 }

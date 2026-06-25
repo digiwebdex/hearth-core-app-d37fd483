@@ -6,6 +6,7 @@ const {
   ensureTenantSettings,
   formatSettingsResponse,
 } = require("../services/tenantAutomationService");
+const { getTrialDays } = require("../lib/trialConfig");
 
 router.use(authenticate);
 
@@ -28,7 +29,7 @@ router.get("/me", async (req, res) => {
   try {
     const tenant = await prisma.tenant.findUnique({ where: { id: req.tenantId } });
     if (!tenant) return res.status(404).json({ message: "Tenant not found" });
-    res.json(tenant);
+    res.json({ ...tenant, trialDaysConfigured: getTrialDays() });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

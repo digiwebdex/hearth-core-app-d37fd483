@@ -34,6 +34,11 @@ model Tenant {
   vendors               Vendor[]
   leads                 Lead[]
   tasks                 Task[]
+  supportTickets        SupportTicket[]
+  staffProfiles         StaffProfile[]
+  staffAttendance       StaffAttendance[]
+  staffLeaveRequests    StaffLeaveRequest[]
+  websitePosts          WebsitePost[]
   bookings              Booking[]
   invoices              Invoice[]
   invoiceInstallments   InvoiceInstallment[]
@@ -52,6 +57,24 @@ model Tenant {
   subscriptionHistories SubscriptionHistory[]
   travelPackages        TravelPackage[]
   smsSettings           SmsSettings?
+  taxRules              TaxRule[]
+  salaryStructures      SalaryStructure[]
+  payrollRuns           PayrollRun[]
+  payslipEntries        PayslipEntry[]
+  loyaltyRule           LoyaltyRule?
+  loyaltyAccounts       LoyaltyAccount[]
+  loyaltyTransactions   LoyaltyTransaction[]
+  referralCodes         ReferralCode[]
+  referralConversions   ReferralConversion[]
+  groupTours            GroupTour[]
+  miceEvents            MiceEvent[]
+  travelPolicies        TravelPolicy[]
+  travelApprovals       TravelApprovalRequest[]
+  visaApplications      VisaApplication[]
+  hotelContracts        HotelContract[]
+  transportContracts    TransportContract[]
+  jobPostings           JobPosting[]
+  jobApplications       JobApplication[]
 }
 
 model TenantDomain {
@@ -87,10 +110,69 @@ model User {
   approvedAt        DateTime?
   approvedBy        String?
   rejectionReason   String?
+  lastLoginAt       DateTime?
   tenantId          String
   tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   createdAt              DateTime                @default(now())
   agentCommissionProfile AgentCommissionProfile?
+  staffProfile           StaffProfile?
+}
+
+model StaffProfile {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenantId         String
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  jobTitle         String?
+  department       String?
+  joinDate         String?
+  emergencyContact String?
+  emergencyPhone   String?
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  salaryStructure  SalaryStructure?
+  payslips         PayslipEntry[]
+
+  @@index([tenantId])
+}
+
+model StaffAttendance {
+  id        String   @id @default(uuid())
+  userId    String
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  date      String
+  status    String   @default("present")
+  checkIn   String?
+  checkOut  String?
+  notes     String?
+  markedBy  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, userId, date])
+  @@index([tenantId, date])
+}
+
+model StaffLeaveRequest {
+  id          String    @id @default(uuid())
+  userId      String
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  leaveType   String    @default("annual")
+  startDate   String
+  endDate     String
+  reason      String    @default("")
+  status      String    @default("pending")
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  reviewNotes String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([tenantId, status])
 }
 
 model Client {
@@ -108,6 +190,8 @@ model Client {
   emergencyContact String?
   emergencyPhone   String?
   notes            String?
+  companyName      String?
+  clientType       String   @default("individual")
   tags             String[] @default([])
   tenantId         String
   tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -118,6 +202,13 @@ model Client {
   leads            Lead[]
   quotations       Quotation[]
   documents        ClientDocument[]
+  supportTickets   SupportTicket[]
+  loyaltyAccount   LoyaltyAccount?
+  miceEvents       MiceEvent[]
+  visaApplications VisaApplication[]
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, clientType])
 }
 
 model ClientDocument {
@@ -249,6 +340,10 @@ model Lead {
   updatedAt      DateTime @updatedAt
   activities     LeadActivity[]
   quotations     Quotation[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, assignedTo])
+  @@index([tenantId, createdAt])
 }
 
 model LeadActivity {
@@ -274,6 +369,54 @@ model Task {
   tenantId    String
   tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
+}
+
+model SupportTicket {
+  id              String    @id @default(uuid())
+  ticketNumber    String
+  subject         String
+  description     String    @default("")
+  status          String    @default("open")
+  priority        String    @default("medium")
+  category        String    @default("general")
+  source          String    @default("internal")
+  clientId        String?
+  client          Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  bookingId       String?
+  booking         Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  assignedTo      String?
+  createdBy       String?
+  resolutionNotes String?
+  resolvedAt      DateTime?
+  tenantId        String
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([tenantId, ticketNumber])
+  @@index([tenantId, status])
+}
+
+model WebsitePost {
+  id          String    @id @default(uuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  slug        String
+  title       String
+  excerpt     String    @default("")
+  body        String    @default("")
+  coverImage  String?
+  status      String    @default("draft")
+  publishedAt     DateTime?
+  authorName      String?
+  metaTitle       String?
+  metaDescription String?
+  ogImage         String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status])
 }
 
 model Booking {
@@ -318,6 +461,15 @@ model Booking {
   documents            BookingDocument[]
   invoices             Invoice[]
   agentCommission      BookingAgentCommission?
+  supportTickets       SupportTicket[]
+  groupTourBookings    GroupTourBooking[]
+  visaApplications     VisaApplication[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, clientId])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, paymentStatus])
+  @@index([tenantId, agentId])
 }
 
 model BookingSegment {
@@ -401,6 +553,10 @@ model Invoice {
   issuedDate     String?
   notes          String?
   cancelReason   String?
+  taxRuleId      String?
+  taxRate        Float              @default(0)
+  taxAmount      Float              @default(0)
+  subTotal       Float              @default(0)
   createdBy      String?
   tenantId       String
   tenant         Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -410,6 +566,10 @@ model Invoice {
   refunds        InvoiceRefund[]
   auditTrail     InvoiceAuditEvent[]
   installments   InvoiceInstallment[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, clientId])
+  @@index([tenantId, createdAt])
 }
 
 model InvoiceInstallment {
@@ -443,6 +603,9 @@ model Payment {
   tenantId       String
   tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   createdAt      DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, invoiceId])
 }
 
 model InvoiceRefund {
@@ -601,6 +764,9 @@ model TravelPackage {
   cancellationPolicy String?
   seasonalPricing Json?
   heroImage      String?
+  metaTitle      String?
+  metaDescription String?
+  ogImage        String?
   createdBy      String?
   createdAt      DateTime                 @default(now())
   updatedAt      DateTime                 @updatedAt
@@ -808,6 +974,9 @@ model PaymentRequest {
   activationDate          DateTime?
   expiryDateAfterApproval DateTime?
   requestSource           String   @default("tenant")
+  couponCode              String?
+  discountAmount          Float    @default(0)
+  originalAmount          Float?
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 }
@@ -957,6 +1126,220 @@ model PlatformNotification {
   @@index([createdAt])
 }
 
+model SalaryStructure {
+  id                String       @id @default(uuid())
+  staffProfileId    String       @unique
+  staffProfile      StaffProfile @relation(fields: [staffProfileId], references: [id], onDelete: Cascade)
+  tenantId          String
+  tenant            Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  basicSalary       Float        @default(0)
+  houseAllowance    Float        @default(0)
+  transportAllowance Float       @default(0)
+  medicalAllowance  Float        @default(0)
+  otherAllowance    Float        @default(0)
+  taxDeduction      Float        @default(0)
+  providentFund     Float        @default(0)
+  otherDeduction    Float        @default(0)
+  currency          String       @default("BDT")
+  effectiveFrom     String?
+  notes             String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([tenantId])
+}
+
+model PayrollRun {
+  id          String         @id @default(uuid())
+  tenantId    String
+  tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  month       String
+  year        Int
+  status      String         @default("draft")
+  totalAmount Float          @default(0)
+  paidCount   Int            @default(0)
+  processedBy String?
+  processedAt DateTime?
+  notes       String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  payslips    PayslipEntry[]
+
+  @@unique([tenantId, month, year])
+  @@index([tenantId, status])
+}
+
+model PayslipEntry {
+  id                  String      @id @default(uuid())
+  payrollRunId        String
+  payrollRun          PayrollRun  @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  staffProfileId      String
+  staffProfile        StaffProfile @relation(fields: [staffProfileId], references: [id], onDelete: Cascade)
+  tenantId            String
+  tenant              Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  staffName           String
+  basicSalary         Float        @default(0)
+  houseAllowance      Float        @default(0)
+  transportAllowance  Float        @default(0)
+  medicalAllowance    Float        @default(0)
+  otherAllowance      Float        @default(0)
+  grossSalary         Float        @default(0)
+  taxDeduction        Float        @default(0)
+  providentFund       Float        @default(0)
+  otherDeduction      Float        @default(0)
+  totalDeductions     Float        @default(0)
+  netSalary           Float        @default(0)
+  presentDays         Int          @default(0)
+  absentDays          Int          @default(0)
+  leaveDays           Int          @default(0)
+  status              String       @default("pending")
+  paidAt              DateTime?
+  paymentMethod       String?
+  paymentReference    String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@index([tenantId, payrollRunId])
+}
+
+// ── Loyalty System ──
+model LoyaltyRule {
+  id              String   @id @default(uuid())
+  tenantId        String   @unique
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  pointsPerUnit   Float    @default(1)
+  unitAmount      Float    @default(100)
+  redemptionValue Float    @default(1)
+  expiryDays      Int      @default(365)
+  silverThreshold Int      @default(1000)
+  goldThreshold   Int      @default(5000)
+  platinumThreshold Int    @default(15000)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model LoyaltyAccount {
+  id           String               @id @default(uuid())
+  clientId     String               @unique
+  client       Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tenantId     String
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  totalPoints  Int                  @default(0)
+  usedPoints   Int                  @default(0)
+  expiredPoints Int                 @default(0)
+  tier         String               @default("standard")
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  transactions LoyaltyTransaction[]
+
+  @@index([tenantId])
+}
+
+model LoyaltyTransaction {
+  id          String         @id @default(uuid())
+  accountId   String
+  account     LoyaltyAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  tenantId    String
+  tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  type        String
+  points      Int
+  description String
+  referenceId String?
+  referenceType String?
+  expiresAt   DateTime?
+  createdAt   DateTime       @default(now())
+
+  @@index([tenantId, accountId])
+}
+
+// ── Referral Program ──
+model ReferralCode {
+  id              String               @id @default(uuid())
+  tenantId        String
+  tenant          Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  code            String
+  ownerType       String               @default("agent")
+  ownerId         String
+  commissionRate  Float                @default(5)
+  usageCount      Int                  @default(0)
+  isActive        Boolean              @default(true)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  conversions     ReferralConversion[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId, ownerId])
+}
+
+model ReferralConversion {
+  id               String       @id @default(uuid())
+  referralCodeId   String
+  referralCode     ReferralCode @relation(fields: [referralCodeId], references: [id], onDelete: Cascade)
+  tenantId         String
+  tenant           Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  referredClientId String?
+  bookingId        String?
+  commissionEarned Float        @default(0)
+  status           String       @default("pending")
+  paidAt           DateTime?
+  createdAt        DateTime     @default(now())
+
+  @@index([tenantId, referralCodeId])
+}
+
+// ── Group Tour ──
+model GroupTour {
+  id            String         @id @default(uuid())
+  tenantId      String
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name          String
+  destination   String?
+  departureDate String?
+  returnDate    String?
+  capacity      Int            @default(0)
+  status        String         @default("upcoming")
+  notes         String?
+  createdBy     String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  bookings      GroupTourBooking[]
+
+  @@index([tenantId, status])
+}
+
+model GroupTourBooking {
+  id          String    @id @default(uuid())
+  groupTourId String
+  groupTour   GroupTour @relation(fields: [groupTourId], references: [id], onDelete: Cascade)
+  bookingId   String
+  booking     Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  seatNumber  String?
+  roomNumber  String?
+  roomType    String?
+  notes       String?
+  addedAt     DateTime  @default(now())
+
+  @@unique([groupTourId, bookingId])
+  @@index([groupTourId])
+}
+
+model TaxRule {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  rate        Float    @default(0)
+  type        String   @default("percentage")
+  appliesTo   String   @default("all")
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId, isActive])
+}
+
 model SmsSettings {
   id              String   @id @default(uuid())
   tenantId        String   @unique
@@ -1024,4 +1407,258 @@ model MasterReference {
   @@index([category, isActive])
   @@index([parentId])
   @@index([category, name])
+}
+
+model WhatsAppTemplate {
+  id               String   @id @default(uuid())
+  tenantId         String?
+  name             String
+  type             String
+  message          String
+  metaTemplateName String?
+  variables        String[] @default([])
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([type])
+}
+
+model SubscriptionCoupon {
+  id              String    @id @default(uuid())
+  code            String    @unique
+  description     String?
+  discountType    String    @default("percent")
+  discountValue   Float
+  maxUses         Int?
+  usedCount       Int       @default(0)
+  validFrom       DateTime?
+  validUntil      DateTime?
+  applicablePlans String[]  @default([])
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// ─── Phase 3: MICE Module ───────────────────────────────────────────────────
+
+model MiceEvent {
+  id            String          @id @default(uuid())
+  tenantId      String
+  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  title         String
+  eventType     String          @default("conference")
+  clientId      String?
+  client        Client?         @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  venue         String?
+  city          String?
+  country       String?
+  startDate     DateTime?
+  endDate       DateTime?
+  pax           Int             @default(1)
+  budget        Float           @default(0)
+  status        String          @default("inquiry")
+  notes         String?
+  createdBy     String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  items         MiceEventItem[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, startDate])
+}
+
+model MiceEventItem {
+  id          String     @id @default(uuid())
+  miceEventId String
+  miceEvent   MiceEvent  @relation(fields: [miceEventId], references: [id], onDelete: Cascade)
+  itemType    String
+  description String?
+  quantity    Int        @default(1)
+  unitCost    Float      @default(0)
+  totalCost   Float      @default(0)
+  vendorId    String?
+  notes       String?
+  createdAt   DateTime   @default(now())
+
+  @@index([miceEventId])
+}
+
+// ─── Phase 3: Corporate Travel Policy & Approval ────────────────────────────
+
+model TravelPolicy {
+  id               String                  @id @default(uuid())
+  tenantId         String
+  tenant           Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name             String
+  maxFlightBudget  Float?
+  maxHotelPerNight Float?
+  maxMealPerDay    Float?
+  requiresApproval Boolean                 @default(true)
+  approverRole     String                  @default("manager")
+  advanceNoticeDays Int                    @default(3)
+  allowedClasses   String[]                @default([])
+  isActive         Boolean                 @default(true)
+  notes            String?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  approvals        TravelApprovalRequest[]
+
+  @@index([tenantId, isActive])
+}
+
+model TravelApprovalRequest {
+  id           String        @id @default(uuid())
+  tenantId     String
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  policyId     String?
+  policy       TravelPolicy? @relation(fields: [policyId], references: [id], onDelete: SetNull)
+  requestedBy  String
+  approvedBy   String?
+  destination  String?
+  travelDate   DateTime?
+  returnDate   DateTime?
+  purpose      String?
+  estimatedCost Float?
+  status       String        @default("pending")
+  rejectionNote String?
+  bookingId    String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([tenantId, status])
+  @@index([tenantId, requestedBy])
+}
+
+// ─── Phase 3: Visa Status Tracker ───────────────────────────────────────────
+
+model VisaApplication {
+  id             String    @id @default(uuid())
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  clientId       String?
+  client         Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  bookingId      String?
+  booking        Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  applicantName  String
+  passportNumber String?
+  nationality    String?
+  visaType       String?
+  destination    String?
+  appliedDate    DateTime?
+  appointmentDate DateTime?
+  decisionDate   DateTime?
+  expiryDate     DateTime?
+  status         String    @default("not_applied")
+  referenceNo    String?
+  embassyFee     Float?
+  serviceFee     Float?
+  notes          String?
+  createdBy      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([tenantId, status])
+  @@index([tenantId, clientId])
+  @@index([tenantId, bookingId])
+}
+
+// ─── Phase 3: Hotel & Transport Inventory ────────────────────────────────────
+
+model HotelContract {
+  id             String      @id @default(uuid())
+  tenantId       String
+  tenant         Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vendorId       String?
+  hotelName      String
+  city           String?
+  country        String?
+  starRating     Int?
+  contractStart  DateTime?
+  contractEnd    DateTime?
+  totalRooms     Int         @default(0)
+  allocatedRooms Int         @default(0)
+  ratePerNight   Float?
+  mealPlan       String?
+  status         String      @default("active")
+  notes          String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([tenantId, status])
+  @@index([tenantId, country])
+}
+
+model TransportContract {
+  id              String    @id @default(uuid())
+  tenantId        String
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vendorId        String?
+  transportType   String    @default("bus")
+  vehicleModel    String?
+  capacity        Int       @default(0)
+  registrationNo  String?
+  driverName      String?
+  driverPhone     String?
+  ratePerDay      Float?
+  ratePerTrip     Float?
+  contractStart   DateTime?
+  contractEnd     DateTime?
+  status          String    @default("available")
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([tenantId, status])
+  @@index([tenantId, transportType])
+}
+
+// ─── Phase 3: Recruitment / Manpower ────────────────────────────────────────
+
+model JobPosting {
+  id            String           @id @default(uuid())
+  tenantId      String
+  tenant        Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  title         String
+  department    String?
+  location      String?
+  jobType       String           @default("full_time")
+  salaryMin     Float?
+  salaryMax     Float?
+  description   String?
+  requirements  String?
+  openings      Int              @default(1)
+  deadline      DateTime?
+  status        String           @default("open")
+  createdBy     String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  applications  JobApplication[]
+
+  @@index([tenantId, status])
+}
+
+model JobApplication {
+  id            String     @id @default(uuid())
+  tenantId      String
+  tenant        Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  jobPostingId  String
+  jobPosting    JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  applicantName String
+  email         String?
+  phone         String?
+  resumeUrl     String?
+  coverLetter   String?
+  experience    Int?
+  currentSalary Float?
+  expectedSalary Float?
+  stage         String     @default("applied")
+  rating        Int?
+  notes         String?
+  appliedAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([tenantId, stage])
+  @@index([jobPostingId])
 }

@@ -17,6 +17,52 @@ router.get("/", requirePermission("leads", "view"), async (req, res) => {
   try { res.json(await prisma.lead.findMany({ where: { tenantId: req.tenantId }, orderBy: { createdAt: "desc" } })); }
   catch (err) { res.status(500).json({ message: err.message }); }
 });
+
+router.get("/pipeline-stats", requirePermission("leads", "view"), async (req, res) => {
+  try {
+    const leads = await prisma.lead.findMany({
+      where: { tenantId: req.tenantId },
+      select: { status: true, source: true },
+    });
+    const total = leads.length;
+    const won = leads.filter((l) => l.status === "won").length;
+    const lost = leads.filter((l) => l.status === "lost").length;
+    const stages = ["new", "contacted", "qualified", "quoted", "won", "lost"];
+    const byStage = stages.map((status) => ({
+      status,
+      count: leads.filter((l) => l.status === status).length,
+    }));
+
+    const sourceMap = {};
+    for (const lead of leads) {
+      const src = String(lead.source || "").trim() || "Unknown";
+      if (!sourceMap[src]) sourceMap[src] = { total: 0, won: 0 };
+      sourceMap[src].total += 1;
+      if (lead.status === "won") sourceMap[src].won += 1;
+    }
+    const bySource = Object.entries(sourceMap)
+      .map(([source, v]) => ({
+        source,
+        total: v.total,
+        won: v.won,
+        conversionRate: v.total > 0 ? ((v.won / v.total) * 100).toFixed(1) : "0",
+      }))
+      .sort((a, b) => b.total - a.total);
+
+    res.json({
+      total,
+      won,
+      lost,
+      active: total - won - lost,
+      conversionRate: total > 0 ? ((won / total) * 100).toFixed(1) : "0",
+      byStage,
+      bySource,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 router.get("/check-duplicate", requirePermission("leads", "view"), async (req, res) => {
   try {
     const email = nonEmpty(req.query.email);

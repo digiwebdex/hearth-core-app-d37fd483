@@ -31,6 +31,7 @@ import { InvoiceInstallmentsPanel } from "@/components/invoices/InvoiceInstallme
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import EmptyState from "@/components/EmptyState";
+import { WorkflowNextStep } from "@/components/WorkflowNextStep";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
 import DataExport from "@/components/DataExport";
@@ -562,6 +563,12 @@ const Invoices = () => {
             <DialogHeader><DialogTitle>{t("invoicesForm.detail.title")}</DialogTitle></DialogHeader>
             {selectedInvoice && (
               <div className="space-y-4">
+                <WorkflowNextStep
+                  current="invoice"
+                  next="payment"
+                  nextLabel={t("invoicesForm.recordPayment", { defaultValue: "Record payment" })}
+                  onNextClick={selectedInvoice.dueAmount > 0 ? () => { setDetailDialogOpen(false); setPayDialogOpen(true); } : undefined}
+                />
                 {/* Summary */}
                 <div className="rounded-md border p-4 space-y-2">
                   <div className="flex items-center justify-between">

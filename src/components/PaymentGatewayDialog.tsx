@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, CreditCard, Smartphone, Truck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { paymentGatewayApi, type PaymentGateway } from "@/lib/paymentGatewayApi";
+import { useGatewayStatus } from "@/hooks/useGatewayStatus";
+import { useHumanError } from "@/hooks/useHumanError";
 
 interface PaymentGatewayDialogProps {
   open: boolean;
@@ -17,29 +20,36 @@ interface PaymentGatewayDialogProps {
   onSuccess?: () => void;
 }
 
-const gateways: { id: PaymentGateway; name: string; icon: React.ReactNode; description: string; badge?: string }[] = [
+const ALL_GATEWAYS: { id: PaymentGateway; name: string; icon: React.ReactNode; descriptionEn: string; descriptionBn: string; badge?: string }[] = [
   {
     id: "sslcommerz",
     name: "SSLCommerz",
     icon: <CreditCard className="h-6 w-6" />,
-    description: "Pay with Visa, Mastercard, Mobile Banking, Internet Banking",
+    descriptionEn: "Visa, Mastercard, mobile banking, internet banking",
+    descriptionBn: "ভিসা, মাস্টারকার্ড, মোবাইল ব্যাংকিং, ইন্টারনেট ব্যাংকিং",
     badge: "Recommended",
   },
   {
     id: "bkash",
     name: "bKash",
     icon: <Smartphone className="h-6 w-6" />,
-    description: "Pay using bKash mobile wallet",
+    descriptionEn: "Pay with bKash wallet",
+    descriptionBn: "bKash ওয়ালেট দিয়ে পেমেন্ট",
   },
   {
     id: "cod",
     name: "Cash on Delivery",
     icon: <Truck className="h-6 w-6" />,
-    description: "Pay in cash when service is delivered",
+    descriptionEn: "Pay in cash when service is delivered",
+    descriptionBn: "সেবা ডেলিভারির সময় নগদ পেমেন্ট",
   },
 ];
 
 const PaymentGatewayDialog = ({ open, onOpenChange, invoiceId, amount, onSuccess }: PaymentGatewayDialogProps) => {
+  const { i18n } = useTranslation();
+  const isBn = String(i18n.resolvedLanguage || i18n.language || "en").startsWith("bn");
+  const { status } = useGatewayStatus();
+  const { formatError, errorTitle } = useHumanError();
   const [selectedGateway, setSelectedGateway] = useState<PaymentGateway | null>(null);
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
@@ -47,10 +57,20 @@ const PaymentGatewayDialog = ({ open, onOpenChange, invoiceId, amount, onSuccess
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  const gateways = useMemo(() => ALL_GATEWAYS.filter((gw) => {
+    if (gw.id === "sslcommerz") return status.sslcommerz.configured;
+    if (gw.id === "bkash") return status.bkash.configured;
+    return true;
+  }), [status]);
+
   const handlePay = async () => {
     if (!selectedGateway) return;
     if (!customerName.trim() || !customerPhone.trim()) {
-      toast({ title: "Missing info", description: "Name and phone are required.", variant: "destructive" });
+      toast({
+        title: isBn ? "তথ্য অনুপস্থিত" : "Missing info",
+        description: isBn ? "নাম ও ফোন আবশ্যক।" : "Name and phone are required.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -66,16 +86,17 @@ const PaymentGatewayDialog = ({ open, onOpenChange, invoiceId, amount, onSuccess
       });
 
       if (res.redirectUrl) {
-        // SSLCommerz / bKash → redirect to payment page
         window.location.href = res.redirectUrl;
       } else {
-        // COD → confirmed immediately
-        toast({ title: "Order confirmed", description: res.message || "Cash on delivery order placed." });
+        toast({
+          title: isBn ? "অর্ডার নিশ্চিত" : "Order confirmed",
+          description: res.message || (isBn ? "ক্যাশ অন ডেলিভারি নিশ্চিত হয়েছে।" : "Cash on delivery order placed."),
+        });
         onSuccess?.();
         onOpenChange(false);
       }
-    } catch (err: any) {
-      toast({ title: "Payment failed", description: err.message, variant: "destructive" });
+    } catch (err) {
+      toast({ variant: "destructive", title: errorTitle(), description: formatError(err) });
     } finally {
       setLoading(false);
     }
@@ -92,77 +113,58 @@ const PaymentGatewayDialog = ({ open, onOpenChange, invoiceId, amount, onSuccess
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) reset(); }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Pay Now — ৳{amount.toFixed(2)}</DialogTitle>
+          <DialogTitle>{isBn ? "পেমেন্ট করুন" : "Pay Now"} — ৳{amount.toFixed(2)}</DialogTitle>
         </DialogHeader>
 
-        {/* Step 1: Select gateway */}
-        <div className="space-y-3">
-          <Label className="text-sm font-medium">Select Payment Method</Label>
-          {gateways.map((gw) => (
-            <Card
-              key={gw.id}
-              className={`cursor-pointer transition-all ${
-                selectedGateway === gw.id
-                  ? "ring-2 ring-primary border-primary"
-                  : "hover:border-primary/50"
-              }`}
-              onClick={() => setSelectedGateway(gw.id)}
-            >
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className="flex-shrink-0 text-primary">{gw.icon}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm">{gw.name}</span>
-                    {gw.badge && <Badge variant="secondary" className="text-xs">{gw.badge}</Badge>}
+        {gateways.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">
+            {isBn
+              ? "অনলাইন গেটওয়ে কনফিগার করা নেই। ম্যানুয়াল পেমেন্ট রেকর্ড করুন।"
+              : "No online gateways configured. Record payment manually."}
+          </p>
+        ) : (
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">{isBn ? "পেমেন্ট পদ্ধতি" : "Select Payment Method"}</Label>
+            {gateways.map((gw) => (
+              <Card
+                key={gw.id}
+                className={`cursor-pointer transition-all ${
+                  selectedGateway === gw.id
+                    ? "ring-2 ring-primary border-primary"
+                    : "hover:border-primary/50"
+                }`}
+                onClick={() => setSelectedGateway(gw.id)}
+              >
+                <CardContent className="flex items-center gap-4 p-4">
+                  <div className="flex-shrink-0 text-primary">{gw.icon}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm">{gw.name}</span>
+                      {gw.badge && <Badge variant="secondary" className="text-xs">{gw.badge}</Badge>}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {isBn ? gw.descriptionBn : gw.descriptionEn}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{gw.description}</p>
-                </div>
-                <div className={`h-4 w-4 rounded-full border-2 flex-shrink-0 ${
-                  selectedGateway === gw.id ? "border-primary bg-primary" : "border-muted-foreground/30"
-                }`}>
-                  {selectedGateway === gw.id && <div className="h-full w-full rounded-full bg-primary-foreground scale-50" />}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
-        {/* Step 2: Customer details */}
         {selectedGateway && (
           <div className="space-y-3 pt-2 border-t">
-            <Label className="text-sm font-medium">Customer Details</Label>
+            <Label className="text-sm font-medium">{isBn ? "কাস্টমার তথ্য" : "Customer Details"}</Label>
             <div className="space-y-2">
-              <Input
-                placeholder="Full name *"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                maxLength={100}
-                required
-              />
-              <Input
-                type="email"
-                placeholder="Email (optional)"
-                value={customerEmail}
-                onChange={(e) => setCustomerEmail(e.target.value)}
-                maxLength={255}
-              />
-              <Input
-                placeholder="Phone number *"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                maxLength={20}
-                required
-              />
+              <Input placeholder={isBn ? "পুরো নাম *" : "Full name *"} value={customerName} onChange={(e) => setCustomerName(e.target.value)} maxLength={100} required />
+              <Input type="email" placeholder="Email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} maxLength={255} />
+              <Input placeholder={isBn ? "ফোন *" : "Phone number *"} value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} maxLength={20} required />
             </div>
             <Button className="w-full" onClick={handlePay} disabled={loading}>
-              {loading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : selectedGateway === "cod" ? (
-                <Truck className="mr-2 h-4 w-4" />
-              ) : (
-                <CreditCard className="mr-2 h-4 w-4" />
-              )}
-              {selectedGateway === "cod" ? "Confirm COD Order" : `Pay ৳${amount.toFixed(2)}`}
+              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {selectedGateway === "cod"
+                ? (isBn ? "COD নিশ্চিত করুন" : "Confirm COD Order")
+                : `${isBn ? "পে" : "Pay"} ৳${amount.toFixed(2)}`}
             </Button>
           </div>
         )}

@@ -1,0 +1,40 @@
+{
+  "name": "Travel Agency Web",
+  "short_name": "TAWSS",
+  "description": "Travel agency ERP — leads, bookings, invoices, and operations",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/images/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/dashboard",
+      "description": "Open agency dashboard"
+    },
+    {
+      "name": "Leads",
+      "url": "/leads",
+      "description": "CRM leads"
+    },
+    {
+      "name": "Bookings",
+      "url": "/bookings",
+      "description": "Active bookings"
+    },
+    {
+      "name": "Support tickets",
+      "url": "/support",
+      "description": "Client support queue"
+    }
+  ]
+}

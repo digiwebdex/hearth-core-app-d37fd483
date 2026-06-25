@@ -5,10 +5,16 @@
 const router = require("express").Router();
 const { authenticate, prisma } = require("../middleware/auth");
 const { handlePaymentSuccess, auditPaymentEvent } = require("../services/paymentGateway");
+const { getGatewayStatus } = require("../lib/paymentGatewayConfig");
 
 // Mount gateway-specific routes
 router.use("/sslcommerz", require("./sslcommerz"));
 router.use("/bkash", require("./bkash"));
+
+// GET /api/payments/gateway-status — which online gateways are configured
+router.get("/gateway-status", authenticate, (_req, res) => {
+  res.json(getGatewayStatus());
+});
 
 function buildGatewayLogWhere({ tenantId, transactionId, includePending = false }) {
   const actions = includePending
