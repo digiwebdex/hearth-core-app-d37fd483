@@ -119,35 +119,38 @@ async function sendViaMetaWhatsApp(to, message, templateName, templateParams) {
 async function sendViaWasender(to, message) {
   try {
     const apiKey = process.env.WASENDER_API_KEY;
-    const instanceId = process.env.WASENDER_INSTANCE_ID;
 
-    if (!apiKey || !instanceId) {
+    if (!apiKey) {
       console.log(`[WHATSAPP-LOG] WasenderAPI not configured. To: ${to} | Message: ${message}`);
-      return { success: false, provider: "wasender", error: "WASENDER_API_KEY and WASENDER_INSTANCE_ID required" };
+      return { success: false, provider: "wasender", error: "WASENDER_API_KEY required" };
     }
 
-    const cleanNumber = String(to).replace(/[^0-9]/g, "");
-    const phone = cleanNumber.startsWith("880") ? cleanNumber : `880${cleanNumber.replace(/^0/, "")}`;
+    // Normalize to Bangladesh number: 8801XXXXXXXXX
+    const digits = String(to).replace(/[^0-9]/g, "");
+    let phone = digits;
+    if (digits.startsWith("0") && digits.length === 11) phone = `88${digits}`;
+    else if (!digits.startsWith("880")) phone = `880${digits}`;
 
-    const res = await fetch(`https://wasenderapi.com/api/send-text`, {
+    const res = await fetch(`https://wasenderapi.com/api/send-message`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        session: instanceId,
-        to: `${phone}@c.us`,
-        text: message,
-      }),
+      body: JSON.stringify({ to: phone, type: "text", text: message }),
     });
 
     const data = await res.json();
 
-    if (data?.success || data?.status === "success" || data?.id) {
-      return { success: true, provider: "wasender", messageId: data.id || data.messageId || `WA-${Date.now()}` };
+    if (data?.id || data?.success || data?.status === "sent") {
+      return { success: true, provider: "wasender", messageId: data.id || `WA-${Date.now()}` };
     }
-    return { success: false, provider: "wasender", error: data?.message || data?.error || "Failed to send" };
+    // Rate limit hit — log and treat as non-fatal
+    if (data?.retry_after) {
+      console.warn(`[WASENDER] Rate limited. Retry after ${data.retry_after}s`);
+      return { success: false, provider: "wasender", error: `Rate limited. Retry after ${data.retry_after}s` };
+    }
+    return { success: false, provider: "wasender", error: data?.message || "Failed to send" };
   } catch (err) {
     return { success: false, provider: "wasender", error: err.message };
   }
@@ -158,14 +161,14 @@ function getWhatsAppConfig() {
   return {
     provider,
     configured: isWhatsAppConfigured(provider),
-    wasenderInstanceId: process.env.WASENDER_INSTANCE_ID || "",
+    wasenderKeyConfigured: Boolean(process.env.WASENDER_API_KEY),
     metaPhoneId: process.env.META_WHATSAPP_PHONE_ID || "",
     twilioFrom: process.env.WHATSAPP_FROM_NUMBER || "",
   };
 }
 
 function isWhatsAppConfigured(provider) {
-  if (provider === "wasender") return Boolean(process.env.WASENDER_API_KEY && process.env.WASENDER_INSTANCE_ID);
+  if (provider === "wasender") return Boolean(process.env.WASENDER_API_KEY);
   if (provider === "meta") return Boolean(process.env.META_WHATSAPP_TOKEN && process.env.META_WHATSAPP_PHONE_ID);
   if (provider === "twilio") return Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
   return false;
