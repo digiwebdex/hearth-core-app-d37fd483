@@ -10,6 +10,7 @@ import {
   ArrowRight, MessageCircle,
 } from "lucide-react";
 import { useState } from "react";
+import BookingModal, { type BookingPackage } from "@/components/site/BookingModal";
 
 const iconMap: Record<string, React.ElementType> = {
   Plane, MapPin, CreditCard, Shield, Star, Hotel, Map, Phone, Mail, Clock,
@@ -21,6 +22,7 @@ export default function TravelAgencyTemplate({ config }: { config: WebsiteConfig
   const featured = packages.slice(0, 6);
   const c = config.colors;
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [bookingPkg, setBookingPkg] = useState<BookingPackage | null>(null);
 
   return (
     <div style={{ backgroundColor: `hsl(${c.background})`, color: `hsl(${c.text})` }}>
@@ -188,11 +190,14 @@ export default function TravelAgencyTemplate({ config }: { config: WebsiteConfig
                     )}
                     <div className="flex items-center justify-between pt-3 border-t">
                       <span className="text-xl font-bold" style={{ color: `hsl(${c.primary})` }}>৳{pkg.price.toLocaleString()}</span>
-                      <Link to="/site/contact">
-                        <Button size="sm" className="gap-1" style={{ backgroundColor: `hsl(${c.primary})`, color: "white" }}>
-                          Book Now <ArrowRight className="h-3 w-3" />
-                        </Button>
-                      </Link>
+                      <Button
+                        size="sm"
+                        className="gap-1"
+                        style={{ backgroundColor: `hsl(${c.primary})`, color: "white" }}
+                        onClick={() => setBookingPkg({ id: pkg.id, name: pkg.name, price: pkg.price, duration: pkg.duration || "", type: pkg.type, image: pkg.image })}
+                      >
+                        Book Now <ArrowRight className="h-3 w-3" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -345,6 +350,8 @@ export default function TravelAgencyTemplate({ config }: { config: WebsiteConfig
           </div>
         </section>
       )}
+
+      <BookingModal open={!!bookingPkg} onClose={() => setBookingPkg(null)} pkg={bookingPkg} />
     </div>
   );
 }

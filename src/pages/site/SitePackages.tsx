@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import { Plane, Search, Check, Pencil, Settings } from "lucide-react";
+import BookingModal, { type BookingPackage } from "@/components/site/BookingModal";
 
 const typeLabels: Record<string, string> = {
   tour: "Tour",
@@ -32,6 +33,7 @@ const SitePackages = () => {
   const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [activeType, setActiveType] = useState<string>("all");
+  const [bookingPkg, setBookingPkg] = useState<BookingPackage | null>(null);
 
   const types = useMemo(() => {
     const set = new Set(packages.map((p) => p.type));
@@ -119,31 +121,32 @@ const SitePackages = () => {
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map((pkg) => (
-                <Card key={pkg.id} className="overflow-hidden hover:shadow-lg transition-shadow flex flex-col">
-                  <div className="h-44 bg-primary/10 flex items-center justify-center overflow-hidden">
+                <Card key={pkg.id} className="overflow-hidden hover:shadow-lg transition-shadow flex flex-col group">
+                  <div className="h-44 bg-primary/10 flex items-center justify-center overflow-hidden relative">
                     {pkg.image ? (
-                      <img src={pkg.image} alt={pkg.name} className="w-full h-full object-cover" />
+                      <img src={pkg.image} alt={pkg.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                     ) : (
                       <Plane className="h-14 w-14 text-primary/30" />
+                    )}
+                    {pkg.isFeatured && (
+                      <div className="absolute top-3 left-3">
+                        <Badge className="bg-orange-500 text-white border-0 shadow">{isBn ? "ফিচার্ড" : "Featured"}</Badge>
+                      </div>
                     )}
                   </div>
                   <CardContent className="p-5 flex-1 flex flex-col">
                     <div className="flex items-center justify-between mb-2 gap-3 flex-wrap">
                       <Badge variant="secondary" className="capitalize">{typeLabels[pkg.type] || pkg.type}</Badge>
                       <div className="flex items-center gap-2">
-                        {pkg.isFeatured ? <Badge>{isBn ? "ফিচার্ড" : "Featured"}</Badge> : null}
-                        {pkg.visaRequired ? <Badge variant="outline">{isBn ? "ভিসা লাগবে" : "Visa required"}</Badge> : null}
+                        {pkg.visaRequired ? <Badge variant="outline">{isBn ? "ভিসা লাগবে" : "Visa req."}</Badge> : null}
                         <span className="text-xs text-muted-foreground whitespace-nowrap">{pkg.duration}</span>
                       </div>
                     </div>
                     <h3 className="font-bold text-lg mb-1">{pkg.name}</h3>
                     <p className="text-sm text-muted-foreground mb-3 flex-1">{pkg.description}</p>
-                    {pkg.cancellationPolicy ? (
-                      <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{pkg.cancellationPolicy}</p>
-                    ) : null}
                     {pkg.highlights.length > 0 && (
                       <ul className="space-y-1 mb-4">
-                        {pkg.highlights.map((h) => (
+                        {pkg.highlights.slice(0, 4).map((h) => (
                           <li key={h} className="flex items-center gap-1.5 text-xs text-muted-foreground">
                             <Check className="h-3 w-3 text-green-600 shrink-0" />
                             {h}
@@ -151,9 +154,18 @@ const SitePackages = () => {
                         ))}
                       </ul>
                     )}
-                    <div className="flex items-center justify-between pt-2 border-t">
-                      <span className="text-xl font-bold text-primary">৳{pkg.price.toLocaleString()}</span>
-                      <Link to="/site/contact"><Button size="sm">{primaryButtonText}</Button></Link>
+                    <div className="flex items-center justify-between pt-3 border-t gap-2">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Starting from</p>
+                        <span className="text-xl font-bold text-primary">৳{pkg.price.toLocaleString()}</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="shrink-0"
+                        onClick={() => setBookingPkg({ id: pkg.id, name: pkg.name, price: pkg.price, duration: pkg.duration, type: pkg.type, image: pkg.image })}
+                      >
+                        {primaryButtonText}
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -162,6 +174,8 @@ const SitePackages = () => {
           )}
         </div>
       </section>
+
+      <BookingModal open={!!bookingPkg} onClose={() => setBookingPkg(null)} pkg={bookingPkg} />
     </PublicLayout>
   );
 };

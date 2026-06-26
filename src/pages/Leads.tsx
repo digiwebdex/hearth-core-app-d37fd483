@@ -315,7 +315,14 @@ const Leads = () => {
                 const meta = getStatusMeta(lead.status);
                 return (
                   <TableRow key={lead.id} className="cursor-pointer" onClick={() => navigate(`/leads/${lead.id}`)}>
-                    <TableCell className="font-medium">{lead.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {lead.source === "website" && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 text-orange-700 text-[10px] font-semibold px-2 py-0.5 shrink-0">🌐 Web</span>
+                        )}
+                        {lead.name}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <div className="space-y-0.5 text-xs text-muted-foreground">
                         {lead.phone && <div className="flex items-center gap-1"><Phone className="h-3 w-3" />{lead.phone}</div>}
@@ -424,16 +431,26 @@ const Leads = () => {
           </PermissionGate>
         </div>
 
-        {/* Status summary */}
-        <div className="flex flex-wrap gap-2">
-          <Button variant={statusFilter === "all" ? "default" : "outline"} size="sm" onClick={() => setStatusFilter("all")}>
+        {/* Status summary + Web Inquiries quick filter */}
+        <div className="flex flex-wrap gap-2 items-center">
+          <Button variant={statusFilter === "all" && sourceFilter === "all" ? "default" : "outline"} size="sm" onClick={() => { setStatusFilter("all"); setSourceFilter("all"); }}>
             {t("leadsForm.all")} ({statusCounts.all})
           </Button>
           {LEAD_STATUSES.map((s) => (
-            <Button key={s.value} variant={statusFilter === s.value ? "default" : "outline"} size="sm" onClick={() => setStatusFilter(s.value)}>
+            <Button key={s.value} variant={statusFilter === s.value && sourceFilter === "all" ? "default" : "outline"} size="sm" onClick={() => { setStatusFilter(s.value); setSourceFilter("all"); }}>
               {t(`leadsForm.statuses.${s.value}`)} ({statusCounts[s.value] || 0})
             </Button>
           ))}
+          {leads.some((l) => l.source === "website") && (
+            <Button
+              variant={sourceFilter === "website" ? "default" : "outline"}
+              size="sm"
+              className={sourceFilter === "website" ? "bg-orange-500 hover:bg-orange-600 border-orange-500" : "border-orange-300 text-orange-700 hover:bg-orange-50"}
+              onClick={() => { setSourceFilter(sourceFilter === "website" ? "all" : "website"); setStatusFilter("all"); }}
+            >
+              🌐 Web Inquiries ({leads.filter((l) => l.source === "website").length})
+            </Button>
+          )}
         </div>
 
         {/* Search + Filters */}
