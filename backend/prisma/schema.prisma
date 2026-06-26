@@ -78,6 +78,7 @@ model Tenant {
   ticketRefunds         TicketRefund[]
   ticketVoids           TicketVoid[]
   ticketReissues        TicketReissue[]
+  bspUploads            BspUpload[]
 }
 
 model TenantDomain {
@@ -1758,4 +1759,44 @@ model TicketReissue {
 
   @@index([tenantId, status])
   @@index([tenantId, createdAt])
+}
+
+model BspUpload {
+  id             String      @id @default(uuid())
+  tenantId       String
+  tenant         Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  fileName       String
+  period         String?
+  totalRecords   Int         @default(0)
+  matchedCount   Int         @default(0)
+  unmatchedCount Int         @default(0)
+  status         String      @default("pending")
+  uploadedBy     String?
+  createdAt      DateTime    @default(now())
+  records        BspRecord[]
+
+  @@index([tenantId, createdAt])
+}
+
+model BspRecord {
+  id              String    @id @default(uuid())
+  uploadId        String
+  upload          BspUpload @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  tenantId        String
+  ticketNumber    String?
+  passengerName   String?
+  airline         String?
+  issuedDate      String?
+  fare            Float     @default(0)
+  tax             Float     @default(0)
+  total           Float     @default(0)
+  commission      Float     @default(0)
+  netRemit        Float     @default(0)
+  matchedBookingId String?
+  matchedPnr      String?
+  matchStatus     String    @default("unmatched")
+  matchNote       String?
+
+  @@index([tenantId, matchStatus])
+  @@index([uploadId])
 }

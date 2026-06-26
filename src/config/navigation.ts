@@ -178,6 +178,9 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
         { id: "quotations", titleKey: "sidebar.quotations", url: "/quotations", icon: FileText, module: "quotations" },
         { id: "bookings", titleKey: "sidebar.bookings", url: "/bookings", icon: Plane, module: "bookings" },
         { id: "ticket-transactions", titleKey: "sidebar.ticketTransactions", url: "/ticket-transactions", icon: RefreshCw, module: "bookings" },
+        { id: "flight-reminders", titleKey: "sidebar.flightReminders", url: "/flight-reminders", icon: Bell, module: "bookings" },
+        { id: "bsp-reconcile", titleKey: "sidebar.bspReconcile", url: "/bsp-reconcile", icon: FileText, module: "bookings" },
+        { id: "bulk-import", titleKey: "sidebar.bulkImport", url: "/bulk-import", icon: UploadCloud, module: "bookings" },
       ],
     },
     {
