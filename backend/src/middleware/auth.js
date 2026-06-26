@@ -158,24 +158,8 @@ function requirePermission(module, action) {
 }
 
 // ── Plan limit enforcement middleware ──
-// PLAN_LIMITS mirrors src/lib/plans.ts
-const PLAN_LIMITS = {
-  // Legacy "free" exists in DB type; treat it as Basic for consistent enforcement.
-  free:       { clients: 500,  bookings: 500,  users: 3,  domains: 0, leads: 500,  quotations: 500 },
-  basic:      { clients: 500,  bookings: 500,  users: 3,  domains: 0, leads: 500,  quotations: 500 },
-  pro:        { clients: 1000, bookings: 1000, users: 10, domains: 1, leads: 1000, quotations: 1000 },
-  business:   { clients: 2000, bookings: 2000, users: 25, domains: 2, leads: 2000, quotations: 2000 },
-  enterprise: { clients: -1,   bookings: -1,   users: -1, domains: -1, leads: -1,  quotations: -1 },
-};
-
-const RESOURCE_MODEL_MAP = {
-  clients: "client",
-  bookings: "booking",
-  users: "user",
-  domains: "tenantDomain",
-  leads: "lead",
-  quotations: "quotation",
-};
+// Single backend plan config (limits + features) lives in lib/planFeatures.js.
+const { RESOURCE_MODEL_MAP, getPlanLimit } = require("../lib/planFeatures");
 
 // Usage: router.post("/", checkPlanLimit("clients"), handler)
 function checkPlanLimit(resource) {
@@ -187,12 +171,12 @@ function checkPlanLimit(resource) {
       });
       if (!tenant) return res.status(404).json({ message: "Tenant not found" });
 
-      const plan = tenant.subscriptionPlan || "free";
-      const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.free;
-      const limit = limits[resource];
+      const plan = tenant.subscriptionPlan || "basic";
+      // getPlanLimit normalizes aliases (unlimited→enterprise, free→basic).
+      const limit = getPlanLimit(plan, resource);
 
-      // -1 = unlimited
-      if (limit === -1) return next();
+      // undefined = unknown resource → skip; -1 = unlimited
+      if (limit === undefined || limit === -1) return next();
       // 0 = not allowed
       if (limit === 0) return res.status(403).json({ message: `Your ${plan} plan does not include ${resource}` });
 
