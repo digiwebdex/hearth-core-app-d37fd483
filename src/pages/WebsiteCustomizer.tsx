@@ -33,10 +33,113 @@ import {
 } from "lucide-react";
 
 const templates = [
-  { id: "travel-agency" as const, name: "Travel Agency", description: "Classic agency layout for flight, visa, hotel and outbound businesses." },
-  { id: "hajj-umrah" as const, name: "Hajj & Umrah", description: "Spiritual service layout for Hajj, Umrah, visa, and ziyarat agencies." },
-  { id: "tour-packages" as const, name: "Tour Packages", description: "Visual package-selling layout for holiday, honeymoon, and adventure brands." },
+  { id: "travel-agency" as const, name: "Travel Agency", description: "Classic agency layout for flight, visa, hotel and outbound businesses.", emoji: "✈️" },
+  { id: "hajj-umrah" as const, name: "Hajj & Umrah", description: "Spiritual service layout for Hajj, Umrah, visa, and ziyarat agencies.", emoji: "🕌" },
+  { id: "tour-packages" as const, name: "Tour Packages", description: "Visual package-selling layout for holiday, honeymoon, and adventure brands.", emoji: "🌴" },
 ];
+
+function hsl(v: string) {
+  const parts = v.trim().split(/\s+/);
+  return `hsl(${parts[0]}, ${parts[1]}, ${parts[2]})`;
+}
+
+function ThemeMiniPreview({ colors, isActive }: { colors: WebsiteConfig["colors"]; isActive: boolean }) {
+  const isDark = parseInt(colors.background.split(" ")[2]) < 30;
+  const cardBg = isDark ? `hsl(${colors.secondary.replace(/\s+/g, ",")} / 0.5)` : hsl(colors.secondary);
+  return (
+    <div
+      className={`relative overflow-hidden rounded-xl border-2 transition-all ${isActive ? "border-primary ring-2 ring-primary/30" : "border-transparent"}`}
+      style={{ background: hsl(colors.background) }}
+    >
+      {/* Navbar */}
+      <div className="flex items-center justify-between px-3 py-2" style={{ background: hsl(colors.primary) }}>
+        <div className="flex items-center gap-1.5">
+          <div className="h-3 w-3 rounded-full bg-white/80" />
+          <div className="h-1.5 w-10 rounded bg-white/60" />
+        </div>
+        <div className="flex gap-1.5">
+          <div className="h-1 w-5 rounded bg-white/40" />
+          <div className="h-1 w-5 rounded bg-white/40" />
+          <div className="h-1 w-5 rounded bg-white/40" />
+        </div>
+        <div className="h-4 w-10 rounded-full flex items-center justify-center" style={{ background: hsl(colors.accent) }}>
+          <span style={{ fontSize: 5, color: "#fff", fontWeight: 700 }}>Book</span>
+        </div>
+      </div>
+
+      {/* Hero */}
+      <div className="px-3 pt-3 pb-2" style={{ background: `linear-gradient(135deg, ${hsl(colors.primary)}, ${hsl(colors.primary)}CC)` }}>
+        <div className="mb-1.5 h-1.5 w-14 rounded-full" style={{ background: hsl(colors.accent) }} />
+        <div className="mb-0.5 h-2.5 w-28 rounded bg-white/85" />
+        <div className="mb-0.5 h-1.5 w-20 rounded bg-white/60" />
+        <div className="mb-2.5 h-1.5 w-24 rounded bg-white/50" />
+        <div className="flex gap-1.5">
+          <div className="h-5 w-14 rounded-full flex items-center justify-center" style={{ background: hsl(colors.accent) }}>
+            <span style={{ fontSize: 5.5, color: "#fff", fontWeight: 700 }}>Book Now</span>
+          </div>
+          <div className="h-5 w-14 rounded-full border border-white/50 flex items-center justify-center">
+            <span style={{ fontSize: 5.5, color: "rgba(255,255,255,0.9)" }}>View Tours</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats row */}
+      <div className="flex gap-px" style={{ background: hsl(colors.primary) }}>
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="flex-1 py-1 text-center" style={{ background: `${hsl(colors.primary)}CC` }}>
+            <div className="h-2 w-4 rounded mx-auto mb-0.5 bg-white/80" />
+            <div className="h-1 w-5 rounded mx-auto bg-white/40" />
+          </div>
+        ))}
+      </div>
+
+      {/* Services */}
+      <div className="grid grid-cols-3 gap-1 p-2" style={{ background: hsl(colors.background) }}>
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="rounded-lg p-2 space-y-1" style={{ background: cardBg, border: `1px solid ${hsl(colors.primary)}18` }}>
+            <div className="h-3 w-3 rounded-md" style={{ background: hsl(colors.primary) }} />
+            <div className="h-1 w-full rounded" style={{ background: `${hsl(colors.text)}40` }} />
+            <div className="h-0.5 w-3/4 rounded" style={{ background: `${hsl(colors.text)}25` }} />
+          </div>
+        ))}
+      </div>
+
+      {/* Packages row */}
+      <div className="flex gap-1 px-2 pb-2">
+        {[1, 2].map((i) => (
+          <div key={i} className="flex-1 rounded-lg overflow-hidden" style={{ border: `1px solid ${hsl(colors.primary)}20` }}>
+            <div className="h-5" style={{ background: `${hsl(colors.primary)}30` }} />
+            <div className="p-1 space-y-0.5">
+              <div className="h-1 w-full rounded" style={{ background: `${hsl(colors.text)}35` }} />
+              <div className="h-0.5 w-2/3 rounded" style={{ background: `${hsl(colors.text)}20` }} />
+              <div className="h-2.5 w-10 rounded-full mt-1" style={{ background: hsl(colors.accent) }} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* CTA */}
+      <div className="px-3 py-2" style={{ background: hsl(colors.primary) }}>
+        <div className="h-2 w-20 rounded bg-white/75 mb-1" />
+        <div className="h-1.5 w-28 rounded bg-white/40" />
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between px-3 py-1.5" style={{ background: `${hsl(colors.primary)}EE` }}>
+        <div className="h-1 w-12 rounded bg-white/40" />
+        <div className="flex gap-1">
+          {[1, 2, 3].map((i) => <div key={i} className="h-2 w-2 rounded-full bg-white/30" />)}
+        </div>
+      </div>
+
+      {isActive && (
+        <div className="absolute top-2 right-2 rounded-full bg-primary text-primary-foreground text-xs px-2 py-0.5 flex items-center gap-1 shadow-md" style={{ fontSize: 9 }}>
+          ✓ Active
+        </div>
+      )}
+    </div>
+  );
+}
 
 type ContentType = WebsiteConfig["content"];
 type ServiceItem = ContentType["services"][number];
@@ -618,35 +721,75 @@ const WebsiteCustomizer = () => {
             <TabsTrigger value="publish"><Globe className="mr-1 h-4 w-4" />Publish</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="themes" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Wand2 className="h-5 w-5" />Interactive theme presets</CardTitle>
-                <CardDescription>One click updates your layout, palette, and core marketing copy.</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-4 xl:grid-cols-3">
-                {themePresets.map((preset) => (
-                  <div key={preset.id} className={`rounded-2xl border p-4 transition-all ${config.template === preset.template ? "border-primary shadow-sm" : ""}`}>
-                    <div className="mb-4 flex items-center justify-between">
-                      <div>
-                        <h3 className="font-semibold">{preset.name}</h3>
-                        <p className="text-sm text-muted-foreground">{preset.description}</p>
-                      </div>
-                      {activePreset?.id === preset.id && <Badge><Check className="mr-1 h-3 w-3" />Active</Badge>}
-                    </div>
-                    <div className="mb-4 flex gap-2">{preset.palettePreview.map((color) => <span key={color} className="h-10 w-10 rounded-full border" style={{ backgroundColor: `${color}` }} />)}</div>
-                    <div className="space-y-2 text-sm text-muted-foreground">
-                      <p><strong>Template:</strong> {templates.find((item) => item.id === preset.template)?.name}</p>
-                      <p><strong>Hero:</strong> {preset.sampleContent.heroTitle}</p>
-                    </div>
-                    <div className="mt-4 flex gap-2">
-                      <Button className="flex-1" onClick={() => applyPreset(preset)}>Apply preset</Button>
-                      <Button variant="outline" onClick={() => applyTemplate(preset.template)}>Use layout</Button>
+          <TabsContent value="themes" className="space-y-8">
+            {/* Header */}
+            <div>
+              <h2 className="text-xl font-bold flex items-center gap-2"><Wand2 className="h-5 w-5 text-primary" />Theme Presets</h2>
+              <p className="text-sm text-muted-foreground mt-1">Click any theme to apply its colors, layout, and sample content instantly. You can fine-tune after applying.</p>
+            </div>
+
+            {/* One section per template type */}
+            {templates.map((tpl) => {
+              const group = themePresets.filter((p) => p.template === tpl.id);
+              return (
+                <div key={tpl.id}>
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-lg">{tpl.emoji}</span>
+                    <div>
+                      <h3 className="font-semibold text-base">{tpl.name}</h3>
+                      <p className="text-xs text-muted-foreground">{tpl.description}</p>
                     </div>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
+                  <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+                    {group.map((preset) => {
+                      const isActive = config.colors.primary === preset.colors.primary && config.template === preset.template;
+                      return (
+                        <div
+                          key={preset.id}
+                          className={`group rounded-2xl border-2 overflow-hidden transition-all cursor-pointer hover:shadow-lg hover:-translate-y-0.5 ${isActive ? "border-primary shadow-md" : "border-border hover:border-primary/50"}`}
+                          onClick={() => applyPreset(preset)}
+                        >
+                          {/* Mini website preview */}
+                          <div className="aspect-[4/3] overflow-hidden">
+                            <div className="w-full h-full" style={{ transform: "scale(1)", transformOrigin: "top left" }}>
+                              <ThemeMiniPreview colors={preset.colors} isActive={isActive} />
+                            </div>
+                          </div>
+
+                          {/* Card info */}
+                          <div className="p-3 space-y-2 bg-card">
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <p className="font-semibold text-sm leading-tight">{preset.name}</p>
+                                <p className="text-xs text-muted-foreground leading-snug mt-0.5">{preset.description}</p>
+                              </div>
+                              {isActive && <Badge className="shrink-0 text-xs h-5"><Check className="mr-1 h-2.5 w-2.5" />Active</Badge>}
+                            </div>
+
+                            {/* Color swatches */}
+                            <div className="flex gap-1.5 items-center">
+                              {preset.palettePreview.map((c, i) => (
+                                <span
+                                  key={i}
+                                  className="h-5 w-5 rounded-full border border-black/10 shadow-sm shrink-0"
+                                  style={{ background: hsl(c) }}
+                                  title={`Color ${i + 1}: hsl(${c})`}
+                                />
+                              ))}
+                              <span className="ml-auto text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">Click to apply</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+
+            <p className="text-xs text-muted-foreground text-center pb-2">
+              Applying a theme updates your color palette, page template, and sample copy. Your uploaded images and custom content are preserved.
+            </p>
           </TabsContent>
 
           <TabsContent value="branding" className="space-y-6">
