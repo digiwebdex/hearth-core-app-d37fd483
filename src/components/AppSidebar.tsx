@@ -13,7 +13,6 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -54,27 +53,40 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarContent>
-        <div className="px-3 py-3">
-          {!collapsed && <span className="text-sm font-bold tracking-tight">{t("common.brand")}</span>}
+      {/* Brand header */}
+      <div className={`flex items-center gap-2 border-b px-3 py-3 shrink-0 ${collapsed ? "justify-center" : ""}`}>
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground text-xs font-bold">
+          H
         </div>
+        {!collapsed && (
+          <span className="text-sm font-bold tracking-tight truncate">{t("common.brand")}</span>
+        )}
+      </div>
+
+      <SidebarContent className="gap-0">
         {navigationGroups.map((group) => (
-          <AppSidebarNavGroup key={group.id} group={group} collapsed={collapsed} currentPlan={currentPlan} />
+          <AppSidebarNavGroup
+            key={group.id}
+            group={group}
+            collapsed={collapsed}
+            currentPlan={currentPlan}
+          />
         ))}
+
+        {/* Admin panel */}
         {canAccessAdmin && (
-          <SidebarGroup>
-            <SidebarGroupLabel>{!collapsed ? t("sidebar.admin") : ""}</SidebarGroupLabel>
+          <SidebarGroup className="py-0.5 px-2">
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink
                       to="/admin"
-                      className="hover:bg-sidebar-accent/50 text-destructive"
-                      activeClassName="bg-sidebar-accent font-medium"
+                      className="hover:bg-destructive/10 text-destructive"
+                      activeClassName="bg-destructive/10 font-medium"
                     >
-                      <Shield className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{t("sidebar.adminPanel")}</span>}
+                      <Shield className="h-4 w-4 shrink-0" />
+                      {!collapsed && <span className="truncate">{t("sidebar.adminPanel")}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -83,11 +95,13 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
       </SidebarContent>
-      <SidebarFooter>
+
+      <SidebarFooter className="border-t">
         {!collapsed && user && (
-          <div className="px-3 pb-1 space-y-1">
+          <div className="px-3 pt-2 pb-1 space-y-1">
+            <p className="text-xs font-medium truncate">{user.name || user.email}</p>
             <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 pt-0.5">
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">{currentPlan}</Badge>
               <span className={`inline-flex items-center rounded-full px-1.5 py-0 text-[10px] font-medium ${roleMeta.color}`}>
                 {roleMeta.label}
@@ -95,9 +109,9 @@ export function AppSidebar() {
             </div>
           </div>
         )}
-        <Button variant="ghost" size="sm" className="w-full justify-start" onClick={logout}>
-          <LogOut className="mr-2 h-4 w-4" />
-          {!collapsed && t("common.logout")}
+        <Button variant="ghost" size="sm" className={`w-full ${collapsed ? "justify-center" : "justify-start"}`} onClick={logout}>
+          <LogOut className="h-4 w-4 shrink-0" />
+          {!collapsed && <span className="ml-2">{t("common.logout")}</span>}
         </Button>
       </SidebarFooter>
     </Sidebar>

@@ -12,7 +12,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import {
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -38,38 +37,26 @@ function itemOrChildActive(item: NavItemConfig, pathname: string): boolean {
   return item.children?.some((child) => child.url && pathMatches(child.url, pathname)) ?? false;
 }
 
-function LockedNavRow({
-  item,
-  title,
-  collapsed,
-  minPlan,
-}: {
-  item: NavItemConfig;
-  title: string;
-  collapsed: boolean;
-  minPlan?: PlanType;
-}) {
+// ── Locked item row ──────────────────────────────────────────────────────────
+function LockedNavRow({ item, title, collapsed, minPlan }: { item: NavItemConfig; title: string; collapsed: boolean; minPlan?: PlanType }) {
   const { t } = useTranslation();
-
   return (
     <SidebarMenuItem>
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center gap-2 px-3 py-2 text-muted-foreground/50 cursor-not-allowed select-none">
+            <div className="flex items-center gap-2 px-3 py-2 text-muted-foreground/40 cursor-not-allowed select-none rounded-md">
               <item.icon className="h-4 w-4 shrink-0" />
               {!collapsed && (
                 <>
-                  <span className="flex-1 truncate">{title}</span>
+                  <span className="flex-1 truncate text-xs">{title}</span>
                   <Lock className="h-3 w-3 shrink-0" />
                 </>
               )}
             </div>
           </TooltipTrigger>
           <TooltipContent side="right">
-            <p>
-              {t("sidebar.upgradeTo")} {minPlan?.charAt(0).toUpperCase()}{minPlan?.slice(1)}
-            </p>
+            <p>{t("sidebar.upgradeTo")} {minPlan?.charAt(0).toUpperCase()}{minPlan?.slice(1)}</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -77,21 +64,9 @@ function LockedNavRow({
   );
 }
 
-function SidebarNavLeaf({
-  item,
-  title,
-  collapsed,
-  pathname,
-  sub = false,
-}: {
-  item: NavItemConfig;
-  title: string;
-  collapsed: boolean;
-  pathname: string;
-  sub?: boolean;
-}) {
+// ── Leaf nav item (no children) ───────────────────────────────────────────────
+function SidebarNavLeaf({ item, title, collapsed, pathname, sub = false }: { item: NavItemConfig; title: string; collapsed: boolean; pathname: string; sub?: boolean }) {
   if (!item.url) return null;
-
   const activeMatcher = (path: string) => navItemIsActive(item.url!, path);
 
   if (sub) {
@@ -105,11 +80,36 @@ function SidebarNavLeaf({
             className="hover:bg-sidebar-accent/50"
             activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
           >
-            <item.icon className="h-4 w-4" />
+            <item.icon className="h-3.5 w-3.5 shrink-0" />
             <span>{title}</span>
           </NavLink>
         </SidebarMenuSubButton>
       </SidebarMenuSubItem>
+    );
+  }
+
+  if (collapsed) {
+    return (
+      <SidebarMenuItem>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <SidebarMenuButton asChild data-active={activeMatcher(pathname) ? true : undefined}>
+                <NavLink
+                  to={item.url}
+                  end
+                  isActiveOverride={activeMatcher}
+                  className="hover:bg-sidebar-accent/50 justify-center"
+                  activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                >
+                  <item.icon className="h-4 w-4" />
+                </NavLink>
+              </SidebarMenuButton>
+            </TooltipTrigger>
+            <TooltipContent side="right">{title}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </SidebarMenuItem>
     );
   }
 
@@ -123,25 +123,16 @@ function SidebarNavLeaf({
           className="hover:bg-sidebar-accent/50"
           activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
         >
-          <item.icon className="mr-2 h-4 w-4" />
-          {!collapsed && <span>{title}</span>}
+          <item.icon className="h-4 w-4 shrink-0" />
+          <span className="truncate">{title}</span>
         </NavLink>
       </SidebarMenuButton>
     </SidebarMenuItem>
   );
 }
 
-function SidebarNavItem({
-  item,
-  collapsed,
-  currentPlan,
-  pathname,
-}: {
-  item: NavItemConfig;
-  collapsed: boolean;
-  currentPlan: PlanType;
-  pathname: string;
-}) {
+// ── Individual nav item (may have nested children) ────────────────────────────
+function SidebarNavItem({ item, collapsed, currentPlan, pathname }: { item: NavItemConfig; collapsed: boolean; currentPlan: PlanType; pathname: string }) {
   const { t } = useTranslation();
   const title = t(item.titleKey);
   const planOk = isPlanSufficient(item.minPlan, currentPlan);
@@ -158,19 +149,11 @@ function SidebarNavItem({
   }
 
   if (hasChildren && item.children) {
-    const visibleChildren = item.children;
-
     if (collapsed) {
       return (
         <>
-          {visibleChildren.map((child) => (
-            <SidebarNavItem
-              key={child.id}
-              item={child}
-              collapsed={collapsed}
-              currentPlan={currentPlan}
-              pathname={pathname}
-            />
+          {item.children.map((child) => (
+            <SidebarNavItem key={child.id} item={child} collapsed={collapsed} currentPlan={currentPlan} pathname={pathname} />
           ))}
         </>
       );
@@ -181,30 +164,28 @@ function SidebarNavItem({
         <SidebarMenuItem>
           <CollapsibleTrigger asChild>
             <SidebarMenuButton className="hover:bg-sidebar-accent/50">
-              <item.icon className="mr-2 h-4 w-4" />
+              <item.icon className="h-4 w-4 shrink-0" />
               <span className="flex-1 truncate">{title}</span>
-              <ChevronRight className="h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+              <ChevronRight className="h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
             </SidebarMenuButton>
           </CollapsibleTrigger>
           <CollapsibleContent>
             <SidebarMenuSub>
-              {visibleChildren.map((child) => {
+              {item.children.map((child) => {
                 const childPlanOk = isPlanSufficient(child.minPlan, currentPlan);
                 const childTitle = t(child.titleKey);
                 if (!childPlanOk) {
                   return (
                     <SidebarMenuSubItem key={child.id}>
-                      <div className="flex h-7 items-center gap-2 px-2 text-xs text-muted-foreground/50">
-                        <child.icon className="h-3.5 w-3.5" />
+                      <div className="flex h-7 items-center gap-2 px-2 text-xs text-muted-foreground/40">
+                        <child.icon className="h-3.5 w-3.5 shrink-0" />
                         <span className="truncate">{childTitle}</span>
-                        <Lock className="h-3 w-3" />
+                        <Lock className="h-3 w-3 shrink-0" />
                       </div>
                     </SidebarMenuSubItem>
                   );
                 }
-                return (
-                  <SidebarNavLeaf key={child.id} item={child} title={childTitle} collapsed={collapsed} pathname={pathname} sub />
-                );
+                return <SidebarNavLeaf key={child.id} item={child} title={childTitle} collapsed={collapsed} pathname={pathname} sub />;
               })}
             </SidebarMenuSub>
           </CollapsibleContent>
@@ -230,15 +211,8 @@ function filterVisibleItems(items: NavItemConfig[], canAccess: (module: Module) 
     .filter(Boolean) as NavItemConfig[];
 }
 
-export function AppSidebarNavGroup({
-  group,
-  collapsed,
-  currentPlan,
-}: {
-  group: NavGroupConfig;
-  collapsed: boolean;
-  currentPlan: PlanType;
-}) {
+// ── Group rendered as a collapsible section ───────────────────────────────────
+export function AppSidebarNavGroup({ group, collapsed, currentPlan }: { group: NavGroupConfig; collapsed: boolean; currentPlan: PlanType }) {
   const { t } = useTranslation();
   const { canAccess } = usePermissions();
   const { pathname } = useLocation();
@@ -247,27 +221,66 @@ export function AppSidebarNavGroup({
   if (visibleItems.length === 0) return null;
 
   const groupActive = navGroupHasActiveItem(visibleItems, pathname);
+  const [open, setOpen] = useState(groupActive);
+
+  useEffect(() => {
+    if (groupActive) setOpen(true);
+  }, [groupActive]);
+
+  const GroupIcon = group.icon;
+
+  // ── Icon-only (collapsed sidebar) — show icons without group header ──────
+  if (collapsed) {
+    return (
+      <SidebarGroup className="py-0.5">
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {visibleItems.map((item) => (
+              <SidebarNavItem key={item.id} item={item} collapsed={collapsed} currentPlan={currentPlan} pathname={pathname} />
+            ))}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    );
+  }
+
+  // ── Expanded sidebar — group header is the collapse toggle ────────────────
+  const label = t(group.labelKey);
 
   return (
-    <SidebarGroup data-group-active={groupActive || undefined}>
-      <SidebarGroupLabel
-        className={groupActive ? "text-sidebar-accent-foreground font-semibold" : undefined}
-      >
-        {!collapsed ? t(group.labelKey) : ""}
-      </SidebarGroupLabel>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {visibleItems.map((item) => (
-            <SidebarNavItem
-              key={item.id}
-              item={item}
-              collapsed={collapsed}
-              currentPlan={currentPlan}
-              pathname={pathname}
+    <SidebarGroup className="py-0.5 px-2">
+      <Collapsible open={open} onOpenChange={setOpen} className="group/section">
+        {/* Group header row */}
+        <CollapsibleTrigger asChild>
+          <button
+            className={`
+              w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider
+              transition-colors duration-150 cursor-pointer select-none
+              ${groupActive
+                ? "text-primary bg-primary/8"
+                : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/40"
+              }
+            `}
+          >
+            <GroupIcon className={`h-3.5 w-3.5 shrink-0 ${groupActive ? "text-primary" : ""}`} />
+            <span className="flex-1 truncate text-left">{label}</span>
+            <ChevronRight
+              className={`h-3 w-3 shrink-0 transition-transform duration-200 group-data-[state=open]/section:rotate-90 ${groupActive ? "text-primary" : ""}`}
             />
-          ))}
-        </SidebarMenu>
-      </SidebarGroupContent>
+          </button>
+        </CollapsibleTrigger>
+
+        {/* Group items */}
+        <CollapsibleContent>
+          <SidebarGroupContent className="pt-0.5 pb-1">
+            <SidebarMenu>
+              {visibleItems.map((item) => (
+                <SidebarNavItem key={item.id} item={item} collapsed={collapsed} currentPlan={currentPlan} pathname={pathname} />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </CollapsibleContent>
+      </Collapsible>
     </SidebarGroup>
   );
 }

@@ -57,6 +57,7 @@ export interface NavItemConfig {
 export interface NavGroupConfig {
   id: string;
   labelKey: string;
+  icon: LucideIcon;
   items: NavItemConfig[];
 }
 
@@ -130,6 +131,7 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
     {
       id: "overview",
       labelKey: "sidebar.overview",
+      icon: LayoutDashboard,
       items: [
         {
           id: "dashboard",
@@ -143,6 +145,7 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
     {
       id: "crm",
       labelKey: "sidebar.crm",
+      icon: UserCheck,
       items: [
         { id: "leads", titleKey: "sidebar.leads", url: "/leads", icon: Target, module: "leads" },
         { id: "follow-ups", titleKey: "sidebar.followUps", url: "/follow-ups", icon: Clock, module: "leads" },
@@ -155,6 +158,7 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
     {
       id: "serviceCatalog",
       labelKey: "sidebar.serviceCatalog",
+      icon: Package2,
       items: [
         {
           id: "service-catalog",
@@ -168,6 +172,7 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
     {
       id: "sales",
       labelKey: "sidebar.sales",
+      icon: Plane,
       items: [
         { id: "quotations", titleKey: "sidebar.quotations", url: "/quotations", icon: FileText, module: "quotations" },
         { id: "bookings", titleKey: "sidebar.bookings", url: "/bookings", icon: Plane, module: "bookings" },
@@ -176,11 +181,13 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
     {
       id: "operations",
       labelKey: "sidebar.operations",
+      icon: Briefcase,
       items: operationsItems,
     },
     {
       id: "finance",
       labelKey: "sidebar.finance",
+      icon: Wallet,
       items: [
         { id: "invoices", titleKey: "sidebar.invoices", url: "/invoices", icon: Receipt, module: "invoices" },
         { id: "payments", titleKey: "sidebar.payments", url: "/payments", icon: CreditCard, module: "invoices" },
@@ -250,8 +257,9 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
       ],
     },
     {
-      id: "crm",
+      id: "crmMarketing",
       labelKey: "sidebar.crmMarketing",
+      icon: Star,
       items: [
         {
           id: "loyalty",
@@ -322,6 +330,7 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
     {
       id: "websiteCms",
       labelKey: "sidebar.websiteCms",
+      icon: Globe,
       items: [
         {
           id: "website-home",
@@ -373,6 +382,7 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
     {
       id: "administration",
       labelKey: "sidebar.administration",
+      icon: Settings,
       items: [
         { id: "team", titleKey: "sidebar.team", url: "/team", icon: Users, module: "team" },
         { id: "hrm", titleKey: "sidebar.hrm", url: "/hrm", icon: CalendarClock, module: "team" },
