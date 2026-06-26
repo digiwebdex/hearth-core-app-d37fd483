@@ -11,6 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import {
   travelPackageApi,
@@ -45,7 +53,22 @@ import PackageWebsiteSyncCard, { PackageWebsiteSyncBadge } from "@/components/Pa
 import MasterDataSelect from "@/components/MasterDataSelect";
 import { getPackageQuickTemplates, type PackageQuickTemplate } from "@/lib/packageQuickTemplates";
 import { DEFAULT_PACKAGE_HERO_IMAGE } from "@/lib/packageConstants";
-import { ArrowRight, FileText, Globe, GraduationCap, Loader2, Moon, Package2, Plus, Save, Trash2, UploadCloud, Wand2 } from "lucide-react";
+import {
+  ChevronDown,
+  FileText,
+  Globe,
+  GraduationCap,
+  Loader2,
+  Moon,
+  Package2,
+  Plus,
+  Save,
+  Search,
+  Settings2,
+  Trash2,
+  UploadCloud,
+  Wand2,
+} from "lucide-react";
 
 const emptyForm = {
   code: "",
@@ -102,12 +125,9 @@ function slugify(value: string) {
     .slice(0, 80);
 }
 
-function PresetTab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <Button type="button" variant={active ? "default" : "outline"} size="sm" onClick={onClick}>
-      {children}
-    </Button>
-  );
+function autoCode(serviceType: string) {
+  const prefix = String(serviceType || "SVC").replace(/[^a-z]/gi, "").slice(0, 3).toUpperCase() || "SVC";
+  return `${prefix}-${Date.now().toString().slice(-6)}`;
 }
 
 const Packages = () => {
@@ -139,6 +159,9 @@ const Packages = () => {
   const [saving, setSaving] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<string>("all");
+  const [search, setSearch] = useState("");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [days, setDays] = useState<TravelPackageDay[]>([]);
   const [inclusions, setInclusions] = useState<TravelPackageInclusion[]>([]);
@@ -163,38 +186,42 @@ const Packages = () => {
     loadDetailsFailed: isBn ? "প্যাকেজ ডিটেইল লোড করা যায়নি" : "Failed to load package details",
     saveFailed: isBn ? "প্যাকেজ সেভ করা যায়নি" : "Failed to save package",
     deleteFailed: isBn ? "প্যাকেজ ডিলিট করা যায়নি" : "Failed to delete package",
-    required: isBn ? "কোড এবং শিরোনাম আবশ্যক" : "Code and title are required",
+    required: isBn ? "শিরোনাম আবশ্যক" : "Title is required",
     created: isBn ? "প্যাকেজ তৈরি হয়েছে" : "Package created",
     updated: isBn ? "প্যাকেজ আপডেট হয়েছে" : "Package updated",
     deleted: isBn ? "প্যাকেজ ডিলিট হয়েছে" : "Package deleted",
     pageTitle: t("packagesPage.pageTitle"),
     pageSubtitle: t("packagesPage.pageSubtitle"),
-    migrationTitle: t("packagesPage.migrationTitle"),
-    migrationText: t("packagesPage.migrationText"),
-    operationsHint: t("packagesPage.operationsHint"),
     hajjOpsButton: t("packagesPage.hajjOpsButton"),
     bdOpsButton: t("packagesPage.bdOpsButton"),
     publicButton: isBn ? "পাবলিক প্যাকেজ পেজ" : "Public Packages Page",
-    builderButton: isBn ? "ওয়েবসাইট বিল্ডার" : "Website Builder",
+    builderButton: isBn ? "ওয়েবসাইট বিল্ডার" : "Website Builder",
     publishButton: isBn ? "পাবলিশ ও ডোমেইন" : "Publish & Domain",
     quotationButton: isBn ? "কোটেশন তৈরি করুন" : "Create Quotation",
-    quotationHint: isBn ? "নির্বাচিত template থেকে quotation builder prefill হবে।" : "Quotation builder will be prefilled from the selected template.",
-    publicText: t("packagesPage.publicText"),
+    moreActions: isBn ? "আরও অপশন" : "More",
     newPackage: isBn ? "নতুন সার্ভিস" : "New Service",
+    edit: isBn ? "এডিট" : "Edit",
+    searchPlaceholder: isBn ? "কোড বা শিরোনাম খুঁজুন…" : "Search code or title…",
     filterPlaceholder: isBn ? "সার্ভিস টাইপ ফিল্টার" : "Filter by service type",
     allTypes: isBn ? "সব সার্ভিস টাইপ" : "All service types",
     catalog: isBn ? "সার্ভিস ক্যাটালগ" : "Service Catalog",
-    noPackages: isBn ? "কোনো সার্ভিস পাওয়া যায়নি" : "No packages found",
-    selected: isBn ? "নির্বাচিত" : "Selected",
+    noPackages: isBn ? "কোনো সার্ভিস পাওয়া যায়নি" : "No services found yet",
+    noPackagesHint: isBn ? "‘নতুন সার্ভিস’ চেপে প্রথম সার্ভিস যোগ করুন।" : "Click “New Service” to add your first one.",
     draft: isBn ? "ড্রাফট" : "Draft",
     editService: isBn ? "সার্ভিস এডিট করুন" : "Edit Service",
     createService: isBn ? "নতুন সার্ভিস তৈরি করুন" : "Create Service",
-    basic: isBn ? "বেসিক" : "Basic",
+    drawerHint: isBn
+      ? "প্রয়োজনীয় তথ্য পূরণ করুন। বাকি ট্যাবে ইটিনেরারি, প্রাইসিং ও মিডিয়া যোগ করতে পারেন।"
+      : "Fill the essentials. Use the other tabs to add itinerary, pricing, and media.",
+    essentials: isBn ? "প্রয়োজনীয় তথ্য" : "Essentials",
+    moreDetails: isBn ? "অতিরিক্ত তথ্য (ঐচ্ছিক)" : "More details (optional)",
+    basic: isBn ? "মূল তথ্য" : "Details",
     itinerary: isBn ? "ইটিনেরারি" : "Itinerary",
     inclusions: isBn ? "ইনক্লুশন" : "Inclusions",
     pricing: isBn ? "প্রাইসিং" : "Pricing",
     media: isBn ? "মিডিয়া" : "Media",
     packageCode: isBn ? "সার্ভিস কোড" : "Service Code",
+    codeHint: isBn ? "খালি রাখলে স্বয়ংক্রিয়ভাবে তৈরি হবে" : "Leave blank to auto-generate",
     serviceType: isBn ? "সার্ভিস টাইপ" : "Service Type",
     packageTitle: isBn ? "সার্ভিস শিরোনাম" : "Service Title",
     summary: isBn ? "সারাংশ" : "Summary",
@@ -204,8 +231,8 @@ const Packages = () => {
     nights: isBn ? "রাত" : "Nights",
     basePrice: isBn ? "বেস প্রাইস" : "Base Price",
     status: isBn ? "স্ট্যাটাস" : "Status",
-    update: isBn ? "সার্ভিস আপডেট করুন" : "Update Service",
-    create: isBn ? "সার্ভিস তৈরি করুন" : "Create Service",
+    update: isBn ? "আপডেট" : "Update",
+    create: isBn ? "তৈরি করুন" : "Create",
     addDay: isBn ? "দিন যোগ করুন" : "Add Day",
     addIncluded: isBn ? "Included যোগ করুন" : "Add Included",
     addExcluded: isBn ? "Excluded যোগ করুন" : "Add Excluded",
@@ -220,6 +247,20 @@ const Packages = () => {
     quickTemplateApplied: isBn ? "টেমপ্লেট লোড হয়েছে — প্রয়োজনে সম্পাদনা করুন" : "Template loaded — edit as needed",
     publishToWebsite: isBn ? "সেভ ও ওয়েবসাইটে প্রকাশ" : "Save & publish to website",
     publishedLive: isBn ? "প্যাকেজ ওয়েবসাইটে প্রকাশিত" : "Package published on website",
+    // field placeholders
+    phTitle: isBn ? "যেমন: ৫ দিনের কক্সবাজার ট্যুর" : "e.g. 5-Day Cox's Bazar Tour",
+    phDayTitle: isBn ? "দিনের শিরোনাম" : "Day title",
+    phDayDesc: isBn ? "এই দিনের কার্যক্রম" : "What happens on this day",
+    phOvernight: isBn ? "রাত্রিযাপন স্থান" : "Overnight location",
+    phLabel: isBn ? "লেবেল" : "Label",
+    phMin: isBn ? "সর্বনিম্ন যাত্রী" : "Min travelers",
+    phMax: isBn ? "সর্বোচ্চ যাত্রী" : "Max travelers",
+    phPrice: isBn ? "মূল্য" : "Price",
+    phAlt: isBn ? "ছবির বর্ণনা" : "Image description",
+    noDays: isBn ? "এখনো কোনো itinerary day যোগ করা হয়নি" : "No itinerary days added yet",
+    noInclusions: isBn ? "এখনো কোনো inclusion/exclusion যোগ করা হয়নি" : "No inclusions or exclusions added yet",
+    noPricing: isBn ? "এখনো কোনো pricing slab যোগ করা হয়নি" : "No pricing slabs added yet",
+    noMedia: isBn ? "এখনো কোনো media item যোগ করা হয়নি" : "No media items added yet",
   };
 
   const selected = useMemo(() => items.find((item) => item.id === selectedId) || null, [items, selectedId]);
@@ -301,11 +342,17 @@ const Packages = () => {
   }, [activePreset]);
 
   const visibleItems = useMemo(() => {
-    if (activePreset) {
-      return items.filter((item) => packageMatchesPreset(item, activePreset));
-    }
-    return items.filter((item) => filterType === "all" || item.serviceType === filterType);
-  }, [items, activePreset, filterType]);
+    const base = activePreset
+      ? items.filter((item) => packageMatchesPreset(item, activePreset))
+      : items.filter((item) => filterType === "all" || item.serviceType === filterType);
+    const q = search.trim().toLowerCase();
+    if (!q) return base;
+    return base.filter(
+      (item) =>
+        String(item.code || "").toLowerCase().includes(q) ||
+        String(item.title || "").toLowerCase().includes(q),
+    );
+  }, [items, activePreset, filterType, search]);
 
   const categoryPresets = PACKAGE_PRESET_IDS.filter(
     (id) => id !== "all" && presetAllowedForServiceTypes(id, effectiveForPresets),
@@ -351,9 +398,10 @@ const Packages = () => {
     setInclusions([]);
     setPricing([]);
     setMedia([]);
+    setShowAdvanced(false);
   };
 
-  const handleResetForm = () => {
+  const openCreate = () => {
     const defaultType =
       activePreset && activePreset !== "all"
         ? PACKAGE_PRESET_CONFIG[activePreset].defaultServiceType
@@ -362,6 +410,13 @@ const Packages = () => {
     if (defaultType) {
       setForm({ ...emptyForm, serviceType: defaultType });
     }
+    setDrawerOpen(true);
+  };
+
+  const openEdit = (id: string) => {
+    setSelectedId(id);
+    setShowAdvanced(false);
+    setDrawerOpen(true);
   };
 
   const applyQuickTemplate = (tpl: PackageQuickTemplate) => {
@@ -387,15 +442,16 @@ const Packages = () => {
   const normalizeMedia = () => media.map((item, index) => ({ ...item, url: String(item.url || "").trim(), altText: item.altText || "", sortOrder: index })).filter((item) => item.url);
 
   const handleSave = async (publish = false) => {
-    if (!form.code.trim() || !form.title.trim()) {
+    if (!form.title.trim()) {
       toast({ title: text.required, variant: "destructive" });
       return;
     }
     setSaving(true);
     const heroImage = form.heroImage || (publish ? DEFAULT_PACKAGE_HERO_IMAGE : "");
+    const finalCode = (form.code.trim() || autoCode(form.serviceType)).toUpperCase();
     const payload = {
       ...form,
-      code: form.code.trim().toUpperCase(),
+      code: finalCode,
       slug: slugify(form.slug || form.title),
       status: publish ? "published" : form.status,
       heroImage,
@@ -436,6 +492,7 @@ const Packages = () => {
       await travelPackageApi.delete(selectedId);
       setItems((prev) => prev.filter((item) => item.id !== selectedId));
       resetForm();
+      setDrawerOpen(false);
       toast({ title: text.deleted });
     } catch (err: any) {
       toast({ title: text.deleteFailed, description: err.message, variant: "destructive" });
@@ -444,238 +501,276 @@ const Packages = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
+      <div className="space-y-5">
+        {/* Header — title + primary action + compact "More" menu */}
+        <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2"><Package2 className="h-6 w-6" /> {pageTitle}</h1>
             <p className="text-sm text-muted-foreground">{pageSubtitle}</p>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <Select value={filterType} onValueChange={handleFilterTypeChange}>
-              <SelectTrigger className="w-[210px]"><SelectValue placeholder={text.filterPlaceholder} /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{text.allTypes}</SelectItem>
-                {visibleServiceTypes.map((type) => <SelectItem key={type} value={type}>{getLocalizedServiceTypeLabel(type, isBn)}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            {selected ? <Link to={`/quotations/new?packageId=${selected.id}&source=packages`}><Button><FileText className="mr-2 h-4 w-4" />{text.quotationButton}</Button></Link> : null}
-            <Link to="/website"><Button variant="outline"><Wand2 className="mr-2 h-4 w-4" />{text.builderButton}</Button></Link>
-            <Link to="/website/publish"><Button variant="outline"><UploadCloud className="mr-2 h-4 w-4" />{text.publishButton}</Button></Link>
-            <Link to="/site/packages"><Button variant="outline"><Globe className="mr-2 h-4 w-4" />{text.publicButton}</Button></Link>
-            <Button variant="outline" onClick={handleResetForm}><Plus className="mr-2 h-4 w-4" />{text.newPackage}</Button>
-            {showHajjOpsButton ? (
-              <Link to="/hajj-umrah"><Button variant="secondary"><Moon className="mr-2 h-4 w-4" />{text.hajjOpsButton}</Button></Link>
-            ) : null}
-            {showBdOpsButton ? (
-              <Link to={`/operations/bd?desk=${activePreset}`}><Button variant="secondary"><GraduationCap className="mr-2 h-4 w-4" />{text.bdOpsButton}</Button></Link>
-            ) : null}
+          <div className="flex gap-2">
+            <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />{text.newPackage}</Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">{text.moreActions}<ChevronDown className="ml-2 h-4 w-4" /></Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => navigate("/site/packages")}><Globe className="mr-2 h-4 w-4" />{text.publicButton}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/website")}><Wand2 className="mr-2 h-4 w-4" />{text.builderButton}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/website/publish")}><UploadCloud className="mr-2 h-4 w-4" />{text.publishButton}</DropdownMenuItem>
+                {showHajjOpsButton ? (
+                  <DropdownMenuItem onClick={() => navigate("/hajj-umrah")}><Moon className="mr-2 h-4 w-4" />{text.hajjOpsButton}</DropdownMenuItem>
+                ) : null}
+                {showBdOpsButton ? (
+                  <DropdownMenuItem onClick={() => navigate(`/operations/bd?desk=${activePreset}`)}><GraduationCap className="mr-2 h-4 w-4" />{text.bdOpsButton}</DropdownMenuItem>
+                ) : null}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
+        {/* Website sync status */}
         <PackageWebsiteSyncCard packages={items} />
 
+        {/* Category tabs */}
         <div className="flex flex-wrap gap-2">
-          <PresetTab active={resolvedPreset === "all"} onClick={() => goToPackagePreset("all")}>
-            {t("sidebar.packages.all", { defaultValue: isBn ? "সব" : "All" })}
-          </PresetTab>
+          <Button type="button" variant={resolvedPreset === "all" ? "default" : "outline"} size="sm" onClick={() => goToPackagePreset("all")}>
+            {t("sidebar.packages.all", { defaultValue: isBn ? "সব" : "All" })} ({items.length})
+          </Button>
           {categoryPresets.map((preset) => (
-            <PresetTab key={preset} active={resolvedPreset === preset} onClick={() => goToPackagePreset(preset)}>
+            <Button key={preset} type="button" variant={resolvedPreset === preset ? "default" : "outline"} size="sm" onClick={() => goToPackagePreset(preset)}>
               {t(`sidebar.packages.${preset}`)} ({categoryCounts[preset]})
-            </PresetTab>
+            </Button>
           ))}
         </div>
 
-        <Card className="border-dashed">
-          <CardContent className="pt-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="font-medium">{text.migrationTitle}</p>
-              <p className="text-sm text-muted-foreground">{text.migrationText}</p>
-              <p className="text-sm text-muted-foreground mt-1">{text.publicText}</p>
-              {showHajjOpsButton ? <p className="text-sm text-muted-foreground mt-1">{text.operationsHint}</p> : null}
-              {selected ? <p className="text-sm text-muted-foreground mt-1">{text.quotationHint}</p> : null}
+        {/* Full-width catalog list */}
+        <Card>
+          <CardHeader className="gap-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <CardTitle>{text.catalog}</CardTitle>
+              <div className="flex gap-2 flex-wrap">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input className="pl-8 w-[220px]" placeholder={text.searchPlaceholder} value={search} onChange={(e) => setSearch(e.target.value)} />
+                </div>
+                <Select value={filterType} onValueChange={handleFilterTypeChange}>
+                  <SelectTrigger className="w-[200px]"><SelectValue placeholder={text.filterPlaceholder} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{text.allTypes}</SelectItem>
+                    {visibleServiceTypes.map((type) => <SelectItem key={type} value={type}>{getLocalizedServiceTypeLabel(type, isBn)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="flex gap-2 flex-wrap">
-              {selected ? <Link to={`/quotations/new?packageId=${selected.id}&source=packages`}><Button><span>{text.quotationButton}</span><ArrowRight className="ml-2 h-4 w-4" /></Button></Link> : null}
-              <Link to="/website"><Button variant="outline"><span>{text.builderButton}</span><ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
-              <Link to="/website/publish"><Button variant="outline"><span>{text.publishButton}</span><ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
-              <Link to="/site/packages"><Button variant="outline"><span>{text.publicButton}</span><ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
-              {showHajjOpsButton ? (
-                <Link to="/hajj-umrah"><Button variant="secondary"><Moon className="mr-2 h-4 w-4" />{text.hajjOpsButton}</Button></Link>
-              ) : null}
-              {showBdOpsButton ? (
-                <Link to={`/operations/bd?desk=${activePreset}`}><Button variant="secondary"><GraduationCap className="mr-2 h-4 w-4" />{text.bdOpsButton}</Button></Link>
-              ) : null}
-            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {loading ? (
+              <div className="py-12 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{isBn ? "কোড" : "Code"}</TableHead>
+                    <TableHead>{isBn ? "শিরোনাম" : "Title"}</TableHead>
+                    <TableHead>{isBn ? "টাইপ" : "Type"}</TableHead>
+                    <TableHead>{text.destination}</TableHead>
+                    <TableHead>{text.status}</TableHead>
+                    <TableHead>{t("packageWebsiteSync.websiteColumn")}</TableHead>
+                    <TableHead className="text-right">{text.basePrice}</TableHead>
+                    <TableHead className="text-right">{text.edit}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {visibleItems.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                        <p className="font-medium">{text.noPackages}</p>
+                        <p className="text-sm">{text.noPackagesHint}</p>
+                      </TableCell>
+                    </TableRow>
+                  ) : visibleItems.map((item) => (
+                    <TableRow key={item.id} className="cursor-pointer" onClick={() => openEdit(item.id)}>
+                      <TableCell className="font-medium">{item.code}</TableCell>
+                      <TableCell>{item.title}</TableCell>
+                      <TableCell><Badge variant="outline">{getLocalizedServiceTypeLabel(item.serviceType, isBn)}</Badge></TableCell>
+                      <TableCell className="text-muted-foreground">{item.destination || "—"}</TableCell>
+                      <TableCell><Badge variant="secondary" className="capitalize">{item.status || text.draft}</Badge></TableCell>
+                      <TableCell><PackageWebsiteSyncBadge pkg={item} /></TableCell>
+                      <TableCell className="text-right">{item.currency || "BDT"} {Number(item.basePrice || 0).toLocaleString()}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEdit(item.id); }}>
+                          <Settings2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
+      </div>
 
-        <div className="grid gap-6 xl:grid-cols-[1.05fr_1.15fr]">
-          <Card>
-            <CardHeader><CardTitle>{text.catalog}</CardTitle></CardHeader>
-            <CardContent className="p-0">
-              {loading ? <div className="py-10 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div> : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{isBn ? "কোড" : "Code"}</TableHead>
-                      <TableHead>{isBn ? "শিরোনাম" : "Title"}</TableHead>
-                      <TableHead>{isBn ? "টাইপ" : "Type"}</TableHead>
-                      <TableHead>{text.status}</TableHead>
-                      <TableHead>{t("packageWebsiteSync.websiteColumn")}</TableHead>
-                      <TableHead className="text-right">{text.basePrice}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {visibleItems.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">{text.noPackages}</TableCell></TableRow> : visibleItems.map((item) => (
-                      <TableRow key={item.id} className="cursor-pointer" onClick={() => setSelectedId(item.id)}>
-                        <TableCell className="font-medium">{item.code}</TableCell>
-                        <TableCell><div className="space-y-1"><div>{item.title}</div>{selectedId === item.id ? <Badge variant="secondary">{text.selected}</Badge> : null}</div></TableCell>
-                        <TableCell><Badge variant="outline">{getLocalizedServiceTypeLabel(item.serviceType, isBn)}</Badge></TableCell>
-                        <TableCell><Badge variant="secondary" className="capitalize">{item.status || text.draft}</Badge></TableCell>
-                        <TableCell><PackageWebsiteSyncBadge pkg={item} /></TableCell>
-                        <TableCell className="text-right">{item.currency || "BDT"} {Number(item.basePrice || 0).toLocaleString()}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+      {/* Slide-over drawer for create/edit */}
+      <Sheet open={drawerOpen} onOpenChange={(open) => { setDrawerOpen(open); if (!open) resetForm(); }}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+          <SheetHeader className="text-left">
+            <SheetTitle>{selectedId ? text.editService : text.createService}</SheetTitle>
+            <SheetDescription>{text.drawerHint}</SheetDescription>
+          </SheetHeader>
 
-          <Card>
-            <CardHeader><CardTitle>{selected ? text.editService : text.createService}</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              {detailLoading ? <div className="py-10 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div> : (
-                <>
-                  <Tabs defaultValue="basic" className="space-y-4">
-                    <TabsList className="grid grid-cols-4 md:grid-cols-5">
-                      <TabsTrigger value="basic">{text.basic}</TabsTrigger>
-                      <TabsTrigger value="itinerary">{text.itinerary}</TabsTrigger>
-                      <TabsTrigger value="inclusions">{text.inclusions}</TabsTrigger>
-                      <TabsTrigger value="pricing">{text.pricing}</TabsTrigger>
-                      <TabsTrigger value="media">{text.media}</TabsTrigger>
-                    </TabsList>
+          {detailLoading ? (
+            <div className="py-16 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>
+          ) : (
+            <div className="mt-4 space-y-4">
+              <Tabs defaultValue="basic" className="space-y-4">
+                <TabsList className="grid grid-cols-5">
+                  <TabsTrigger value="basic">{text.basic}</TabsTrigger>
+                  <TabsTrigger value="itinerary">{text.itinerary}</TabsTrigger>
+                  <TabsTrigger value="inclusions">{text.inclusions}</TabsTrigger>
+                  <TabsTrigger value="pricing">{text.pricing}</TabsTrigger>
+                  <TabsTrigger value="media">{text.media}</TabsTrigger>
+                </TabsList>
 
-                    <TabsContent value="basic" className="space-y-4">
-                      {!selectedId && quickTemplates.length > 0 ? (
-                        <div className="space-y-2 rounded-lg border border-dashed p-3 bg-muted/30">
-                          <Label>{text.quickTemplate}</Label>
-                          <Select onValueChange={(id) => {
-                            const tpl = quickTemplates.find((t) => t.id === id);
-                            if (tpl) applyQuickTemplate(tpl);
-                          }}>
-                            <SelectTrigger><SelectValue placeholder={text.quickTemplatePlaceholder} /></SelectTrigger>
-                            <SelectContent>
-                              {quickTemplates.map((tpl) => (
-                                <SelectItem key={tpl.id} value={tpl.id}>
-                                  {isBn ? tpl.labelBn : tpl.labelEn}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      ) : null}
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div className="space-y-2"><Label>{text.packageCode}</Label><Input value={form.code} onChange={(e) => setForm((prev) => ({ ...prev, code: e.target.value }))} /></div>
-                        <div className="space-y-2"><Label>{text.serviceType}</Label><Select value={form.serviceType} onValueChange={(value) => setForm((prev) => ({ ...prev, serviceType: value as ServiceType }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{visibleServiceTypes.map((type) => <SelectItem key={type} value={type}>{getLocalizedServiceTypeLabel(type, isBn)}</SelectItem>)}</SelectContent></Select></div>
-                        <div className="space-y-2 md:col-span-2"><Label>{text.packageTitle}</Label><Input value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value, slug: slugify(e.target.value) }))} /></div>
-                        <div className="space-y-2 md:col-span-2"><Label>{text.summary}</Label><Textarea value={form.summary} rows={4} onChange={(e) => setForm((prev) => ({ ...prev, summary: e.target.value }))} /></div>
-                        <div className="space-y-2"><Label>{text.destination}</Label><MasterDataSelect category="city" value={form.destination} onChange={(v) => setForm((prev) => ({ ...prev, destination: v }))} placeholder={text.destination} /></div>
-                        <div className="space-y-2"><Label>{text.country}</Label><MasterDataSelect category="country" value={form.country} onChange={(v) => setForm((prev) => ({ ...prev, country: v }))} placeholder={text.country} /></div>
-                        <div className="space-y-2"><Label>{text.days}</Label><Input type="number" min={1} value={form.durationDays} onChange={(e) => setForm((prev) => ({ ...prev, durationDays: Number(e.target.value || 1) }))} /></div>
-                        <div className="space-y-2"><Label>{text.nights}</Label><Input type="number" min={0} value={form.durationNights} onChange={(e) => setForm((prev) => ({ ...prev, durationNights: Number(e.target.value || 0) }))} /></div>
-                        <div className="space-y-2"><Label>{text.basePrice}</Label><Input type="number" min={0} value={form.basePrice} onChange={(e) => setForm((prev) => ({ ...prev, basePrice: Number(e.target.value || 0) }))} /></div>
-                        <div className="space-y-2"><Label>{text.status}</Label><Select value={form.status} onValueChange={(value) => setForm((prev) => ({ ...prev, status: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="draft">Draft</SelectItem><SelectItem value="published">Published</SelectItem><SelectItem value="archived">Archived</SelectItem></SelectContent></Select></div>
-                        <div className="flex items-center justify-between rounded-lg border p-3 md:col-span-2">
-                          <div><Label>{text.visaRequired}</Label></div>
-                          <Switch checked={form.visaRequired} onCheckedChange={(checked) => setForm((prev) => ({ ...prev, visaRequired: checked }))} />
-                        </div>
-                        <div className="flex items-center justify-between rounded-lg border p-3 md:col-span-2">
-                          <div><Label>{text.featured}</Label></div>
-                          <Switch checked={form.isFeatured} onCheckedChange={(checked) => setForm((prev) => ({ ...prev, isFeatured: checked }))} />
-                        </div>
-                        <div className="space-y-2 md:col-span-2"><Label>{text.cancellationPolicy}</Label><Textarea value={form.cancellationPolicy} rows={3} onChange={(e) => setForm((prev) => ({ ...prev, cancellationPolicy: e.target.value }))} placeholder={isBn ? "বাতিল ও রিফান্ড শর্ত..." : "Cancellation and refund terms..."} /></div>
+                <TabsContent value="basic" className="space-y-4">
+                  {!selectedId && quickTemplates.length > 0 ? (
+                    <div className="space-y-2 rounded-lg border border-dashed p-3 bg-muted/30">
+                      <Label>{text.quickTemplate}</Label>
+                      <Select onValueChange={(id) => {
+                        const tpl = quickTemplates.find((q) => q.id === id);
+                        if (tpl) applyQuickTemplate(tpl);
+                      }}>
+                        <SelectTrigger><SelectValue placeholder={text.quickTemplatePlaceholder} /></SelectTrigger>
+                        <SelectContent>
+                          {quickTemplates.map((tpl) => (
+                            <SelectItem key={tpl.id} value={tpl.id}>{isBn ? tpl.labelBn : tpl.labelEn}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : null}
+
+                  {/* Essentials */}
+                  <div className="space-y-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{text.essentials}</p>
+                    <div className="space-y-2">
+                      <Label>{text.packageTitle} <span className="text-destructive">*</span></Label>
+                      <Input value={form.title} placeholder={text.phTitle} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value, slug: slugify(e.target.value) }))} />
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label>{text.serviceType}</Label>
+                        <Select value={form.serviceType} onValueChange={(value) => setForm((prev) => ({ ...prev, serviceType: value as ServiceType }))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>{visibleServiceTypes.map((type) => <SelectItem key={type} value={type}>{getLocalizedServiceTypeLabel(type, isBn)}</SelectItem>)}</SelectContent>
+                        </Select>
                       </div>
-                    </TabsContent>
-
-                    <TabsContent value="itinerary" className="space-y-3">
-                      <div className="flex justify-end"><Button variant="outline" size="sm" onClick={() => setDays((prev) => [...prev, blankDay(prev.length + 1)])}>{text.addDay}</Button></div>
-                      <div className="space-y-3">
-                        {days.length === 0 ? <p className="text-sm text-muted-foreground">{isBn ? "এখনো কোনো itinerary day যোগ করা হয়নি" : "No itinerary days added yet"}</p> : null}
-                        {days.map((day, index) => (
-                          <div key={`${day.dayNumber}-${index}`} className="rounded-lg border p-3 space-y-3">
-                            <div className="flex items-center justify-between"><p className="font-medium">Day {index + 1}</p><Button variant="ghost" size="icon" onClick={() => setDays((prev) => prev.filter((_, itemIndex) => itemIndex !== index))}><Trash2 className="h-4 w-4" /></Button></div>
-                            <Input placeholder="Title" value={day.title} onChange={(e) => setDays((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, title: e.target.value } : item))} />
-                            <Textarea placeholder="Description" rows={3} value={day.description || ""} onChange={(e) => setDays((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, description: e.target.value } : item))} />
-                            <Input placeholder="Overnight location" value={day.overnightLocation || ""} onChange={(e) => setDays((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, overnightLocation: e.target.value } : item))} />
-                          </div>
-                        ))}
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="inclusions" className="space-y-3">
-                      <div className="flex gap-2 justify-end"><Button variant="outline" size="sm" onClick={() => setInclusions((prev) => [...prev, blankInclusion("included", prev.length)])}>{text.addIncluded}</Button><Button variant="outline" size="sm" onClick={() => setInclusions((prev) => [...prev, blankInclusion("excluded", prev.length)])}>{text.addExcluded}</Button></div>
-                      <div className="space-y-3">
-                        {inclusions.length === 0 ? <p className="text-sm text-muted-foreground">{isBn ? "এখনো কোনো inclusion/exclusion যোগ করা হয়নি" : "No inclusions or exclusions added yet"}</p> : null}
-                        {inclusions.map((item, index) => (
-                          <div key={`${item.type}-${index}`} className="rounded-lg border p-3 flex items-center gap-3">
-                            <Badge variant={item.type === "included" ? "default" : "secondary"}>{item.type}</Badge>
-                            <Input value={item.label} placeholder="Label" onChange={(e) => setInclusions((prev) => prev.map((row, rowIndex) => rowIndex === index ? { ...row, label: e.target.value } : row))} />
-                            <Button variant="ghost" size="icon" onClick={() => setInclusions((prev) => prev.filter((_, rowIndex) => rowIndex !== index))}><Trash2 className="h-4 w-4" /></Button>
-                          </div>
-                        ))}
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="pricing" className="space-y-3">
-                      <div className="flex justify-end"><Button variant="outline" size="sm" onClick={() => setPricing((prev) => [...prev, blankPricing()])}>{text.addPricing}</Button></div>
-                      <div className="space-y-3">
-                        {pricing.length === 0 ? <p className="text-sm text-muted-foreground">{isBn ? "এখনো কোনো pricing slab যোগ করা হয়নি" : "No pricing slabs added yet"}</p> : null}
-                        {pricing.map((item, index) => (
-                          <div key={`${item.label}-${index}`} className="rounded-lg border p-3 grid gap-3 md:grid-cols-4">
-                            <Input placeholder="Label" value={item.label} onChange={(e) => setPricing((prev) => prev.map((row, rowIndex) => rowIndex === index ? { ...row, label: e.target.value } : row))} />
-                            <Input type="number" min={1} placeholder="Min" value={item.travelerMin} onChange={(e) => setPricing((prev) => prev.map((row, rowIndex) => rowIndex === index ? { ...row, travelerMin: Number(e.target.value || 1) } : row))} />
-                            <Input type="number" min={0} placeholder="Max" value={item.travelerMax ?? ""} onChange={(e) => setPricing((prev) => prev.map((row, rowIndex) => rowIndex === index ? { ...row, travelerMax: e.target.value ? Number(e.target.value) : null } : row))} />
-                            <div className="flex gap-2"><Input type="number" min={0} placeholder="Price" value={item.price} onChange={(e) => setPricing((prev) => prev.map((row, rowIndex) => rowIndex === index ? { ...row, price: Number(e.target.value || 0) } : row))} /><Button variant="ghost" size="icon" onClick={() => setPricing((prev) => prev.filter((_, rowIndex) => rowIndex !== index))}><Trash2 className="h-4 w-4" /></Button></div>
-                          </div>
-                        ))}
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="media" className="space-y-3">
-                      <div className="flex justify-end"><Button variant="outline" size="sm" onClick={() => setMedia((prev) => [...prev, blankMedia(prev.length)])}>{text.addMedia}</Button></div>
-                      <div className="space-y-3">
-                        {media.length === 0 ? <p className="text-sm text-muted-foreground">{isBn ? "এখনো কোনো media item যোগ করা হয়নি" : "No media items added yet"}</p> : null}
-                        {media.map((item, index) => (
-                          <div key={`${item.url}-${index}`} className="rounded-lg border p-3 grid gap-3 md:grid-cols-[1fr_220px_auto]">
-                            <Input placeholder="https://..." value={item.url} onChange={(e) => setMedia((prev) => prev.map((row, rowIndex) => rowIndex === index ? { ...row, url: e.target.value } : row))} />
-                            <Input placeholder="Alt text" value={item.altText || ""} onChange={(e) => setMedia((prev) => prev.map((row, rowIndex) => rowIndex === index ? { ...row, altText: e.target.value } : row))} />
-                            <Button variant="ghost" size="icon" onClick={() => setMedia((prev) => prev.filter((_, rowIndex) => rowIndex !== index))}><Trash2 className="h-4 w-4" /></Button>
-                          </div>
-                        ))}
-                      </div>
-                    </TabsContent>
-                  </Tabs>
-
-                  <div className="flex items-center justify-between pt-2">
-                    <div>{selectedId ? <Button variant="destructive" onClick={handleDelete}><Trash2 className="mr-2 h-4 w-4" />{text.delete}</Button> : null}</div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" onClick={() => handleSave(false)} disabled={saving}>
-                        {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        {selectedId ? text.update : text.create}
-                      </Button>
-                      <Button onClick={() => handleSave(true)} disabled={saving}>
-                        {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Globe className="mr-2 h-4 w-4" />}
-                        {text.publishToWebsite}
-                      </Button>
+                      <div className="space-y-2"><Label>{text.destination}</Label><MasterDataSelect category="city" value={form.destination} onChange={(v) => setForm((prev) => ({ ...prev, destination: v }))} placeholder={text.destination} /></div>
+                      <div className="space-y-2"><Label>{text.days}</Label><Input type="number" min={1} value={form.durationDays} onChange={(e) => setForm((prev) => ({ ...prev, durationDays: Number(e.target.value || 1) }))} /></div>
+                      <div className="space-y-2"><Label>{text.nights}</Label><Input type="number" min={0} value={form.durationNights} onChange={(e) => setForm((prev) => ({ ...prev, durationNights: Number(e.target.value || 0) }))} /></div>
+                      <div className="space-y-2"><Label>{text.basePrice}</Label><Input type="number" min={0} value={form.basePrice} onChange={(e) => setForm((prev) => ({ ...prev, basePrice: Number(e.target.value || 0) }))} /></div>
+                      <div className="space-y-2"><Label>{text.status}</Label><Select value={form.status} onValueChange={(value) => setForm((prev) => ({ ...prev, status: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="draft">Draft</SelectItem><SelectItem value="published">Published</SelectItem><SelectItem value="archived">Archived</SelectItem></SelectContent></Select></div>
                     </div>
                   </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+
+                  {/* Advanced / optional */}
+                  <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+                    <CollapsibleTrigger asChild>
+                      <Button type="button" variant="ghost" size="sm" className="px-0 text-muted-foreground">
+                        <ChevronDown className={`mr-1 h-4 w-4 transition-transform ${showAdvanced ? "rotate-180" : ""}`} />
+                        {text.moreDetails}
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-4 pt-2">
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label>{text.packageCode}</Label>
+                          <Input value={form.code} placeholder={text.codeHint} onChange={(e) => setForm((prev) => ({ ...prev, code: e.target.value }))} />
+                          <p className="text-xs text-muted-foreground">{text.codeHint}</p>
+                        </div>
+                        <div className="space-y-2"><Label>{text.country}</Label><MasterDataSelect category="country" value={form.country} onChange={(v) => setForm((prev) => ({ ...prev, country: v }))} placeholder={text.country} /></div>
+                        <div className="space-y-2 md:col-span-2"><Label>{text.summary}</Label><Textarea value={form.summary} rows={3} onChange={(e) => setForm((prev) => ({ ...prev, summary: e.target.value }))} /></div>
+                        <div className="flex items-center justify-between rounded-lg border p-3"><Label>{text.visaRequired}</Label><Switch checked={form.visaRequired} onCheckedChange={(checked) => setForm((prev) => ({ ...prev, visaRequired: checked }))} /></div>
+                        <div className="flex items-center justify-between rounded-lg border p-3"><Label>{text.featured}</Label><Switch checked={form.isFeatured} onCheckedChange={(checked) => setForm((prev) => ({ ...prev, isFeatured: checked }))} /></div>
+                        <div className="space-y-2 md:col-span-2"><Label>{text.cancellationPolicy}</Label><Textarea value={form.cancellationPolicy} rows={2} onChange={(e) => setForm((prev) => ({ ...prev, cancellationPolicy: e.target.value }))} placeholder={isBn ? "বাতিল ও রিফান্ড শর্ত..." : "Cancellation and refund terms..."} /></div>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </TabsContent>
+
+                <TabsContent value="itinerary" className="space-y-3">
+                  <div className="flex justify-end"><Button variant="outline" size="sm" onClick={() => setDays((prev) => [...prev, blankDay(prev.length + 1)])}><Plus className="mr-1 h-3 w-3" />{text.addDay}</Button></div>
+                  {days.length === 0 ? <p className="text-sm text-muted-foreground">{text.noDays}</p> : null}
+                  {days.map((day, index) => (
+                    <div key={`${day.dayNumber}-${index}`} className="rounded-lg border p-3 space-y-3">
+                      <div className="flex items-center justify-between"><p className="font-medium">{text.days} {index + 1}</p><Button variant="ghost" size="icon" onClick={() => setDays((prev) => prev.filter((_, i) => i !== index))}><Trash2 className="h-4 w-4" /></Button></div>
+                      <Input placeholder={text.phDayTitle} value={day.title} onChange={(e) => setDays((prev) => prev.map((it, i) => i === index ? { ...it, title: e.target.value } : it))} />
+                      <Textarea placeholder={text.phDayDesc} rows={2} value={day.description || ""} onChange={(e) => setDays((prev) => prev.map((it, i) => i === index ? { ...it, description: e.target.value } : it))} />
+                      <Input placeholder={text.phOvernight} value={day.overnightLocation || ""} onChange={(e) => setDays((prev) => prev.map((it, i) => i === index ? { ...it, overnightLocation: e.target.value } : it))} />
+                    </div>
+                  ))}
+                </TabsContent>
+
+                <TabsContent value="inclusions" className="space-y-3">
+                  <div className="flex gap-2 justify-end"><Button variant="outline" size="sm" onClick={() => setInclusions((prev) => [...prev, blankInclusion("included", prev.length)])}><Plus className="mr-1 h-3 w-3" />{text.addIncluded}</Button><Button variant="outline" size="sm" onClick={() => setInclusions((prev) => [...prev, blankInclusion("excluded", prev.length)])}><Plus className="mr-1 h-3 w-3" />{text.addExcluded}</Button></div>
+                  {inclusions.length === 0 ? <p className="text-sm text-muted-foreground">{text.noInclusions}</p> : null}
+                  {inclusions.map((item, index) => (
+                    <div key={`${item.type}-${index}`} className="rounded-lg border p-3 flex items-center gap-3">
+                      <Badge variant={item.type === "included" ? "default" : "secondary"}>{item.type}</Badge>
+                      <Input value={item.label} placeholder={text.phLabel} onChange={(e) => setInclusions((prev) => prev.map((row, i) => i === index ? { ...row, label: e.target.value } : row))} />
+                      <Button variant="ghost" size="icon" onClick={() => setInclusions((prev) => prev.filter((_, i) => i !== index))}><Trash2 className="h-4 w-4" /></Button>
+                    </div>
+                  ))}
+                </TabsContent>
+
+                <TabsContent value="pricing" className="space-y-3">
+                  <div className="flex justify-end"><Button variant="outline" size="sm" onClick={() => setPricing((prev) => [...prev, blankPricing()])}><Plus className="mr-1 h-3 w-3" />{text.addPricing}</Button></div>
+                  {pricing.length === 0 ? <p className="text-sm text-muted-foreground">{text.noPricing}</p> : null}
+                  {pricing.map((item, index) => (
+                    <div key={`${item.label}-${index}`} className="rounded-lg border p-3 grid gap-3 md:grid-cols-4">
+                      <Input placeholder={text.phLabel} value={item.label} onChange={(e) => setPricing((prev) => prev.map((row, i) => i === index ? { ...row, label: e.target.value } : row))} />
+                      <Input type="number" min={1} placeholder={text.phMin} value={item.travelerMin} onChange={(e) => setPricing((prev) => prev.map((row, i) => i === index ? { ...row, travelerMin: Number(e.target.value || 1) } : row))} />
+                      <Input type="number" min={0} placeholder={text.phMax} value={item.travelerMax ?? ""} onChange={(e) => setPricing((prev) => prev.map((row, i) => i === index ? { ...row, travelerMax: e.target.value ? Number(e.target.value) : null } : row))} />
+                      <div className="flex gap-2"><Input type="number" min={0} placeholder={text.phPrice} value={item.price} onChange={(e) => setPricing((prev) => prev.map((row, i) => i === index ? { ...row, price: Number(e.target.value || 0) } : row))} /><Button variant="ghost" size="icon" onClick={() => setPricing((prev) => prev.filter((_, i) => i !== index))}><Trash2 className="h-4 w-4" /></Button></div>
+                    </div>
+                  ))}
+                </TabsContent>
+
+                <TabsContent value="media" className="space-y-3">
+                  <div className="flex justify-end"><Button variant="outline" size="sm" onClick={() => setMedia((prev) => [...prev, blankMedia(prev.length)])}><Plus className="mr-1 h-3 w-3" />{text.addMedia}</Button></div>
+                  {media.length === 0 ? <p className="text-sm text-muted-foreground">{text.noMedia}</p> : null}
+                  {media.map((item, index) => (
+                    <div key={`${item.url}-${index}`} className="rounded-lg border p-3 grid gap-3 md:grid-cols-[1fr_180px_auto]">
+                      <Input placeholder="https://..." value={item.url} onChange={(e) => setMedia((prev) => prev.map((row, i) => i === index ? { ...row, url: e.target.value } : row))} />
+                      <Input placeholder={text.phAlt} value={item.altText || ""} onChange={(e) => setMedia((prev) => prev.map((row, i) => i === index ? { ...row, altText: e.target.value } : row))} />
+                      <Button variant="ghost" size="icon" onClick={() => setMedia((prev) => prev.filter((_, i) => i !== index))}><Trash2 className="h-4 w-4" /></Button>
+                    </div>
+                  ))}
+                </TabsContent>
+              </Tabs>
+
+              {/* Sticky footer actions */}
+              <div className="flex items-center justify-between gap-2 border-t pt-4 sticky bottom-0 bg-background">
+                <div className="flex gap-2">
+                  {selectedId ? <Button variant="destructive" size="sm" onClick={handleDelete}><Trash2 className="mr-1 h-4 w-4" />{text.delete}</Button> : null}
+                  {selected ? <Link to={`/quotations/new?packageId=${selected.id}&source=packages`}><Button variant="outline" size="sm"><FileText className="mr-1 h-4 w-4" />{text.quotationButton}</Button></Link> : null}
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => handleSave(false)} disabled={saving}>
+                    {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    {selectedId ? text.update : text.create}
+                  </Button>
+                  <Button onClick={() => handleSave(true)} disabled={saving}>
+                    {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Globe className="mr-2 h-4 w-4" />}
+                    {text.publishToWebsite}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </DashboardLayout>
   );
 };
