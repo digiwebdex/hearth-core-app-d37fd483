@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const { authenticate, requireSuperAdmin, prisma } = require("../middleware/auth");
+const { authenticate, requireSuperAdmin, requireRole, prisma } = require("../middleware/auth");
 const { sendSms, getSmsBalance } = require("../services/smsService");
 const { messagePreview } = require("../middleware/upload");
 
@@ -128,7 +128,7 @@ router.put("/config", requireSuperAdmin, (req, res) => {
 });
 
 // ── Send ──
-router.post("/send", async (req, res) => {
+router.post("/send", requireRole("tenant_owner", "manager", "super_admin"), async (req, res) => {
   try {
     const { phone, message, templateId } = req.body || {};
     if (!phone || !message) return res.status(400).json({ message: "phone and message are required" });

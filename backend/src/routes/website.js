@@ -4,12 +4,12 @@ const router = require("express").Router();
 const { authenticate, requirePermission, prisma } = require("../middleware/auth");
 
 const ALLOWED_ASSET_TYPES = new Set(["logo", "hero", "about", "gallery"]);
+// SVG excluded: browsers execute embedded JS in SVGs when served statically (stored XSS risk)
 const ALLOWED_MIME_TYPES = {
   "image/png": ".png",
   "image/jpeg": ".jpg",
   "image/jpg": ".jpg",
   "image/webp": ".webp",
-  "image/svg+xml": ".svg",
 };
 const MAX_ASSET_SIZE_BYTES = 8 * 1024 * 1024;
 const WEBSITE_UPLOAD_DIR = path.join(__dirname, "../../uploads/website-assets");

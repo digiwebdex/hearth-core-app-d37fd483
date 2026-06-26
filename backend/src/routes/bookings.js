@@ -10,7 +10,20 @@ const {
   pickServiceDetailsPayload,
 } = require("../lib/bookingServiceDetails");
 
-const upload = multer({ dest: process.env.UPLOAD_DIR || path.join(__dirname, "../../uploads") });
+const ALLOWED_DOC_MIMES = new Set([
+  "application/pdf",
+  "image/jpeg", "image/jpg", "image/png", "image/webp",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+const upload = multer({
+  dest: process.env.UPLOAD_DIR || path.join(__dirname, "../../uploads"),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB max
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_DOC_MIMES.has(file.mimetype)) return cb(null, true);
+    cb(new Error(`File type not allowed: ${file.mimetype}`));
+  },
+});
 const BOOKING_LIST_INCLUDE = {
   client: { select: { id: true, name: true } },
   agent: { select: { id: true, name: true } },
