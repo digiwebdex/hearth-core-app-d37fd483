@@ -2,9 +2,10 @@ const router = require("express").Router();
 const { prisma, authenticate, requireRole } = require("../middleware/auth");
 const { processTravelDepartureReminders } = require("../services/travelDepartureReminderService");
 
+router.use(authenticate);
+
 // GET /api/flight-reminders/upcoming?days=7
-// Returns bookings departing within N days, with today's reminder-sent status
-router.get("/upcoming", authenticate, async (req, res) => {
+router.get("/upcoming", async (req, res) => {
   try {
     const days = Math.min(parseInt(req.query.days) || 7, 30);
     const today = new Date();
@@ -12,10 +13,13 @@ router.get("/upcoming", authenticate, async (req, res) => {
     const until = new Date(today);
     until.setDate(until.getDate() + days);
 
+    const todayIso = today.toISOString().slice(0, 10);
+    const untilIso = until.toISOString().slice(0, 10);
+
     const bookings = await prisma.booking.findMany({
       where: {
-        tenantId: req.user.tenantId,
-        travelDateFrom: { gte: today, lte: until },
+        tenantId: req.tenantId,
+        travelDateFrom: { gte: todayIso, lte: untilIso },
         status: { in: ["confirmed", "ticketed", "traveling", "pending"] },
       },
       include: {
@@ -30,13 +34,11 @@ router.get("/upcoming", authenticate, async (req, res) => {
     const results = await Promise.all(
       bookings.map(async (b) => {
         const travelDate = String(b.travelDateFrom || "").slice(0, 10);
-        const todayIso = today.toISOString().slice(0, 10);
-        const msPerDay = 86400000;
-        const daysLeft = Math.round((new Date(travelDate) - new Date(todayIso)) / msPerDay);
+        const daysLeft = Math.round((new Date(travelDate) - new Date(todayIso)) / 86400000);
 
         const sentLog = await prisma.auditLog.findFirst({
           where: {
-            tenantId: req.user.tenantId,
+            tenantId: req.tenantId,
             module: "bookings",
             action: `departure_reminder_${daysLeft}`,
             targetId: b.id,
@@ -65,11 +67,10 @@ router.get("/upcoming", authenticate, async (req, res) => {
 });
 
 // POST /api/flight-reminders/send/:bookingId
-// Manual one-time reminder for a specific booking
-router.post("/send/:bookingId", authenticate, async (req, res) => {
+router.post("/send/:bookingId", async (req, res) => {
   try {
     const booking = await prisma.booking.findFirst({
-      where: { id: req.params.bookingId, tenantId: req.user.tenantId },
+      where: { id: req.params.bookingId, tenantId: req.tenantId },
       include: {
         client: { select: { name: true, phone: true, email: true } },
         tenant: { select: { name: true } },
@@ -82,8 +83,7 @@ router.post("/send/:bookingId", authenticate, async (req, res) => {
 
     const travelDate = String(booking.travelDateFrom || "").slice(0, 10);
     const today = new Date().toISOString().slice(0, 10);
-    const msPerDay = 86400000;
-    const daysLeft = Math.round((new Date(travelDate) - new Date(today)) / msPerDay);
+    const daysLeft = Math.round((new Date(travelDate) - new Date(today)) / 86400000);
 
     const clientName = booking.client?.name || booking.clientName || "Traveler";
     const clientPhone = booking.client?.phone || null;
@@ -110,13 +110,13 @@ router.post("/send/:bookingId", authenticate, async (req, res) => {
 
     await prisma.auditLog.create({
       data: {
-        actorId: req.user.id,
-        actorName: req.user.name || req.user.email,
-        actorEmail: req.user.email,
-        actorRole: req.user.role,
-        tenantId: req.user.tenantId,
+        actorId: req.userId,
+        actorName: req.userId,
+        actorEmail: "",
+        actorRole: req.userRole,
+        tenantId: req.tenantId,
         module: "bookings",
-        action: `departure_reminder_manual`,
+        action: "departure_reminder_manual",
         targetType: "booking",
         targetId: booking.id,
         targetLabel: booking.title || booking.id,
@@ -131,8 +131,8 @@ router.post("/send/:bookingId", authenticate, async (req, res) => {
   }
 });
 
-// POST /api/flight-reminders/run-now  (admin/owner only)
-router.post("/run-now", authenticate, requireRole("super_admin", "tenant_owner"), async (req, res) => {
+// POST /api/flight-reminders/run-now  (owner/admin only)
+router.post("/run-now", requireRole("super_admin", "tenant_owner"), async (req, res) => {
   try {
     const result = await processTravelDepartureReminders(prisma);
     res.json(result);
