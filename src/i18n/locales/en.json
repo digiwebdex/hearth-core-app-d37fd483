@@ -130,6 +130,7 @@
     "inventory": "Inventory",
     "recruitment": "Recruitment",
     "ticketTransactions": "Refunds / Voids / Reissues",
+    "flightReminders": "Flight Reminders",
     "subscription": "Subscription",
     "settings": "Settings",
     "userGuide": "User Guide",
@@ -1835,6 +1836,32 @@
       "pending": "Pending",
       "partial": "Partial",
       "paid": "Paid"
+    }
+  },
+  "flightReminders": {
+    "title": "Flight Departure Reminders",
+    "subtitle": "Upcoming departures — send reminders to clients before their travel date.",
+    "loadFailed": "Failed to load flight reminders",
+    "sent": "Reminder sent",
+    "sendFailed": "Could not send reminder",
+    "none": "No upcoming departures in this window.",
+    "send": "Send reminder",
+    "sending": "Sending...",
+    "runAll": "Run all reminders now",
+    "running": "Running...",
+    "runSuccess": "Reminder job completed",
+    "daysWindow": "Show next {{days}} days",
+    "columns": {
+      "client": "Client",
+      "destination": "Destination",
+      "departure": "Departure date",
+      "daysLeft": "Days left",
+      "status": "Booking status",
+      "reminderSent": "Reminder sent today"
+    },
+    "badge": {
+      "sent": "Sent",
+      "pending": "Pending"
     }
   },
   "financeReminders": {

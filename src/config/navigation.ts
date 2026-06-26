@@ -164,6 +164,7 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
         { id: "bookings", titleKey: "sidebar.bookings", url: "/bookings", icon: Plane, module: "bookings" },
         { id: "service-catalog", titleKey: "sidebar.serviceCatalogItem", url: "/packages/all", icon: Package2, module: "packages" },
         { id: "ticket-transactions", titleKey: "sidebar.ticketTransactions", url: "/ticket-transactions", icon: RefreshCw, module: "bookings" },
+        { id: "flight-reminders", titleKey: "sidebar.flightReminders", url: "/flight-reminders", icon: Bell, module: "bookings" },
       ],
     },
 
