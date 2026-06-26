@@ -12,8 +12,8 @@ router.use(authenticate);
 
 // Allowed fields for tenant self-update (prevents privilege escalation)
 const ALLOWED_TENANT_FIELDS = [
-  "name", "logo", "phone", "address", "city", "country",
-  "currency", "timezone", "websiteConfig",   "enableHajjUmrahModule", "enableBdOperationsModule",
+  "name", "logo", "phone", "whatsapp", "website", "address", "city", "country",
+  "currency", "timezone", "websiteConfig", "enableHajjUmrahModule", "enableBdOperationsModule",
   "enabledServiceTypes", "enabledSubcategories",
 ];
 
