@@ -63,13 +63,13 @@ export interface NavGroupConfig {
 }
 
 export interface NavigationOptions {
-  /** When false, hides Hajj/Umrah Operations from Operations group. Default true. */
+  /** @deprecated Operations desks now derive from enabledServiceTypes. Ignored. */
   enableHajjUmrahModule?: boolean;
-  /** When true, shows Student/Manpower operations desk. Default false. */
+  /** @deprecated Operations desks now derive from enabledServiceTypes. Ignored. */
   enableBdOperationsModule?: boolean;
   /** When true, shows Activity log in HR & Payroll (owner/manager). */
   showActivityLog?: boolean;
-  /** Empty or omitted = all service presets visible. */
+  /** Empty or omitted = all service presets visible. Drives which operations desks show. */
   enabledServiceTypes?: string[];
   enabledSubcategories?: string[];
 }
@@ -81,12 +81,13 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
   );
   const showAllServices = enabled.length === 0
     && !(options.enabledSubcategories?.length);
-  let enableHajj = options.enableHajjUmrahModule !== false;
-  let enableBd = options.enableBdOperationsModule === true;
-  if (!showAllServices) {
-    if (!enabled.includes("hajj_umrah")) enableHajj = false;
-    if (!enabled.includes("study_abroad") && !enabled.includes("b2b_agent")) enableBd = false;
-  }
+  // Operations desks are driven purely by the agency's selected services —
+  // no separate on/off toggle. Sell Hajj/Umrah → Hajj ops desk appears.
+  // Sell Student/Manpower → BD ops desk appears.
+  const enableHajj = showAllServices || enabled.includes("hajj_umrah");
+  const enableBd = showAllServices
+    || enabled.includes("study_abroad")
+    || enabled.includes("b2b_agent");
   const showActivityLog = options.showActivityLog === true;
 
   const operationsItems: NavItemConfig[] = [

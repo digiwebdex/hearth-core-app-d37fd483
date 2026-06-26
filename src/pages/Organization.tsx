@@ -13,6 +13,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { tenantApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import {
+  deriveModuleFlagsFromServiceTypes,
+  normalizeEnabledServiceTypes,
+} from "@/lib/enabledServiceTypes";
+import {
   Building2, Phone, Globe, MapPin, Mail, Calendar, Settings2,
   CreditCard, Star, CheckCircle2, Loader2, Link as LinkIcon,
   Clock, DollarSign, Plane, Moon, Briefcase, Shield, ExternalLink,
@@ -101,10 +105,11 @@ const Organization = () => {
     timezone: "Asia/Dhaka",
   });
 
-  const [modules, setModules] = useState({
-    enableHajjUmrahModule: true,
-    enableBdOperationsModule: false,
-  });
+  // Operations modules are derived from the agency's selected services (Settings → Optional modules).
+  const moduleFlags = deriveModuleFlagsFromServiceTypes(
+    normalizeEnabledServiceTypes(tenant?.enabledServiceTypes),
+    tenant?.enabledSubcategories,
+  );
 
   const [saving, setSaving] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -121,10 +126,6 @@ const Organization = () => {
         country: tenant.country || "",
         currency: tenant.currency || "BDT",
         timezone: tenant.timezone || "Asia/Dhaka",
-      });
-      setModules({
-        enableHajjUmrahModule: tenant.enableHajjUmrahModule ?? true,
-        enableBdOperationsModule: tenant.enableBdOperationsModule ?? false,
       });
       setLoaded(true);
     }
@@ -345,13 +346,13 @@ const Organization = () => {
           </CardContent>
         </Card>
 
-        {/* ── 5. Module Toggles ── */}
+        {/* ── 5. Business Modules (auto from services) ── */}
         <Card>
           <CardHeader className="pb-2">
             <SectionHeader
               icon={Settings2}
               title="Business Modules"
-              description="Enable or disable modules based on your agency's services"
+              description="These turn on automatically based on the services your agency sells"
             />
           </CardHeader>
           <CardContent className="space-y-4">
@@ -362,14 +363,13 @@ const Organization = () => {
                     <Moon className="h-4 w-4 text-green-700" />
                   </div>
                   <div>
-                    <p className="font-medium text-sm">Hajj & Umrah Module</p>
+                    <p className="font-medium text-sm">Hajj & Umrah Operations</p>
                     <p className="text-xs text-muted-foreground">Pilgrim management, groups, Mecca packages, ziyarat</p>
                   </div>
                 </div>
-                <Switch
-                  checked={modules.enableHajjUmrahModule}
-                  onCheckedChange={(v) => setModules((m) => ({ ...m, enableHajjUmrahModule: v }))}
-                />
+                <Badge variant={moduleFlags.enableHajjUmrahModule ? "default" : "secondary"}>
+                  {moduleFlags.enableHajjUmrahModule ? "Active" : "Off"}
+                </Badge>
               </div>
               <div className="flex items-center justify-between rounded-xl border px-4 py-3">
                 <div className="flex items-center gap-3">
@@ -377,23 +377,18 @@ const Organization = () => {
                     <Briefcase className="h-4 w-4 text-blue-700" />
                   </div>
                   <div>
-                    <p className="font-medium text-sm">Bangladesh Operations Module</p>
+                    <p className="font-medium text-sm">Student & Manpower Operations</p>
                     <p className="text-xs text-muted-foreground">Manpower, overseas recruitment, and BD domestic services</p>
                   </div>
                 </div>
-                <Switch
-                  checked={modules.enableBdOperationsModule}
-                  onCheckedChange={(v) => setModules((m) => ({ ...m, enableBdOperationsModule: v }))}
-                />
+                <Badge variant={moduleFlags.enableBdOperationsModule ? "default" : "secondary"}>
+                  {moduleFlags.enableBdOperationsModule ? "Active" : "Off"}
+                </Badge>
               </div>
             </div>
-            <Button
-              onClick={() => save("modules", { enableHajjUmrahModule: modules.enableHajjUmrahModule, enableBdOperationsModule: modules.enableBdOperationsModule })}
-              disabled={saving === "modules"}
-              size="sm"
-            >
-              {saving === "modules" ? <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />Saving…</> : "Save Module Settings"}
-            </Button>
+            <p className="text-xs text-muted-foreground">
+              To change these, update your services in <strong>Settings → Optional modules</strong>.
+            </p>
           </CardContent>
         </Card>
 
@@ -482,7 +477,7 @@ const Organization = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
                 { icon: Building2, label: "Plan", value: planMeta.label },
-                { icon: Plane, label: "Modules", value: [modules.enableHajjUmrahModule && "Hajj/Umrah", modules.enableBdOperationsModule && "BD Ops"].filter(Boolean).join(", ") || "Core" },
+                { icon: Plane, label: "Modules", value: [moduleFlags.enableHajjUmrahModule && "Hajj/Umrah", moduleFlags.enableBdOperationsModule && "BD Ops"].filter(Boolean).join(", ") || "Core" },
                 { icon: Globe, label: "Custom Domain", value: plan === "pro" || plan === "business" || plan === "enterprise" ? "Enabled" : "Pro+ only" },
                 { icon: Mail, label: "Email Notify", value: "Enabled" },
               ].map(({ icon: Icon, label, value }) => (

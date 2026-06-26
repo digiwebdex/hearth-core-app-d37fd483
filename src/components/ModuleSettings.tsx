@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Moon, GraduationCap, Layers } from "lucide-react";
+import { Layers, Info } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { tenantApi } from "@/lib/api";
@@ -31,45 +30,15 @@ export default function ModuleSettings() {
     setSelectedSubs(savedSubs);
   }, [savedSubs]);
 
-  const hajjEnabled = tenant?.enableHajjUmrahModule !== false;
-  const bdEnabled = tenant?.enableBdOperationsModule === true;
   const canEdit = appRole === "tenant_owner" || appRole === "owner";
 
   const handleSaveServiceTypes = async () => {
     if (!canEdit) return;
     setSaving(true);
     try {
+      // buildServiceSelectionPayload also derives the Hajj/BD ops-desk flags
+      // from the chosen services, so menus update automatically — no separate toggle.
       await tenantApi.update(buildServiceSelectionPayload(selectedSubs));
-      await refreshTenant();
-      toast({ title: t("settingsModules.saved") });
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      toast({ title: t("settingsModules.saveFailed"), description: message, variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleHajjToggle = async (checked: boolean) => {
-    if (!canEdit) return;
-    setSaving(true);
-    try {
-      await tenantApi.update({ enableHajjUmrahModule: checked });
-      await refreshTenant();
-      toast({ title: t("settingsModules.saved") });
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      toast({ title: t("settingsModules.saveFailed"), description: message, variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleBdToggle = async (checked: boolean) => {
-    if (!canEdit) return;
-    setSaving(true);
-    try {
-      await tenantApi.update({ enableBdOperationsModule: checked });
       await refreshTenant();
       toast({ title: t("settingsModules.saved") });
     } catch (err: unknown) {
@@ -84,7 +53,7 @@ export default function ModuleSettings() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Moon className="h-5 w-5" />
+          <Layers className="h-5 w-5" />
           {t("settingsModules.title")}
         </CardTitle>
         <CardDescription>{t("settingsModules.subtitle")}</CardDescription>
@@ -104,33 +73,15 @@ export default function ModuleSettings() {
           ) : null}
         </div>
 
-        <div className="flex items-center justify-between gap-4 rounded-lg border p-4">
-          <div className="space-y-1">
-            <Label htmlFor="hajj-module">{t("settingsModules.hajjLabel")}</Label>
-            <p className="text-sm text-muted-foreground">{t("settingsModules.hajjDesc")}</p>
-          </div>
-          <Switch
-            id="hajj-module"
-            checked={hajjEnabled}
-            disabled={!canEdit || saving}
-            onCheckedChange={handleHajjToggle}
-          />
+        <div className="flex items-start gap-3 rounded-lg border border-dashed p-4 bg-muted/30">
+          <Info className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+          <p className="text-sm text-muted-foreground">
+            {isBn
+              ? "আপনার নির্বাচিত সার্ভিস অনুযায়ী মেনু ও অপারেশন ডেস্ক স্বয়ংক্রিয়ভাবে দেখানো হবে। যেমন — Hajj/Umrah সিলেক্ট করলে Hajj অপারেশন ডেস্ক, এবং Student/Manpower সিলেক্ট করলে BD অপারেশন ডেস্ক আপনাআপনি যুক্ত হবে। আলাদা কোনো সুইচ চালু করার দরকার নেই।"
+              : "Menus and operations desks appear automatically based on the services you select above. For example, selecting Hajj/Umrah adds the Hajj operations desk, and selecting Student/Manpower adds the BD operations desk — no separate switch needed."}
+          </p>
         </div>
-        <div className="flex items-center justify-between gap-4 rounded-lg border p-4">
-          <div className="space-y-1">
-            <Label htmlFor="bd-module" className="flex items-center gap-2">
-              <GraduationCap className="h-4 w-4" />
-              {t("settingsModules.bdLabel")}
-            </Label>
-            <p className="text-sm text-muted-foreground">{t("settingsModules.bdDesc")}</p>
-          </div>
-          <Switch
-            id="bd-module"
-            checked={bdEnabled}
-            disabled={!canEdit || saving}
-            onCheckedChange={handleBdToggle}
-          />
-        </div>
+
         {!canEdit ? (
           <p className="text-xs text-muted-foreground">{t("settingsModules.ownerOnly")}</p>
         ) : null}

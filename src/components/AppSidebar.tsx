@@ -32,8 +32,7 @@ export function AppSidebar() {
   const { pathname } = useLocation();
 
   const navigationGroups = getNavigationGroups({
-    enableHajjUmrahModule: tenant?.enableHajjUmrahModule !== false,
-    enableBdOperationsModule: tenant?.enableBdOperationsModule === true,
+    // Hajj/BD operations desks now derive automatically from the selected services.
     enabledServiceTypes: tenant?.enabledServiceTypes,
     enabledSubcategories: tenant?.enabledSubcategories,
     showActivityLog: appRole === "tenant_owner" || appRole === "owner" || appRole === "manager",
