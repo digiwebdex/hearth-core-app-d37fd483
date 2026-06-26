@@ -1,7 +1,8 @@
 const router = require("express").Router();
-const { authenticate, requirePermission, prisma } = require("../middleware/auth");
+const { authenticate, requirePermission, requireFeature, prisma } = require("../middleware/auth");
 
 router.use(authenticate);
+router.use(requireFeature("hasWebsiteTemplates"));
 
 function slugify(value) {
   return String(value || "")

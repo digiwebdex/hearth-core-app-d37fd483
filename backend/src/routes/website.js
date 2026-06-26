@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const router = require("express").Router();
-const { authenticate, requirePermission, prisma } = require("../middleware/auth");
+const { authenticate, requirePermission, requireFeature, prisma } = require("../middleware/auth");
 
 const ALLOWED_ASSET_TYPES = new Set(["logo", "hero", "about", "gallery"]);
 // SVG excluded: browsers execute embedded JS in SVGs when served statically (stored XSS risk)
@@ -292,6 +292,8 @@ async function saveWebsiteConfig(tenantId, config) {
 }
 
 router.use(authenticate);
+// Website builder/CMS is a paid feature (Pro+). Public site routes above stay open.
+router.use(requireFeature("hasWebsiteTemplates"));
 
 router.post("/upload-asset", requirePermission("website", "edit"), async (req, res) => {
   try {

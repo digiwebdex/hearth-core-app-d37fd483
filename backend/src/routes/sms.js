@@ -1,9 +1,10 @@
 const router = require("express").Router();
-const { authenticate, requireSuperAdmin, requireRole, prisma } = require("../middleware/auth");
+const { authenticate, requireSuperAdmin, requireRole, requireFeature, prisma } = require("../middleware/auth");
 const { sendSms, getSmsBalance } = require("../services/smsService");
 const { messagePreview } = require("../middleware/upload");
 
 router.use(authenticate);
+router.use(requireFeature("hasSmsIntegration"));
 
 function mapEnvProvider() {
   const raw = (process.env.SMS_PROVIDER || "console").toLowerCase();

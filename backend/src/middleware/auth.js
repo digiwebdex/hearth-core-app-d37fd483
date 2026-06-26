@@ -216,4 +216,30 @@ function checkPlanLimit(resource) {
   };
 }
 
-module.exports = { authenticate, requireSuperAdmin, requireRole, requirePermission, checkPlanLimit, prisma, SECRET };
+// Gate a route by a subscription FEATURE flag (e.g. hasWebsiteTemplates).
+// Must run after `authenticate` (needs req.tenantId). super_admin bypasses.
+// Usage: router.use(requireFeature("hasSmsIntegration"))
+const { planHasFeature } = require("../lib/planFeatures");
+function requireFeature(flag) {
+  return async (req, res, next) => {
+    try {
+      if (req.userRole === "super_admin") return next();
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: req.tenantId },
+        select: { subscriptionPlan: true },
+      });
+      if (!tenant) return res.status(404).json({ message: "Tenant not found" });
+      if (planHasFeature(tenant.subscriptionPlan, flag)) return next();
+      return res.status(403).json({
+        message: "This feature is not included in your current plan. Please upgrade.",
+        code: "FEATURE_NOT_IN_PLAN",
+        feature: flag,
+      });
+    } catch (err) {
+      console.error("Feature gate error:", err?.message || err);
+      return res.status(503).json({ message: "Feature validation unavailable. Please try again." });
+    }
+  };
+}
+
+module.exports = { authenticate, requireSuperAdmin, requireRole, requirePermission, checkPlanLimit, requireFeature, prisma, SECRET };

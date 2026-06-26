@@ -1,9 +1,10 @@
 const router = require("express").Router();
-const { authenticate, requireSuperAdmin, prisma } = require("../middleware/auth");
+const { authenticate, requireSuperAdmin, requireFeature, prisma } = require("../middleware/auth");
 const { extractVariables } = require("../services/whatsappTemplateService");
 const { sendWhatsApp, getWhatsAppConfig } = require("../services/whatsappService");
 
 router.use(authenticate);
+router.use(requireFeature("hasWhatsApp"));
 
 // GET /api/whatsapp/config — return current provider config (no secrets)
 router.get("/config", async (req, res) => {
