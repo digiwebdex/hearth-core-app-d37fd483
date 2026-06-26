@@ -35,7 +35,7 @@ export default function WebsiteSeo() {
       // Parse SEO settings from notes if stored there, or use defaults
       try {
         const notes = JSON.parse((t as unknown as { notes?: string }).notes || "{}");
-        if (notes.seo) setForm({ ...form, ...notes.seo });
+        if (notes.seo) setForm((prev) => ({ ...prev, ...notes.seo }));
       } catch {}
     });
   }, []);

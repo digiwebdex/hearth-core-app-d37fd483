@@ -8,6 +8,49 @@ import { Button } from "@/components/ui/button";
 import { publicApi, type BlogPostPublic } from "@/lib/publicApi";
 import { ArrowLeft, Calendar, User } from "lucide-react";
 
+function renderMarkdown(text: string): string {
+  if (!text) return "";
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  const lines = escaped.split("\n");
+  const out: string[] = [];
+  let inList = false;
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    const h3 = line.match(/^### (.+)$/);
+    const h2 = line.match(/^## (.+)$/);
+    const h1 = line.match(/^# (.+)$/);
+    const li = line.match(/^[-*] (.+)$/);
+    if (h1 || h2 || h3) {
+      if (inList) { out.push("</ul>"); inList = false; }
+      const tag = h1 ? "h1" : h2 ? "h2" : "h3";
+      const content = (h1 || h2 || h3)![1];
+      out.push(`<${tag} class="font-bold mt-6 mb-2 ${tag === "h1" ? "text-3xl" : tag === "h2" ? "text-2xl" : "text-xl"}">${inlineM(content)}</${tag}>`);
+    } else if (li) {
+      if (!inList) { out.push('<ul class="list-disc pl-6 my-3">'); inList = true; }
+      out.push(`<li class="mb-1">${inlineM(li[1])}</li>`);
+    } else if (line === "") {
+      if (inList) { out.push("</ul>"); inList = false; }
+      out.push("");
+    } else {
+      if (inList) { out.push("</ul>"); inList = false; }
+      out.push(`<p class="mb-4 leading-relaxed">${inlineM(line)}</p>`);
+    }
+  }
+  if (inList) out.push("</ul>");
+  return out.join("\n");
+}
+
+function inlineM(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/`(.+?)`/g, '<code class="bg-muted px-1 rounded text-sm font-mono">$1</code>')
+    .replace(/\[(.+?)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer" class="text-primary underline">$1</a>');
+}
+
 const SiteBlog = () => {
   const { tenant, domainResolution } = useWebsite();
   const { postSlug } = useParams<{ postSlug?: string }>();
@@ -80,9 +123,10 @@ const SiteBlog = () => {
                 </span>
               ) : null}
             </div>
-            <div className="prose prose-neutral dark:prose-invert max-w-none whitespace-pre-wrap leading-relaxed">
-              {post.body || post.excerpt}
-            </div>
+            <div
+              className="prose prose-neutral dark:prose-invert max-w-none leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(post.body || post.excerpt || "") }}
+            />
           </div>
         </article>
       </PublicLayout>

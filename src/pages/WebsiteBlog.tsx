@@ -28,7 +28,54 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { blogApi, type BlogPost } from "@/lib/api";
-import { FileText, Plus, Pencil, Trash2, Search } from "lucide-react";
+import { FileText, Plus, Pencil, Trash2, Search, Eye, Edit2 } from "lucide-react";
+
+function renderMarkdown(text: string): string {
+  if (!text) return "";
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  const lines = escaped.split("\n");
+  const out: string[] = [];
+  let inList = false;
+
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+
+    const h3 = line.match(/^### (.+)$/);
+    const h2 = line.match(/^## (.+)$/);
+    const h1 = line.match(/^# (.+)$/);
+    const li = line.match(/^[-*] (.+)$/);
+
+    if (h1 || h2 || h3) {
+      if (inList) { out.push("</ul>"); inList = false; }
+      const tag = h1 ? "h1" : h2 ? "h2" : "h3";
+      const content = (h1 || h2 || h3)![1];
+      out.push(`<${tag} class="font-bold mt-4 mb-1 ${tag === "h1" ? "text-2xl" : tag === "h2" ? "text-xl" : "text-lg"}">${inline(content)}</${tag}>`);
+    } else if (li) {
+      if (!inList) { out.push("<ul class=\"list-disc pl-6 my-2\">"); inList = true; }
+      out.push(`<li>${inline(li[1])}</li>`);
+    } else if (line === "") {
+      if (inList) { out.push("</ul>"); inList = false; }
+      out.push("<br/>");
+    } else {
+      if (inList) { out.push("</ul>"); inList = false; }
+      out.push(`<p class="mb-2">${inline(line)}</p>`);
+    }
+  }
+  if (inList) out.push("</ul>");
+  return out.join("\n");
+}
+
+function inline(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/`(.+?)`/g, "<code class=\"bg-muted px-1 rounded text-sm font-mono\">$1</code>")
+    .replace(/\[(.+?)\]\((https?:\/\/[^\s)]+)\)/g, "<a href=\"$2\" target=\"_blank\" rel=\"noreferrer\" class=\"text-primary underline\">$1</a>");
+}
 
 const emptyForm = {
   title: "",
@@ -50,6 +97,7 @@ const WebsiteBlog = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [bodyPreview, setBodyPreview] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -85,10 +133,12 @@ const WebsiteBlog = () => {
   const openNew = () => {
     setForm(emptyForm);
     setEditingId(null);
+    setBodyPreview(false);
     setDialogOpen(true);
   };
 
   const openEdit = (post: BlogPost) => {
+    setBodyPreview(false);
     setForm({
       title: post.title,
       slug: post.slug,
@@ -287,12 +337,39 @@ const WebsiteBlog = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label>{t("blog.fieldBody")}</Label>
-                <Textarea
-                  rows={8}
-                  value={form.body}
-                  onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
-                />
+                <div className="flex items-center justify-between">
+                  <Label>{t("blog.fieldBody")}</Label>
+                  <div className="flex items-center border rounded-md overflow-hidden text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setBodyPreview(false)}
+                      className={`flex items-center gap-1 px-2 py-1 transition-colors ${!bodyPreview ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                    >
+                      <Edit2 className="h-3 w-3" /> Write
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBodyPreview(true)}
+                      className={`flex items-center gap-1 px-2 py-1 transition-colors ${bodyPreview ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                    >
+                      <Eye className="h-3 w-3" /> Preview
+                    </button>
+                  </div>
+                </div>
+                {bodyPreview ? (
+                  <div
+                    className="min-h-[200px] rounded-md border bg-muted/30 px-3 py-2 text-sm prose prose-neutral dark:prose-invert max-w-none"
+                    dangerouslySetInnerHTML={{ __html: renderMarkdown(form.body) || "<span class='text-muted-foreground'>Nothing to preview</span>" }}
+                  />
+                ) : (
+                  <Textarea
+                    rows={8}
+                    value={form.body}
+                    onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
+                    placeholder={"# Heading\n\nWrite your post body here. Supports **bold**, *italic*, `code`, [links](https://...), and - lists."}
+                  />
+                )}
+                <p className="text-xs text-muted-foreground">Supports Markdown: **bold**, *italic*, # headings, - lists, [link](url)</p>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
