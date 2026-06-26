@@ -164,8 +164,6 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
         { id: "bookings", titleKey: "sidebar.bookings", url: "/bookings", icon: Plane, module: "bookings" },
         { id: "service-catalog", titleKey: "sidebar.serviceCatalogItem", url: "/packages/all", icon: Package2, module: "packages" },
         { id: "ticket-transactions", titleKey: "sidebar.ticketTransactions", url: "/ticket-transactions", icon: RefreshCw, module: "bookings" },
-        { id: "bsp-reconcile", titleKey: "sidebar.bspReconcile", url: "/bsp-reconcile", icon: BarChart3, module: "bookings" },
-        { id: "flight-reminders", titleKey: "sidebar.flightReminders", url: "/flight-reminders", icon: Bell, module: "bookings" },
       ],
     },
 
@@ -251,7 +249,6 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
         { id: "settings", titleKey: "sidebar.settings", url: "/settings", icon: Settings, module: "settings" },
         { id: "organization", titleKey: "sidebar.organization", url: "/organization", icon: Building2, module: "organization" },
         { id: "subscription", titleKey: "sidebar.subscription", url: "/subscription", icon: Crown, module: "subscription" },
-        { id: "bulk-import", titleKey: "sidebar.bulkImport", url: "/bulk-import", icon: UploadCloud, module: "bookings" },
         { id: "userGuide", titleKey: "sidebar.userGuide", url: "/user-guide", icon: BookOpen, module: "dashboard" },
       ],
     },

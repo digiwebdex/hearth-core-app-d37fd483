@@ -151,9 +151,6 @@ function createApp() {
   app.use("/api/ticket-refunds", require("./routes/ticketRefunds"));
   app.use("/api/ticket-voids", require("./routes/ticketVoids"));
   app.use("/api/ticket-reissues", require("./routes/ticketReissues"));
-  app.use("/api/flight-reminders", require("./routes/flightReminders"));
-  app.use("/api/bsp-reconcile", require("./routes/bspReconcile"));
-  app.use("/api/bulk-import", require("./routes/bulkImport"));
   app.use("/api/hajj", require("./routes/hajj"));
   app.use("/api/subscriptions", require("./routes/crud")("subscription"));
   app.use("/api/payment-requests", require("./routes/paymentRequests"));
