@@ -114,6 +114,7 @@ const TravelApprovals = lazy(() => import("./pages/TravelApprovals"));
 const VisaTracker = lazy(() => import("./pages/VisaTracker"));
 const Inventory = lazy(() => import("./pages/Inventory"));
 const Recruitment = lazy(() => import("./pages/Recruitment"));
+const TicketTransactions = lazy(() => import("./pages/TicketTransactions"));
 
 const queryClient = new QueryClient();
 
@@ -273,6 +274,7 @@ const AppContent = () => (
           <Route path="/visa-tracker" element={<PM module="bookings"><Suspense fallback={<div className="p-8"><Skeleton className="h-64 w-full" /></div>}><VisaTracker /></Suspense></PM>} />
           <Route path="/inventory" element={<PM module="bookings"><Suspense fallback={<div className="p-8"><Skeleton className="h-64 w-full" /></div>}><Inventory /></Suspense></PM>} />
           <Route path="/recruitment" element={<PM module="team"><Suspense fallback={<div className="p-8"><Skeleton className="h-64 w-full" /></div>}><Recruitment /></Suspense></PM>} />
+          <Route path="/ticket-transactions" element={<PM module="bookings"><Suspense fallback={<div className="p-8"><Skeleton className="h-64 w-full" /></div>}><TicketTransactions /></Suspense></PM>} />
           <Route path="/user-guide" element={<P><UserGuide /></P>} />
 
           <Route path="/admin" element={<A><AdminDashboard /></A>} />

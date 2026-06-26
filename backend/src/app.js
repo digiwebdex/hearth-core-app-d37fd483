@@ -148,6 +148,9 @@ function createApp() {
   app.use("/api/visa", require("./routes/visa"));
   app.use("/api/inventory", require("./routes/inventory"));
   app.use("/api/recruitment", require("./routes/recruitment"));
+  app.use("/api/ticket-refunds", require("./routes/ticketRefunds"));
+  app.use("/api/ticket-voids", require("./routes/ticketVoids"));
+  app.use("/api/ticket-reissues", require("./routes/ticketReissues"));
   app.use("/api/hajj", require("./routes/hajj"));
   app.use("/api/subscriptions", require("./routes/crud")("subscription"));
   app.use("/api/payment-requests", require("./routes/paymentRequests"));

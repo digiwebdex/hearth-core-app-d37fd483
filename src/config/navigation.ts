@@ -8,6 +8,7 @@ import {
   FileText,
   Package2,
   Plane,
+  RefreshCw,
   Moon,
   GraduationCap,
   ListTodo,
@@ -176,6 +177,7 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
       items: [
         { id: "quotations", titleKey: "sidebar.quotations", url: "/quotations", icon: FileText, module: "quotations" },
         { id: "bookings", titleKey: "sidebar.bookings", url: "/bookings", icon: Plane, module: "bookings" },
+        { id: "ticket-transactions", titleKey: "sidebar.ticketTransactions", url: "/ticket-transactions", icon: RefreshCw, module: "bookings" },
       ],
     },
     {
