@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,7 @@ import { ManpowerFields } from "@/components/bookings/ManpowerFields";
 import { TransportFields } from "@/components/bookings/TransportFields";
 import { InsuranceFields } from "@/components/bookings/InsuranceFields";
 import { AgentSelect } from "@/components/bookings/AgentSelect";
+import { ClientSelect } from "@/components/bookings/ClientSelect";
 import { emptyForm, type BookingFormState } from "@/components/bookings/types";
 import {
   buildServiceDetailsFromForm,
@@ -155,10 +157,10 @@ function formToApiPayload(form: BookingFormState, extra?: { clientPhone?: string
   const base = {
     type: form.type,
     title: form.title,
-    clientId: form.clientId,
+    clientId: form.clientId || undefined,
     clientName: form.clientName,
-    clientPhone: extra?.clientPhone || undefined,
-    clientEmail: extra?.clientEmail || undefined,
+    clientPhone: form.clientPhone || extra?.clientPhone || undefined,
+    clientEmail: form.clientEmail || extra?.clientEmail || undefined,
     agentId: form.agentId,
     amount: form.amount,
     cost: form.cost,
@@ -272,6 +274,8 @@ function bookingToForm(b: Booking): BookingFormState {
     title: merged.title || "",
     clientId: merged.clientId,
     clientName: merged.clientName || "",
+    clientPhone: (merged as Booking & { clientPhone?: string }).clientPhone || "",
+    clientEmail: (merged as Booking & { clientEmail?: string }).clientEmail || "",
     agentId: merged.agentId || "",
     amount: merged.amount,
     cost: merged.cost,
@@ -326,7 +330,8 @@ function bookingToForm(b: Booking): BookingFormState {
 }
 
 const Bookings = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isBnLang = String(i18n.resolvedLanguage || i18n.language || "en").startsWith("bn");
   const [items, setItems] = useState<Booking[]>([]);
   const [form, setForm] = useState<BookingFormState>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -420,6 +425,13 @@ const Bookings = () => {
   const resetForm = () => {
     setForm(emptyForm);
     setEditingId(null);
+  };
+
+  const openCreate = () => {
+    resetForm();
+    const defaultType = allowedBookingTypes[0] || "tour";
+    setForm({ ...emptyForm, type: defaultType });
+    setDialogOpen(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -598,103 +610,7 @@ const Bookings = () => {
               </Button>
             </PermissionGate>
             <PermissionGate module="bookings" action="create">
-              <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-                <DialogTrigger asChild>
-                  <Button><Plus className="mr-2 h-4 w-4" />{t("pages.newBooking")}</Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>{editingId ? t("bookingsForm.editBooking") : t("bookingsForm.newBooking")}</DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>{t("bookingsForm.bookingTitle")}</Label>
-                      <Input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder={t("bookingsForm.titlePlaceholder")} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>{t("bookingsForm.type")}</Label>
-                        <Select value={form.type} onValueChange={(v) => setForm((f) => ({ ...f, type: v as BookingType }))}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {allowedBookingTypes.map((bt) => (
-                              <SelectItem key={bt} value={bt}>{t(`bookingsForm.types.${bt}`)}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>{t("bookingsForm.status")}</Label>
-                        <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v as BookingStatus }))}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {STATUS_META.map((s) => <SelectItem key={s.value} value={s.value}>{t(`bookingsForm.statuses.${s.value}`)}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    {form.type === "ticket" && <TicketFields form={form} setForm={setForm} />}
-                    {form.type === "tour" && <TourFields form={form} setForm={setForm} />}
-                    {form.type === "hotel" && <HotelFields form={form} setForm={setForm} />}
-                    {form.type === "visa" && <VisaFields form={form} setForm={setForm} />}
-                    {form.type === "transport" && <TransportFields form={form} setForm={setForm} />}
-                    {form.type === "insurance" && <InsuranceFields form={form} setForm={setForm} />}
-                    {form.type === "package" && <PackageFields form={form} setForm={setForm} />}
-                    {form.type === "student" && <StudentFields form={form} setForm={setForm} />}
-                    {form.type === "manpower" && <ManpowerFields form={form} setForm={setForm} />}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>{t("bookingsForm.clientName")}</Label>
-                        <Input value={form.clientName} onChange={(e) => setForm((f) => ({ ...f, clientName: e.target.value }))} placeholder={t("bookingsForm.clientPlaceholder")} required />
-                      </div>
-                      <AgentSelect
-                        value={form.agentId}
-                        onChange={(agentId) => setForm((f) => ({ ...f, agentId }))}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>{t("bookingsForm.travelers")}</Label>
-                      <Input type="number" min={1} value={form.travelerCount} onChange={(e) => setForm((f) => ({ ...f, travelerCount: +e.target.value }))} />
-                    </div>
-                    {(form.type === "tour" || form.type === "package") && (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>{t("bookingsForm.travelFrom")}</Label>
-                          <Input type="date" value={form.travelDateFrom} onChange={(e) => setForm((f) => ({ ...f, travelDateFrom: e.target.value }))} />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>{t("bookingsForm.travelTo")}</Label>
-                          <Input type="date" value={form.travelDateTo} onChange={(e) => setForm((f) => ({ ...f, travelDateTo: e.target.value }))} />
-                        </div>
-                      </div>
-                    )}
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label>{t("bookingsForm.sellingAmount")}</Label>
-                        <Input type="number" min={0} step={0.01} value={form.amount || ""} onChange={(e) => setForm((f) => ({ ...f, amount: parseFloat(e.target.value) || 0 }))} required />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>{t("bookingsForm.cost")}</Label>
-                        <Input type="number" min={0} step={0.01} value={form.cost || ""} onChange={(e) => setForm((f) => ({ ...f, cost: parseFloat(e.target.value) || 0 }))} required />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>{t("bookingsForm.profit")}</Label>
-                        <div className={`flex h-10 items-center rounded-md border px-3 text-sm font-semibold ${profit >= 0 ? "text-green-600" : "text-destructive"}`}>
-                          ৳{profit.toLocaleString()}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>{t("bookingsForm.internalNotes")}</Label>
-                      <Input value={form.internalNotes} onChange={(e) => setForm((f) => ({ ...f, internalNotes: e.target.value }))} placeholder={t("bookingsForm.notesPlaceholder")} />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button type="submit" className="flex-1">{editingId ? t("bookingsForm.update") : t("bookingsForm.create")}</Button>
-                      <DialogClose asChild><Button type="button" variant="outline">{t("bookingsForm.cancel")}</Button></DialogClose>
-                    </div>
-                  </form>
-                </DialogContent>
-              </Dialog>
+              <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />{t("pages.newBooking")}</Button>
             </PermissionGate>
           </div>
         </div>
@@ -941,6 +857,142 @@ const Bookings = () => {
           </Card>
         )}
       </div>
+
+      {/* Create / Edit booking — sectioned slide-over drawer */}
+      <Sheet open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+          <SheetHeader className="text-left">
+            <SheetTitle>{editingId ? t("bookingsForm.editBooking") : t("bookingsForm.newBooking")}</SheetTitle>
+            <SheetDescription>
+              {isBnLang
+                ? "নিচের তিনটি ধাপ পূরণ করুন — সার্ভিস, কাস্টমার ও মূল্য।"
+                : "Complete the three steps below — service, customer, and pricing."}
+            </SheetDescription>
+          </SheetHeader>
+
+          <form onSubmit={handleSubmit} className="mt-4 space-y-6">
+            {/* 1. Service details */}
+            <section className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {isBnLang ? "১. সার্ভিসের তথ্য" : "1. Service details"}
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>{t("bookingsForm.type")}</Label>
+                  <Select value={form.type} onValueChange={(v) => setForm((f) => ({ ...f, type: v as BookingType }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {allowedBookingTypes.map((bt) => (
+                        <SelectItem key={bt} value={bt}>{t(`bookingsForm.types.${bt}`)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>{t("bookingsForm.status")}</Label>
+                  <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v as BookingStatus }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(editingId ? STATUS_META : STATUS_META.filter((s) => s.value === "pending" || s.value === "confirmed")).map((s) => (
+                        <SelectItem key={s.value} value={s.value}>{t(`bookingsForm.statuses.${s.value}`)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>{t("bookingsForm.bookingTitle")}</Label>
+                <Input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder={t("bookingsForm.titlePlaceholder")} />
+              </div>
+              {form.type === "ticket" && <TicketFields form={form} setForm={setForm} />}
+              {form.type === "tour" && <TourFields form={form} setForm={setForm} />}
+              {form.type === "hotel" && <HotelFields form={form} setForm={setForm} />}
+              {form.type === "visa" && <VisaFields form={form} setForm={setForm} />}
+              {form.type === "transport" && <TransportFields form={form} setForm={setForm} />}
+              {form.type === "insurance" && <InsuranceFields form={form} setForm={setForm} />}
+              {form.type === "package" && <PackageFields form={form} setForm={setForm} />}
+              {form.type === "student" && <StudentFields form={form} setForm={setForm} />}
+              {form.type === "manpower" && <ManpowerFields form={form} setForm={setForm} />}
+              {(form.type === "tour" || form.type === "package") && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>{t("bookingsForm.travelFrom")}</Label>
+                    <Input type="date" value={form.travelDateFrom} onChange={(e) => setForm((f) => ({ ...f, travelDateFrom: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t("bookingsForm.travelTo")}</Label>
+                    <Input type="date" value={form.travelDateTo} onChange={(e) => setForm((f) => ({ ...f, travelDateTo: e.target.value }))} />
+                  </div>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label>{t("bookingsForm.travelers")}</Label>
+                <Input type="number" min={1} value={form.travelerCount} onChange={(e) => setForm((f) => ({ ...f, travelerCount: +e.target.value }))} />
+              </div>
+            </section>
+
+            {/* 2. Customer & agent */}
+            <section className="space-y-3 border-t pt-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {isBnLang ? "২. কাস্টমার ও এজেন্ট" : "2. Customer & Agent"}
+              </p>
+              <ClientSelect
+                value={{ clientId: form.clientId, clientName: form.clientName, clientPhone: form.clientPhone, clientEmail: form.clientEmail }}
+                onChange={(v) => setForm((f) => ({ ...f, clientId: v.clientId, clientName: v.clientName, clientPhone: v.clientPhone || "", clientEmail: v.clientEmail || "" }))}
+              />
+              {form.clientName && !form.clientId ? (
+                <div className="grid grid-cols-2 gap-4 rounded-lg border border-dashed p-3 bg-muted/30">
+                  <div className="space-y-2">
+                    <Label className="text-xs">{isBnLang ? "ফোন (নতুন ক্লায়েন্ট)" : "Phone (new client)"}</Label>
+                    <Input value={form.clientPhone} onChange={(e) => setForm((f) => ({ ...f, clientPhone: e.target.value }))} placeholder="01XXXXXXXXX" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">{isBnLang ? "ইমেইল (ঐচ্ছিক)" : "Email (optional)"}</Label>
+                    <Input type="email" value={form.clientEmail} onChange={(e) => setForm((f) => ({ ...f, clientEmail: e.target.value }))} placeholder="name@email.com" />
+                  </div>
+                </div>
+              ) : null}
+              <AgentSelect value={form.agentId} onChange={(agentId) => setForm((f) => ({ ...f, agentId }))} />
+            </section>
+
+            {/* 3. Pricing */}
+            <section className="space-y-3 border-t pt-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {isBnLang ? "৩. মূল্য" : "3. Pricing"}
+              </p>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>{t("bookingsForm.sellingAmount")}</Label>
+                  <Input type="number" min={0} step={0.01} value={form.amount || ""} onChange={(e) => setForm((f) => ({ ...f, amount: parseFloat(e.target.value) || 0 }))} required />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t("bookingsForm.cost")}</Label>
+                  <Input type="number" min={0} step={0.01} value={form.cost || ""} onChange={(e) => setForm((f) => ({ ...f, cost: parseFloat(e.target.value) || 0 }))} required />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t("bookingsForm.profit")}</Label>
+                  <div className={`flex h-10 items-center rounded-md border px-3 text-sm font-semibold ${profit >= 0 ? "text-green-600" : "text-destructive"}`}>
+                    ৳{profit.toLocaleString()}
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>{t("bookingsForm.internalNotes")}</Label>
+                <Input value={form.internalNotes} onChange={(e) => setForm((f) => ({ ...f, internalNotes: e.target.value }))} placeholder={t("bookingsForm.notesPlaceholder")} />
+              </div>
+            </section>
+
+            <div className="flex gap-2 border-t pt-4 sticky bottom-0 bg-background">
+              <Button type="submit" className="flex-1" disabled={!form.clientName}>
+                {editingId ? t("bookingsForm.update") : t("bookingsForm.create")}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>
+                {t("bookingsForm.cancel")}
+              </Button>
+            </div>
+          </form>
+        </SheetContent>
+      </Sheet>
 
       <Dialog open={quotationDialogOpen} onOpenChange={setQuotationDialogOpen}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">

@@ -28,6 +28,8 @@ export interface BookingFormState {
   title: string;
   clientId: string;
   clientName: string;
+  clientPhone: string;
+  clientEmail: string;
   agentId: string;
   amount: number;
   cost: number;
@@ -125,6 +127,8 @@ export const emptyForm: BookingFormState = {
   title: "",
   clientId: "",
   clientName: "",
+  clientPhone: "",
+  clientEmail: "",
   agentId: "",
   amount: 0,
   cost: 0,
