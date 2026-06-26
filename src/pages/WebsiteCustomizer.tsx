@@ -43,6 +43,36 @@ function hsl(v: string) {
   return `hsl(${parts[0]}, ${parts[1]}, ${parts[2]})`;
 }
 
+function hslToHex(hslStr: string): string {
+  try {
+    const [h, s, l] = hslStr.trim().split(/\s+/).map((v, i) => i === 0 ? parseFloat(v) : parseFloat(v) / 100);
+    const a = s * Math.min(l, 1 - l);
+    const f = (n: number) => {
+      const k = (n + h / 30) % 12;
+      const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+      return Math.round(255 * color).toString(16).padStart(2, "0");
+    };
+    return `#${f(0)}${f(8)}${f(4)}`;
+  } catch { return "#000000"; }
+}
+
+function hexToHsl(hex: string): string {
+  try {
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const l = (max + min) / 2;
+    if (max === min) return `0 0% ${Math.round(l * 100)}%`;
+    const d = max - min;
+    const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    const h = max === r ? ((g - b) / d + (g < b ? 6 : 0)) / 6
+            : max === g ? ((b - r) / d + 2) / 6
+            : ((r - g) / d + 4) / 6;
+    return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+  } catch { return "0 0% 0%"; }
+}
+
 function ThemeMiniPreview({ colors, isActive }: { colors: WebsiteConfig["colors"]; isActive: boolean }) {
   const isDark = parseInt(colors.background.split(" ")[2]) < 30;
   const cardBg = isDark ? `hsl(${colors.secondary.replace(/\s+/g, ",")} / 0.5)` : hsl(colors.secondary);
@@ -589,17 +619,26 @@ const WebsiteCustomizer = () => {
           <CardTitle>Testimonials</CardTitle>
           <CardDescription>Customer reviews shown on the public site.</CardDescription>
         </div>
-        <Button onClick={() => setContent("testimonials", [...(config.content.testimonials || []), { name: "Customer name", text: "Customer review", date: "2026" }])}><Plus className="mr-2 h-4 w-4" />Add</Button>
+        <Button onClick={() => setContent("testimonials", [...(config.content.testimonials || []), { name: "Customer name", text: "Customer review", date: "2026", rating: 5 }])}><Plus className="mr-2 h-4 w-4" />Add</Button>
       </CardHeader>
       <CardContent className="space-y-4">
         {(config.content.testimonials || []).map((item, index) => (
           <div key={`testimonial-${index}`} className="rounded-xl border p-4 space-y-3">
             <div className="flex items-center justify-between"><Badge variant="outline">Review {index + 1}</Badge>{(config.content.testimonials || []).length > 1 && <Button variant="ghost" size="sm" onClick={() => setContent("testimonials", (config.content.testimonials || []).filter((_, i) => i !== index))}><Trash2 className="mr-2 h-4 w-4" />Remove</Button>}</div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-2"><Label>Name</Label><Input value={item.name} onChange={(e) => setContent("testimonials", (config.content.testimonials || []).map((current, i) => i === index ? { ...current, name: e.target.value } : current))} /></div>
-              <div className="space-y-2"><Label>Date</Label><Input value={item.date || ""} onChange={(e) => setContent("testimonials", (config.content.testimonials || []).map((current, i) => i === index ? { ...current, date: e.target.value } : current))} /></div>
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="space-y-2"><Label>Customer name</Label><Input value={item.name} onChange={(e) => setContent("testimonials", (config.content.testimonials || []).map((current, i) => i === index ? { ...current, name: e.target.value } : current))} /></div>
+              <div className="space-y-2"><Label>Date</Label><Input value={item.date || ""} onChange={(e) => setContent("testimonials", (config.content.testimonials || []).map((current, i) => i === index ? { ...current, date: e.target.value } : current))} placeholder="Jan 2025" /></div>
+              <div className="space-y-2">
+                <Label>Star rating</Label>
+                <Select value={String((item as any).rating ?? 5)} onValueChange={(v) => setContent("testimonials", (config.content.testimonials || []).map((current, i) => i === index ? { ...current, rating: parseInt(v) } : current))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {[5,4,3,2,1].map((r) => <SelectItem key={r} value={String(r)}>{"★".repeat(r)}{"☆".repeat(5-r)} ({r}/5)</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="space-y-2"><Label>Review</Label><Textarea value={item.text} onChange={(e) => setContent("testimonials", (config.content.testimonials || []).map((current, i) => i === index ? { ...current, text: e.target.value } : current))} rows={3} /></div>
+            <div className="space-y-2"><Label>Review text</Label><Textarea value={item.text} onChange={(e) => setContent("testimonials", (config.content.testimonials || []).map((current, i) => i === index ? { ...current, text: e.target.value } : current))} rows={3} /></div>
           </div>
         ))}
       </CardContent>
@@ -641,10 +680,11 @@ const WebsiteCustomizer = () => {
           <div key={`team-${index}`} className="rounded-xl border p-4 space-y-3">
             <div className="flex items-center justify-between"><Badge variant="outline">Member {index + 1}</Badge>{(config.content.team || []).length > 1 && <Button variant="ghost" size="sm" onClick={() => setContent("team", (config.content.team || []).filter((_, i) => i !== index))}><Trash2 className="mr-2 h-4 w-4" />Remove</Button>}</div>
             <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-2"><Label>Name</Label><Input value={item.name} onChange={(e) => setContent("team", (config.content.team || []).map((current, i) => i === index ? { ...current, name: e.target.value } : current))} /></div>
-              <div className="space-y-2"><Label>Role</Label><Input value={item.role} onChange={(e) => setContent("team", (config.content.team || []).map((current, i) => i === index ? { ...current, role: e.target.value } : current))} /></div>
+              <div className="space-y-2"><Label>Full name</Label><Input value={item.name} onChange={(e) => setContent("team", (config.content.team || []).map((current, i) => i === index ? { ...current, name: e.target.value } : current))} /></div>
+              <div className="space-y-2"><Label>Role / position</Label><Input value={item.role} onChange={(e) => setContent("team", (config.content.team || []).map((current, i) => i === index ? { ...current, role: e.target.value } : current))} /></div>
+              <div className="space-y-2 md:col-span-2"><Label>Photo URL</Label><Input value={(item as any).photo || ""} onChange={(e) => setContent("team", (config.content.team || []).map((current, i) => i === index ? { ...current, photo: e.target.value } : current))} placeholder="https://..." /></div>
             </div>
-            <div className="space-y-2"><Label>Description</Label><Textarea value={item.desc || ""} onChange={(e) => setContent("team", (config.content.team || []).map((current, i) => i === index ? { ...current, desc: e.target.value } : current))} rows={2} /></div>
+            <div className="space-y-2"><Label>Short bio</Label><Textarea value={item.desc || ""} onChange={(e) => setContent("team", (config.content.team || []).map((current, i) => i === index ? { ...current, desc: e.target.value } : current))} rows={2} /></div>
           </div>
         ))}
       </CardContent>
@@ -807,21 +847,39 @@ const WebsiteCustomizer = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Color controls</CardTitle>
-                <CardDescription>Adjust the main brand colors for the website.</CardDescription>
+                <CardDescription>Click a swatch to open the color picker, or type HSL values manually.</CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-5">
+              <CardContent className="grid gap-5 sm:grid-cols-2 md:grid-cols-5">
                 {([
-                  ["primary", "Primary"],
-                  ["secondary", "Secondary"],
-                  ["accent", "Accent"],
-                  ["background", "Background"],
-                  ["text", "Text"],
-                ] as const).map(([key, label]) => (
+                  ["primary", "Primary", "Main buttons, nav, hero background"],
+                  ["secondary", "Secondary", "Card backgrounds, light sections"],
+                  ["accent", "Accent", "CTAs, badges, highlights"],
+                  ["background", "Background", "Page background color"],
+                  ["text", "Text", "Body text color"],
+                ] as const).map(([key, label, hint]) => (
                   <div key={key} className="space-y-2">
-                    <Label>{label}</Label>
-                    <div className="flex items-center gap-2 rounded-lg border p-2">
-                      <input type="color" value={config.colors[key]} onChange={(e) => setColor(key, e.target.value)} className="h-10 w-14 cursor-pointer rounded border-0 bg-transparent p-0" />
-                      <Input value={config.colors[key]} onChange={(e) => setColor(key, e.target.value)} />
+                    <Label className="font-medium">{label}</Label>
+                    <p className="text-xs text-muted-foreground -mt-1">{hint}</p>
+                    <div className="flex items-center gap-2">
+                      <label className="relative cursor-pointer shrink-0">
+                        <div
+                          className="h-10 w-10 rounded-lg border-2 border-border shadow-sm transition-transform hover:scale-105"
+                          style={{ background: hsl(config.colors[key]) }}
+                          title={`Pick ${label} color`}
+                        />
+                        <input
+                          type="color"
+                          value={hslToHex(config.colors[key])}
+                          onChange={(e) => setColor(key, hexToHsl(e.target.value))}
+                          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                        />
+                      </label>
+                      <Input
+                        value={config.colors[key]}
+                        onChange={(e) => setColor(key, e.target.value)}
+                        placeholder="221 83% 53%"
+                        className="font-mono text-xs"
+                      />
                     </div>
                   </div>
                 ))}
@@ -830,41 +888,92 @@ const WebsiteCustomizer = () => {
           </TabsContent>
 
           <TabsContent value="content" className="space-y-6">
+            {/* Hero section */}
             <Card>
-              <CardHeader><CardTitle>Agency information</CardTitle><CardDescription>These details appear throughout the public website.</CardDescription></CardHeader>
+              <CardHeader><CardTitle>Hero section</CardTitle><CardDescription>Main banner text shown at the top of your website homepage.</CardDescription></CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2"><Label>Hero badge</Label><Input value={config.content.heroBadge || ""} onChange={(e) => setContent("heroBadge", e.target.value)} placeholder="#1 Trusted Travel Agency" /></div>
+                <div className="space-y-2"><Label>Hero title</Label><Input value={config.content.heroTitle} onChange={(e) => setContent("heroTitle", e.target.value)} /></div>
+                <div className="space-y-2 md:col-span-2"><Label>Hero subtitle</Label><Textarea value={config.content.heroSubtitle} onChange={(e) => setContent("heroSubtitle", e.target.value)} rows={2} /></div>
+              </CardContent>
+            </Card>
+
+            {/* About & CTA */}
+            <Card>
+              <CardHeader><CardTitle>About &amp; CTA section</CardTitle><CardDescription>About us section and the call-to-action block on the homepage.</CardDescription></CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2"><Label>About title</Label><Input value={config.content.aboutTitle} onChange={(e) => setContent("aboutTitle", e.target.value)} /></div>
                 <div className="space-y-2"><Label>CTA title</Label><Input value={config.content.ctaTitle} onChange={(e) => setContent("ctaTitle", e.target.value)} /></div>
                 <div className="space-y-2 md:col-span-2"><Label>About description</Label><Textarea value={config.content.aboutText} onChange={(e) => setContent("aboutText", e.target.value)} rows={4} /></div>
                 <div className="space-y-2 md:col-span-2"><Label>CTA subtitle</Label><Textarea value={config.content.ctaSubtitle} onChange={(e) => setContent("ctaSubtitle", e.target.value)} rows={2} /></div>
-                <div className="space-y-2"><Label>Address</Label><Textarea value={config.contactInfo?.address || ""} onChange={(e) => setContact("address", e.target.value)} rows={3} /></div>
-                <div className="space-y-2"><Label>Google map embed URL</Label><Input value={config.contactInfo?.mapEmbed || ""} onChange={(e) => setContact("mapEmbed", e.target.value)} /></div>
-                <div className="space-y-2"><Label>Facebook URL</Label><Input value={config.socialLinks?.facebook || ""} onChange={(e) => setSocial("facebook", e.target.value)} /></div>
-                <div className="space-y-2"><Label>Instagram URL</Label><Input value={config.socialLinks?.instagram || ""} onChange={(e) => setSocial("instagram", e.target.value)} /></div>
-                <div className="space-y-2"><Label>Twitter / X URL</Label><Input value={config.socialLinks?.twitter || ""} onChange={(e) => setSocial("twitter", e.target.value)} /></div>
-                <div className="space-y-2"><Label>WhatsApp link</Label><Input value={config.socialLinks?.whatsapp || ""} onChange={(e) => setSocial("whatsapp", e.target.value)} /></div>
-                <div className="space-y-2"><Label>YouTube URL</Label><Input value={config.socialLinks?.youtube || ""} onChange={(e) => setSocial("youtube", e.target.value)} /></div>
                 <div className="space-y-2 md:col-span-2"><Label>Footer text</Label><Input value={config.content.footerText || ""} onChange={(e) => setContent("footerText", e.target.value)} placeholder="© 2025 Your Agency. All rights reserved." /></div>
+              </CardContent>
+            </Card>
+
+            {/* Contact info */}
+            <Card>
+              <CardHeader><CardTitle>Contact information</CardTitle><CardDescription>Shown on the contact section, footer, and booking forms.</CardDescription></CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2"><Label>Phone number</Label><Input value={config.contactInfo?.phone || ""} onChange={(e) => setContact("phone", e.target.value)} placeholder="+880 1XXX XXXXXX" /></div>
+                <div className="space-y-2"><Label>Email address</Label><Input value={config.contactInfo?.email || ""} onChange={(e) => setContact("email", e.target.value)} placeholder="info@youragency.com" /></div>
+                <div className="space-y-2"><Label>Office address</Label><Textarea value={config.contactInfo?.address || ""} onChange={(e) => setContact("address", e.target.value)} rows={3} /></div>
+                <div className="space-y-2"><Label>Google Map embed URL</Label><Textarea value={config.contactInfo?.mapEmbed || ""} onChange={(e) => setContact("mapEmbed", e.target.value)} rows={3} placeholder="https://maps.google.com/maps?..." /></div>
+              </CardContent>
+            </Card>
+
+            {/* Social links */}
+            <Card>
+              <CardHeader><CardTitle>Social media links</CardTitle><CardDescription>Links shown in the footer and contact section.</CardDescription></CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2"><Label>Facebook</Label><Input value={config.socialLinks?.facebook || ""} onChange={(e) => setSocial("facebook", e.target.value)} placeholder="https://facebook.com/youragency" /></div>
+                <div className="space-y-2"><Label>Instagram</Label><Input value={config.socialLinks?.instagram || ""} onChange={(e) => setSocial("instagram", e.target.value)} placeholder="https://instagram.com/youragency" /></div>
+                <div className="space-y-2"><Label>Twitter / X</Label><Input value={config.socialLinks?.twitter || ""} onChange={(e) => setSocial("twitter", e.target.value)} placeholder="https://x.com/youragency" /></div>
+                <div className="space-y-2"><Label>WhatsApp (link)</Label><Input value={config.socialLinks?.whatsapp || ""} onChange={(e) => setSocial("whatsapp", e.target.value)} placeholder="https://wa.me/8801XXXXXXXXX" /></div>
+                <div className="space-y-2"><Label>YouTube</Label><Input value={config.socialLinks?.youtube || ""} onChange={(e) => setSocial("youtube", e.target.value)} placeholder="https://youtube.com/@youragency" /></div>
+                <div className="space-y-2"><Label>LinkedIn</Label><Input value={(config.socialLinks as any)?.linkedin || ""} onChange={(e) => setSocial("linkedin" as any, e.target.value)} placeholder="https://linkedin.com/company/youragency" /></div>
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="packages" className="space-y-6">
+            {/* Homepage packages section */}
             <Card>
-              <CardHeader>
-                <CardTitle>Package section controls</CardTitle>
-                <CardDescription>Manage package section labels and the public packages page messaging.</CardDescription>
+              <CardHeader className="flex flex-row items-start justify-between gap-4">
+                <div>
+                  <CardTitle>Homepage packages section</CardTitle>
+                  <CardDescription>Labels shown in the packages block on your homepage.</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={resetPackagesAndServices}>Reset to template</Button>
               </CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2"><Label>Homepage badge</Label><Input value={config.content.packagesBadge || ""} onChange={(e) => setContent("packagesBadge", e.target.value)} /></div>
-                <div className="space-y-2"><Label>Homepage title</Label><Input value={config.content.packagesTitle || ""} onChange={(e) => setContent("packagesTitle", e.target.value)} /></div>
-                <div className="space-y-2 md:col-span-2"><Label>Homepage subtitle</Label><Textarea value={config.content.packagesSubtitle || ""} onChange={(e) => setContent("packagesSubtitle", e.target.value)} rows={2} /></div>
-                <div className="space-y-2"><Label>Packages page title</Label><Input value={config.content.packagePageTitle || ""} onChange={(e) => setContent("packagePageTitle", e.target.value)} /></div>
-                <div className="space-y-2"><Label>Packages page subtitle</Label><Input value={config.content.packagePageSubtitle || ""} onChange={(e) => setContent("packagePageSubtitle", e.target.value)} /></div>
-                <div className="space-y-2"><Label>Primary button text</Label><Input value={config.content.packagePrimaryButtonText || ""} onChange={(e) => setContent("packagePrimaryButtonText", e.target.value)} /></div>
-                <div className="space-y-2"><Label>Secondary button text</Label><Input value={config.content.packageSecondaryButtonText || ""} onChange={(e) => setContent("packageSecondaryButtonText", e.target.value)} /></div>
+                <div className="space-y-2"><Label>Section badge</Label><Input value={config.content.packagesBadge || ""} onChange={(e) => setContent("packagesBadge", e.target.value)} placeholder="Our Top Packages" /></div>
+                <div className="space-y-2"><Label>Section title</Label><Input value={config.content.packagesTitle || ""} onChange={(e) => setContent("packagesTitle", e.target.value)} placeholder="Featured Travel Packages" /></div>
+                <div className="space-y-2 md:col-span-2"><Label>Section subtitle</Label><Textarea value={config.content.packagesSubtitle || ""} onChange={(e) => setContent("packagesSubtitle", e.target.value)} rows={2} placeholder="Explore our best-selling packages for every budget." /></div>
               </CardContent>
             </Card>
+
+            {/* Packages page */}
+            <Card>
+              <CardHeader>
+                <CardTitle>All packages page</CardTitle>
+                <CardDescription>Headings and button labels for the dedicated /packages listing page.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2"><Label>Page title</Label><Input value={config.content.packagePageTitle || ""} onChange={(e) => setContent("packagePageTitle", e.target.value)} placeholder="All Travel Packages" /></div>
+                <div className="space-y-2"><Label>Page subtitle</Label><Input value={config.content.packagePageSubtitle || ""} onChange={(e) => setContent("packagePageSubtitle", e.target.value)} placeholder="Browse our complete package collection." /></div>
+                <div className="space-y-2"><Label>Primary button text</Label><Input value={config.content.packagePrimaryButtonText || ""} onChange={(e) => setContent("packagePrimaryButtonText", e.target.value)} placeholder="Book Now" /></div>
+                <div className="space-y-2"><Label>Secondary button text</Label><Input value={config.content.packageSecondaryButtonText || ""} onChange={(e) => setContent("packageSecondaryButtonText", e.target.value)} placeholder="View Details" /></div>
+              </CardContent>
+            </Card>
+
+            {/* Packages are managed in the ERP */}
+            <div className="rounded-xl border border-dashed p-6 text-center space-y-2">
+              <p className="text-sm font-medium">Packages are managed from the ERP</p>
+              <p className="text-xs text-muted-foreground">Go to <strong>Packages</strong> in the sidebar to create, edit, and publish tour packages. Published packages appear automatically on the website.</p>
+              <Button variant="outline" size="sm" asChild>
+                <a href="/packages">Go to Packages →</a>
+              </Button>
+            </div>
           </TabsContent>
 
           <TabsContent value="sections" className="space-y-6">
@@ -877,17 +986,38 @@ const WebsiteCustomizer = () => {
           </TabsContent>
 
           <TabsContent value="publish" className="space-y-6">
+            {/* Live URL Banner */}
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="pt-6 pb-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-1">Your live website URL</p>
+                    <p className="font-mono text-sm font-medium break-all">{primaryLiveUrl || "No URL available — save first"}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Share this with your customers or connect a custom domain below.</p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    {primaryLiveUrl && (
+                      <>
+                        <Button variant="outline" size="sm" onClick={() => copyText(primaryLiveUrl, "Live URL")}><Copy className="mr-2 h-3.5 w-3.5" />Copy URL</Button>
+                        <Button size="sm" onClick={() => window.open(primaryLiveUrl, "_blank")}><ExternalLink className="mr-2 h-3.5 w-3.5" />Open site</Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
               <Card>
                 <CardHeader><CardTitle>Publishing summary</CardTitle></CardHeader>
                 <CardContent className="space-y-3 text-sm">
                   <div className="flex items-center justify-between"><span className="text-muted-foreground">Website account</span><span className="font-medium">{tenant?.name || "Unknown"}</span></div>
                   <div className="flex items-center justify-between"><span className="text-muted-foreground">Plan</span><span className="font-medium capitalize">{domainSummary?.subscriptionPlan || tenant?.subscriptionPlan || "free"}</span></div>
-                  <div className="flex items-center justify-between"><span className="text-muted-foreground">Allowance</span><span className="font-medium">{domainSummary?.domainLimit === -1 ? "Unlimited" : `${domainSummary?.usedDomains || 0}/${domainSummary?.domainLimit || 0}`}</span></div>
-                  <div className="flex items-center justify-between"><span className="text-muted-foreground">Live mode</span><span className="font-medium">{preferredLiveDomain ? preferredLiveDomain.domain : "Default URL"}</span></div>
+                  <div className="flex items-center justify-between"><span className="text-muted-foreground">Domain allowance</span><span className="font-medium">{domainSummary?.domainLimit === -1 ? "Unlimited" : `${domainSummary?.usedDomains || 0} of ${domainSummary?.domainLimit || 0} used`}</span></div>
+                  <div className="flex items-center justify-between"><span className="text-muted-foreground">Active domain</span><span className="font-medium">{preferredLiveDomain ? preferredLiveDomain.domain : "Default URL"}</span></div>
                   {user?.role === "super_admin" && (
                     <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-                      Super admin note: this builder always edits the currently logged-in tenant website. If <strong>tourandtravels.cloud</strong> belongs to another agency, open that agency account to manage its website and live URL here.
+                      Super admin: this builder edits the currently logged-in tenant. To manage another agency's website, switch to that account first.
                     </p>
                   )}
                 </CardContent>
@@ -930,10 +1060,19 @@ const WebsiteCustomizer = () => {
                                 {record.isPrimary && <Badge>Primary</Badge>}
                               </div>
                               {statusBadge(record)}
-                              <div className="rounded-lg bg-muted/30 p-3 text-sm space-y-1">
-                                <p><span className="text-muted-foreground">TXT name:</span> <code className="font-mono">_verify</code></p>
-                                <p><span className="text-muted-foreground">TXT value:</span> <code className="font-mono break-all">{record.verificationToken}</code></p>
-                                <p><span className="text-muted-foreground">Live URL:</span> <span className="break-all">{liveUrl}</span></p>
+                              <div className="rounded-lg bg-muted/30 p-3 text-sm space-y-2">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">DNS setup instructions</p>
+                                <div className="grid gap-1 text-xs">
+                                  <p>1. Log in to your domain registrar (GoDaddy, Namecheap, Cloudflare, etc.)</p>
+                                  <p>2. Go to <strong>DNS Records</strong> and add a <strong>TXT record</strong>:</p>
+                                </div>
+                                <div className="rounded border bg-background p-2 space-y-1 font-mono text-xs">
+                                  <p><span className="text-muted-foreground">Name/Host:</span> <strong>_verify</strong></p>
+                                  <p><span className="text-muted-foreground">Value:</span> <span className="break-all text-primary">{record.verificationToken}</span></p>
+                                  <p><span className="text-muted-foreground">TTL:</span> 300</p>
+                                </div>
+                                <p className="text-xs text-muted-foreground">3. Also add an <strong>A record</strong> pointing <code>{record.domain}</code> to this server's IP address, then click <strong>Verify DNS</strong>.</p>
+                                <p className="text-xs text-muted-foreground"><span className="font-medium">Live URL:</span> <span className="break-all">{liveUrl}</span></p>
                               </div>
                             </div>
                             <div className="flex flex-wrap gap-2 lg:justify-end">
