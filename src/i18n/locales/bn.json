@@ -76,7 +76,7 @@
     "bookingsGroup": "বুকিং",
     "support": "সাপোর্ট",
     "finance": "ফাইন্যান্স",
-    "websiteCms": "ওয়েবসাইট CMS",
+    "websiteCms": "ওয়েবসাইট ও CMS",
     "administration": "অ্যাডমিনিস্ট্রেশন",
     "management": "ব্যবস্থাপনা",
     "admin": "অ্যাডমিন",
@@ -160,7 +160,12 @@
       "transport": "ট্রান্সপোর্ট বুকিং",
       "student": "স্টুডেন্ট বুকিং",
       "manpower": "ম্যানপাওয়ার বুকিং"
-    }
+    },
+    "salesBookings": "বিক্রয় ও বুকিং",
+    "tourGroupTravel": "ট্যুর ও গ্রুপ ট্র্যাভেল",
+    "financeAccounts": "ফিনান্স ও অ্যাকাউন্টস",
+    "hrPayroll": "এইচআর ও বেতন",
+    "marketingLoyalty": "মার্কেটিং ও লয়্যালটি"
   },
   "packagesPage": {
     "pageTitle": "প্যাকেজ ও সার্ভিস",
@@ -3475,7 +3480,7 @@
     "month": "মাস",
     "payAndActivate": "পে করুন ও activation এর জন্য জমা দিন",
     "pendingTitle": "পেমেন্ট জমা — approval এর অপেক্ষায়",
-      "pendingDesc": "আপনার request {{status}}। Super admin verify করে activate করবেন। Approve হলে SMS ও email পাবেন।",
+    "pendingDesc": "আপনার request {{status}}। Super admin verify করে activate করবেন। Approve হলে SMS ও email পাবেন।",
     "checkActivation": "Activate হয়েছে কিনা দেখুন",
     "billingCycle": "Billing cycle",
     "monthly": "মাসিক",
@@ -3902,8 +3907,3 @@
     "commission": "কমিশন"
   }
 }
-
-
-
-
-

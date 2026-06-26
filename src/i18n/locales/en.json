@@ -76,7 +76,7 @@
     "bookingsGroup": "Bookings",
     "support": "Support",
     "finance": "Finance",
-    "websiteCms": "Website CMS",
+    "websiteCms": "Website & CMS",
     "administration": "Administration",
     "management": "Management",
     "admin": "Admin",
@@ -160,7 +160,12 @@
       "transport": "Transport Bookings",
       "student": "Student Bookings",
       "manpower": "Manpower Bookings"
-    }
+    },
+    "salesBookings": "Sales & Bookings",
+    "tourGroupTravel": "Tour & Group Travel",
+    "financeAccounts": "Finance & Accounts",
+    "hrPayroll": "HR & Payroll",
+    "marketingLoyalty": "Marketing & Loyalty"
   },
   "packagesPage": {
     "pageTitle": "Packages & services",
@@ -3479,7 +3484,7 @@
     "month": "mo",
     "payAndActivate": "Pay & submit for activation",
     "pendingTitle": "Payment submitted — waiting for approval",
-      "pendingDesc": "Your request is {{status}}. Super admin will verify and activate your subscription. You will receive SMS and email when approved.",
+    "pendingDesc": "Your request is {{status}}. Super admin will verify and activate your subscription. You will receive SMS and email when approved.",
     "checkActivation": "Check if activated",
     "billingCycle": "Billing cycle",
     "monthly": "Monthly",
@@ -3906,8 +3911,3 @@
     "commission": "Commission"
   }
 }
-
-
-
-
-
