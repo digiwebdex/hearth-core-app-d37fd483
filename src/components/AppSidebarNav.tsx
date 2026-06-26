@@ -70,18 +70,20 @@ function SidebarNavLeaf({ item, title, collapsed, pathname, sub = false }: { ite
   const activeMatcher = (path: string) => navItemIsActive(item.url!, path);
 
   if (sub) {
+    const isActive = activeMatcher(pathname);
     return (
       <SidebarMenuSubItem>
-        <SidebarMenuSubButton asChild data-active={activeMatcher(pathname) ? true : undefined}>
+        <SidebarMenuSubButton asChild data-active={isActive ? true : undefined}>
           <NavLink
             to={item.url}
             end
             isActiveOverride={activeMatcher}
-            className="hover:bg-sidebar-accent/50"
-            activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+            className="hover:bg-primary/8 hover:text-primary rounded-md transition-colors"
+            activeClassName="bg-primary/12 text-primary font-semibold"
           >
-            <item.icon className="h-3.5 w-3.5 shrink-0" />
+            <item.icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? "text-primary" : ""}`} />
             <span>{title}</span>
+            {isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shrink-0" />}
           </NavLink>
         </SidebarMenuSubButton>
       </SidebarMenuSubItem>
@@ -89,18 +91,19 @@ function SidebarNavLeaf({ item, title, collapsed, pathname, sub = false }: { ite
   }
 
   if (collapsed) {
+    const isActive = activeMatcher(pathname);
     return (
       <SidebarMenuItem>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <SidebarMenuButton asChild data-active={activeMatcher(pathname) ? true : undefined}>
+              <SidebarMenuButton asChild data-active={isActive ? true : undefined}>
                 <NavLink
                   to={item.url}
                   end
                   isActiveOverride={activeMatcher}
-                  className="hover:bg-sidebar-accent/50 justify-center"
-                  activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  className="hover:bg-primary/10 hover:text-primary justify-center transition-colors"
+                  activeClassName="bg-primary/15 text-primary"
                 >
                   <item.icon className="h-4 w-4" />
                 </NavLink>
@@ -113,18 +116,20 @@ function SidebarNavLeaf({ item, title, collapsed, pathname, sub = false }: { ite
     );
   }
 
+  const isActive = activeMatcher(pathname);
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton asChild data-active={activeMatcher(pathname) ? true : undefined}>
+      <SidebarMenuButton asChild data-active={isActive ? true : undefined}>
         <NavLink
           to={item.url}
           end
           isActiveOverride={activeMatcher}
-          className="hover:bg-sidebar-accent/50"
-          activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+          className="hover:bg-primary/8 hover:text-primary rounded-md transition-colors"
+          activeClassName="bg-primary/12 text-primary font-semibold"
         >
-          <item.icon className="h-4 w-4 shrink-0" />
+          <item.icon className={`h-4 w-4 shrink-0 ${isActive ? "text-primary" : ""}`} />
           <span className="truncate">{title}</span>
+          {isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shrink-0" />}
         </NavLink>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -248,31 +253,31 @@ export function AppSidebarNavGroup({ group, collapsed, currentPlan }: { group: N
   const label = t(group.labelKey);
 
   return (
-    <SidebarGroup className="py-0.5 px-2">
+    <SidebarGroup className="py-0 px-2">
       <Collapsible open={open} onOpenChange={setOpen} className="group/section">
         {/* Group header row */}
         <CollapsibleTrigger asChild>
           <button
             className={`
-              w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider
-              transition-colors duration-150 cursor-pointer select-none
+              w-full flex items-center gap-2 px-2 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider
+              transition-all duration-150 cursor-pointer select-none mt-0.5
               ${groupActive
-                ? "text-primary bg-primary/8"
-                : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/40"
+                ? "text-primary bg-primary/10 shadow-[inset_2px_0_0_0_hsl(var(--primary))]"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
               }
             `}
           >
-            <GroupIcon className={`h-3.5 w-3.5 shrink-0 ${groupActive ? "text-primary" : ""}`} />
+            <GroupIcon className={`h-3.5 w-3.5 shrink-0 transition-colors ${groupActive ? "text-primary" : ""}`} />
             <span className="flex-1 truncate text-left">{label}</span>
             <ChevronRight
-              className={`h-3 w-3 shrink-0 transition-transform duration-200 group-data-[state=open]/section:rotate-90 ${groupActive ? "text-primary" : ""}`}
+              className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-data-[state=open]/section:rotate-90 ${groupActive ? "text-primary" : "text-muted-foreground/50"}`}
             />
           </button>
         </CollapsibleTrigger>
 
-        {/* Group items */}
+        {/* Group items — indented under the header */}
         <CollapsibleContent>
-          <SidebarGroupContent className="pt-0.5 pb-1">
+          <SidebarGroupContent className="pl-2 pt-0.5 pb-1 border-l border-primary/20 ml-3">
             <SidebarMenu>
               {visibleItems.map((item) => (
                 <SidebarNavItem key={item.id} item={item} collapsed={collapsed} currentPlan={currentPlan} pathname={pathname} />
