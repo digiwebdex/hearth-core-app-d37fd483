@@ -48,6 +48,13 @@ type TeamItem = NonNullable<ContentType["team"]>[number];
 
 type FileInputRef = { current: HTMLInputElement | null };
 
+const SERVICE_ICONS = [
+  "Plane", "MapPin", "Shield", "Star", "Hotel", "Map", "Phone", "Mail",
+  "Clock", "Users", "Globe", "Award", "Heart", "CheckCircle2", "CreditCard",
+  "Moon", "Sun", "Mountain", "Palmtree", "Building", "Compass", "Briefcase",
+  "Camera", "Gift", "Zap",
+];
+
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
 
 const defaultServicesByTemplate: Record<WebsiteConfig["template"], ServiceItem[]> = {
@@ -357,7 +364,7 @@ const WebsiteCustomizer = () => {
     </div>
   );
 
-  const renderImageUploader = (title: string, description: string, value: string | undefined, assetType: "logo" | "hero" | "about", inputRef: FileInputRef) => (
+  const renderImageUploader = (title: string, description: string, value: string | undefined, assetType: "logo" | "hero" | "about", inputRef: FileInputRef, onUrlChange?: (url: string) => void) => (
     <Card>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
@@ -371,15 +378,26 @@ const WebsiteCustomizer = () => {
           className="hidden"
           onChange={(e) => uploadAsset(e.target.files?.[0] || null, assetType)}
         />
-        <div className="flex h-52 items-center justify-center overflow-hidden rounded-xl border bg-muted/30">
-          {value ? <img src={value} alt={title} className="h-full w-full object-cover" /> : <div className="text-center text-sm text-muted-foreground"><ImageIcon className="mx-auto mb-2 h-8 w-8 opacity-60" />Upload image</div>}
+        <div className="flex h-44 items-center justify-center overflow-hidden rounded-xl border bg-muted/30">
+          {value ? <img src={value} alt={title} className="h-full w-full object-cover" /> : <div className="text-center text-sm text-muted-foreground"><ImageIcon className="mx-auto mb-2 h-8 w-8 opacity-60" />No image set</div>}
         </div>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" onClick={() => inputRef.current?.click()} disabled={uploadingAsset === assetType}>
-            {uploadingAsset === assetType ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}Upload {title}
+            {uploadingAsset === assetType ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}Upload
           </Button>
           {value && <Button type="button" variant="ghost" onClick={() => removeAsset(assetType)}><Trash2 className="mr-2 h-4 w-4" />Remove</Button>}
         </div>
+        {onUrlChange !== undefined && (
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Or paste image URL</Label>
+            <Input
+              placeholder="https://images.unsplash.com/..."
+              value={value || ""}
+              onChange={(e) => onUrlChange(e.target.value)}
+              className="text-xs"
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -400,7 +418,18 @@ const WebsiteCustomizer = () => {
         {config.content.services.map((item, index) => (
           <div key={`service-${index}`} className="rounded-xl border p-4 space-y-3">
             <div className="flex items-center justify-between"><Badge variant="outline">Card {index + 1}</Badge>{config.content.services.length > 1 && <Button variant="ghost" size="sm" onClick={() => setContent("services", config.content.services.filter((_, i) => i !== index))}><Trash2 className="mr-2 h-4 w-4" />Remove</Button>}</div>
-            <div className="space-y-2"><Label>Title</Label><Input value={item.title} onChange={(e) => setContent("services", config.content.services.map((service, i) => i === index ? { ...service, title: e.target.value } : service))} /></div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Icon</Label>
+                <Select value={item.icon} onValueChange={(v) => setContent("services", config.content.services.map((service, i) => i === index ? { ...service, icon: v } : service))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent className="max-h-52">
+                    {SERVICE_ICONS.map((ic) => <SelectItem key={ic} value={ic}>{ic}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><Label>Title</Label><Input value={item.title} onChange={(e) => setContent("services", config.content.services.map((service, i) => i === index ? { ...service, title: e.target.value } : service))} /></div>
+            </div>
             <div className="space-y-2"><Label>Description</Label><Textarea value={item.desc} onChange={(e) => setContent("services", config.content.services.map((service, i) => i === index ? { ...service, desc: e.target.value } : service))} rows={2} /></div>
           </div>
         ))}
@@ -546,8 +575,9 @@ const WebsiteCustomizer = () => {
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2"><Label>Agency name</Label><Input value={tenant?.name || ""} disabled /></div>
               <div className="space-y-2"><Label>Selected template</Label><Input value={templates.find((item) => item.id === config.template)?.name || config.template} disabled /></div>
-              <div className="space-y-2 md:col-span-2"><Label>Hero title</Label><Input value={config.content.heroTitle} onChange={(e) => setContent("heroTitle", e.target.value)} /></div>
-              <div className="space-y-2 md:col-span-2"><Label>Hero subtitle</Label><Textarea value={config.content.heroSubtitle} onChange={(e) => setContent("heroSubtitle", e.target.value)} rows={3} /></div>
+              <div className="space-y-2"><Label>Hero badge text</Label><Input value={config.content.heroBadge || ""} onChange={(e) => setContent("heroBadge", e.target.value)} placeholder="e.g. #1 Trusted Travel Agency" /></div>
+              <div className="space-y-2"><Label>Hero title</Label><Input value={config.content.heroTitle} onChange={(e) => setContent("heroTitle", e.target.value)} /></div>
+              <div className="space-y-2 md:col-span-2"><Label>Hero subtitle</Label><Textarea value={config.content.heroSubtitle} onChange={(e) => setContent("heroSubtitle", e.target.value)} rows={2} /></div>
               <div className="space-y-2"><Label>Phone</Label><Input value={config.contactInfo?.phone || ""} onChange={(e) => setContact("phone", e.target.value)} /></div>
               <div className="space-y-2"><Label>Email</Label><Input value={config.contactInfo?.email || ""} onChange={(e) => setContact("email", e.target.value)} /></div>
             </CardContent>
@@ -579,10 +609,10 @@ const WebsiteCustomizer = () => {
         </div>
 
         <Tabs defaultValue="themes" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
             <TabsTrigger value="themes"><LayoutTemplate className="mr-1 h-4 w-4" />Themes</TabsTrigger>
             <TabsTrigger value="branding"><ImageIcon className="mr-1 h-4 w-4" />Branding</TabsTrigger>
-            <TabsTrigger value="content"><Type className="mr-1 h-4 w-4" />Agency Info</TabsTrigger>
+            <TabsTrigger value="content"><Type className="mr-1 h-4 w-4" />Agency</TabsTrigger>
             <TabsTrigger value="packages"><Palette className="mr-1 h-4 w-4" />Packages</TabsTrigger>
             <TabsTrigger value="sections"><Sparkles className="mr-1 h-4 w-4" />Sections</TabsTrigger>
             <TabsTrigger value="publish"><Globe className="mr-1 h-4 w-4" />Publish</TabsTrigger>
@@ -621,21 +651,28 @@ const WebsiteCustomizer = () => {
 
           <TabsContent value="branding" className="space-y-6">
             <div className="grid gap-6 xl:grid-cols-3">
-              {renderImageUploader("Logo", "Header logo and brand mark used on the public website.", config.logo, "logo", logoInputRef)}
-              {renderImageUploader("Hero image", "Main banner image for the homepage.", config.content.heroImage, "hero", heroInputRef)}
-              {renderImageUploader("About image", "Supporting image for the about section.", config.content.aboutImage, "about", aboutInputRef)}
+              {renderImageUploader("Logo", "Header logo and brand mark.", config.logo, "logo", logoInputRef,
+                (url) => setConfig((prev) => ({ ...prev, logo: url }))
+              )}
+              {renderImageUploader("Hero image", "Main banner image for the homepage.", config.content.heroImage, "hero", heroInputRef,
+                (url) => setContent("heroImage", url)
+              )}
+              {renderImageUploader("About image", "Supporting image for the about section.", config.content.aboutImage, "about", aboutInputRef,
+                (url) => setContent("aboutImage", url)
+              )}
             </div>
             <Card>
               <CardHeader>
                 <CardTitle>Color controls</CardTitle>
                 <CardDescription>Adjust the main brand colors for the website.</CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-4">
+              <CardContent className="grid gap-4 md:grid-cols-5">
                 {([
                   ["primary", "Primary"],
                   ["secondary", "Secondary"],
                   ["accent", "Accent"],
                   ["background", "Background"],
+                  ["text", "Text"],
                 ] as const).map(([key, label]) => (
                   <div key={key} className="space-y-2">
                     <Label>{label}</Label>
@@ -664,6 +701,7 @@ const WebsiteCustomizer = () => {
                 <div className="space-y-2"><Label>Twitter / X URL</Label><Input value={config.socialLinks?.twitter || ""} onChange={(e) => setSocial("twitter", e.target.value)} /></div>
                 <div className="space-y-2"><Label>WhatsApp link</Label><Input value={config.socialLinks?.whatsapp || ""} onChange={(e) => setSocial("whatsapp", e.target.value)} /></div>
                 <div className="space-y-2"><Label>YouTube URL</Label><Input value={config.socialLinks?.youtube || ""} onChange={(e) => setSocial("youtube", e.target.value)} /></div>
+                <div className="space-y-2 md:col-span-2"><Label>Footer text</Label><Input value={config.content.footerText || ""} onChange={(e) => setContent("footerText", e.target.value)} placeholder="© 2025 Your Agency. All rights reserved." /></div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -771,6 +809,14 @@ const WebsiteCustomizer = () => {
             </Card>
           </TabsContent>
         </Tabs>
+      </div>
+
+      {/* Floating save bar */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <Button onClick={handleSave} disabled={saving} size="lg" className="shadow-lg gap-2">
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          Save website
+        </Button>
       </div>
     </DashboardLayout>
   );
