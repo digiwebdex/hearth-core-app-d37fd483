@@ -241,6 +241,38 @@ router.get("/me", authenticate, async (req, res) => {
   }
 });
 
+// Update current user profile (name + optional password change)
+router.patch("/me", authenticate, async (req, res) => {
+  try {
+    const { name, currentPassword, newPassword } = req.body;
+    const user = await prisma.user.findUnique({ where: { id: req.userId } });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const data = {};
+    if (name !== undefined) {
+      const trimmed = String(name).trim();
+      if (!trimmed) return res.status(400).json({ message: "Name cannot be empty" });
+      data.name = trimmed;
+    }
+    if (newPassword !== undefined) {
+      if (!currentPassword) return res.status(400).json({ message: "Current password is required" });
+      const valid = await bcrypt.compare(currentPassword, user.password);
+      if (!valid) return res.status(400).json({ message: "Current password is incorrect" });
+      const { validatePassword } = require("../utils/passwordPolicy");
+      const check = validatePassword(newPassword);
+      if (!check.ok) return res.status(400).json({ message: check.message });
+      data.password = await bcrypt.hash(newPassword, 10);
+    }
+    if (Object.keys(data).length === 0) return res.status(400).json({ message: "No fields to update" });
+
+    const updated = await prisma.user.update({ where: { id: req.userId }, data });
+    const { password: _, resetToken: _r, resetTokenExpiry: _e, ...safeUser } = updated;
+    res.json(safeUser);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Forgot Password — generates reset token
 router.post("/forgot-password", async (req, res) => {
   try {
