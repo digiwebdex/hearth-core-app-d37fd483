@@ -45,8 +45,10 @@ const PublicLayout = ({ children }: { children: React.ReactNode }) => {
       <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <Link to={homePath} className="flex items-center gap-2">
-            <Plane className="h-6 w-6 text-primary" />
-            <span className="text-lg font-bold">{tenant.name}</span>
+            {cfg.logo
+              ? <img src={cfg.logo} alt={tenant.name} className="h-9 w-auto object-contain max-w-[140px]" />
+              : <Plane className="h-6 w-6 text-primary" />}
+            {!cfg.logo && <span className="text-lg font-bold">{tenant.name}</span>}
           </Link>
 
           {/* Desktop Nav */}
@@ -103,7 +105,12 @@ const PublicLayout = ({ children }: { children: React.ReactNode }) => {
         <div className="container mx-auto px-4 py-8">
           <div className="grid gap-8 md:grid-cols-3">
             <div>
-              <h3 className="font-bold mb-2 flex items-center gap-2"><Plane className="h-4 w-4 text-primary" />{tenant.name}</h3>
+              <h3 className="font-bold mb-2 flex items-center gap-2">
+                {cfg.logo
+                  ? <img src={cfg.logo} alt={tenant.name} className="h-7 w-auto object-contain max-w-[100px]" />
+                  : <Plane className="h-4 w-4 text-primary" />}
+                {tenant.name}
+              </h3>
               <p className="text-sm text-muted-foreground">{footerDesc.slice(0, 160)}{footerDesc.length > 160 ? "…" : ""}</p>
             </div>
             <div>
