@@ -196,4 +196,79 @@ router.post("/process-expiry", async (_req, res) => {
   }
 });
 
+// ─── Nightly Report (11 PM) ────────────────────────────────────────────────
+router.post("/nightly-report", async (_req, res) => {
+  const { sendSms } = require("../services/smsService");
+  const { sendWhatsApp } = require("../services/whatsappService");
+
+  try {
+    const today = new Date();
+    const startOfDay = new Date(today); startOfDay.setHours(0, 0, 0, 0);
+    const todayIso = today.toISOString().slice(0, 10);
+
+    // All active tenants
+    const tenants = await prisma.tenant.findMany({
+      where: { subscriptionStatus: { in: ["active", "trial"] } },
+      select: { id: true, name: true },
+    });
+
+    const results = [];
+    for (const tenant of tenants) {
+      try {
+        const contact = await resolveTenantOwnerContact(prisma, tenant.id);
+        const phone = contact?.phone;
+        if (!phone) continue;
+
+        // Gather stats
+        const [clients, bookings, todayBookings, invoiceAgg, todayRevenue] = await Promise.all([
+          prisma.client.count({ where: { tenantId: tenant.id } }),
+          prisma.booking.count({ where: { tenantId: tenant.id } }),
+          prisma.booking.count({ where: { tenantId: tenant.id, createdAt: { gte: startOfDay } } }),
+          prisma.invoice.aggregate({
+            where: { tenantId: tenant.id },
+            _sum: { totalAmount: true, paidAmount: true, dueAmount: true },
+          }),
+          prisma.payment.aggregate({
+            where: { tenantId: tenant.id, createdAt: { gte: startOfDay } },
+            _sum: { amount: true },
+          }),
+        ]);
+
+        const totalRevenue = invoiceAgg._sum.paidAmount || 0;
+        const totalDue = invoiceAgg._sum.dueAmount || 0;
+        const todayIncome = todayRevenue._sum.amount || 0;
+
+        const msg =
+          `📊 *${tenant.name}* — Daily Report ${todayIso}\n` +
+          `👥 Clients: ${clients} | 📋 Bookings: ${bookings} (+${todayBookings} today)\n` +
+          `💰 Collected: ৳${totalRevenue.toLocaleString()} | Due: ৳${totalDue.toLocaleString()}\n` +
+          `🏦 Today Income: ৳${todayIncome.toLocaleString()}`;
+
+        const smsMsg =
+          `[${tenant.name}] ${todayIso}: ` +
+          `Clients:${clients} Bookings:${bookings}(+${todayBookings}) ` +
+          `Collected:${totalRevenue} Due:${totalDue} Today:${todayIncome}`;
+
+        const [smsRes, waRes] = await Promise.allSettled([
+          sendSms({ to: phone, message: smsMsg }),
+          sendWhatsApp({ to: phone, message: msg }),
+        ]);
+
+        results.push({
+          tenant: tenant.name,
+          phone,
+          sms: smsRes.status === "fulfilled" ? "sent" : "failed",
+          whatsapp: waRes.status === "fulfilled" ? "sent" : "failed",
+        });
+      } catch (e) {
+        results.push({ tenant: tenant.name, error: e.message });
+      }
+    }
+
+    res.json({ sent: results.length, results, timestamp: today.toISOString() });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;
