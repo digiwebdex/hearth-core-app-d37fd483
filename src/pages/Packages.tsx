@@ -407,9 +407,13 @@ const Packages = () => {
         ? PACKAGE_PRESET_CONFIG[activePreset].defaultServiceType
         : undefined;
     resetForm();
-    if (defaultType) {
-      setForm({ ...emptyForm, serviceType: defaultType });
-    }
+    // Pick a service type that's actually visible for this tenant
+    const resolvedType = defaultType ||
+      (visibleServiceTypes.includes("tour_domestic" as ServiceType)
+        ? "tour_domestic"
+        : visibleServiceTypes[0]) ||
+      "tour_domestic";
+    setForm({ ...emptyForm, serviceType: resolvedType as ServiceType });
     setDrawerOpen(true);
   };
 
