@@ -28,6 +28,7 @@ import {
   type PaymentMethod, type InvoiceRefund, type InvoiceAuditEvent, type InvoiceInstallment, type Booking,
 } from "@/lib/api";
 import { InvoiceInstallmentsPanel } from "@/components/invoices/InvoiceInstallmentsPanel";
+import { BookingSelect } from "@/components/invoices/BookingSelect";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import EmptyState from "@/components/EmptyState";
@@ -331,20 +332,17 @@ const Invoices = () => {
                 <DialogContent className="max-w-lg">
                   <DialogHeader><DialogTitle>{t("invoicesForm.createTitle")}</DialogTitle></DialogHeader>
                   <form onSubmit={handleCreateInvoice} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>{t("invoicesForm.bookingId")}</Label>
-                        <Input value={invoiceForm.bookingId} onChange={(e) => setInvoiceForm((f) => ({ ...f, bookingId: e.target.value }))} placeholder={t("invoicesForm.bookingIdPh")} required />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>{t("invoicesForm.bookingTitle")}</Label>
-                        <Input value={invoiceForm.bookingTitle} onChange={(e) => setInvoiceForm((f) => ({ ...f, bookingTitle: e.target.value }))} placeholder={t("invoicesForm.bookingTitlePh")} />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>{t("invoicesForm.clientName")}</Label>
-                      <Input value={invoiceForm.clientName} onChange={(e) => setInvoiceForm((f) => ({ ...f, clientName: e.target.value }))} placeholder={t("invoicesForm.clientNamePh")} />
-                    </div>
+                    <BookingSelect
+                      value={invoiceForm.bookingId}
+                      onSelect={(b) => setInvoiceForm((f) => ({
+                        ...f,
+                        bookingId: b.id,
+                        bookingTitle: b.title || "",
+                        clientName: b.clientName || "",
+                        totalAmount: f.totalAmount || Number(b.amount || 0),
+                        bookingCost: f.bookingCost || Number(b.cost || 0),
+                      }))}
+                    />
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>{t("invoicesForm.invoiceAmount")}</Label>
@@ -372,7 +370,7 @@ const Invoices = () => {
                       <Textarea value={invoiceForm.notes} onChange={(e) => setInvoiceForm((f) => ({ ...f, notes: e.target.value }))} placeholder={t("invoicesForm.notesPh")} rows={2} />
                     </div>
                     <div className="flex gap-2">
-                      <Button type="submit" className="flex-1">{t("invoicesForm.createBtn")}</Button>
+                      <Button type="submit" className="flex-1" disabled={!invoiceForm.bookingId}>{t("invoicesForm.createBtn")}</Button>
                       <DialogClose asChild><Button type="button" variant="outline">{t("invoicesForm.cancel")}</Button></DialogClose>
                     </div>
                   </form>
