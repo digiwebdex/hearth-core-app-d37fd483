@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { templateDefaults, themePresets, websiteApi, type ThemePreset, type WebsiteConfig } from "@/lib/websiteApi";
+import { templateDefaults, themePresets, websiteApi, resolveButtons, type ThemePreset, type WebsiteConfig } from "@/lib/websiteApi";
 import { tenantDomainApi, type TenantDomainRecord, type TenantDomainSummary } from "@/lib/tenantDomainApi";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -235,6 +235,7 @@ const ensureConfig = (incoming: WebsiteConfig): WebsiteConfig => {
     content: { ...base.content, ...(incoming.content || {}) },
     socialLinks: { ...base.socialLinks, ...(incoming.socialLinks || {}) },
     contactInfo: { ...base.contactInfo, ...(incoming.contactInfo || {}) },
+    buttons: { ...(base.buttons || {}), ...(incoming.buttons || {}) },
   };
 
   merged.content.services = merged.content.services?.length ? merged.content.services : clone(base.content.services);
@@ -301,6 +302,10 @@ const WebsiteCustomizer = () => {
 
   const setColor = (key: keyof WebsiteConfig["colors"], value: string) => {
     setConfig((prev) => ({ ...prev, colors: { ...prev.colors, [key]: value } }));
+  };
+
+  const setButton = (key: keyof NonNullable<WebsiteConfig["buttons"]>, value: string) => {
+    setConfig((prev) => ({ ...prev, buttons: { ...(prev.buttons || {}), [key]: value } }));
   };
 
   const setContact = (key: keyof NonNullable<WebsiteConfig["contactInfo"]>, value: string) => {
@@ -898,6 +903,56 @@ const WebsiteCustomizer = () => {
                     </div>
                   </div>
                 ))}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Button colors</CardTitle>
+                <CardDescription>Set each button color individually. Leave blank to inherit from the theme palette above. Also controls the floating WhatsApp &amp; back-to-top buttons.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {(() => {
+                  const resolved = resolveButtons(config);
+                  return ([
+                    ["primaryBg", "Primary button — fill", resolved.primaryBg, "Main CTA buttons (View Packages, Browse)"],
+                    ["primaryText", "Primary button — text", resolved.primaryText, "Text/icon color on primary buttons"],
+                    ["secondaryBg", "Book button — fill", resolved.secondaryBg, "Package card “Book Now” buttons"],
+                    ["secondaryText", "Book button — text", resolved.secondaryText, "Text color on book buttons"],
+                    ["outline", "Outline button", resolved.outline, "Border + text of outline buttons"],
+                    ["whatsapp", "WhatsApp button", resolved.whatsapp, "Floating support button (left side)"],
+                    ["backToTop", "Back-to-top button", resolved.backToTop, "Floating scroll-to-top button"],
+                  ] as const).map(([key, label, effective, hint]) => {
+                    const current = config.buttons?.[key] || "";
+                    return (
+                      <div key={key} className="space-y-2">
+                        <Label className="font-medium">{label}</Label>
+                        <p className="text-xs text-muted-foreground -mt-1">{hint}</p>
+                        <div className="flex items-center gap-2">
+                          <label className="relative cursor-pointer shrink-0">
+                            <div
+                              className="h-10 w-10 rounded-lg border-2 border-border shadow-sm transition-transform hover:scale-105"
+                              style={{ background: hsl(effective) }}
+                              title={`Pick ${label} color`}
+                            />
+                            <input
+                              type="color"
+                              value={hslToHex(effective)}
+                              onChange={(e) => setButton(key, hexToHsl(e.target.value))}
+                              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                            />
+                          </label>
+                          <Input
+                            value={current}
+                            onChange={(e) => setButton(key, e.target.value)}
+                            placeholder="inherit (theme)"
+                            className="font-mono text-xs"
+                          />
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
               </CardContent>
             </Card>
           </TabsContent>

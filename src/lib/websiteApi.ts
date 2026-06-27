@@ -129,6 +129,43 @@ export interface WebsiteConfig {
     address?: string;
     mapEmbed?: string;
   };
+  // Individual button colors (HSL strings, e.g. "221 83% 53%"). All optional —
+  // each falls back to a theme color via resolveButtons().
+  buttons?: {
+    primaryBg?: string;
+    primaryText?: string;
+    secondaryBg?: string;
+    secondaryText?: string;
+    outline?: string;
+    whatsapp?: string;
+    backToTop?: string;
+  };
+}
+
+export interface ResolvedButtons {
+  primaryBg: string;
+  primaryText: string;
+  secondaryBg: string;
+  secondaryText: string;
+  outline: string;
+  whatsapp: string;
+  backToTop: string;
+}
+
+// Resolve each button color, falling back to the theme palette so existing
+// sites keep working until an agency customizes individual buttons.
+export function resolveButtons(config: WebsiteConfig): ResolvedButtons {
+  const c = config.colors;
+  const b = config.buttons || {};
+  return {
+    primaryBg: b.primaryBg || c.primary,
+    primaryText: b.primaryText || "0 0% 100%",
+    secondaryBg: b.secondaryBg || c.accent,
+    secondaryText: b.secondaryText || "0 0% 100%",
+    outline: b.outline || c.primary,
+    whatsapp: b.whatsapp || "142 70% 45%",
+    backToTop: b.backToTop || c.primary,
+  };
 }
 
 export interface ThemePreset {

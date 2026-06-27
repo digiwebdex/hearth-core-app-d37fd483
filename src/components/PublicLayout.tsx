@@ -3,6 +3,7 @@ import { useWebsite } from "@/contexts/WebsiteContext";
 import { Menu, X, Plane } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import SiteFloatingButtons from "@/components/site/SiteFloatingButtons";
 
 const previewNavLinks = [
   { label: "Home", path: "/site" },
@@ -121,6 +122,9 @@ const PublicLayout = ({ children }: { children: React.ReactNode }) => {
           </div>
         </div>
       </footer>
+
+      {/* Floating support + back-to-top buttons */}
+      <SiteFloatingButtons />
     </div>
   );
 };

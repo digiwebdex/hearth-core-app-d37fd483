@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useWebsite } from "@/contexts/WebsiteContext";
-import type { WebsiteConfig } from "@/lib/websiteApi";
+import { resolveButtons, type WebsiteConfig } from "@/lib/websiteApi";
 import {
   Moon, Star, Plane, Shield, MapPin, Hotel, ChevronDown, Quote,
   Phone, Mail, Clock, Users, Globe, Award, Heart, CheckCircle2,
@@ -20,6 +20,7 @@ export default function HajjUmrahTemplate({ config }: { config: WebsiteConfig })
   const { tenant, packages } = useWebsite();
   const featured = packages.slice(0, 6);
   const c = config.colors;
+  const btn = resolveButtons(config);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
@@ -50,7 +51,7 @@ export default function HajjUmrahTemplate({ config }: { config: WebsiteConfig })
             <p className="text-xl md:text-2xl max-w-2xl mb-10 leading-relaxed" style={{ color: "rgba(255,255,255,0.80)" }}>{config.content.heroSubtitle}</p>
             <div className="flex gap-4 flex-wrap mb-12">
               <Link to="/site/packages">
-                <Button size="lg" className="gap-2 h-14 px-8 text-base font-semibold shadow-xl hover:scale-105 transition-transform" style={{ backgroundColor: `hsl(${c.accent})`, color: "hsl(160 30% 8%)" }}>
+                <Button size="lg" className="gap-2 h-14 px-8 text-base font-semibold shadow-xl hover:scale-105 transition-transform" style={{ backgroundColor: `hsl(${btn.primaryBg})`, color: `hsl(${btn.primaryText})` }}>
                   সব প্যাকেজ দেখুন <ArrowRight className="h-5 w-5" />
                 </Button>
               </Link>
@@ -188,7 +189,7 @@ export default function HajjUmrahTemplate({ config }: { config: WebsiteConfig })
                       </div>
                     )}
                     <Link to="/site/contact" className="block">
-                      <Button className="w-full gap-2 font-semibold" style={{ backgroundColor: `hsl(${c.primary})`, color: "white" }}>
+                      <Button className="w-full gap-2 font-semibold" style={{ backgroundColor: `hsl(${btn.secondaryBg})`, color: `hsl(${btn.secondaryText})` }}>
                         {config.content.packagePrimaryButtonText || "Book Now"} <ArrowRight className="h-4 w-4" />
                       </Button>
                     </Link>
@@ -198,7 +199,7 @@ export default function HajjUmrahTemplate({ config }: { config: WebsiteConfig })
             </div>
             <div className="text-center mt-8">
               <Link to="/site/packages">
-                <Button variant="outline" size="lg" style={{ borderColor: `hsl(${c.primary})`, color: `hsl(${c.primary})` }}>
+                <Button variant="outline" size="lg" style={{ borderColor: `hsl(${btn.outline})`, color: `hsl(${btn.outline})` }}>
                   {config.content.packageSecondaryButtonText || "View All Packages"} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -327,7 +328,7 @@ export default function HajjUmrahTemplate({ config }: { config: WebsiteConfig })
             {config.content.ctaSubtitle && <p className="text-lg opacity-60 mb-8 max-w-2xl mx-auto">{config.content.ctaSubtitle}</p>}
             <div className="flex gap-4 justify-center flex-wrap">
               <Link to="/site/packages">
-                <Button size="lg" className="gap-2" style={{ backgroundColor: `hsl(${c.primary})`, color: "white" }}>
+                <Button size="lg" className="gap-2" style={{ backgroundColor: `hsl(${btn.primaryBg})`, color: `hsl(${btn.primaryText})` }}>
                   Browse Packages <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useWebsite } from "@/contexts/WebsiteContext";
-import type { WebsiteConfig } from "@/lib/websiteApi";
+import { resolveButtons, type WebsiteConfig } from "@/lib/websiteApi";
 import {
   Mountain, Palmtree, Building, Camera, Plane, MapPin, Star, Shield, Hotel,
   ChevronDown, Quote, CheckCircle2, ArrowRight,
@@ -20,6 +20,7 @@ export default function TourPackagesTemplate({ config }: { config: WebsiteConfig
   const { tenant, packages } = useWebsite();
   const featured = packages.slice(0, 6);
   const c = config.colors;
+  const btn = resolveButtons(config);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
@@ -39,10 +40,10 @@ export default function TourPackagesTemplate({ config }: { config: WebsiteConfig
               <p className="text-lg max-w-xl mb-8 opacity-70 leading-relaxed">{config.content.heroSubtitle}</p>
               <div className="flex gap-3 flex-wrap">
                 <Link to="/site/packages">
-                  <Button size="lg" className="gap-2" style={{ backgroundColor: `hsl(${c.primary})`, color: "white" }}>Explore Tours <ArrowRight className="h-4 w-4" /></Button>
+                  <Button size="lg" className="gap-2" style={{ backgroundColor: `hsl(${btn.primaryBg})`, color: `hsl(${btn.primaryText})` }}>Explore Tours <ArrowRight className="h-4 w-4" /></Button>
                 </Link>
                 <Link to="/site/contact">
-                  <Button size="lg" variant="outline" style={{ borderColor: `hsl(${c.primary})`, color: `hsl(${c.primary})` }}>Plan My Trip</Button>
+                  <Button size="lg" variant="outline" style={{ borderColor: `hsl(${btn.outline})`, color: `hsl(${btn.outline})` }}>Plan My Trip</Button>
                 </Link>
               </div>
               {config.socialLinks && (
@@ -167,14 +168,14 @@ export default function TourPackagesTemplate({ config }: { config: WebsiteConfig
                     )}
                     <div className="flex items-center justify-between pt-3 border-t">
                       <span className="text-xl font-bold" style={{ color: `hsl(${c.primary})` }}>৳{pkg.price.toLocaleString()}</span>
-                      <Link to="/site/contact"><Button size="sm" className="gap-1" style={{ backgroundColor: `hsl(${c.primary})`, color: "white" }}>Book Now <ArrowRight className="h-3 w-3" /></Button></Link>
+                      <Link to="/site/contact"><Button size="sm" className="gap-1" style={{ backgroundColor: `hsl(${btn.secondaryBg})`, color: `hsl(${btn.secondaryText})` }}>Book Now <ArrowRight className="h-3 w-3" /></Button></Link>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
             <div className="text-center mt-8">
-              <Link to="/site/packages"><Button variant="outline" size="lg" style={{ borderColor: `hsl(${c.primary})`, color: `hsl(${c.primary})` }}>View All Tours <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
+              <Link to="/site/packages"><Button variant="outline" size="lg" style={{ borderColor: `hsl(${btn.outline})`, color: `hsl(${btn.outline})` }}>View All Tours <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
             </div>
           </div>
         </section>
