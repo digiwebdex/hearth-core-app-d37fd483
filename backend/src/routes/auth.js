@@ -65,6 +65,18 @@ router.post("/login", async (req, res) => {
 });
 
 // Register — auto-approved with Pro trial, returns JWT immediately (Pattern B)
+// Check if an email is available (pre-signup, public)
+router.get("/check-email", async (req, res) => {
+  try {
+    const ec = validateEmail(req.query.email);
+    if (!ec.ok) return res.status(400).json({ available: false, message: ec.message });
+    const exists = await prisma.user.findUnique({ where: { email: ec.email }, select: { id: true } });
+    return res.json({ available: !exists, email: ec.email });
+  } catch (err) {
+    return res.status(500).json({ available: true }); // fail-open; register re-checks
+  }
+});
+
 // ─── WhatsApp OTP verification (pre-signup) ──────────────────────────────────
 
 const OTP_TTL_MS = 5 * 60 * 1000;        // 5 minutes

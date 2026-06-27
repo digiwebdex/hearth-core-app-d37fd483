@@ -53,6 +53,8 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+  checkEmail: (email: string) =>
+    request<{ available: boolean; email?: string; message?: string }>(`/auth/check-email?email=${encodeURIComponent(email)}`),
   sendWhatsappOtp: (whatsapp: string) =>
     request<{ sent: boolean; delivered: boolean; whatsapp: string; expiresInSec: number; message: string }>("/auth/whatsapp-otp/send", {
       method: "POST",

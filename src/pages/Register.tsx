@@ -80,8 +80,10 @@ const Register = () => {
     }, 1000);
   }
 
+  const [checkingEmail, setCheckingEmail] = useState(false);
+
   // ── Step 1 → 2 ──
-  function goToVerify(e: React.FormEvent) {
+  async function goToVerify(e: React.FormEvent) {
     e.preventDefault();
     const fail = (msg: string) =>
       toast({ variant: "destructive", title: t("auth.validationFailed"), description: msg });
@@ -96,6 +98,21 @@ const Register = () => {
     if (!wc.ok) return fail(isBn ? "সঠিক হোয়াটসঅ্যাপ নম্বর দিন" : "Enter a valid WhatsApp number");
     if (password.length < PW_MIN)
       return fail(isBn ? `পাসওয়ার্ড কমপক্ষে ${PW_MIN} অক্ষরের হতে হবে` : `Password must be at least ${PW_MIN} characters`);
+
+    // Check email availability up front — avoids wasting an OTP
+    setCheckingEmail(true);
+    try {
+      const r = await authApi.checkEmail(ec.email);
+      if (!r.available) {
+        toast({
+          variant: "destructive",
+          title: isBn ? "ইমেইল ইতিমধ্যে নিবন্ধিত" : "Email already registered",
+          description: isBn ? "এই ইমেইল দিয়ে অ্যাকাউন্ট আছে — লগইন করুন।" : "An account with this email exists — please sign in.",
+        });
+        return;
+      }
+    } catch { /* fail-open; register will re-check */ }
+    finally { setCheckingEmail(false); }
 
     // If number changed after a prior verify, reset verification
     if (verifiedWa && verifiedWa !== wc.phone) {
@@ -282,8 +299,10 @@ const Register = () => {
                 <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={PW_MIN} autoComplete="new-password" placeholder={isBn ? `কমপক্ষে ${PW_MIN} অক্ষর` : `At least ${PW_MIN} characters`} />
               </div>
 
-              <Button type="submit" className="w-full">
-                {isBn ? "পরবর্তী: হোয়াটসঅ্যাপ যাচাই" : "Next: Verify WhatsApp"} <ArrowRight className="ml-2 h-4 w-4" />
+              <Button type="submit" className="w-full" disabled={checkingEmail}>
+                {checkingEmail
+                  ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {isBn ? "যাচাই হচ্ছে…" : "Checking…"}</>
+                  : <>{isBn ? "পরবর্তী: হোয়াটসঅ্যাপ যাচাই" : "Next: Verify WhatsApp"} <ArrowRight className="ml-2 h-4 w-4" /></>}
               </Button>
 
               <div className="space-y-1 pt-1 text-xs text-muted-foreground">
