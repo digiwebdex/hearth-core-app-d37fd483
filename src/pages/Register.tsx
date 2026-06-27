@@ -199,7 +199,7 @@ const Register = () => {
             ? (isBn ? "আপনার অ্যাকাউন্ট প্রস্তুত।" : "Your account is ready.")
             : (isBn ? `পরবর্তী ${trialDays} দিন সব Pro ফিচার ব্যবহার করুন।` : `Explore all Pro features for ${trialDays} days.`),
         });
-        navigate("/onboarding");
+        navigate("/dashboard");
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Registration failed";
