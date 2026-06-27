@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { quotationApi, type Quotation, type QuotationStatus } from "@/lib/api";
 import {
   FileText, Plus, Search, Eye, Pencil, Trash2, Copy, ArrowRight, Send,
-  DollarSign, Users, MapPin, CalendarIcon,
+  DollarSign, Users, MapPin, MoreHorizontal,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -243,37 +243,48 @@ const Quotations = () => {
                           <TableCell className="text-sm text-muted-foreground">v{q.version || 1}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">{q.validUntil || "—"}</TableCell>
                           <TableCell>
-                            <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                               <Button variant="ghost" size="icon" title={t("quotationsForm.actions.view")} onClick={() => navigate(`/quotations/${q.id}`)}>
                                 <Eye className="h-4 w-4" />
                               </Button>
-                              <PermissionGate module="quotations" action="edit">
-                                {q.status === "draft" && (
-                                  <Button variant="ghost" size="icon" title={t("quotationsForm.actions.send", "Send to client")} onClick={() => handleSend(q)}>
-                                    <Send className="h-4 w-4 text-blue-600" />
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" title={t("quotationsForm.table.actions")}>
+                                    <MoreHorizontal className="h-4 w-4" />
                                   </Button>
-                                )}
-                                <Button variant="ghost" size="icon" title={t("quotationsForm.actions.edit")} onClick={() => navigate(`/quotations/${q.id}/edit`)}>
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                              </PermissionGate>
-                              <PermissionGate module="quotations" action="create">
-                                <Button variant="ghost" size="icon" title={t("quotationsForm.actions.duplicate")} onClick={() => handleDuplicate(q.id)}>
-                                  <Copy className="h-4 w-4" />
-                                </Button>
-                              </PermissionGate>
-                              {(q.status === "approved" || q.status === "sent") && (
-                                <PermissionGate module="quotations" action="approve">
-                                  <Button variant="ghost" size="icon" title={t("quotationsForm.actions.convert")} onClick={() => handleConvert(q)}>
-                                    <ArrowRight className="h-4 w-4 text-green-600" />
-                                  </Button>
-                                </PermissionGate>
-                              )}
-                              <PermissionGate module="quotations" action="delete">
-                                <Button variant="ghost" size="icon" title={t("quotationsForm.actions.delete")} onClick={() => handleDelete(q.id)}>
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </PermissionGate>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-44">
+                                  {q.status === "draft" ? (
+                                    <PermissionGate module="quotations" action="edit">
+                                      <DropdownMenuItem onClick={() => handleSend(q)}>
+                                        <Send className="mr-2 h-4 w-4 text-blue-600" /> {t("quotationsForm.actions.send", "Send to client")}
+                                      </DropdownMenuItem>
+                                    </PermissionGate>
+                                  ) : null}
+                                  <PermissionGate module="quotations" action="edit">
+                                    <DropdownMenuItem onClick={() => navigate(`/quotations/${q.id}/edit`)}>
+                                      <Pencil className="mr-2 h-4 w-4" /> {t("quotationsForm.actions.edit")}
+                                    </DropdownMenuItem>
+                                  </PermissionGate>
+                                  <PermissionGate module="quotations" action="create">
+                                    <DropdownMenuItem onClick={() => handleDuplicate(q.id)}>
+                                      <Copy className="mr-2 h-4 w-4" /> {t("quotationsForm.actions.duplicate")}
+                                    </DropdownMenuItem>
+                                  </PermissionGate>
+                                  {(q.status === "approved" || q.status === "sent") ? (
+                                    <PermissionGate module="quotations" action="approve">
+                                      <DropdownMenuItem onClick={() => handleConvert(q)}>
+                                        <ArrowRight className="mr-2 h-4 w-4 text-green-600" /> {t("quotationsForm.actions.convert")}
+                                      </DropdownMenuItem>
+                                    </PermissionGate>
+                                  ) : null}
+                                  <PermissionGate module="quotations" action="delete">
+                                    <DropdownMenuItem onClick={() => handleDelete(q.id)} className="text-destructive focus:text-destructive">
+                                      <Trash2 className="mr-2 h-4 w-4" /> {t("quotationsForm.actions.delete")}
+                                    </DropdownMenuItem>
+                                  </PermissionGate>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
                           </TableCell>
                         </TableRow>
