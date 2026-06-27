@@ -48,10 +48,20 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify({ email, password }),
     }),
-  register: (data: { name: string; email: string; phone: string; password: string; tenantName: string; plan?: string; enabledSubcategories?: string[]; enabledServiceTypes?: string[] }) =>
+  register: (data: { name: string; email: string; phone: string; whatsapp?: string; whatsappVerifyToken?: string; password: string; tenantName: string; plan?: string; enabledSubcategories?: string[]; enabledServiceTypes?: string[] }) =>
     request<{ token?: string; user?: User; tenant?: Tenant; pendingApproval?: boolean; message?: string; trialDays?: number; intendedPlan?: string }>("/auth/register", {
       method: "POST",
       body: JSON.stringify(data),
+    }),
+  sendWhatsappOtp: (whatsapp: string) =>
+    request<{ sent: boolean; delivered: boolean; whatsapp: string; expiresInSec: number; message: string }>("/auth/whatsapp-otp/send", {
+      method: "POST",
+      body: JSON.stringify({ whatsapp }),
+    }),
+  verifyWhatsappOtp: (whatsapp: string, code: string) =>
+    request<{ verified: boolean; whatsapp: string; whatsappVerifyToken: string }>("/auth/whatsapp-otp/verify", {
+      method: "POST",
+      body: JSON.stringify({ whatsapp, code }),
     }),
   me: () => request<User>("/auth/me"),
   forgotPassword: (email: string) =>

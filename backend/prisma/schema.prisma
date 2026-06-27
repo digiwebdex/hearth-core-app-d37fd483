@@ -111,6 +111,7 @@ model User {
   emailVerified     Boolean  @default(false)
   emailVerifyToken  String?
   emailVerifyExpiry DateTime?
+  whatsappVerified  Boolean  @default(false)
   approvedAt        DateTime?
   approvedBy        String?
   rejectionReason   String?
@@ -120,6 +121,20 @@ model User {
   createdAt              DateTime                @default(now())
   agentCommissionProfile AgentCommissionProfile?
   staffProfile           StaffProfile?
+}
+
+model WhatsappOtp {
+  id        String   @id @default(uuid())
+  phone     String
+  code      String
+  purpose   String   @default("signup")
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  sendCount Int      @default(1)
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([phone])
 }
 
 model StaffProfile {

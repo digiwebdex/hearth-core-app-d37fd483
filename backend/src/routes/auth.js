@@ -65,9 +65,111 @@ router.post("/login", async (req, res) => {
 });
 
 // Register — auto-approved with Pro trial, returns JWT immediately (Pattern B)
+// ─── WhatsApp OTP verification (pre-signup) ──────────────────────────────────
+
+const OTP_TTL_MS = 5 * 60 * 1000;        // 5 minutes
+const OTP_RESEND_COOLDOWN_MS = 60 * 1000; // 60 seconds between sends
+const OTP_MAX_SENDS = 5;                   // per number per hour
+const OTP_MAX_ATTEMPTS = 5;
+
+// Send a 6-digit code to a WhatsApp number
+router.post("/whatsapp-otp/send", async (req, res) => {
+  try {
+    const phoneCheck = validatePhone(req.body.whatsapp || req.body.phone);
+    if (!phoneCheck.ok) return res.status(400).json({ message: phoneCheck.message });
+    const phone = phoneCheck.phone;
+
+    // Rate limit: cooldown + hourly cap
+    const recent = await prisma.whatsappOtp.findFirst({
+      where: { phone, purpose: "signup" },
+      orderBy: { createdAt: "desc" },
+    });
+    const now = Date.now();
+    if (recent) {
+      const since = now - new Date(recent.createdAt).getTime();
+      if (since < OTP_RESEND_COOLDOWN_MS) {
+        const wait = Math.ceil((OTP_RESEND_COOLDOWN_MS - since) / 1000);
+        return res.status(429).json({ message: `Please wait ${wait}s before requesting a new code.`, retryAfter: wait });
+      }
+      // hourly cap
+      const hourAgo = new Date(now - 60 * 60 * 1000);
+      const sendsInHour = await prisma.whatsappOtp.count({ where: { phone, purpose: "signup", createdAt: { gte: hourAgo } } });
+      if (sendsInHour >= OTP_MAX_SENDS) {
+        return res.status(429).json({ message: "Too many code requests. Please try again later." });
+      }
+    }
+
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    await prisma.whatsappOtp.create({
+      data: { phone, code, purpose: "signup", expiresAt: new Date(now + OTP_TTL_MS) },
+    });
+
+    const message =
+      `🔐 Your verification code is *${code}*\n\n` +
+      `This code expires in 5 minutes.\n` +
+      `Do not share it with anyone.`;
+
+    let delivered = false;
+    try {
+      const { sendWhatsApp } = require("../services/whatsappService");
+      const result = await sendWhatsApp({ to: phone, message });
+      delivered = !!(result && result.success);
+    } catch (_e) { delivered = false; }
+
+    return res.json({
+      sent: true,
+      delivered,
+      whatsapp: phone,
+      expiresInSec: OTP_TTL_MS / 1000,
+      message: delivered
+        ? "Verification code sent to your WhatsApp."
+        : "We could not confirm delivery — check the number and try resending.",
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// Verify a code → returns short-lived proof token
+router.post("/whatsapp-otp/verify", async (req, res) => {
+  try {
+    const phoneCheck = validatePhone(req.body.whatsapp || req.body.phone);
+    if (!phoneCheck.ok) return res.status(400).json({ message: phoneCheck.message });
+    const phone = phoneCheck.phone;
+    const code = String(req.body.code || "").trim();
+    if (!/^\d{6}$/.test(code)) return res.status(400).json({ message: "Enter the 6-digit code." });
+
+    const otp = await prisma.whatsappOtp.findFirst({
+      where: { phone, purpose: "signup", verified: false },
+      orderBy: { createdAt: "desc" },
+    });
+    if (!otp) return res.status(400).json({ message: "No active code. Please request a new one." });
+    if (new Date(otp.expiresAt).getTime() < Date.now()) {
+      return res.status(400).json({ message: "Code expired. Please request a new one." });
+    }
+    if (otp.attempts >= OTP_MAX_ATTEMPTS) {
+      return res.status(429).json({ message: "Too many attempts. Please request a new code." });
+    }
+    if (otp.code !== code) {
+      await prisma.whatsappOtp.update({ where: { id: otp.id }, data: { attempts: { increment: 1 } } });
+      return res.status(400).json({ message: "Incorrect code. Please try again." });
+    }
+
+    await prisma.whatsappOtp.update({ where: { id: otp.id }, data: { verified: true } });
+
+    // Proof token — bound to this number, valid 30 min, consumed at register
+    const whatsappVerifyToken = jwt.sign(
+      { whatsapp: phone, purpose: "wa_verify" }, SECRET, { expiresIn: "30m" }
+    );
+    return res.json({ verified: true, whatsapp: phone, whatsappVerifyToken });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password, tenantName, plan, phone, enabledSubcategories, enabledServiceTypes } = req.body;
+    const { name, email, password, tenantName, plan, phone, whatsapp, whatsappVerifyToken, enabledSubcategories, enabledServiceTypes } = req.body;
 
     if (!String(name || "").trim()) return res.status(400).json({ message: "Full name is required" });
     if (!String(tenantName || "").trim()) return res.status(400).json({ message: "Agency name is required" });
@@ -77,6 +179,22 @@ router.post("/register", async (req, res) => {
 
     const phoneCheck = validatePhone(phone);
     if (!phoneCheck.ok) return res.status(400).json({ message: phoneCheck.message });
+
+    // WhatsApp number (defaults to mobile if not provided)
+    const whatsappCheck = validatePhone(whatsapp || phone);
+    if (!whatsappCheck.ok) return res.status(400).json({ message: "Valid WhatsApp number is required" });
+
+    // Verify the WhatsApp proof token bound to this number
+    let whatsappVerified = false;
+    if (whatsappVerifyToken) {
+      try {
+        const decoded = jwt.verify(whatsappVerifyToken, SECRET);
+        whatsappVerified = decoded.purpose === "wa_verify" && decoded.whatsapp === whatsappCheck.phone;
+      } catch (_e) { whatsappVerified = false; }
+    }
+    if (!whatsappVerified) {
+      return res.status(400).json({ message: "Please verify your WhatsApp number first.", code: "WHATSAPP_NOT_VERIFIED" });
+    }
 
     const passwordCheck = validatePassword(password);
     if (!passwordCheck.ok) return res.status(400).json({ message: passwordCheck.message });
@@ -108,6 +226,7 @@ router.post("/register", async (req, res) => {
         name: tenantName || name + "'s Agency",
         slug,
         phone: phoneCheck.phone,
+        whatsapp: whatsappCheck.phone,
         subscriptionPlan,
         subscriptionStatus,
         subscriptionExpiry,
@@ -127,6 +246,8 @@ router.post("/register", async (req, res) => {
         name: String(name).trim(),
         email: emailCheck.email,
         phone: phoneCheck.phone,
+        whatsapp: whatsappCheck.phone,
+        whatsappVerified: true,
         password: hashed,
         role: "tenant_owner",
         status: "active", // auto-approved

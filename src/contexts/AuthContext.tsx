@@ -16,7 +16,7 @@ interface AuthContextType {
   trialDaysLeft: number;
   loading: boolean;
   login: (email: string, password: string) => Promise<User>;
-  register: (data: { name: string; email: string; phone: string; password: string; tenantName: string; plan?: string; enabledSubcategories?: string[]; enabledServiceTypes?: string[] }) => Promise<{ pendingApproval: boolean; message?: string; user?: User; trialDays?: number }>;
+  register: (data: { name: string; email: string; phone: string; whatsapp?: string; whatsappVerifyToken?: string; password: string; tenantName: string; plan?: string; enabledSubcategories?: string[]; enabledServiceTypes?: string[] }) => Promise<{ pendingApproval: boolean; message?: string; user?: User; trialDays?: number }>;
   logout: () => void;
   refreshTenant: () => Promise<void>;
 }
@@ -119,10 +119,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       tenantName: string;
       plan?: string;
       phone?: string;
+      whatsapp?: string;
+      whatsappVerifyToken?: string;
       enabledSubcategories?: string[];
       enabledServiceTypes?: string[];
     }) => {
-      const res: any = await authApi.register(data);
+      const res: any = await authApi.register(data as any);
       // New flow: instant token + Pro trial (TRIAL_DAYS env, default 7)
       if (res.token) {
         localStorage.setItem("token", res.token);
