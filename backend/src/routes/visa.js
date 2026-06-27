@@ -22,7 +22,7 @@ router.get("/", requirePermission("bookings", "view"), async (req, res) => {
       orderBy: { createdAt: "desc" },
       include: {
         client: { select: { id: true, name: true, phone: true } },
-        booking: { select: { id: true, bookingNumber: true } },
+        booking: { select: { id: true, title: true } },
       },
     });
     res.json(visas);
@@ -79,7 +79,7 @@ router.get("/:id", requirePermission("bookings", "view"), async (req, res) => {
       where: { id: req.params.id, tenantId: req.tenantId },
       include: {
         client: { select: { id: true, name: true, phone: true, email: true } },
-        booking: { select: { id: true, bookingNumber: true } },
+        booking: { select: { id: true, title: true } },
       },
     });
     if (!visa) return res.status(404).json({ message: "Not found" });
