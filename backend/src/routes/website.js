@@ -199,10 +199,80 @@ function applyCmsToLegacy(config) {
   return next;
 }
 
+// Inverse of applyCmsToLegacy: push authoritative legacy `content` values back
+// into the matching cms.sections fields. The WebsiteCustomizer UI edits only the
+// legacy `content.*` shape, so without this the stale section snapshot (loaded
+// from the server) would clobber fresh edits — e.g. a newly uploaded hero/about
+// image — when applyCmsToLegacy runs sections → content on save.
+function syncLegacyToSections(config) {
+  const content = config.content || {};
+  const contactInfo = config.contactInfo || {};
+  const socialLinks = config.socialLinks || {};
+  const sections = Array.isArray(config?.cms?.sections) ? config.cms.sections : [];
+  const find = (type) => sections.find((s) => s && s.type === type);
+  const setField = (section, key, value) => {
+    if (!section) return;
+    if (value !== undefined) {
+      section.fields = section.fields && typeof section.fields === "object" ? section.fields : {};
+      section.fields[key] = value;
+    }
+  };
+  const setItems = (section, value) => {
+    if (section && Array.isArray(value)) section.items = value;
+  };
+
+  const hero = find("hero");
+  setField(hero, "badge", content.heroBadge);
+  setField(hero, "title", content.heroTitle);
+  setField(hero, "subtitle", content.heroSubtitle);
+  setField(hero, "image", content.heroImage);
+
+  const about = find("about");
+  setField(about, "title", content.aboutTitle);
+  setField(about, "text", content.aboutText);
+  setField(about, "image", content.aboutImage);
+
+  setItems(find("services"), content.services);
+
+  const fp = find("featured-packages");
+  setField(fp, "badge", content.packagesBadge);
+  setField(fp, "title", content.packagesTitle);
+  setField(fp, "subtitle", content.packagesSubtitle);
+  setField(fp, "pageTitle", content.packagePageTitle);
+  setField(fp, "pageSubtitle", content.packagePageSubtitle);
+  setField(fp, "primaryButtonText", content.packagePrimaryButtonText);
+  setField(fp, "secondaryButtonText", content.packageSecondaryButtonText);
+
+  setItems(find("why-choose-us"), content.whyChooseUs);
+  setItems(find("testimonials"), content.testimonials);
+  setItems(find("faq"), content.faq);
+  setItems(find("team"), content.team);
+
+  const cta = find("cta");
+  setField(cta, "title", content.ctaTitle);
+  setField(cta, "subtitle", content.ctaSubtitle);
+
+  const contact = find("contact");
+  setField(contact, "phone", contactInfo.phone);
+  setField(contact, "email", contactInfo.email);
+  setField(contact, "address", contactInfo.address);
+  setField(contact, "mapEmbed", contactInfo.mapEmbed);
+  setField(contact, "facebook", socialLinks.facebook);
+  setField(contact, "instagram", socialLinks.instagram);
+  setField(contact, "twitter", socialLinks.twitter);
+  setField(contact, "whatsapp", socialLinks.whatsapp);
+  setField(contact, "youtube", socialLinks.youtube);
+
+  return config;
+}
+
 function normalizeWebsiteConfig(config) {
   const next = clone(config || {});
   if (!next.cms || !Array.isArray(next.cms.sections) || !next.cms.sections.length) {
     next.cms = { version: 1, sections: buildSectionsFromLegacy(next) };
+  } else {
+    // Legacy `content` is the authoritative editing surface — refresh sections from it.
+    syncLegacyToSections(next);
   }
   return applyCmsToLegacy(next);
 }
