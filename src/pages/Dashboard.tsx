@@ -52,6 +52,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getTenantBookingPresets } from "@/lib/bookingTypeOptions";
 import { bookingPresetPath } from "@/lib/bookingRoutePresets";
 import EmptyState from "@/components/EmptyState";
+import { getPlan, getLimitLabel, type PlanType } from "@/lib/plans";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
@@ -265,6 +266,52 @@ const Dashboard = () => {
         </div>
 
         <OnboardingChecklist />
+
+        {tenant ? (() => {
+          const planCfg = getPlan((tenant.subscriptionPlan || "basic") as PlanType);
+          const rows = [
+            { label: t("dashboard.usageClients", { defaultValue: "Clients" }), used: stats?.totalClients ?? 0, max: planCfg.maxClients },
+            { label: t("dashboard.usageBookings", { defaultValue: "Bookings" }), used: stats?.totalBookings ?? 0, max: planCfg.maxBookings },
+            { label: t("dashboard.usageUsers", { defaultValue: "Team members" }), used: stats?.totalUsers ?? 0, max: planCfg.maxUsers },
+          ];
+          const statusRaw = String(tenant.subscriptionStatus || "active").toLowerCase();
+          return (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-primary" />
+                    <span className="font-semibold">{t("dashboard.yourPlan", { defaultValue: "Your plan" })}:</span>
+                    <Badge variant="default">{planCfg.name}</Badge>
+                    <Badge variant={statusRaw === "active" || statusRaw === "trial" ? "secondary" : "destructive"} className="capitalize">{statusRaw}</Badge>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => navigate("/subscription")}>
+                    <TrendingUp className="mr-2 h-4 w-4" />
+                    {t("dashboard.managePlan", { defaultValue: "Manage / Upgrade plan" })}
+                  </Button>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  {rows.map((r) => {
+                    const unlimited = r.max === -1;
+                    const pct = unlimited ? 0 : Math.min(100, Math.round((r.used / Math.max(1, r.max)) * 100));
+                    const near = !unlimited && pct >= 80;
+                    return (
+                      <div key={r.label} className="space-y-1.5">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">{r.label}</span>
+                          <span className={`font-medium ${near ? "text-amber-600" : ""}`}>
+                            {r.used.toLocaleString()} / {getLimitLabel(r.max)}
+                          </span>
+                        </div>
+                        <Progress value={unlimited ? 6 : pct} className={`h-2 ${near ? "[&>div]:bg-amber-500" : ""}`} />
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })() : null}
 
         {!loading && !hasAnyData && (
           <Card className="border-dashed">

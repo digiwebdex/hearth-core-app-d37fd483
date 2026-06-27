@@ -991,6 +991,11 @@
   },
   "dashboard": {
     "title": "Dashboard",
+    "yourPlan": "Your plan",
+    "managePlan": "Manage / Upgrade plan",
+    "usageClients": "Clients",
+    "usageBookings": "Bookings",
+    "usageUsers": "Team members",
     "subtitle": "Your agency at a glance — leads, bookings, payments, and operations.",
     "welcomeTitle": "Welcome to your travel agency dashboard",
     "welcomeDesc": "Start by adding a lead, sending a quotation, or creating a booking.",
