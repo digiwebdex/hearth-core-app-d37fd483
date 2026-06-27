@@ -380,14 +380,17 @@ const WebsiteCustomizer = () => {
     setUploadingAsset(assetType);
     try {
       const uploaded = await websiteApi.uploadAsset(file, assetType);
+      let newConfig = config;
       if (assetType === "logo") {
-        setConfig((prev) => ({ ...prev, logo: uploaded.assetUrl }));
+        newConfig = { ...config, logo: uploaded.assetUrl };
       } else if (assetType === "hero") {
-        setContent("heroImage", uploaded.assetUrl);
+        newConfig = { ...config, content: { ...config.content, heroImage: uploaded.assetUrl } };
       } else {
-        setContent("aboutImage", uploaded.assetUrl);
+        newConfig = { ...config, content: { ...config.content, aboutImage: uploaded.assetUrl } };
       }
-      toast({ title: "Image uploaded", description: `${assetType} image updated successfully.` });
+      setConfig(newConfig);
+      await websiteApi.saveConfig(newConfig);
+      toast({ title: "Image uploaded & saved", description: `${assetType} image is now live on your website.` });
     } catch (err: any) {
       toast({ title: "Upload failed", description: err.message || "Could not upload image.", variant: "destructive" });
     } finally {
@@ -395,10 +398,18 @@ const WebsiteCustomizer = () => {
     }
   };
 
-  const removeAsset = (assetType: "logo" | "hero" | "about") => {
-    if (assetType === "logo") setConfig((prev) => ({ ...prev, logo: "" }));
-    if (assetType === "hero") setContent("heroImage", "");
-    if (assetType === "about") setContent("aboutImage", "");
+  const removeAsset = async (assetType: "logo" | "hero" | "about") => {
+    let newConfig = config;
+    if (assetType === "logo") newConfig = { ...config, logo: "" };
+    if (assetType === "hero") newConfig = { ...config, content: { ...config.content, heroImage: "" } };
+    if (assetType === "about") newConfig = { ...config, content: { ...config.content, aboutImage: "" } };
+    setConfig(newConfig);
+    try {
+      await websiteApi.saveConfig(newConfig);
+      toast({ title: "Image removed", description: "Change saved to your website." });
+    } catch {
+      toast({ title: "Save failed", description: "Image removed locally but could not save.", variant: "destructive" });
+    }
   };
 
   const handleSave = async () => {
@@ -497,7 +508,7 @@ const WebsiteCustomizer = () => {
     </div>
   );
 
-  const renderImageUploader = (title: string, description: string, value: string | undefined, assetType: "logo" | "hero" | "about", inputRef: FileInputRef, onUrlChange?: (url: string) => void) => (
+  const renderImageUploader = (title: string, description: string, value: string | undefined, assetType: "logo" | "hero" | "about", inputRef: FileInputRef, onUrlChange?: (url: string) => void, onUrlBlur?: () => void) => (
     <Card>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
@@ -527,6 +538,7 @@ const WebsiteCustomizer = () => {
               placeholder="https://images.unsplash.com/..."
               value={value || ""}
               onChange={(e) => onUrlChange(e.target.value)}
+              onBlur={onUrlBlur}
               className="text-xs"
             />
           </div>
@@ -835,13 +847,16 @@ const WebsiteCustomizer = () => {
           <TabsContent value="branding" className="space-y-6">
             <div className="grid gap-6 xl:grid-cols-3">
               {renderImageUploader("Logo", "Header logo and brand mark.", config.logo, "logo", logoInputRef,
-                (url) => setConfig((prev) => ({ ...prev, logo: url }))
+                (url) => setConfig((prev) => ({ ...prev, logo: url })),
+                handleSave
               )}
               {renderImageUploader("Hero image", "Main banner image for the homepage.", config.content.heroImage, "hero", heroInputRef,
-                (url) => setContent("heroImage", url)
+                (url) => setContent("heroImage", url),
+                handleSave
               )}
               {renderImageUploader("About image", "Supporting image for the about section.", config.content.aboutImage, "about", aboutInputRef,
-                (url) => setContent("aboutImage", url)
+                (url) => setContent("aboutImage", url),
+                handleSave
               )}
             </div>
             <Card>
