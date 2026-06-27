@@ -62,6 +62,7 @@ import VerifyEmail from "./pages/VerifyEmail";
 import SettingsBilling from "./pages/SettingsBilling";
 import UserGuide from "./pages/UserGuide";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminLandingCMS from "./pages/admin/AdminLandingCMS";
 import AdminTenants from "./pages/admin/AdminTenants";
 import AdminPendingUsers from "./pages/admin/AdminPendingUsers";
 import AdminPayments from "./pages/admin/AdminPayments";
@@ -280,6 +281,7 @@ const AppContent = () => (
           <Route path="/user-guide" element={<P><UserGuide /></P>} />
 
           <Route path="/admin" element={<A><AdminDashboard /></A>} />
+          <Route path="/admin/landing-cms" element={<A><AdminLandingCMS /></A>} />
           <Route path="/admin/tenants" element={<A><AdminTenants /></A>} />
           <Route path="/admin/pending-users" element={<A><AdminPendingUsers /></A>} />
           <Route path="/admin/tenants/:tenantId" element={<A><AdminTenantDetails /></A>} />

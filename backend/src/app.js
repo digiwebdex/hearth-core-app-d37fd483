@@ -181,6 +181,7 @@ function createApp() {
   app.use("/api/notifications", require("./routes/notifications"));
   app.use("/api/cron", require("./routes/cron"));
   app.use("/api/export", require("./routes/dataExport"));
+  app.use("/api/landing-cms", require("./routes/landingCms"));
 
   app.get("/api/health", async (_req, res) => {
     let dbStatus = "disconnected";

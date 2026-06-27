@@ -1,4 +1,4 @@
-import { LayoutDashboard, Building2, CreditCard, Crown, Ban, LogOut, ArrowLeft, Globe, ListChecks, Settings, Shield, MessageSquare, ScrollText, UserCog, FileText, BarChart3, UserPlus, Database, MessageCircle, Tag } from "lucide-react";
+import { LayoutDashboard, Building2, CreditCard, Crown, Ban, LogOut, ArrowLeft, Globe, ListChecks, Settings, Shield, MessageSquare, ScrollText, UserCog, FileText, BarChart3, UserPlus, Database, MessageCircle, Tag, Layout } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 
 const adminItems = [
   { title: "Overview", url: "/admin", icon: LayoutDashboard },
+  { title: "Landing Page CMS", url: "/admin/landing-cms", icon: Layout },
   { title: "Agencies", url: "/admin/tenants", icon: Building2 },
   { title: "Master Data", url: "/admin/master-data", icon: Database },
   { title: "Pending Signups", url: "/admin/pending-users", icon: UserPlus },
