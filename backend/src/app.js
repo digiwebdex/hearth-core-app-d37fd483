@@ -180,6 +180,7 @@ function createApp() {
   app.use("/api/subscription-coupons", require("./routes/subscriptionCoupons"));
   app.use("/api/notifications", require("./routes/notifications"));
   app.use("/api/cron", require("./routes/cron"));
+  app.use("/api/export", require("./routes/dataExport"));
 
   app.get("/api/health", async (_req, res) => {
     let dbStatus = "disconnected";

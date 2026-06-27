@@ -1,110 +1,180 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Download, FileSpreadsheet, Loader2, CheckCircle2, XCircle, Database } from "lucide-react";
-import { exportResource, exportAllData, getExportResources, type ExportResult, type ExportResource } from "@/lib/exportApi";
+import {
+  Download, FileSpreadsheet, Loader2, Database, Calendar, ArchiveRestore,
+} from "lucide-react";
 
-const resources = getExportResources();
+const API = import.meta.env.VITE_API_URL || "/api";
+const tok = () => localStorage.getItem("token") || "";
 
-const DataExport = () => {
-  const [exporting, setExporting] = useState<string | null>(null);
-  const [results, setResults] = useState<ExportResult[]>([]);
+interface BackupInfo { lastBackup: string | null; count: number; }
+
+const CSV_SECTIONS = [
+  { label: "Clients",  color: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300" },
+  { label: "Bookings", color: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300" },
+  { label: "Invoices", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300" },
+  { label: "Payments", color: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300" },
+  { label: "Leads",    color: "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300" },
+];
+
+async function downloadBlob(res: Response, fallback: string) {
+  const blob = await res.blob();
+  const cd = res.headers.get("content-disposition") || "";
+  const filename = cd.match(/filename="([^"]+)"/)?.[1] || fallback;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  return filename;
+}
+
+export default function DataExport() {
   const { toast } = useToast();
+  const today = new Date().toISOString().slice(0, 10);
+  const [fromDate, setFromDate] = useState(today);
+  const [toDate, setToDate]     = useState(today);
+  const [csvLoading, setCsvLoading]     = useState(false);
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [backupInfo, setBackupInfo] = useState<BackupInfo | null>(null);
 
-  const handleExportSingle = async (id: ExportResource) => {
-    setExporting(id);
-    const result = await exportResource(id);
-    setResults((prev) => [...prev.filter((r) => r.resource !== result.resource), result]);
-    if (result.success) {
-      toast({ title: `${result.resource} exported`, description: `${result.count} records downloaded as CSV` });
-    } else {
-      toast({ title: "Export failed", description: result.error, variant: "destructive" });
-    }
-    setExporting(null);
-  };
+  useEffect(() => {
+    fetch(`${API}/export/backup-info`, { headers: { Authorization: `Bearer ${tok()}` } })
+      .then((r) => r.ok ? r.json() : null).then((d) => d && setBackupInfo(d)).catch(() => {});
+  }, []);
 
-  const handleExportAll = async () => {
-    setExporting("all");
-    const allResults = await exportAllData();
-    setResults(allResults);
-    const successCount = allResults.filter((r) => r.success).length;
-    toast({ title: "Bulk export complete", description: `${successCount}/${allResults.length} resources exported` });
-    setExporting(null);
-  };
+  async function doCSV(all = false) {
+    setCsvLoading(true);
+    try {
+      const url = all ? `${API}/export/csv` : `${API}/export/csv?from=${fromDate}&to=${toDate}`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${tok()}` } });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || "Failed"); }
+      const fname = await downloadBlob(res, `hearth_export_${today}.csv`);
+      toast({ title: "CSV downloaded", description: fname });
+    } catch (e: any) {
+      toast({ title: "Export failed", description: e.message, variant: "destructive" });
+    } finally { setCsvLoading(false); }
+  }
 
-  const getResultForResource = (label: string) => results.find((r) => r.resource === label);
+  async function doBackup() {
+    setBackupLoading(true);
+    try {
+      const res = await fetch(`${API}/export/db-backup`, {
+        method: "POST", headers: { Authorization: `Bearer ${tok()}` },
+      });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || "Failed"); }
+      const fname = await downloadBlob(res, `hearth_backup_${today}.sql`);
+      toast({ title: "Database backup downloaded", description: fname });
+    } catch (e: any) {
+      toast({ title: "Backup failed", description: e.message, variant: "destructive" });
+    } finally { setBackupLoading(false); }
+  }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Database className="h-5 w-5" /> Data Export & Backup
-            </CardTitle>
-            <CardDescription>Download your data as CSV files for backup or migration</CardDescription>
+    <div className="space-y-6">
+
+      {/* ── CSV Export ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FileSpreadsheet className="h-5 w-5 text-green-600" />
+            Export Data as CSV
+          </CardTitle>
+          <CardDescription>
+            Download clients, bookings, invoices, payments and leads as a spreadsheet file.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+
+          {/* Tags */}
+          <div className="flex flex-wrap gap-2">
+            {CSV_SECTIONS.map((s) => (
+              <span key={s.label} className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${s.color}`}>
+                {s.label}
+              </span>
+            ))}
           </div>
-          <Button onClick={handleExportAll} disabled={!!exporting} variant="outline">
-            {exporting === "all" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-            Export All
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {resources.map((res) => {
-            const result = getResultForResource(res.label);
-            const isExporting = exporting === res.id;
 
-            return (
-              <div key={res.id} className="flex items-center justify-between rounded-lg border p-3">
-                <div className="flex items-center gap-3">
-                  <FileSpreadsheet className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">{res.label}</p>
-                    {result && (
-                      <div className="flex items-center gap-1 mt-0.5">
-                        {result.success ? (
-                          <>
-                            <CheckCircle2 className="h-3 w-3 text-green-600" />
-                            <span className="text-xs text-green-600">{result.count} records</span>
-                          </>
-                        ) : (
-                          <>
-                            <XCircle className="h-3 w-3 text-destructive" />
-                            <span className="text-xs text-destructive">{result.error}</span>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={!!exporting}
-                  onClick={() => handleExportSingle(res.id)}
-                >
-                  {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                </Button>
+          <Separator />
+
+          {/* Date range */}
+          <div>
+            <p className="text-sm font-semibold mb-3 flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" /> Filter by Date Range
+            </p>
+            <div className="grid grid-cols-2 gap-3 max-w-xs">
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">From</Label>
+                <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
               </div>
-            );
-          })}
-        </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">To</Label>
+                <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+              </div>
+            </div>
+          </div>
 
-        <div className="mt-4 rounded-lg bg-muted/50 p-3">
-          <p className="text-xs text-muted-foreground">
-            💡 <strong>Tip:</strong> For automated daily backups, set up a cron job on your server:
-          </p>
-          <code className="block mt-1 text-xs bg-muted p-2 rounded font-mono">
-            0 2 * * * cd /var/www/backend && node scripts/backup.js &gt;&gt; /var/log/backup.log 2&gt;&amp;1
-          </code>
-        </div>
-      </CardContent>
-    </Card>
+          <div className="flex gap-3 flex-wrap">
+            <Button onClick={() => doCSV(false)} disabled={csvLoading} className="gap-2">
+              {csvLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              Download Date Range CSV
+            </Button>
+            <Button variant="outline" onClick={() => doCSV(true)} disabled={csvLoading} className="gap-2">
+              <FileSpreadsheet className="h-4 w-4" />
+              Export All Data
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Full DB Backup ── */}
+      <Card className="border-amber-200 bg-amber-50/30 dark:bg-amber-950/10 dark:border-amber-900">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Database className="h-5 w-5 text-amber-600" />
+            Full Database Backup
+          </CardTitle>
+          <CardDescription>
+            Download a complete SQL dump of your database. Use to restore or migrate all agency data.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+
+          {backupInfo && (
+            <div className="flex items-center justify-between rounded-lg border border-amber-200 bg-white dark:bg-muted px-4 py-2.5 text-sm">
+              <span className="flex items-center gap-2 text-muted-foreground">
+                <ArchiveRestore className="h-4 w-4" />
+                Server auto-backups stored:
+                <strong className="text-foreground">{backupInfo.count} files</strong>
+              </span>
+              {backupInfo.lastBackup && (
+                <Badge variant="outline" className="font-mono text-xs">{backupInfo.lastBackup}</Badge>
+              )}
+            </div>
+          )}
+
+          <div className="rounded-lg bg-amber-100/70 dark:bg-amber-900/20 px-4 py-2.5 text-xs text-amber-800 dark:text-amber-300">
+            ⚠️ This file contains your complete agency data. Keep it secure — do not share it.
+          </div>
+
+          <Button
+            onClick={doBackup}
+            disabled={backupLoading}
+            variant="outline"
+            className="gap-2 border-amber-400 text-amber-700 hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-900/30"
+          >
+            {backupLoading
+              ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating backup…</>
+              : <><Download className="h-4 w-4" /> Download Full SQL Backup</>}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
   );
-};
-
-export default DataExport;
+}
