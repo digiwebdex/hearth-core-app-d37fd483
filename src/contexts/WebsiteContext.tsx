@@ -45,27 +45,28 @@ const WebsiteContext = createContext<WebsiteContextType>({
 export const useWebsite = () => useContext(WebsiteContext);
 
 export const WebsiteProvider = ({ slug: propSlug, children }: { slug?: string; children: React.ReactNode }) => {
+  // Resolve the host synchronously so we know up-front whether this is a real
+  // tenant site (must fetch) or the main marketing app (demo data is fine).
+  const [resolution] = useState<DomainResolution>(() => resolveHostname());
+  const identifier = propSlug || resolution.slug;
+  const needsResolve = Boolean(identifier || (resolution.type === "custom-domain" && resolution.customDomain));
+
   const [tenant, setTenant] = useState<TenantPublic>(demoTenant);
   const [packages, setPackages] = useState<PackagePublic[]>(demoPackages);
   const [websiteConfig, setWebsiteConfig] = useState<WebsiteConfig>(templateDefaults["travel-agency"]);
-  const [loading, setLoading] = useState(false);
-  const [domainResolution, setDomainResolution] = useState<DomainResolution | null>(null);
+  const [loading, setLoading] = useState(needsResolve);
+  // Gate the first paint: for tenant sites we wait for the real data so the
+  // visitor never sees the demo/default content flash before the real site.
+  const [ready, setReady] = useState(!needsResolve);
   const [domainError, setDomainError] = useState<{ hostname: string; error?: string } | null>(null);
 
   useEffect(() => {
-    const resolution = resolveHostname();
-    setDomainResolution(resolution);
-
-    // If a prop slug is provided, use it directly
-    const identifier = propSlug || resolution.slug;
-
     async function loadTenantData() {
       setLoading(true);
       setDomainError(null);
 
       try {
         if (identifier) {
-          // Slug-based resolution (subdomain or prop)
           const [t, p, w] = await Promise.all([
             publicApi.getTenant(identifier),
             publicApi.getPackages(identifier),
@@ -75,7 +76,6 @@ export const WebsiteProvider = ({ slug: propSlug, children }: { slug?: string; c
           setPackages(p);
           setWebsiteConfig(w);
         } else if (resolution.type === "custom-domain" && resolution.customDomain) {
-          // Custom domain resolution
           const [t, p, w] = await Promise.all([
             publicApi.getTenantByDomain(resolution.customDomain),
             publicApi.getPackagesByDomain(resolution.customDomain),
@@ -85,32 +85,37 @@ export const WebsiteProvider = ({ slug: propSlug, children }: { slug?: string; c
           setPackages(p);
           setWebsiteConfig(w);
         }
-        // main-app type with no slug → use demo data (already set)
       } catch (err: any) {
-        // If we were trying to resolve a real tenant (not demo), show error
-        if (identifier || resolution.type === "custom-domain") {
-          setDomainError({
-            hostname: resolution.hostname,
-            error: err.message,
-          });
+        if (needsResolve) {
+          setDomainError({ hostname: resolution.hostname, error: err.message });
         }
       } finally {
         setLoading(false);
+        setReady(true);
       }
     }
 
-    if (identifier || resolution.type === "custom-domain") {
+    if (needsResolve) {
       loadTenantData();
     }
-  }, [propSlug]);
+  }, [propSlug]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Show domain error page if tenant resolution failed
   if (domainError) {
     return <DomainErrorPage hostname={domainError.hostname} error={domainError.error} />;
   }
 
+  // Hold the first paint for tenant sites until the real config is loaded.
+  if (!ready) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="h-10 w-10 rounded-full border-2 border-muted border-t-primary animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <WebsiteContext.Provider value={{ tenant, packages, websiteConfig, loading, domainResolution }}>
+    <WebsiteContext.Provider value={{ tenant, packages, websiteConfig, loading, domainResolution: resolution }}>
       {children}
     </WebsiteContext.Provider>
   );

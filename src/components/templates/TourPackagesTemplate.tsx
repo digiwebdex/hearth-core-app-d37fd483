@@ -290,7 +290,7 @@ export default function TourPackagesTemplate({ config }: { config: WebsiteConfig
             {config.content.ctaSubtitle && <p className="text-lg opacity-80 mb-8 max-w-2xl mx-auto">{config.content.ctaSubtitle}</p>}
             <div className="flex gap-4 justify-center flex-wrap">
               <Link to="/site/packages"><Button size="lg" className="bg-white hover:bg-gray-100 gap-2" style={{ color: `hsl(${c.primary})` }}>Browse Tours <ArrowRight className="h-4 w-4" /></Button></Link>
-              <Link to="/site/contact"><Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">Contact Us</Button></Link>
+              <Link to="/site/contact"><Button size="lg" variant="outline" className="hover:bg-white/10" style={{ borderColor: `hsl(${btn.contact})`, color: `hsl(${btn.contact})` }}>Contact Us</Button></Link>
             </div>
             {config.socialLinks?.whatsapp && (
               <a href={config.socialLinks.whatsapp} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 mt-6 text-white/80 hover:text-white transition-colors text-sm">

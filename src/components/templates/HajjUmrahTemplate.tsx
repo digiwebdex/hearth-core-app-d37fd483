@@ -56,7 +56,7 @@ export default function HajjUmrahTemplate({ config }: { config: WebsiteConfig })
                 </Button>
               </Link>
               <Link to="/site/contact">
-                <Button size="lg" variant="outline" className="h-14 px-8 text-base font-semibold border-2 hover:bg-white/10 transition-all" style={{ borderColor: "rgba(255,255,255,0.4)", color: "white" }}>
+                <Button size="lg" variant="outline" className="h-14 px-8 text-base font-semibold border-2 hover:bg-white/10 transition-all" style={{ borderColor: `hsl(${btn.contact})`, color: `hsl(${btn.contact})` }}>
                   <Phone className="h-4 w-4 mr-2" /> যোগাযোগ করুন
                 </Button>
               </Link>
@@ -333,7 +333,7 @@ export default function HajjUmrahTemplate({ config }: { config: WebsiteConfig })
                 </Button>
               </Link>
               <Link to="/site/contact">
-                <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                <Button size="lg" variant="outline" className="hover:bg-white/10" style={{ borderColor: `hsl(${btn.contact})`, color: `hsl(${btn.contact})` }}>
                   Contact Us
                 </Button>
               </Link>

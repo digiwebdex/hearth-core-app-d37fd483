@@ -920,6 +920,7 @@ const WebsiteCustomizer = () => {
                     ["secondaryBg", "Book button — fill", resolved.secondaryBg, "Package card “Book Now” buttons"],
                     ["secondaryText", "Book button — text", resolved.secondaryText, "Text color on book buttons"],
                     ["outline", "Outline button", resolved.outline, "Border + text of outline buttons"],
+                    ["contact", "Contact button", resolved.contact, "“Contact Us” buttons on hero & CTA bands"],
                     ["whatsapp", "WhatsApp button", resolved.whatsapp, "Floating support button (left side)"],
                     ["backToTop", "Back-to-top button", resolved.backToTop, "Floating scroll-to-top button"],
                   ] as const).map(([key, label, effective, hint]) => {

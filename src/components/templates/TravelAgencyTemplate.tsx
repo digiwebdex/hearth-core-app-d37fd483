@@ -338,7 +338,7 @@ export default function TravelAgencyTemplate({ config }: { config: WebsiteConfig
                 </Button>
               </Link>
               <Link to="/site/contact">
-                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
+                <Button size="lg" variant="outline" className="hover:bg-white/10" style={{ borderColor: `hsl(${btn.contact})`, color: `hsl(${btn.contact})` }}>
                   Contact Us
                 </Button>
               </Link>

@@ -23,7 +23,13 @@ const tenantNavLinks = [
 ];
 
 const PublicLayout = ({ children }: { children: React.ReactNode }) => {
-  const { tenant, domainResolution } = useWebsite();
+  const { tenant, domainResolution, websiteConfig } = useWebsite();
+  const cfg = websiteConfig;
+  const footerPhone = cfg.contactInfo?.phone || tenant.phone;
+  const footerEmail = cfg.contactInfo?.email || tenant.email;
+  const footerAddress = cfg.contactInfo?.address || tenant.address;
+  const footerDesc = cfg.content?.aboutText || cfg.content?.heroSubtitle || tenant.description || "";
+  const footerText = cfg.content?.footerText;
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const isTenantHost = domainResolution?.type === "slug" || domainResolution?.type === "custom-domain";
@@ -98,7 +104,7 @@ const PublicLayout = ({ children }: { children: React.ReactNode }) => {
           <div className="grid gap-8 md:grid-cols-3">
             <div>
               <h3 className="font-bold mb-2 flex items-center gap-2"><Plane className="h-4 w-4 text-primary" />{tenant.name}</h3>
-              <p className="text-sm text-muted-foreground">{tenant.description?.slice(0, 120)}…</p>
+              <p className="text-sm text-muted-foreground">{footerDesc.slice(0, 160)}{footerDesc.length > 160 ? "…" : ""}</p>
             </div>
             <div>
               <h4 className="font-semibold mb-2">Quick Links</h4>
@@ -111,14 +117,16 @@ const PublicLayout = ({ children }: { children: React.ReactNode }) => {
             <div>
               <h4 className="font-semibold mb-2">Contact</h4>
               <div className="space-y-1 text-sm text-muted-foreground">
-                {tenant.phone && <p>📞 {tenant.phone}</p>}
-                {tenant.email && <p>✉️ {tenant.email}</p>}
-                {tenant.address && <p>📍 {tenant.address}</p>}
+                {footerPhone && <p>📞 {footerPhone}</p>}
+                {footerEmail && <p>✉️ {footerEmail}</p>}
+                {footerAddress && <p>📍 {footerAddress}</p>}
               </div>
             </div>
           </div>
           <div className="mt-8 pt-4 border-t text-center text-xs text-muted-foreground">
-            © {new Date().getFullYear()} {tenant.name}. All rights reserved.
+            {footerText && footerText.trim()
+              ? footerText
+              : `© ${new Date().getFullYear()} ${tenant.name}. All rights reserved.`}
           </div>
         </div>
       </footer>

@@ -137,6 +137,7 @@ export interface WebsiteConfig {
     secondaryBg?: string;
     secondaryText?: string;
     outline?: string;
+    contact?: string;
     whatsapp?: string;
     backToTop?: string;
   };
@@ -148,6 +149,7 @@ export interface ResolvedButtons {
   secondaryBg: string;
   secondaryText: string;
   outline: string;
+  contact: string;
   whatsapp: string;
   backToTop: string;
 }
@@ -163,6 +165,8 @@ export function resolveButtons(config: WebsiteConfig): ResolvedButtons {
     secondaryBg: b.secondaryBg || c.accent,
     secondaryText: b.secondaryText || "0 0% 100%",
     outline: b.outline || c.primary,
+    // Contact buttons sit on dark hero/CTA bands — default to white.
+    contact: b.contact || "0 0% 100%",
     whatsapp: b.whatsapp || "142 70% 45%",
     backToTop: b.backToTop || c.primary,
   };
