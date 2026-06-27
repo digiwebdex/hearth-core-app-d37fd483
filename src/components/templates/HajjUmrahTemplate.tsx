@@ -24,68 +24,62 @@ export default function HajjUmrahTemplate({ config }: { config: WebsiteConfig })
 
   return (
     <div style={{ backgroundColor: `hsl(${c.background})`, color: `hsl(${c.text})` }}>
-      {/* Hero — Dark elegant style */}
-      <section className="relative overflow-hidden" style={{ backgroundColor: "hsl(160 30% 8%)", color: "white" }}>
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage: `radial-gradient(circle at 25% 50%, hsl(${c.primary}), transparent 50%), radial-gradient(circle at 75% 50%, hsl(${c.accent}), transparent 50%)`,
-          }}
-        />
-        {/* Decorative pattern */}
-        <div className="absolute inset-0 opacity-[0.03]" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        }} />
-        <div className="container mx-auto px-4 py-20 md:py-32 relative">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              {config.content.heroBadge && (
-                <Badge className="mb-4 px-4 py-1.5 text-sm font-medium border-0" style={{ backgroundColor: `hsl(${c.primary} / 0.15)`, color: `hsl(${c.accent})` }}>
-                  {config.content.heroBadge}
-                </Badge>
-              )}
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6 leading-tight">
-                {config.content.heroTitle}
-              </h1>
-              <p className="text-lg max-w-xl mb-8 opacity-60 leading-relaxed">{config.content.heroSubtitle}</p>
-              <div className="flex gap-3 flex-wrap">
-                <Link to="/site/packages">
-                  <Button size="lg" className="gap-2" style={{ backgroundColor: `hsl(${c.primary})`, color: "white" }}>
-                    View Packages <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </Link>
-                <Link to="/site/contact">
-                  <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                    Contact Us
-                  </Button>
-                </Link>
+      {/* Hero — Full-bleed banner */}
+      <section className="relative overflow-hidden min-h-[92vh] flex items-center" style={{ color: "white" }}>
+        {/* Background image */}
+        {config.content.heroImage ? (
+          <div className="absolute inset-0">
+            <img src={config.content.heroImage} alt="Banner" className="w-full h-full object-cover" />
+            <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.45) 60%, rgba(0,0,0,0.25) 100%)" }} />
+          </div>
+        ) : (
+          <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, hsl(160 30% 8%), hsl(160 20% 15%))" }} />
+        )}
+        {/* Decorative gold line */}
+        <div className="absolute bottom-0 left-0 right-0 h-1" style={{ background: `linear-gradient(90deg, transparent, hsl(${c.accent}), transparent)` }} />
+        <div className="container mx-auto px-4 py-24 md:py-36 relative z-10">
+          <div className="max-w-3xl">
+            {config.content.heroBadge && (
+              <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full border text-sm font-semibold backdrop-blur-sm" style={{ borderColor: `hsl(${c.accent} / 0.5)`, backgroundColor: `hsl(${c.accent} / 0.12)`, color: `hsl(${c.accent})` }}>
+                {config.content.heroBadge}
               </div>
-              {config.socialLinks && (
-                <div className="flex items-center gap-3 mt-6">
-                  <span className="text-sm opacity-40">Follow us:</span>
-                  {config.socialLinks.facebook && <a href={config.socialLinks.facebook} target="_blank" rel="noreferrer" className="opacity-40 hover:opacity-100 transition-opacity text-xs font-semibold border border-white/20 rounded-full w-8 h-8 flex items-center justify-center">f</a>}
-                  {config.socialLinks.instagram && <a href={config.socialLinks.instagram} target="_blank" rel="noreferrer" className="opacity-40 hover:opacity-100 transition-opacity text-xs font-semibold border border-white/20 rounded-full w-8 h-8 flex items-center justify-center">ig</a>}
-                  {config.socialLinks.youtube && <a href={config.socialLinks.youtube} target="_blank" rel="noreferrer" className="opacity-40 hover:opacity-100 transition-opacity text-xs font-semibold border border-white/20 rounded-full w-8 h-8 flex items-center justify-center">yt</a>}
-                </div>
-              )}
+            )}
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-[1.1] drop-shadow-lg">
+              {config.content.heroTitle}
+            </h1>
+            <p className="text-xl md:text-2xl max-w-2xl mb-10 leading-relaxed" style={{ color: "rgba(255,255,255,0.80)" }}>{config.content.heroSubtitle}</p>
+            <div className="flex gap-4 flex-wrap mb-12">
+              <Link to="/site/packages">
+                <Button size="lg" className="gap-2 h-14 px-8 text-base font-semibold shadow-xl hover:scale-105 transition-transform" style={{ backgroundColor: `hsl(${c.accent})`, color: "hsl(160 30% 8%)" }}>
+                  সব প্যাকেজ দেখুন <ArrowRight className="h-5 w-5" />
+                </Button>
+              </Link>
+              <Link to="/site/contact">
+                <Button size="lg" variant="outline" className="h-14 px-8 text-base font-semibold border-2 hover:bg-white/10 transition-all" style={{ borderColor: "rgba(255,255,255,0.4)", color: "white" }}>
+                  <Phone className="h-4 w-4 mr-2" /> যোগাযোগ করুন
+                </Button>
+              </Link>
             </div>
-            <div className="relative">
-              {config.content.heroImage ? (
-                <div className="rounded-2xl overflow-hidden shadow-2xl border-4" style={{ borderColor: `hsl(${c.accent} / 0.3)` }}>
-                  <img src={config.content.heroImage} alt="Hero" className="w-full object-cover max-h-[450px]" />
-                </div>
-              ) : (
-                <div className="rounded-2xl h-[350px] md:h-[450px] flex items-center justify-center border-4" style={{ borderColor: `hsl(${c.accent} / 0.2)`, background: `linear-gradient(135deg, hsl(${c.primary} / 0.15), hsl(${c.accent} / 0.15))` }}>
-                  <Moon className="h-24 w-24" style={{ color: `hsl(${c.accent} / 0.4)` }} />
-                </div>
-              )}
-              {config.content.stats && config.content.stats.length > 0 && (
-                <div className="absolute -bottom-6 left-4 bg-white rounded-xl shadow-xl p-4 text-gray-900">
-                  <div className="text-2xl font-bold" style={{ color: `hsl(${c.primary})` }}>{config.content.stats[0].value}</div>
-                  <div className="text-xs opacity-60">{config.content.stats[0].label}</div>
-                </div>
-              )}
-            </div>
+            {/* Stats bar */}
+            {config.content.stats && config.content.stats.length > 0 && (
+              <div className="flex flex-wrap gap-6">
+                {config.content.stats.map((stat, i) => (
+                  <div key={i} className="text-center backdrop-blur-sm rounded-xl px-5 py-3 border" style={{ borderColor: "rgba(255,255,255,0.15)", backgroundColor: "rgba(255,255,255,0.08)" }}>
+                    <div className="text-2xl font-extrabold" style={{ color: `hsl(${c.accent})` }}>{stat.value}</div>
+                    <div className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.65)" }}>{stat.label}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {config.socialLinks && (
+              <div className="flex items-center gap-3 mt-8">
+                <span className="text-sm" style={{ color: "rgba(255,255,255,0.40)" }}>Follow:</span>
+                {config.socialLinks.facebook && <a href={config.socialLinks.facebook} target="_blank" rel="noreferrer" className="hover:opacity-100 transition-opacity text-xs font-semibold border border-white/20 rounded-full w-9 h-9 flex items-center justify-center backdrop-blur-sm" style={{ opacity: 0.55, backgroundColor: "rgba(255,255,255,0.08)" }}>f</a>}
+                {config.socialLinks.instagram && <a href={config.socialLinks.instagram} target="_blank" rel="noreferrer" className="hover:opacity-100 transition-opacity text-xs font-semibold border border-white/20 rounded-full w-9 h-9 flex items-center justify-center backdrop-blur-sm" style={{ opacity: 0.55, backgroundColor: "rgba(255,255,255,0.08)" }}>ig</a>}
+                {config.socialLinks.youtube && <a href={config.socialLinks.youtube} target="_blank" rel="noreferrer" className="hover:opacity-100 transition-opacity text-xs font-semibold border border-white/20 rounded-full w-9 h-9 flex items-center justify-center backdrop-blur-sm" style={{ opacity: 0.55, backgroundColor: "rgba(255,255,255,0.08)" }}>yt</a>}
+                {config.socialLinks.whatsapp && <a href={config.socialLinks.whatsapp} target="_blank" rel="noreferrer" className="hover:opacity-100 transition-opacity text-xs font-semibold border border-white/20 rounded-full w-9 h-9 flex items-center justify-center backdrop-blur-sm" style={{ opacity: 0.55, backgroundColor: "rgba(255,255,255,0.08)" }}>wa</a>}
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -153,41 +147,51 @@ export default function HajjUmrahTemplate({ config }: { config: WebsiteConfig })
         <section className="py-20">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
-              <span className="text-sm font-semibold uppercase tracking-wider" style={{ color: `hsl(${c.primary})` }}>আমাদের প্যাকেজ</span>
-              <h2 className="text-3xl md:text-4xl font-bold mt-2">Featured Packages</h2>
+              <Badge className="mb-3 px-4 py-1.5 text-sm border-0" style={{ backgroundColor: `hsl(${c.primary} / 0.1)`, color: `hsl(${c.primary})` }}>
+                {config.content.packagesBadge || "আমাদের প্যাকেজ"}
+              </Badge>
+              <h2 className="text-3xl md:text-4xl font-bold mt-2">{config.content.packagesTitle || "Featured Packages"}</h2>
+              {config.content.packagesSubtitle && <p className="mt-2 opacity-60">{config.content.packagesSubtitle}</p>}
             </div>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {featured.map((pkg) => (
-                <Card key={pkg.id} className="overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1">
-                  <div className="h-48 flex items-center justify-center relative" style={{ background: `linear-gradient(135deg, hsl(${c.primary} / 0.15), hsl(${c.accent} / 0.15))` }}>
+                <Card key={pkg.id} className="overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 group border-0 shadow-md">
+                  <div className="h-52 flex items-center justify-center relative overflow-hidden">
                     {pkg.image ? (
-                      <img src={pkg.image} alt={pkg.name} className="w-full h-full object-cover" />
+                      <>
+                        <img src={pkg.image} alt={pkg.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 60%)" }} />
+                      </>
                     ) : (
-                      <Moon className="h-16 w-16" style={{ color: `hsl(${c.primary} / 0.3)` }} />
+                      <div className="w-full h-full flex items-center justify-center" style={{ background: `linear-gradient(135deg, hsl(${c.primary} / 0.15), hsl(${c.accent} / 0.15))` }}>
+                        <Moon className="h-16 w-16" style={{ color: `hsl(${c.primary} / 0.3)` }} />
+                      </div>
                     )}
-                    <Badge className="absolute top-3 left-3 border-0" style={{ backgroundColor: `hsl(${c.primary})`, color: "white" }}>{pkg.type}</Badge>
+                    <Badge className="absolute top-3 left-3 border-0 shadow-md" style={{ backgroundColor: `hsl(${c.accent})`, color: "hsl(160 30% 8%)" }}>{pkg.type}</Badge>
+                    {pkg.duration && (
+                      <span className="absolute top-3 right-3 text-xs font-semibold bg-black/50 text-white px-2 py-1 rounded-full backdrop-blur-sm">{pkg.duration}</span>
+                    )}
+                    {pkg.price > 0 && (
+                      <div className="absolute bottom-3 left-3">
+                        <span className="text-lg font-extrabold text-white drop-shadow-lg">৳{pkg.price.toLocaleString()}</span>
+                      </div>
+                    )}
                   </div>
                   <CardContent className="p-5">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-bold text-lg">{pkg.name}</h3>
-                      <span className="text-xs opacity-60 whitespace-nowrap ml-2">{pkg.duration}</span>
-                    </div>
-                    <p className="text-sm opacity-60 mb-3 line-clamp-2">{pkg.description}</p>
+                    <h3 className="font-bold text-base mb-1 line-clamp-1">{pkg.name}</h3>
+                    <p className="text-sm opacity-60 mb-4 line-clamp-2 leading-relaxed">{pkg.description}</p>
                     {pkg.highlights && pkg.highlights.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-3">
+                      <div className="flex flex-wrap gap-1 mb-4">
                         {pkg.highlights.slice(0, 3).map((h, i) => (
-                          <span key={i} className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `hsl(${c.primary} / 0.1)`, color: `hsl(${c.primary})` }}>{h}</span>
+                          <span key={i} className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `hsl(${c.primary} / 0.08)`, color: `hsl(${c.primary})` }}>{h}</span>
                         ))}
                       </div>
                     )}
-                    <div className="flex items-center justify-between pt-3 border-t">
-                      <span className="text-xl font-bold" style={{ color: `hsl(${c.primary})` }}>৳{pkg.price.toLocaleString()}</span>
-                      <Link to="/site/contact">
-                        <Button size="sm" className="gap-1" style={{ backgroundColor: `hsl(${c.primary})`, color: "white" }}>
-                          Book Now <ArrowRight className="h-3 w-3" />
-                        </Button>
-                      </Link>
-                    </div>
+                    <Link to="/site/contact" className="block">
+                      <Button className="w-full gap-2 font-semibold" style={{ backgroundColor: `hsl(${c.primary})`, color: "white" }}>
+                        {config.content.packagePrimaryButtonText || "Book Now"} <ArrowRight className="h-4 w-4" />
+                      </Button>
+                    </Link>
                   </CardContent>
                 </Card>
               ))}
@@ -195,7 +199,7 @@ export default function HajjUmrahTemplate({ config }: { config: WebsiteConfig })
             <div className="text-center mt-8">
               <Link to="/site/packages">
                 <Button variant="outline" size="lg" style={{ borderColor: `hsl(${c.primary})`, color: `hsl(${c.primary})` }}>
-                  View All Packages <ArrowRight className="ml-2 h-4 w-4" />
+                  {config.content.packageSecondaryButtonText || "View All Packages"} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
             </div>
@@ -211,14 +215,11 @@ export default function HajjUmrahTemplate({ config }: { config: WebsiteConfig })
               <span className="text-sm font-semibold uppercase tracking-wider" style={{ color: `hsl(${c.primary})` }}>কেন আমাদের বেছে নেবেন</span>
               <h2 className="text-3xl md:text-4xl font-bold mt-2">Why Choose Us</h2>
             </div>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {config.content.whyChooseUs.map((item, i) => (
-                <div key={i} className="flex gap-4 p-5 rounded-xl bg-white shadow-sm">
-                  <CheckCircle2 className="h-6 w-6 mt-0.5 flex-shrink-0" style={{ color: `hsl(${c.primary})` }} />
-                  <div>
-                    <h3 className="font-bold mb-1">{item.title}</h3>
-                    <p className="text-sm opacity-60">{item.desc}</p>
-                  </div>
+                <div key={i} className="flex gap-3 p-5 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow">
+                  <CheckCircle2 className="h-5 w-5 mt-0.5 flex-shrink-0" style={{ color: `hsl(${c.primary})` }} />
+                  <span className="font-medium text-sm leading-relaxed">{typeof item === "string" ? item : item.title}</span>
                 </div>
               ))}
             </div>
@@ -238,15 +239,19 @@ export default function HajjUmrahTemplate({ config }: { config: WebsiteConfig })
               {config.content.testimonials.map((t, i) => (
                 <Card key={i} className="border-none shadow-md hover:shadow-lg transition-shadow">
                   <CardContent className="pt-6">
-                    <Quote className="h-8 w-8 mb-3" style={{ color: `hsl(${c.primary} / 0.3)` }} />
-                    <p className="opacity-70 mb-4 italic leading-relaxed">"{t.text}"</p>
+                    <div className="flex gap-0.5 mb-3">
+                      {Array.from({ length: t.rating || 5 }).map((_, si) => (
+                        <Star key={si} className="h-4 w-4 fill-current" style={{ color: `hsl(${c.accent})` }} />
+                      ))}
+                    </div>
+                    <p className="opacity-75 mb-4 italic leading-relaxed text-sm">"{t.text}"</p>
                     <div className="flex items-center gap-3 pt-3 border-t">
                       <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: `hsl(${c.primary})` }}>
                         {t.name.charAt(0)}
                       </div>
                       <div>
                         <div className="font-semibold text-sm">{t.name}</div>
-                        {t.date && <div className="text-xs opacity-50">{t.date}</div>}
+                        {t.role && <div className="text-xs opacity-50">{t.role}</div>}
                       </div>
                     </div>
                   </CardContent>
