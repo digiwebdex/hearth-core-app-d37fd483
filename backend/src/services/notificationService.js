@@ -278,13 +278,7 @@ function sendTrialDripChannels(data, variant, smsKey, smsKeyBn) {
         if (msg) await sendSms({ to: d.ownerPhone, message: msg });
       }
     },
-    async (d) => {
-      const wa = d.ownerWhatsapp || d.ownerPhone;
-      if (wa) {
-        const msg = getSmsTemplate(smsKeyBn, d) || getSmsTemplate(smsKey, d);
-        if (msg) await sendWhatsApp({ to: wa, message: msg });
-      }
-    },
+    // WhatsApp drip disabled — trial day-1/day-2 WhatsApp messages turned off
   ];
 }
 
