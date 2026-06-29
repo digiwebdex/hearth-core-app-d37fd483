@@ -239,11 +239,10 @@ router.post("/register", async (req, res) => {
     const trialDays = getTrialDays();
 
     const allowedPlans = ["free", "basic", "pro", "business", "enterprise"];
-    const requestedPlan = allowedPlans.includes(plan) ? plan : "pro";
-    // Free → no trial, instant active; everyone else → Pro trial regardless of intended plan
-    const subscriptionPlan = requestedPlan === "free" ? "free" : "pro";
-    const subscriptionStatus = requestedPlan === "free" ? "active" : "trial";
-    const subscriptionExpiry = requestedPlan === "free" ? null : trialEnd;
+    const subscriptionPlan = allowedPlans.includes(plan) ? plan : "basic";
+    // Free → no trial, instant active; paid plans → trial of their chosen plan
+    const subscriptionStatus = subscriptionPlan === "free" ? "active" : "trial";
+    const subscriptionExpiry = subscriptionPlan === "free" ? null : trialEnd;
 
     const rawSlug = (tenantName || name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50);
     let slug = rawSlug;
@@ -307,7 +306,7 @@ router.post("/register", async (req, res) => {
         tenantId: tenant.id, tenantName: tenant.name,
         module: "auth", action: "signup",
         targetType: "user", targetId: user.id, targetLabel: emailCheck.email,
-        newValue: `auto-approved · ${subscriptionStatus} · plan:${subscriptionPlan} · intended:${requestedPlan} · phone:${phoneCheck.phone}`,
+        newValue: `auto-approved · ${subscriptionStatus} · plan:${subscriptionPlan} · phone:${phoneCheck.phone}`,
       },
     }).catch(() => {});
 
@@ -318,7 +317,7 @@ router.post("/register", async (req, res) => {
 
     try {
       const { notifyNewSignup } = require("../services/telegramService");
-      notifyNewSignup({ name, email: emailCheck.email, phone: phoneCheck.phone, tenantName: tenant.name, userId: user.id, plan: requestedPlan }).catch(() => {});
+      notifyNewSignup({ name, email: emailCheck.email, phone: phoneCheck.phone, tenantName: tenant.name, userId: user.id, plan: subscriptionPlan }).catch(() => {});
     } catch (e) { /* ignore */ }
 
     // Issue JWT — instant access
@@ -329,12 +328,11 @@ router.post("/register", async (req, res) => {
       token,
       user: safeUser,
       tenant,
-      intendedPlan: requestedPlan,
-      trialDays: requestedPlan === "free" ? 0 : trialDays,
+      trialDays: subscriptionPlan === "free" ? 0 : trialDays,
       emailVerificationSent: true,
-      message: requestedPlan === "free"
+      message: subscriptionPlan === "free"
         ? "Welcome! Your free account is ready. Please verify your email."
-        : `Welcome! Your ${trialDays}-day Pro trial has started. Please verify your email.`,
+        : `Welcome! Your ${trialDays}-day ${subscriptionPlan.charAt(0).toUpperCase() + subscriptionPlan.slice(1)} trial has started. Please verify your email.`,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

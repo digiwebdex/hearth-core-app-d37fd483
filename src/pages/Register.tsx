@@ -193,11 +193,12 @@ const Register = () => {
         navigate("/login");
       } else {
         const trialDays = result.trialDays ?? 7;
+        const planLabel = selectedPlan.name;
         toast({
-          title: isFree ? t("common.welcome") : `🎉 ${trialDays}-Day Pro Trial Started!`,
+          title: isFree ? t("common.welcome") : `🎉 ${trialDays}-Day ${planLabel} Trial Started!`,
           description: isFree
             ? (isBn ? "আপনার অ্যাকাউন্ট প্রস্তুত।" : "Your account is ready.")
-            : (isBn ? `পরবর্তী ${trialDays} দিন সব Pro ফিচার ব্যবহার করুন।` : `Explore all Pro features for ${trialDays} days.`),
+            : (isBn ? `পরবর্তী ${trialDays} দিন ${planLabel} ফিচার ব্যবহার করুন।` : `Explore all ${planLabel} features for ${trialDays} days.`),
         });
         navigate("/dashboard");
       }
