@@ -1,4 +1,4 @@
-import { LayoutDashboard, Building2, CreditCard, Crown, Ban, LogOut, ArrowLeft, Globe, ListChecks, Settings, Shield, MessageSquare, ScrollText, UserCog, FileText, BarChart3, UserPlus, Database, MessageCircle, Tag, Layout } from "lucide-react";
+import { LayoutDashboard, Building2, CreditCard, Crown, Ban, LogOut, ArrowLeft, Globe, ListChecks, Settings, Shield, MessageSquare, ScrollText, UserCog, FileText, BarChart3, UserPlus, Database, MessageCircle, Tag, Layout, ShieldCheck } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
@@ -34,6 +34,7 @@ const adminItems = [
   { title: "SMS Logs", url: "/admin/sms-logs", icon: ScrollText },
   { title: "Audit Log", url: "/admin/audit-log", icon: FileText },
   { title: "Reports", url: "/admin/reports", icon: BarChart3 },
+  { title: "Two-Factor Auth", url: "/admin/two-factor", icon: ShieldCheck },
   { title: "Settings", url: "/admin/settings", icon: Settings },
 ];
 

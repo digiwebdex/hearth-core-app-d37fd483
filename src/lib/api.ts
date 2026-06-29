@@ -43,11 +43,19 @@ function createCrudApi<T extends { id: string }>(resource: string) {
 
 // ── Auth ──
 export const authApi = {
-  login: (email: string, password: string) =>
-    request<{ token: string; user: User }>("/auth/login", {
+  login: (email: string, password: string, totpCode?: string) =>
+    request<{ token: string; user: User; requires2FA?: boolean }>("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, ...(totpCode ? { totpCode } : {}) }),
     }),
+  totpSetup: () =>
+    request<{ secret: string; qrDataUrl: string }>("/auth/totp/setup"),
+  totpEnable: (code: string) =>
+    request<{ message: string }>("/auth/totp/enable", { method: "POST", body: JSON.stringify({ code }) }),
+  totpDisable: (code: string) =>
+    request<{ message: string }>("/auth/totp/disable", { method: "POST", body: JSON.stringify({ code }) }),
+  totpStatus: () =>
+    request<{ totpEnabled: boolean }>("/auth/totp/status"),
   register: (data: { name: string; email: string; phone: string; whatsapp?: string; whatsappVerifyToken?: string; password: string; tenantName: string; plan?: string; enabledSubcategories?: string[]; enabledServiceTypes?: string[] }) =>
     request<{ token?: string; user?: User; tenant?: Tenant; pendingApproval?: boolean; message?: string; trialDays?: number; intendedPlan?: string }>("/auth/register", {
       method: "POST",

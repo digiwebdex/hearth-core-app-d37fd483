@@ -2,6 +2,8 @@ const router = require("express").Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const speakeasy = require("speakeasy");
+const QRCode = require("qrcode");
 const { authenticate, prisma, SECRET } = require("../middleware/auth");
 const { validatePassword } = require("../utils/passwordPolicy");
 const { getTrialDays, addTrialExpiry } = require("../lib/trialConfig");
@@ -22,6 +24,23 @@ router.post("/login", async (req, res) => {
     if (!user) return res.status(401).json({ message: "Invalid credentials" });
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(401).json({ message: "Invalid credentials" });
+
+    // TOTP check — super_admin with 2FA enabled must provide totpCode
+    if (user.role === "super_admin" && user.totpEnabled && user.totpSecret) {
+      const { totpCode } = req.body;
+      if (!totpCode) {
+        return res.status(200).json({ requires2FA: true });
+      }
+      const verified = speakeasy.totp.verify({
+        secret: user.totpSecret,
+        encoding: "base32",
+        token: String(totpCode).replace(/\s/g, ""),
+        window: 1,
+      });
+      if (!verified) {
+        return res.status(401).json({ message: "Invalid authenticator code", requires2FA: true });
+      }
+    }
 
     // Approval gate
     if (user.status === "pending") {
@@ -489,6 +508,89 @@ router.post("/logout", authenticate, async (req, res) => {
     res.json({ message: "Logged out" });
   } catch (err) {
     res.json({ message: "Logged out" });
+  }
+});
+
+// ── TOTP (Google Authenticator) — super_admin only ───────────────────────────
+
+// GET /api/auth/totp/setup — generate secret + QR code URI
+router.get("/totp/setup", authenticate, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.userId }, select: { role: true, email: true, totpEnabled: true } });
+    if (!user || user.role !== "super_admin") return res.status(403).json({ message: "Super admin only" });
+    if (user.totpEnabled) return res.status(400).json({ message: "2FA is already enabled" });
+
+    const secret = speakeasy.generateSecret({ name: `TravelERP (${user.email})`, length: 20 });
+    // Store temp secret (not yet confirmed)
+    await prisma.user.update({ where: { id: req.userId }, data: { totpSecret: secret.base32 } });
+
+    const otpauthUrl = secret.otpauth_url;
+    const qrDataUrl = await QRCode.toDataURL(otpauthUrl);
+    res.json({ secret: secret.base32, qrDataUrl });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// POST /api/auth/totp/enable — verify first code and activate 2FA
+router.post("/totp/enable", authenticate, async (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ message: "Code required" });
+
+    const user = await prisma.user.findUnique({ where: { id: req.userId }, select: { role: true, totpSecret: true, totpEnabled: true } });
+    if (!user || user.role !== "super_admin") return res.status(403).json({ message: "Super admin only" });
+    if (user.totpEnabled) return res.status(400).json({ message: "2FA already enabled" });
+    if (!user.totpSecret) return res.status(400).json({ message: "Run setup first" });
+
+    const verified = speakeasy.totp.verify({
+      secret: user.totpSecret,
+      encoding: "base32",
+      token: String(code).replace(/\s/g, ""),
+      window: 1,
+    });
+    if (!verified) return res.status(400).json({ message: "Invalid code — check your authenticator app" });
+
+    await prisma.user.update({ where: { id: req.userId }, data: { totpEnabled: true } });
+    res.json({ message: "2FA enabled successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// POST /api/auth/totp/disable — disable 2FA (requires current code)
+router.post("/totp/disable", authenticate, async (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ message: "Code required" });
+
+    const user = await prisma.user.findUnique({ where: { id: req.userId }, select: { role: true, totpSecret: true, totpEnabled: true } });
+    if (!user || user.role !== "super_admin") return res.status(403).json({ message: "Super admin only" });
+    if (!user.totpEnabled) return res.status(400).json({ message: "2FA is not enabled" });
+
+    const verified = speakeasy.totp.verify({
+      secret: user.totpSecret,
+      encoding: "base32",
+      token: String(code).replace(/\s/g, ""),
+      window: 1,
+    });
+    if (!verified) return res.status(400).json({ message: "Invalid code" });
+
+    await prisma.user.update({ where: { id: req.userId }, data: { totpEnabled: false, totpSecret: null } });
+    res.json({ message: "2FA disabled" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/auth/totp/status — check if 2FA is enabled
+router.get("/totp/status", authenticate, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.userId }, select: { role: true, totpEnabled: true } });
+    if (!user || user.role !== "super_admin") return res.status(403).json({ message: "Super admin only" });
+    res.json({ totpEnabled: user.totpEnabled });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 

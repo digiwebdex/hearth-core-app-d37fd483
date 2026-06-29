@@ -9,33 +9,104 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { ShieldCheck, ArrowLeft } from "lucide-react";
 
 const Login = () => {
   const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [totpCode, setTotpCode] = useState("");
+  const [step, setStep] = useState<"credentials" | "totp">("credentials");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleCredentials = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
+      // Try login without TOTP first — server returns requires2FA if needed
       const loggedInUser = await login(email, password);
       const role = mapLegacyRole(loggedInUser.role);
-      if (role === "super_admin") {
-        navigate("/admin");
-      } else {
-        navigate("/dashboard");
-      }
+      navigate(role === "super_admin" ? "/admin" : "/dashboard");
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Login failed", description: err.message });
+      if (err.requires2FA) {
+        setStep("totp");
+        setTotpCode("");
+      } else {
+        toast({ variant: "destructive", title: "Login failed", description: err.message });
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  const handleTotp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!totpCode.trim()) return;
+    setLoading(true);
+    try {
+      const loggedInUser = await login(email, password, totpCode.replace(/\s/g, ""));
+      const role = mapLegacyRole(loggedInUser.role);
+      navigate(role === "super_admin" ? "/admin" : "/dashboard");
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Invalid code", description: err.message || "Check your authenticator app" });
+      setTotpCode("");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (step === "totp") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="flex items-center justify-center mb-2">
+              <ShieldCheck className="h-10 w-10 text-primary" />
+            </div>
+            <CardTitle className="text-2xl">Two-Factor Authentication</CardTitle>
+            <CardDescription>
+              Enter the 6-digit code from your Google Authenticator app
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleTotp} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="totpCode">Authenticator Code</Label>
+                <Input
+                  id="totpCode"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9 ]*"
+                  maxLength={7}
+                  placeholder="000 000"
+                  value={totpCode}
+                  onChange={(e) => setTotpCode(e.target.value)}
+                  className="text-center text-2xl tracking-widest font-mono"
+                  autoFocus
+                  autoComplete="one-time-code"
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading || totpCode.replace(/\s/g, "").length < 6}>
+                {loading ? "Verifying…" : "Verify & Sign In"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => { setStep("credentials"); setTotpCode(""); }}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back to login
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -46,7 +117,7 @@ const Login = () => {
           <CardDescription>{t("auth.signInSubtitle")}</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleCredentials} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">{t("common.email")}</Label>
               <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />

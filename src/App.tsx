@@ -80,6 +80,7 @@ import AdminRoles from "./pages/admin/AdminRoles";
 import AdminAuditLog from "./pages/admin/AdminAuditLog";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminMasterData from "./pages/admin/AdminMasterData";
+import AdminTwoFactor from "./pages/admin/AdminTwoFactor";
 import SiteHome from "./pages/site/SiteHome";
 import SiteAbout from "./pages/site/SiteAbout";
 import SitePackages from "./pages/site/SitePackages";
@@ -299,6 +300,7 @@ const AppContent = () => (
           <Route path="/admin/audit-log" element={<A><AdminAuditLog /></A>} />
           <Route path="/admin/reports" element={<A><AdminReports /></A>} />
           <Route path="/admin/master-data" element={<A><AdminMasterData /></A>} />
+          <Route path="/admin/two-factor" element={<A><AdminTwoFactor /></A>} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>

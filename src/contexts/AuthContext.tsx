@@ -15,7 +15,7 @@ interface AuthContextType {
   isTrialActive: boolean;
   trialDaysLeft: number;
   loading: boolean;
-  login: (email: string, password: string) => Promise<User>;
+  login: (email: string, password: string, totpCode?: string) => Promise<User>;
   register: (data: { name: string; email: string; phone: string; whatsapp?: string; whatsappVerifyToken?: string; password: string; tenantName: string; plan?: string; enabledSubcategories?: string[]; enabledServiceTypes?: string[] }) => Promise<{ pendingApproval: boolean; message?: string; user?: User; trialDays?: number }>;
   logout: () => void;
   refreshTenant: () => Promise<void>;
@@ -103,8 +103,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const res = await authApi.login(email, password);
+  const login = useCallback(async (email: string, password: string, totpCode?: string) => {
+    const res = await authApi.login(email, password, totpCode);
+    if (res.requires2FA) throw Object.assign(new Error("2FA_REQUIRED"), { requires2FA: true });
     localStorage.setItem("token", res.token);
     setUser(res.user);
     await fetchTenant();

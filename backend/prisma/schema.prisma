@@ -116,6 +116,8 @@ model User {
   approvedBy        String?
   rejectionReason   String?
   lastLoginAt       DateTime?
+  totpSecret        String?
+  totpEnabled       Boolean  @default(false)
   tenantId          String
   tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   createdAt              DateTime                @default(now())
