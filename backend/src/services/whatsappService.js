@@ -11,30 +11,55 @@
  * - WASENDER_INSTANCE_ID (WasenderAPI instance/session ID)
  */
 
+const { PrismaClient } = require("@prisma/client");
+const _prisma = new PrismaClient();
+
 const WHATSAPP_PROVIDER = () => process.env.WHATSAPP_PROVIDER || "console";
+
+async function _saveLog({ to, message, result, tenantId, templateType, createdByUserId }) {
+  try {
+    await _prisma.whatsAppLog.create({
+      data: {
+        id: require("crypto").randomUUID(),
+        tenantId: tenantId || null,
+        phone: to,
+        message,
+        status: result.success ? "sent" : "failed",
+        provider: result.provider || "unknown",
+        errorMessage: result.error || null,
+        providerMessageId: result.messageId || null,
+        templateType: templateType || null,
+        createdByUserId: createdByUserId || null,
+        sentAt: result.success ? new Date() : null,
+      },
+    });
+  } catch (e) {
+    console.error("[WHATSAPP-LOG] Failed to save log:", e.message);
+  }
+}
 
 /**
  * Send a WhatsApp message. Falls back to console.log if provider not configured.
- * @param {{ to: string, message: string, templateName?: string, templateParams?: string[] }} opts
+ * @param {{ to: string, message: string, templateName?: string, templateParams?: string[], tenantId?: string, templateType?: string, createdByUserId?: string }} opts
  */
-async function sendWhatsApp({ to, message, templateName, templateParams }) {
+async function sendWhatsApp({ to, message, templateName, templateParams, tenantId, templateType, createdByUserId }) {
   const provider = WHATSAPP_PROVIDER();
+  let result;
 
   if (provider === "twilio") {
-    return sendViaTwilioWhatsApp(to, message);
+    result = await sendViaTwilioWhatsApp(to, message);
+  } else if (provider === "meta") {
+    result = await sendViaMetaWhatsApp(to, message, templateName, templateParams);
+  } else if (provider === "wasender") {
+    result = await sendViaWasender(to, message);
+  } else {
+    // Console fallback
+    console.log(`[WHATSAPP-LOG] To: ${to} | Message: ${message}`);
+    result = { success: true, provider: "console", messageId: `WA-LOG-${Date.now()}` };
   }
 
-  if (provider === "meta") {
-    return sendViaMetaWhatsApp(to, message, templateName, templateParams);
-  }
-
-  if (provider === "wasender") {
-    return sendViaWasender(to, message);
-  }
-
-  // Console fallback
-  console.log(`[WHATSAPP-LOG] To: ${to} | Message: ${message}`);
-  return { success: true, provider: "console", messageId: `WA-LOG-${Date.now()}` };
+  await _saveLog({ to, message, result, tenantId, templateType, createdByUserId });
+  return result;
 }
 
 async function sendViaTwilioWhatsApp(to, message) {

@@ -99,4 +99,44 @@ router.delete("/templates/:id", requireSuperAdmin, async (req, res) => {
   }
 });
 
+// ── WhatsApp Logs (super admin only) ─────────────────────────────────────────
+
+// GET /api/whatsapp/logs — paginated log list with filters
+router.get("/logs", requireSuperAdmin, async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const where = {};
+    if (req.query.status && req.query.status !== "all") where.status = req.query.status;
+    if (req.query.phone) where.phone = { contains: req.query.phone };
+    if (req.query.tenantId) where.tenantId = req.query.tenantId;
+
+    const [logs, total, sent, failed, pending] = await Promise.all([
+      prisma.whatsAppLog.findMany({ where, orderBy: { createdAt: "desc" }, skip, take: limit }),
+      prisma.whatsAppLog.count({ where }),
+      prisma.whatsAppLog.count({ where: { status: "sent" } }),
+      prisma.whatsAppLog.count({ where: { status: "failed" } }),
+      prisma.whatsAppLog.count({ where: { status: "pending" } }),
+    ]);
+
+    res.json({ logs, total, page, limit, stats: { total: sent + failed + pending, sent, failed, pending } });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// POST /api/whatsapp/send — send a WhatsApp message and log it
+router.post("/send", requireSuperAdmin, async (req, res) => {
+  try {
+    const { to, message } = req.body;
+    if (!to || !message) return res.status(400).json({ message: "to and message required" });
+    const result = await sendWhatsApp({ to, message, createdByUserId: req.user?.id });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;

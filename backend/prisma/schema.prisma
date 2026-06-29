@@ -1817,3 +1817,22 @@ model BspRecord {
   @@index([tenantId, matchStatus])
   @@index([uploadId])
 }
+
+model WhatsAppLog {
+  id                String    @id @default(uuid())
+  tenantId          String?
+  phone             String
+  message           String
+  status            String    @default("pending")
+  provider          String    @default("unknown")
+  errorMessage      String?
+  providerMessageId String?
+  templateType      String?
+  createdByUserId   String?
+  sentAt            DateTime?
+  createdAt         DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([createdAt])
+}

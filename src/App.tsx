@@ -76,6 +76,7 @@ import AdminSmsTemplates from "./pages/admin/AdminSmsTemplates";
 import AdminWhatsAppTemplates from "./pages/admin/AdminWhatsAppTemplates";
 import AdminCoupons from "./pages/admin/AdminCoupons";
 import AdminSmsLogs from "./pages/admin/AdminSmsLogs";
+import AdminWhatsAppLogs from "./pages/admin/AdminWhatsAppLogs";
 import AdminRoles from "./pages/admin/AdminRoles";
 import AdminAuditLog from "./pages/admin/AdminAuditLog";
 import AdminReports from "./pages/admin/AdminReports";
@@ -297,6 +298,7 @@ const AppContent = () => (
           <Route path="/admin/whatsapp-templates" element={<A><AdminWhatsAppTemplates /></A>} />
           <Route path="/admin/coupons" element={<A><AdminCoupons /></A>} />
           <Route path="/admin/sms-logs" element={<A><AdminSmsLogs /></A>} />
+          <Route path="/admin/whatsapp-logs" element={<A><AdminWhatsAppLogs /></A>} />
           <Route path="/admin/audit-log" element={<A><AdminAuditLog /></A>} />
           <Route path="/admin/reports" element={<A><AdminReports /></A>} />
           <Route path="/admin/master-data" element={<A><AdminMasterData /></A>} />

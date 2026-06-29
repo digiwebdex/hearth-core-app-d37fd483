@@ -32,6 +32,7 @@ const adminItems = [
   { title: "WhatsApp Templates", url: "/admin/whatsapp-templates", icon: MessageCircle },
   { title: "Coupons", url: "/admin/coupons", icon: Tag },
   { title: "SMS Logs", url: "/admin/sms-logs", icon: ScrollText },
+  { title: "WhatsApp Logs", url: "/admin/whatsapp-logs", icon: MessageCircle },
   { title: "Audit Log", url: "/admin/audit-log", icon: FileText },
   { title: "Reports", url: "/admin/reports", icon: BarChart3 },
   { title: "Two-Factor Auth", url: "/admin/two-factor", icon: ShieldCheck },
