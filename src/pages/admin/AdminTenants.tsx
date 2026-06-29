@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Trans, useTranslation } from "react-i18next";
 import AdminLayout from "@/components/AdminLayout";
@@ -9,16 +9,20 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Ban, CheckCircle, Eye, Search, RefreshCw, Plus, Pencil, Trash2, Layers } from "lucide-react";
+import { Ban, CheckCircle, Eye, Search, RefreshCw, Plus, Pencil, Trash2, Layers, ChevronDown, CheckSquare, Square } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { adminApi, type AdminTenant } from "@/lib/api";
 import { tenantHealthApi, type TenantHealthRow } from "@/lib/platformAdminApi";
 import ServiceCatalogPicker from "@/components/ServiceCatalogPicker";
 import { buildServiceSelectionPayload, normalizeEnabledSubcategories } from "@/lib/enabledServiceTypes";
 import { normalizePhoneInput } from "@/lib/phoneNormalize";
+
+type BulkAction = "suspend" | "activate" | "delete";
 
 const AdminTenants = () => {
   const { t: tt } = useTranslation();
@@ -28,6 +32,8 @@ const AdminTenants = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const { toast } = useToast();
+
+  // single-item actions
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [editTenant, setEditTenant] = useState<AdminTenant | null>(null);
@@ -37,57 +43,23 @@ const AdminTenants = () => {
   const [deleting, setDeleting] = useState(false);
   const [editSelectedSubs, setEditSelectedSubs] = useState<string[]>([]);
   const [createSelectedSubs, setCreateSelectedSubs] = useState<string[]>([]);
+
+  // bulk selection
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState<BulkAction | null>(null);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+
   const [form, setForm] = useState({
-    tenantName: "",
-    ownerName: "",
-    ownerEmail: "",
-    ownerPassword: "",
-    ownerPhone: "",
-    ownerWhatsapp: "",
-    companyPhone: "",
-    companyWhatsapp: "",
-    companyAddress: "",
-    companyCity: "",
-    companyCountry: "Bangladesh",
-    companyWebsite: "",
-    companyNotes: "",
-    subscriptionPlan: "basic",
-    subscriptionStatus: "active",
-    subscriptionMonths: 1,
+    tenantName: "", ownerName: "", ownerEmail: "", ownerPassword: "",
+    ownerPhone: "", ownerWhatsapp: "",
+    companyPhone: "", companyWhatsapp: "", companyAddress: "", companyCity: "",
+    companyCountry: "Bangladesh", companyWebsite: "", companyNotes: "",
+    subscriptionPlan: "basic", subscriptionStatus: "active", subscriptionMonths: 1,
   });
 
   const resetForm = () => {
-    setForm({
-      tenantName: "", ownerName: "", ownerEmail: "", ownerPassword: "",
-      ownerPhone: "", ownerWhatsapp: "",
-      companyPhone: "", companyWhatsapp: "", companyAddress: "", companyCity: "",
-      companyCountry: "Bangladesh", companyWebsite: "", companyNotes: "",
-      subscriptionPlan: "basic", subscriptionStatus: "active", subscriptionMonths: 1,
-    });
+    setForm({ tenantName: "", ownerName: "", ownerEmail: "", ownerPassword: "", ownerPhone: "", ownerWhatsapp: "", companyPhone: "", companyWhatsapp: "", companyAddress: "", companyCity: "", companyCountry: "Bangladesh", companyWebsite: "", companyNotes: "", subscriptionPlan: "basic", subscriptionStatus: "active", subscriptionMonths: 1 });
     setCreateSelectedSubs([]);
-  };
-
-  const handleCreate = async () => {
-    if (!form.tenantName || !form.ownerName || !form.ownerEmail || !form.ownerPassword) {
-      toast({ title: tt("adminTenants.toast.missingFields"), description: tt("adminTenants.toast.missingFieldsDesc"), variant: "destructive" });
-      return;
-    }
-    setCreating(true);
-    try {
-      await adminApi.createTenant({
-        ...form,
-        subscriptionMonths: Number(form.subscriptionMonths),
-        ...buildServiceSelectionPayload(createSelectedSubs),
-      });
-      toast({ title: tt("adminTenants.toast.agencyCreated"), description: form.tenantName });
-      setCreateOpen(false);
-      resetForm();
-      fetchTenants();
-    } catch (err: any) {
-      toast({ title: tt("adminTenants.toast.createFailed"), description: err.message, variant: "destructive" });
-    } finally {
-      setCreating(false);
-    }
   };
 
   const fetchTenants = async () => {
@@ -110,24 +82,93 @@ const AdminTenants = () => {
 
   useEffect(() => { fetchTenants(); }, []);
 
-  const filtered = tenants.filter(
+  const filtered = useMemo(() => tenants.filter(
     (t) =>
       t.name.toLowerCase().includes(search.toLowerCase()) ||
       (t.users?.[0]?.email || "").toLowerCase().includes(search.toLowerCase())
-  );
+  ), [tenants, search]);
+
+  // ── Selection helpers ──
+  const allIds = filtered.map((t) => t.id);
+  const allSelected = allIds.length > 0 && allIds.every((id) => selected.has(id));
+  const someSelected = allIds.some((id) => selected.has(id));
+  const selectedCount = allIds.filter((id) => selected.has(id)).length;
+
+  const toggleOne = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (allSelected) {
+      setSelected((prev) => { const next = new Set(prev); allIds.forEach((id) => next.delete(id)); return next; });
+    } else {
+      setSelected((prev) => new Set([...prev, ...allIds]));
+    }
+  };
+
+  const clearSelection = () => setSelected(new Set());
+
+  // ── Bulk actions ──
+  const executeBulk = async (action: BulkAction) => {
+    const ids = allIds.filter((id) => selected.has(id));
+    if (!ids.length) return;
+    setBulkProcessing(true);
+    let successCount = 0;
+    try {
+      for (const id of ids) {
+        try {
+          if (action === "suspend") {
+            await adminApi.updateTenant(id, { subscriptionStatus: "suspended" } as any);
+          } else if (action === "activate") {
+            await adminApi.updateTenant(id, { subscriptionStatus: "active" } as any);
+          } else if (action === "delete") {
+            await adminApi.deleteTenant(id);
+          }
+          successCount++;
+        } catch { /* skip failed, continue */ }
+      }
+      toast({
+        title: action === "delete" ? `${successCount} agencies deleted` : `${successCount} agencies ${action === "suspend" ? "suspended" : "activated"}`,
+        variant: action === "delete" || action === "suspend" ? "destructive" : "default",
+      });
+      clearSelection();
+      setBulkAction(null);
+      fetchTenants();
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
+  // ── Single actions ──
+  const handleCreate = async () => {
+    if (!form.tenantName || !form.ownerName || !form.ownerEmail || !form.ownerPassword) {
+      toast({ title: tt("adminTenants.toast.missingFields"), description: tt("adminTenants.toast.missingFieldsDesc"), variant: "destructive" });
+      return;
+    }
+    setCreating(true);
+    try {
+      await adminApi.createTenant({ ...form, subscriptionMonths: Number(form.subscriptionMonths), ...buildServiceSelectionPayload(createSelectedSubs) });
+      toast({ title: tt("adminTenants.toast.agencyCreated"), description: form.tenantName });
+      setCreateOpen(false);
+      resetForm();
+      fetchTenants();
+    } catch (err: any) {
+      toast({ title: tt("adminTenants.toast.createFailed"), description: err.message, variant: "destructive" });
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const toggleSuspend = async (tenant: AdminTenant) => {
     const newStatus = tenant.subscriptionStatus === "suspended" ? "active" : "suspended";
     try {
       await adminApi.updateTenant(tenant.id, { subscriptionStatus: newStatus } as any);
-      setTenants((prev) =>
-        prev.map((t) => t.id === tenant.id ? { ...t, subscriptionStatus: newStatus } : t)
-      );
-      toast({
-        title: newStatus === "suspended" ? tt("adminTenants.toast.companySuspended") : tt("adminTenants.toast.companyReactivated"),
-        description: tenant.name,
-        variant: newStatus === "suspended" ? "destructive" : "default",
-      });
+      setTenants((prev) => prev.map((t) => t.id === tenant.id ? { ...t, subscriptionStatus: newStatus } : t));
+      toast({ title: newStatus === "suspended" ? tt("adminTenants.toast.companySuspended") : tt("adminTenants.toast.companyReactivated"), description: tenant.name, variant: newStatus === "suspended" ? "destructive" : "default" });
     } catch (err: any) {
       toast({ title: tt("adminTenants.toast.actionFailed"), description: err.message, variant: "destructive" });
     }
@@ -137,24 +178,7 @@ const AdminTenants = () => {
     const owner = t.users?.find((u) => u.role === "tenant_owner" || u.role === "owner") || t.users?.[0];
     setEditTenant(t);
     setEditSelectedSubs(normalizeEnabledSubcategories(t.enabledSubcategories));
-    setEditForm({
-      name: t.name || "",
-      subscriptionPlan: t.subscriptionPlan || "basic",
-      subscriptionStatus: t.subscriptionStatus || "active",
-      subscriptionExpiry: (t as any).subscriptionExpiry ? new Date((t as any).subscriptionExpiry).toISOString().slice(0, 10) : "",
-      phone: (t as any).phone || "",
-      whatsapp: (t as any).whatsapp || "",
-      address: (t as any).address || "",
-      city: (t as any).city || "",
-      country: (t as any).country || "",
-      website: (t as any).website || "",
-      notes: (t as any).notes || "",
-      ownerName: owner?.name || "",
-      ownerEmail: owner?.email || "",
-      ownerPhone: owner?.phone || "",
-      ownerWhatsapp: owner?.whatsapp || "",
-      ownerPassword: "",
-    });
+    setEditForm({ name: t.name || "", subscriptionPlan: t.subscriptionPlan || "basic", subscriptionStatus: t.subscriptionStatus || "active", subscriptionExpiry: (t as any).subscriptionExpiry ? new Date((t as any).subscriptionExpiry).toISOString().slice(0, 10) : "", phone: (t as any).phone || "", whatsapp: (t as any).whatsapp || "", address: (t as any).address || "", city: (t as any).city || "", country: (t as any).country || "", website: (t as any).website || "", notes: (t as any).notes || "", ownerName: owner?.name || "", ownerEmail: owner?.email || "", ownerPhone: owner?.phone || "", ownerWhatsapp: owner?.whatsapp || "", ownerPassword: "" });
   };
 
   const saveEdit = async () => {
@@ -165,19 +189,8 @@ const AdminTenants = () => {
       if (!tenantPayload.subscriptionExpiry) delete tenantPayload.subscriptionExpiry;
       tenantPayload.phone = normalizePhoneInput(tenantPayload.phone) || null;
       tenantPayload.whatsapp = normalizePhoneInput(tenantPayload.whatsapp) || null;
-      await adminApi.updateTenant(editTenant.id, {
-        ...tenantPayload,
-        ...buildServiceSelectionPayload(editSelectedSubs),
-      });
-
-      await adminApi.updateTenantOwner(editTenant.id, {
-        name: ownerName?.trim(),
-        email: ownerEmail?.trim(),
-        phone: normalizePhoneInput(ownerPhone),
-        whatsapp: normalizePhoneInput(ownerWhatsapp),
-        ...(ownerPassword ? { password: ownerPassword } : {}),
-      });
-
+      await adminApi.updateTenant(editTenant.id, { ...tenantPayload, ...buildServiceSelectionPayload(editSelectedSubs) });
+      await adminApi.updateTenantOwner(editTenant.id, { name: ownerName?.trim(), email: ownerEmail?.trim(), phone: normalizePhoneInput(ownerPhone), whatsapp: normalizePhoneInput(ownerWhatsapp), ...(ownerPassword ? { password: ownerPassword } : {}) });
       toast({ title: tt("adminTenants.toast.agencyUpdated"), description: editForm.name });
       setEditTenant(null);
       fetchTenants();
@@ -203,9 +216,22 @@ const AdminTenants = () => {
     }
   };
 
+  const bulkActionLabel = {
+    suspend: "Suspend selected",
+    activate: "Activate selected",
+    delete: "Delete selected",
+  };
+
+  const bulkConfirmDesc = {
+    suspend: `Suspend ${selectedCount} selected ${selectedCount === 1 ? "agency" : "agencies"}? Their owners will lose access immediately.`,
+    activate: `Activate ${selectedCount} selected ${selectedCount === 1 ? "agency" : "agencies"}?`,
+    delete: `Permanently delete ${selectedCount} selected ${selectedCount === 1 ? "agency" : "agencies"}? This cannot be undone and all data will be lost.`,
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{tt("adminTenants.title")}</h1>
@@ -224,73 +250,34 @@ const AdminTenants = () => {
                 <div className="grid gap-4 py-2">
                   <div className="space-y-3">
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{tt("adminTenants.sections.company")}</h3>
-                    <div className="grid gap-2">
-                      <Label>{tt("adminTenants.fields.companyName")} *</Label>
-                      <Input value={form.tenantName} onChange={(e) => setForm({ ...form, tenantName: e.target.value })} placeholder="Al-Safa Travel Agency" />
-                    </div>
+                    <div className="grid gap-2"><Label>{tt("adminTenants.fields.companyName")} *</Label><Input value={form.tenantName} onChange={(e) => setForm({ ...form, tenantName: e.target.value })} placeholder="Al-Safa Travel Agency" /></div>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="grid gap-2">
-                        <Label>{tt("adminTenants.fields.companyPhone")}</Label>
-                        <Input value={form.companyPhone} onChange={(e) => setForm({ ...form, companyPhone: e.target.value })} placeholder="+8801XXXXXXXXX" />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label>{tt("adminTenants.fields.companyWhatsapp")}</Label>
-                        <Input value={form.companyWhatsapp} onChange={(e) => setForm({ ...form, companyWhatsapp: e.target.value })} placeholder="+8801XXXXXXXXX" />
-                      </div>
+                      <div className="grid gap-2"><Label>{tt("adminTenants.fields.companyPhone")}</Label><Input value={form.companyPhone} onChange={(e) => setForm({ ...form, companyPhone: e.target.value })} placeholder="+8801XXXXXXXXX" /></div>
+                      <div className="grid gap-2"><Label>{tt("adminTenants.fields.companyWhatsapp")}</Label><Input value={form.companyWhatsapp} onChange={(e) => setForm({ ...form, companyWhatsapp: e.target.value })} placeholder="+8801XXXXXXXXX" /></div>
                     </div>
-                    <div className="grid gap-2">
-                      <Label>{tt("adminTenants.fields.address")}</Label>
-                      <Input value={form.companyAddress} onChange={(e) => setForm({ ...form, companyAddress: e.target.value })} />
-                    </div>
+                    <div className="grid gap-2"><Label>{tt("adminTenants.fields.address")}</Label><Input value={form.companyAddress} onChange={(e) => setForm({ ...form, companyAddress: e.target.value })} /></div>
                     <div className="grid grid-cols-3 gap-3">
-                      <div className="grid gap-2">
-                        <Label>{tt("adminTenants.fields.city")}</Label>
-                        <Input value={form.companyCity} onChange={(e) => setForm({ ...form, companyCity: e.target.value })} />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label>{tt("adminTenants.fields.country")}</Label>
-                        <Input value={form.companyCountry} onChange={(e) => setForm({ ...form, companyCountry: e.target.value })} />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label>{tt("adminTenants.fields.website")}</Label>
-                        <Input value={form.companyWebsite} onChange={(e) => setForm({ ...form, companyWebsite: e.target.value })} placeholder={tt("adminTenants.fields.websitePlaceholder")} />
-                      </div>
+                      <div className="grid gap-2"><Label>{tt("adminTenants.fields.city")}</Label><Input value={form.companyCity} onChange={(e) => setForm({ ...form, companyCity: e.target.value })} /></div>
+                      <div className="grid gap-2"><Label>{tt("adminTenants.fields.country")}</Label><Input value={form.companyCountry} onChange={(e) => setForm({ ...form, companyCountry: e.target.value })} /></div>
+                      <div className="grid gap-2"><Label>{tt("adminTenants.fields.website")}</Label><Input value={form.companyWebsite} onChange={(e) => setForm({ ...form, companyWebsite: e.target.value })} /></div>
                     </div>
                   </div>
-
                   <div className="space-y-3">
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{tt("adminTenants.sections.ownerAccount")}</h3>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="grid gap-2">
-                        <Label>{tt("adminTenants.fields.ownerName")} *</Label>
-                        <Input value={form.ownerName} onChange={(e) => setForm({ ...form, ownerName: e.target.value })} />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label>{tt("adminTenants.fields.ownerEmail")} *</Label>
-                        <Input type="email" value={form.ownerEmail} onChange={(e) => setForm({ ...form, ownerEmail: e.target.value })} />
-                      </div>
+                      <div className="grid gap-2"><Label>{tt("adminTenants.fields.ownerName")} *</Label><Input value={form.ownerName} onChange={(e) => setForm({ ...form, ownerName: e.target.value })} /></div>
+                      <div className="grid gap-2"><Label>{tt("adminTenants.fields.ownerEmail")} *</Label><Input type="email" value={form.ownerEmail} onChange={(e) => setForm({ ...form, ownerEmail: e.target.value })} /></div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="grid gap-2">
-                        <Label>{tt("adminTenants.fields.ownerMobile")}</Label>
-                        <Input value={form.ownerPhone} onChange={(e) => setForm({ ...form, ownerPhone: e.target.value })} placeholder="+8801XXXXXXXXX" />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label>{tt("adminTenants.fields.ownerWhatsapp")}</Label>
-                        <Input value={form.ownerWhatsapp} onChange={(e) => setForm({ ...form, ownerWhatsapp: e.target.value })} placeholder="+8801XXXXXXXXX" />
-                      </div>
+                      <div className="grid gap-2"><Label>{tt("adminTenants.fields.ownerMobile")}</Label><Input value={form.ownerPhone} onChange={(e) => setForm({ ...form, ownerPhone: e.target.value })} placeholder="+8801XXXXXXXXX" /></div>
+                      <div className="grid gap-2"><Label>{tt("adminTenants.fields.ownerWhatsapp")}</Label><Input value={form.ownerWhatsapp} onChange={(e) => setForm({ ...form, ownerWhatsapp: e.target.value })} placeholder="+8801XXXXXXXXX" /></div>
                     </div>
-                    <div className="grid gap-2">
-                      <Label>{tt("adminTenants.fields.tempPassword")} *</Label>
-                      <Input type="text" value={form.ownerPassword} onChange={(e) => setForm({ ...form, ownerPassword: e.target.value })} placeholder={tt("adminTenants.fields.passwordPlaceholder")} />
-                    </div>
+                    <div className="grid gap-2"><Label>{tt("adminTenants.fields.tempPassword")} *</Label><Input type="text" value={form.ownerPassword} onChange={(e) => setForm({ ...form, ownerPassword: e.target.value })} /></div>
                   </div>
-
                   <div className="space-y-3">
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{tt("adminTenants.sections.subscription")}</h3>
                     <div className="grid grid-cols-3 gap-3">
-                      <div className="grid gap-2">
-                        <Label>{tt("adminTenants.fields.plan")}</Label>
+                      <div className="grid gap-2"><Label>{tt("adminTenants.fields.plan")}</Label>
                         <Select value={form.subscriptionPlan} onValueChange={(v) => setForm({ ...form, subscriptionPlan: v })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
@@ -301,8 +288,7 @@ const AdminTenants = () => {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="grid gap-2">
-                        <Label>{tt("adminTenants.fields.status")}</Label>
+                      <div className="grid gap-2"><Label>{tt("adminTenants.fields.status")}</Label>
                         <Select value={form.subscriptionStatus} onValueChange={(v) => setForm({ ...form, subscriptionStatus: v })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
@@ -312,22 +298,12 @@ const AdminTenants = () => {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="grid gap-2">
-                        <Label>{tt("adminTenants.fields.months")}</Label>
-                        <Input type="number" min={1} value={form.subscriptionMonths} onChange={(e) => setForm({ ...form, subscriptionMonths: Number(e.target.value) })} />
-                      </div>
+                      <div className="grid gap-2"><Label>{tt("adminTenants.fields.months")}</Label><Input type="number" min={1} value={form.subscriptionMonths} onChange={(e) => setForm({ ...form, subscriptionMonths: Number(e.target.value) })} /></div>
                     </div>
-                    <div className="grid gap-2">
-                      <Label>{tt("adminTenants.fields.notesInternal")}</Label>
-                      <Input value={form.companyNotes} onChange={(e) => setForm({ ...form, companyNotes: e.target.value })} placeholder={tt("adminTenants.fields.notesPlaceholder")} />
-                    </div>
+                    <div className="grid gap-2"><Label>{tt("adminTenants.fields.notesInternal")}</Label><Input value={form.companyNotes} onChange={(e) => setForm({ ...form, companyNotes: e.target.value })} /></div>
                   </div>
-
                   <div className="space-y-3 border-t pt-4">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-                      <Layers className="h-4 w-4" />
-                      {tt("settingsModules.serviceTypesLabel", { defaultValue: "Agency services" })}
-                    </h3>
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2"><Layers className="h-4 w-4" />{tt("settingsModules.serviceTypesLabel", { defaultValue: "Agency services" })}</h3>
                     <ServiceCatalogPicker value={createSelectedSubs} onChange={setCreateSelectedSubs} compact />
                   </div>
                 </div>
@@ -343,13 +319,40 @@ const AdminTenants = () => {
           </div>
         </div>
 
+        {/* Search */}
         <div className="flex items-center gap-2 max-w-sm">
           <Search className="h-4 w-4 text-muted-foreground" />
-          <Input placeholder={tt("adminTenants.searchPlaceholder")} value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input placeholder={tt("adminTenants.searchPlaceholder")} value={search} onChange={(e) => { setSearch(e.target.value); clearSelection(); }} />
         </div>
 
+        {/* Bulk action bar */}
+        {selectedCount > 0 && (
+          <div className="flex items-center gap-3 rounded-lg border bg-muted/50 px-4 py-2">
+            <span className="text-sm font-medium">{selectedCount} {selectedCount === 1 ? "agency" : "agencies"} selected</span>
+            <div className="flex gap-2 ml-auto">
+              <Button size="sm" variant="outline" onClick={() => setBulkAction("activate")}>
+                <CheckCircle className="mr-1.5 h-4 w-4 text-green-600" /> Activate
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setBulkAction("suspend")}>
+                <Ban className="mr-1.5 h-4 w-4 text-orange-500" /> Suspend
+              </Button>
+              <Button size="sm" variant="destructive" onClick={() => setBulkAction("delete")}>
+                <Trash2 className="mr-1.5 h-4 w-4" /> Delete
+              </Button>
+              <Button size="sm" variant="ghost" onClick={clearSelection}>Clear</Button>
+            </div>
+          </div>
+        )}
+
         <Card>
-          <CardHeader><CardTitle>{tt("adminTenants.companies", { count: filtered.length })}</CardTitle></CardHeader>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>{tt("adminTenants.companies", { count: filtered.length })}</CardTitle>
+              {someSelected && (
+                <span className="text-xs text-muted-foreground">{selectedCount} / {filtered.length} selected</span>
+              )}
+            </div>
+          </CardHeader>
           <CardContent>
             {loading ? (
               <div className="space-y-3">{[1,2,3,4,5].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
@@ -357,6 +360,14 @@ const AdminTenants = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={allSelected}
+                        onCheckedChange={toggleAll}
+                        aria-label="Select all"
+                        className={someSelected && !allSelected ? "opacity-70" : ""}
+                      />
+                    </TableHead>
                     <TableHead>{tt("adminTenants.table.company")}</TableHead>
                     <TableHead>{tt("adminTenants.table.owner")}</TableHead>
                     <TableHead>{tt("adminTenants.table.plan")}</TableHead>
@@ -365,21 +376,32 @@ const AdminTenants = () => {
                     <TableHead>{tt("adminTenants.table.status")}</TableHead>
                     <TableHead>Health</TableHead>
                     <TableHead>{tt("adminTenants.table.created")}</TableHead>
-                    <TableHead className="w-[200px]">{tt("adminTenants.table.actions")}</TableHead>
+                    <TableHead className="w-[160px]">{tt("adminTenants.table.actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filtered.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center text-muted-foreground py-8">{tt("adminTenants.noAgencies")}</TableCell>
+                      <TableCell colSpan={10} className="text-center text-muted-foreground py-8">{tt("adminTenants.noAgencies")}</TableCell>
                     </TableRow>
                   ) : (
                     filtered.map((tn) => {
                       const owner = tn.users?.find((u) => u.role === "tenant_owner" || u.role === "owner") || tn.users?.[0];
                       const planKey = (tn.subscriptionPlan || "free") as string;
                       const planLabel = tt(`adminTenants.plans.${planKey}`, { defaultValue: planKey });
+                      const isSelected = selected.has(tn.id);
                       return (
-                        <TableRow key={tn.id} className={tn.subscriptionStatus === "suspended" ? "opacity-60" : ""}>
+                        <TableRow
+                          key={tn.id}
+                          className={`${tn.subscriptionStatus === "suspended" ? "opacity-60" : ""} ${isSelected ? "bg-primary/5" : ""}`}
+                        >
+                          <TableCell>
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleOne(tn.id)}
+                              aria-label={`Select ${tn.name}`}
+                            />
+                          </TableCell>
                           <TableCell className="font-medium">{tn.name}</TableCell>
                           <TableCell>
                             <div>
@@ -403,17 +425,8 @@ const AdminTenants = () => {
                             {(() => {
                               const h = healthMap[tn.id];
                               if (!h) return <span className="text-muted-foreground text-sm">—</span>;
-                              const variant =
-                                h.healthLabel === "healthy"
-                                  ? "default"
-                                  : h.healthLabel === "moderate"
-                                    ? "secondary"
-                                    : "destructive";
-                              return (
-                                <Badge variant={variant} title={`Score ${h.healthScore} · Last login ${h.lastLoginAt ? new Date(h.lastLoginAt).toLocaleDateString() : "never"}`}>
-                                  {h.healthScore}
-                                </Badge>
-                              );
+                              const variant = h.healthLabel === "healthy" ? "default" : h.healthLabel === "moderate" ? "secondary" : "destructive";
+                              return <Badge variant={variant} title={`Score ${h.healthScore} · Last login ${h.lastLoginAt ? new Date(h.lastLoginAt).toLocaleDateString() : "never"}`}>{h.healthScore}</Badge>;
                             })()}
                           </TableCell>
                           <TableCell className="text-muted-foreground text-sm">{new Date(tn.createdAt).toLocaleDateString()}</TableCell>
@@ -426,11 +439,7 @@ const AdminTenants = () => {
                                 <Pencil className="h-4 w-4" />
                               </Button>
                               <Button variant="ghost" size="icon" onClick={() => toggleSuspend(tn)} title={tn.subscriptionStatus === "suspended" ? tt("adminTenants.actions.reactivate") : tt("adminTenants.actions.suspend")}>
-                                {tn.subscriptionStatus === "suspended" ? (
-                                  <CheckCircle className="h-4 w-4 text-green-600" />
-                                ) : (
-                                  <Ban className="h-4 w-4 text-destructive" />
-                                )}
+                                {tn.subscriptionStatus === "suspended" ? <CheckCircle className="h-4 w-4 text-green-600" /> : <Ban className="h-4 w-4 text-destructive" />}
                               </Button>
                               <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(tn)} title={tt("adminTenants.actions.delete")}>
                                 <Trash2 className="h-4 w-4 text-destructive" />
@@ -448,6 +457,7 @@ const AdminTenants = () => {
         </Card>
       </div>
 
+      {/* Edit dialog */}
       <Dialog open={!!editTenant} onOpenChange={(o) => !o && setEditTenant(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -455,13 +465,9 @@ const AdminTenants = () => {
             <DialogDescription>{tt("adminTenants.dialog.editDesc")}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-2">
-            <div className="grid gap-2">
-              <Label>{tt("adminTenants.fields.companyName")}</Label>
-              <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
-            </div>
+            <div className="grid gap-2"><Label>{tt("adminTenants.fields.companyName")}</Label><Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} /></div>
             <div className="grid grid-cols-3 gap-3">
-              <div className="grid gap-2">
-                <Label>{tt("adminTenants.fields.plan")}</Label>
+              <div className="grid gap-2"><Label>{tt("adminTenants.fields.plan")}</Label>
                 <Select value={editForm.subscriptionPlan} onValueChange={(v) => setEditForm({ ...editForm, subscriptionPlan: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -472,8 +478,7 @@ const AdminTenants = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-2">
-                <Label>{tt("adminTenants.fields.status")}</Label>
+              <div className="grid gap-2"><Label>{tt("adminTenants.fields.status")}</Label>
                 <Select value={editForm.subscriptionStatus} onValueChange={(v) => setEditForm({ ...editForm, subscriptionStatus: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -483,10 +488,7 @@ const AdminTenants = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-2">
-                <Label>{tt("adminTenants.fields.expiry")}</Label>
-                <Input type="date" value={editForm.subscriptionExpiry} onChange={(e) => setEditForm({ ...editForm, subscriptionExpiry: e.target.value })} />
-              </div>
+              <div className="grid gap-2"><Label>{tt("adminTenants.fields.expiry")}</Label><Input type="date" value={editForm.subscriptionExpiry} onChange={(e) => setEditForm({ ...editForm, subscriptionExpiry: e.target.value })} /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2"><Label>{tt("adminTenants.fields.phone")}</Label><Input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} /></div>
@@ -499,16 +501,11 @@ const AdminTenants = () => {
               <div className="grid gap-2"><Label>{tt("adminTenants.fields.website")}</Label><Input value={editForm.website} onChange={(e) => setEditForm({ ...editForm, website: e.target.value })} /></div>
             </div>
             <div className="grid gap-2"><Label>{tt("adminTenants.fields.notes")}</Label><Input value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} /></div>
-
             <div className="space-y-3 border-t pt-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-                <Layers className="h-4 w-4" />
-                {tt("settingsModules.serviceTypesLabel", { defaultValue: "Agency services" })}
-              </h3>
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2"><Layers className="h-4 w-4" />{tt("settingsModules.serviceTypesLabel", { defaultValue: "Agency services" })}</h3>
               <p className="text-sm text-muted-foreground">{tt("settingsModules.serviceTypesDesc")}</p>
               <ServiceCatalogPicker value={editSelectedSubs} onChange={setEditSelectedSubs} compact />
             </div>
-
             <div className="space-y-3 border-t pt-4">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{tt("adminTenants.sections.ownerAccount")}</h3>
               <div className="grid grid-cols-2 gap-3">
@@ -519,10 +516,7 @@ const AdminTenants = () => {
                 <div className="grid gap-2"><Label>{tt("adminTenants.fields.ownerMobile")}</Label><Input value={editForm.ownerPhone} onChange={(e) => setEditForm({ ...editForm, ownerPhone: e.target.value })} placeholder="+8801XXXXXXXXX" /></div>
                 <div className="grid gap-2"><Label>{tt("adminTenants.fields.ownerWhatsapp")}</Label><Input value={editForm.ownerWhatsapp} onChange={(e) => setEditForm({ ...editForm, ownerWhatsapp: e.target.value })} placeholder="+8801XXXXXXXXX" /></div>
               </div>
-              <div className="grid gap-2">
-                <Label>{tt("adminTenants.fields.resetPassword")}</Label>
-                <Input type="text" value={editForm.ownerPassword} onChange={(e) => setEditForm({ ...editForm, ownerPassword: e.target.value })} placeholder={tt("adminTenants.fields.resetPasswordPlaceholder")} />
-              </div>
+              <div className="grid gap-2"><Label>{tt("adminTenants.fields.resetPassword")}</Label><Input type="text" value={editForm.ownerPassword} onChange={(e) => setEditForm({ ...editForm, ownerPassword: e.target.value })} placeholder={tt("adminTenants.fields.resetPasswordPlaceholder")} /></div>
             </div>
           </div>
           <DialogFooter>
@@ -532,22 +526,39 @@ const AdminTenants = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Single delete confirm */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{tt("adminTenants.dialog.deleteTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              <Trans
-                i18nKey="adminTenants.dialog.deleteDesc"
-                values={{ name: deleteTarget?.name || "" }}
-                components={{ 1: <strong /> }}
-              />
+              <Trans i18nKey="adminTenants.dialog.deleteDesc" values={{ name: deleteTarget?.name || "" }} components={{ 1: <strong /> }} />
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>{tt("adminTenants.actions.cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               {deleting ? tt("adminTenants.deleting") : tt("adminTenants.deletePermanently")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk action confirm */}
+      <AlertDialog open={!!bulkAction} onOpenChange={(o) => !o && setBulkAction(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{bulkAction ? bulkActionLabel[bulkAction] : ""}</AlertDialogTitle>
+            <AlertDialogDescription>{bulkAction ? bulkConfirmDesc[bulkAction] : ""}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkProcessing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => bulkAction && executeBulk(bulkAction)}
+              disabled={bulkProcessing}
+              className={bulkAction === "delete" || bulkAction === "suspend" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
+            >
+              {bulkProcessing ? "Processing…" : "Confirm"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
