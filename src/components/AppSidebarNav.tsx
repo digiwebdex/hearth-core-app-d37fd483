@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { ChevronRight, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
@@ -7,17 +6,13 @@ import { usePermissions } from "@/hooks/usePermissions";
 import type { PlanType } from "@/lib/plans";
 import type { Module } from "@/lib/permissions";
 import type { NavGroupConfig, NavItemConfig } from "@/config/navigation";
-import { navGroupHasActiveItem, navItemIsActive } from "@/lib/navActive";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { navItemIsActive } from "@/lib/navActive";
 import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -28,17 +23,8 @@ function isPlanSufficient(minPlan: PlanType | undefined, currentPlan: PlanType):
   return planOrder.indexOf(minPlan) <= planOrder.indexOf(currentPlan);
 }
 
-function pathMatches(url: string, pathname: string): boolean {
-  return navItemIsActive(url, pathname);
-}
-
-function itemOrChildActive(item: NavItemConfig, pathname: string): boolean {
-  if (item.url && pathMatches(item.url, pathname)) return true;
-  return item.children?.some((child) => child.url && pathMatches(child.url, pathname)) ?? false;
-}
-
 // ── Locked item row ──────────────────────────────────────────────────────────
-function LockedNavRow({ item, title, collapsed, minPlan }: { item: NavItemConfig; title: string; collapsed: boolean; minPlan?: PlanType }) {
+function LockedNavRow({ item, title, minPlan }: { item: NavItemConfig; title: string; minPlan?: PlanType }) {
   const { t } = useTranslation();
   return (
     <SidebarMenuItem>
@@ -47,12 +33,8 @@ function LockedNavRow({ item, title, collapsed, minPlan }: { item: NavItemConfig
           <TooltipTrigger asChild>
             <div className="flex items-center gap-2 px-3 py-2 text-muted-foreground/40 cursor-not-allowed select-none rounded-md">
               <item.icon className="h-4 w-4 shrink-0" />
-              {!collapsed && (
-                <>
-                  <span className="flex-1 truncate text-xs">{title}</span>
-                  <Lock className="h-3 w-3 shrink-0" />
-                </>
-              )}
+              <span className="flex-1 truncate text-xs">{title}</span>
+              <Lock className="h-3 w-3 shrink-0" />
             </div>
           </TooltipTrigger>
           <TooltipContent side="right">
@@ -64,59 +46,12 @@ function LockedNavRow({ item, title, collapsed, minPlan }: { item: NavItemConfig
   );
 }
 
-// ── Leaf nav item (no children) ───────────────────────────────────────────────
-function SidebarNavLeaf({ item, title, collapsed, pathname, sub = false }: { item: NavItemConfig; title: string; collapsed: boolean; pathname: string; sub?: boolean }) {
+// ── Single nav item (leaf — no children) ─────────────────────────────────────
+function SidebarNavLeaf({ item, title, pathname }: { item: NavItemConfig; title: string; pathname: string }) {
   if (!item.url) return null;
   const activeMatcher = (path: string) => navItemIsActive(item.url!, path);
-
-  if (sub) {
-    const isActive = activeMatcher(pathname);
-    return (
-      <SidebarMenuSubItem>
-        <SidebarMenuSubButton asChild data-active={isActive ? true : undefined}>
-          <NavLink
-            to={item.url}
-            end
-            isActiveOverride={activeMatcher}
-            className="hover:bg-primary/8 hover:text-primary rounded-md transition-colors"
-            activeClassName="bg-primary/12 text-primary font-semibold"
-          >
-            <item.icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? "text-primary" : ""}`} />
-            <span>{title}</span>
-            {isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shrink-0" />}
-          </NavLink>
-        </SidebarMenuSubButton>
-      </SidebarMenuSubItem>
-    );
-  }
-
-  if (collapsed) {
-    const isActive = activeMatcher(pathname);
-    return (
-      <SidebarMenuItem>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <SidebarMenuButton asChild data-active={isActive ? true : undefined}>
-                <NavLink
-                  to={item.url}
-                  end
-                  isActiveOverride={activeMatcher}
-                  className="hover:bg-primary/10 hover:text-primary justify-center transition-colors"
-                  activeClassName="bg-primary/15 text-primary"
-                >
-                  <item.icon className="h-4 w-4" />
-                </NavLink>
-              </SidebarMenuButton>
-            </TooltipTrigger>
-            <TooltipContent side="right">{title}</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </SidebarMenuItem>
-    );
-  }
-
   const isActive = activeMatcher(pathname);
+
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild data-active={isActive ? true : undefined}>
@@ -136,88 +71,22 @@ function SidebarNavLeaf({ item, title, collapsed, pathname, sub = false }: { ite
   );
 }
 
-// ── Individual nav item (may have nested children) ────────────────────────────
-function SidebarNavItem({ item, collapsed, currentPlan, pathname }: { item: NavItemConfig; collapsed: boolean; currentPlan: PlanType; pathname: string }) {
+// ── Nav item ─────────────────────────────────────────────────────────────────
+function SidebarNavItem({ item, currentPlan, pathname }: { item: NavItemConfig; currentPlan: PlanType; pathname: string }) {
   const { t } = useTranslation();
   const title = t(item.titleKey);
   const planOk = isPlanSufficient(item.minPlan, currentPlan);
-  const hasChildren = Boolean(item.children?.length);
-  const childActive = hasChildren ? itemOrChildActive(item, pathname) : false;
-  const [expanded, setExpanded] = useState(childActive);
 
-  useEffect(() => {
-    if (childActive) setExpanded(true);
-  }, [childActive]);
-
-  if (!planOk) {
-    return <LockedNavRow item={item} title={title} collapsed={collapsed} minPlan={item.minPlan} />;
-  }
-
-  if (hasChildren && item.children) {
-    if (collapsed) {
-      return (
-        <>
-          {item.children.map((child) => (
-            <SidebarNavItem key={child.id} item={child} collapsed={collapsed} currentPlan={currentPlan} pathname={pathname} />
-          ))}
-        </>
-      );
-    }
-
-    return (
-      <Collapsible open={expanded} onOpenChange={setExpanded} className="group/collapsible">
-        <SidebarMenuItem>
-          <CollapsibleTrigger asChild>
-            <SidebarMenuButton className="hover:bg-sidebar-accent/50">
-              <item.icon className="h-4 w-4 shrink-0" />
-              <span className="flex-1 truncate">{title}</span>
-              <ChevronRight className="h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-            </SidebarMenuButton>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <SidebarMenuSub>
-              {item.children.map((child) => {
-                const childPlanOk = isPlanSufficient(child.minPlan, currentPlan);
-                const childTitle = t(child.titleKey);
-                if (!childPlanOk) {
-                  return (
-                    <SidebarMenuSubItem key={child.id}>
-                      <div className="flex h-7 items-center gap-2 px-2 text-xs text-muted-foreground/40">
-                        <child.icon className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{childTitle}</span>
-                        <Lock className="h-3 w-3 shrink-0" />
-                      </div>
-                    </SidebarMenuSubItem>
-                  );
-                }
-                return <SidebarNavLeaf key={child.id} item={child} title={childTitle} collapsed={collapsed} pathname={pathname} sub />;
-              })}
-            </SidebarMenuSub>
-          </CollapsibleContent>
-        </SidebarMenuItem>
-      </Collapsible>
-    );
-  }
-
-  return <SidebarNavLeaf item={item} title={title} collapsed={collapsed} pathname={pathname} />;
+  if (!planOk) return <LockedNavRow item={item} title={title} minPlan={item.minPlan} />;
+  return <SidebarNavLeaf item={item} title={title} pathname={pathname} />;
 }
 
 function filterVisibleItems(items: NavItemConfig[], canAccess: (module: Module) => boolean): NavItemConfig[] {
-  return items
-    .map((item) => {
-      if (!canAccess(item.module)) return null;
-      if (item.children) {
-        const children = item.children.filter((c) => canAccess(c.module));
-        if (children.length === 0) return null;
-        return { ...item, children };
-      }
-      return item;
-    })
-    .filter(Boolean) as NavItemConfig[];
+  return items.filter((item) => canAccess(item.module));
 }
 
-// ── Group rendered as a collapsible section ───────────────────────────────────
-export function AppSidebarNavGroup({ group, collapsed, currentPlan }: { group: NavGroupConfig; collapsed: boolean; currentPlan: PlanType }) {
+// ── Group — always expanded, label is a plain section header ─────────────────
+export function AppSidebarNavGroup({ group, currentPlan }: { group: NavGroupConfig; currentPlan: PlanType }) {
   const { t } = useTranslation();
   const { canAccess } = usePermissions();
   const { pathname } = useLocation();
@@ -225,67 +94,26 @@ export function AppSidebarNavGroup({ group, collapsed, currentPlan }: { group: N
   const visibleItems = filterVisibleItems(group.items, canAccess);
   if (visibleItems.length === 0) return null;
 
-  const groupActive = navGroupHasActiveItem(visibleItems, pathname);
-  const [open, setOpen] = useState(groupActive);
-
-  useEffect(() => {
-    if (groupActive) setOpen(true);
-  }, [groupActive]);
-
   const GroupIcon = group.icon;
-
-  // ── Icon-only (collapsed sidebar) — show icons without group header ──────
-  if (collapsed) {
-    return (
-      <SidebarGroup className="py-0.5">
-        <SidebarGroupContent>
-          <SidebarMenu>
-            {visibleItems.map((item) => (
-              <SidebarNavItem key={item.id} item={item} collapsed={collapsed} currentPlan={currentPlan} pathname={pathname} />
-            ))}
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
-    );
-  }
-
-  // ── Expanded sidebar — group header is the collapse toggle ────────────────
   const label = t(group.labelKey);
 
   return (
-    <SidebarGroup className="py-0 px-2">
-      <Collapsible open={open} onOpenChange={setOpen} className="group/section">
-        {/* Group header row */}
-        <CollapsibleTrigger asChild>
-          <button
-            className={`
-              w-full flex items-center gap-2 px-2 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider
-              transition-all duration-150 cursor-pointer select-none mt-0.5
-              ${groupActive
-                ? "text-primary bg-primary/10 shadow-[inset_2px_0_0_0_hsl(var(--primary))]"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-              }
-            `}
-          >
-            <GroupIcon className={`h-3.5 w-3.5 shrink-0 transition-colors ${groupActive ? "text-primary" : ""}`} />
-            <span className="flex-1 truncate text-left">{label}</span>
-            <ChevronRight
-              className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-data-[state=open]/section:rotate-90 ${groupActive ? "text-primary" : "text-muted-foreground/50"}`}
-            />
-          </button>
-        </CollapsibleTrigger>
+    <SidebarGroup className="py-0 px-2 mt-1">
+      {/* Section label — not clickable, just a visual divider */}
+      <div className="flex items-center gap-1.5 px-2 py-1.5">
+        <GroupIcon className="h-3 w-3 text-muted-foreground/60 shrink-0" />
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 truncate">
+          {label}
+        </span>
+      </div>
 
-        {/* Group items — indented under the header */}
-        <CollapsibleContent>
-          <SidebarGroupContent className="pl-2 pt-0.5 pb-1 border-l border-primary/20 ml-3">
-            <SidebarMenu>
-              {visibleItems.map((item) => (
-                <SidebarNavItem key={item.id} item={item} collapsed={collapsed} currentPlan={currentPlan} pathname={pathname} />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </CollapsibleContent>
-      </Collapsible>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {visibleItems.map((item) => (
+            <SidebarNavItem key={item.id} item={item} currentPlan={currentPlan} pathname={pathname} />
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
     </SidebarGroup>
   );
 }

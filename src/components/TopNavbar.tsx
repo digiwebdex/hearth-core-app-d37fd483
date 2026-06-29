@@ -1,4 +1,3 @@
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import NotificationBell from "@/components/NotificationBell";
@@ -10,7 +9,6 @@ const TopNavbar = () => {
 
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-card px-4">
-      <SidebarTrigger />
       <div className="flex-1" />
       <div className="flex items-center gap-2">
         <LanguageSwitcher />

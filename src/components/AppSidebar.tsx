@@ -17,14 +17,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarFooter,
-  useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 export function AppSidebar() {
-  const { state } = useSidebar();
-  const collapsed = state === "collapsed";
   const { user, logout, currentPlan, appRole, tenant } = useAuth();
   const { canAccessAdmin } = usePermissions();
   const roleMeta = getRoleMeta(appRole);
@@ -32,7 +29,6 @@ export function AppSidebar() {
   const { pathname } = useLocation();
 
   const navigationGroups = getNavigationGroups({
-    // Hajj/BD operations desks now derive automatically from the selected services.
     enabledServiceTypes: tenant?.enabledServiceTypes,
     enabledSubcategories: tenant?.enabledSubcategories,
     showActivityLog: appRole === "tenant_owner" || appRole === "owner" || appRole === "manager",
@@ -51,15 +47,13 @@ export function AppSidebar() {
   }, [pathname]);
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="none">
       {/* Brand header */}
-      <div className={`flex items-center gap-2 border-b px-3 py-3 shrink-0 ${collapsed ? "justify-center" : ""}`}>
+      <div className="flex items-center gap-2 border-b px-3 py-3 shrink-0">
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground text-xs font-bold">
           H
         </div>
-        {!collapsed && (
-          <span className="text-sm font-bold tracking-tight truncate">{t("common.brand")}</span>
-        )}
+        <span className="text-sm font-bold tracking-tight truncate">{t("common.brand")}</span>
       </div>
 
       <SidebarContent className="gap-0">
@@ -67,7 +61,6 @@ export function AppSidebar() {
           <AppSidebarNavGroup
             key={group.id}
             group={group}
-            collapsed={collapsed}
             currentPlan={currentPlan}
           />
         ))}
@@ -85,7 +78,7 @@ export function AppSidebar() {
                       activeClassName="bg-destructive/10 font-medium"
                     >
                       <Shield className="h-4 w-4 shrink-0" />
-                      {!collapsed && <span className="truncate">{t("sidebar.adminPanel")}</span>}
+                      <span className="truncate">{t("sidebar.adminPanel")}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -96,7 +89,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t">
-        {!collapsed && user && (
+        {user && (
           <div className="px-3 pt-2 pb-1 space-y-1">
             <p className="text-xs font-medium truncate">{user.name || user.email}</p>
             <p className="text-xs text-muted-foreground truncate">{user.email}</p>
@@ -108,9 +101,9 @@ export function AppSidebar() {
             </div>
           </div>
         )}
-        <Button variant="ghost" size="sm" className={`w-full ${collapsed ? "justify-center" : "justify-start"}`} onClick={logout}>
+        <Button variant="ghost" size="sm" className="w-full justify-start" onClick={logout}>
           <LogOut className="h-4 w-4 shrink-0" />
-          {!collapsed && <span className="ml-2">{t("common.logout")}</span>}
+          <span className="ml-2">{t("common.logout")}</span>
         </Button>
       </SidebarFooter>
     </Sidebar>
