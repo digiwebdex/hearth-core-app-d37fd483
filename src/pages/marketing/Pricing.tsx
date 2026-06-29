@@ -103,13 +103,13 @@ const Pricing = () => {
       {/* Plan Cards */}
       <section className="pb-16">
         <div className="container mx-auto px-4">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-7xl mx-auto">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-7xl mx-auto items-stretch">
             {PLANS.map((plan) => {
               const Icon = planIcons[plan.id] || Star;
               const isHighlighted = plan.badge === "Most Popular" || plan.badge === "Best Value";
               const price = getPrice(plan);
               return (
-                <Card key={plan.id} className={`relative overflow-hidden bg-white/[0.04] border-white/8 text-white ${isHighlighted ? "ring-2 ring-amber-400 border-amber-400/40 md:scale-105 z-10" : "hover:border-white/15"} transition-all`}>
+                <Card key={plan.id} className={`relative overflow-hidden bg-white/[0.04] border-white/8 text-white flex flex-col ${isHighlighted ? "ring-2 ring-amber-400 border-amber-400/40 md:scale-105 z-10" : "hover:border-white/15"} transition-all`}>
                   {plan.badge && (
                     <div className={`absolute top-0 right-0 text-white text-xs font-bold px-3 py-1 rounded-bl-xl ${plan.badge === "Most Popular" ? "bg-gradient-to-r from-amber-500 to-orange-500" : "bg-gradient-to-r from-emerald-500 to-teal-500"}`}>
                       {plan.badge.toUpperCase()}
@@ -120,7 +120,7 @@ const Pricing = () => {
                     <CardTitle className="text-lg">{plan.name}</CardTitle>
                     <CardDescription className="text-white/40 text-xs">{plan.description}</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="flex flex-col flex-1 space-y-4">
                     <div className="text-center">
                       {price === -1 ? (
                         <span className="text-2xl font-extrabold text-amber-400">{t("marketing.pricing.custom")}</span>
@@ -137,7 +137,7 @@ const Pricing = () => {
                       )}
                     </div>
                     <Separator className="bg-white/8" />
-                    <ul className="space-y-2">
+                    <ul className="space-y-2 flex-1">
                       {plan.features.slice(0, 5).map((f) => (
                         <li key={f} className="flex items-start gap-2 text-xs"><Check className="h-3.5 w-3.5 text-emerald-400 mt-0.5 shrink-0" /><span className="text-white/60">{f}</span></li>
                       ))}
@@ -150,9 +150,11 @@ const Pricing = () => {
                         ))}
                       </ul>
                     )}
-                    <Button className={`w-full h-10 text-sm ${isHighlighted ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/20" : "bg-white/8 hover:bg-white/12 text-white"}`} onClick={() => handleSelectPlan(plan.id)}>
-                      {price === -1 ? t("marketing.pricing.contactPrice") : t("marketing.pricing.subscribeNow")}<ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+                    <div className="mt-auto pt-2">
+                      <Button className={`w-full h-10 text-sm ${isHighlighted ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/20" : "bg-white/8 hover:bg-white/12 text-white"}`} onClick={() => handleSelectPlan(plan.id)}>
+                        {price === -1 ? t("marketing.pricing.contactPrice") : t("marketing.pricing.subscribeNow")}<ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               );
