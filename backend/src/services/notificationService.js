@@ -372,6 +372,16 @@ const EVENT_HANDLERS = {
         if (msg) await sendSms({ to: data.ownerPhone, message: msg });
       }
     },
+    async (data) => {
+      const wa = data.ownerWhatsapp || data.ownerPhone;
+      if (wa) {
+        const plan = data.plan || "subscription";
+        const amount = data.amount ? `৳${data.amount}` : "";
+        const trx = data.trxId ? ` (Ref: ${data.trxId})` : "";
+        const msg = `📩 *${data.tenantName || "Your agency"}* — Payment request received for *${plan}* plan${amount ? ` ${amount}` : ""}${trx}. We will review and activate shortly.`;
+        await sendWhatsApp({ to: wa, message: msg });
+      }
+    },
   ],
 
   // Subscription activated → email + SMS to tenant owner
@@ -410,6 +420,17 @@ const EVENT_HANDLERS = {
       if (data.ownerPhone) {
         const msg = getSmsTemplate("subscriptionActivated", data);
         if (msg) await sendSms({ to: data.ownerPhone, message: msg });
+      }
+    },
+    async (data) => {
+      const wa = data.ownerWhatsapp || data.ownerPhone;
+      if (wa) {
+        const planLabel = data.plan || "Subscription";
+        const expiry = data.expiryDate || "N/A";
+        const msg = data.immediate === false
+          ? `✅ *${data.tenantName || "Your agency"}* — ${planLabel} plan scheduled. Activates on ${data.activationDate}, valid until ${expiry}.`
+          : `✅ *${data.tenantName || "Your agency"}* — ${planLabel} plan activated! Valid until ${expiry}. Login: https://app.travelagencyweb.com`;
+        await sendWhatsApp({ to: wa, message: msg });
       }
     },
   ],

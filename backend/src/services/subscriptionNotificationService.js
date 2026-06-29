@@ -1,9 +1,10 @@
 /**
- * Subscription payment notifications — SMS + email on submit and approve.
+ * Subscription payment notifications — SMS + email + WhatsApp on every change.
  */
 const { PrismaClient } = require("@prisma/client");
 const { notifyEvent } = require("./notificationService");
 const { createPlatformNotification } = require("./platformNotificationService");
+const { sendWhatsApp } = require("./whatsappService");
 
 const prisma = new PrismaClient();
 
@@ -19,14 +20,31 @@ async function getTenantOwnerContact(tenantId) {
     }),
   ]);
 
+  const ownerWa = owner?.whatsapp || owner?.phone || tenant?.whatsapp || tenant?.phone || null;
   return {
     tenant,
     owner,
     ownerName: owner?.name || null,
     ownerEmail: owner?.email || null,
     ownerPhone: owner?.phone || owner?.whatsapp || tenant?.phone || tenant?.whatsapp || null,
+    ownerWhatsapp: ownerWa,
     ownerUserId: owner?.id || null,
   };
+}
+
+/**
+ * Send a WhatsApp message to the tenant owner about a subscription change.
+ * Used by all manual admin actions (activate, extend, suspend, reject, etc.)
+ */
+async function notifySubscriptionChangeWhatsApp(tenantId, message) {
+  try {
+    const contact = await getTenantOwnerContact(tenantId);
+    const wa = contact.ownerWhatsapp;
+    if (!wa) return;
+    await sendWhatsApp({ to: wa, message });
+  } catch (err) {
+    console.error("[NOTIFY] subscriptionChangeWhatsApp failed:", err.message);
+  }
 }
 
 function formatPlan(plan) {
@@ -71,6 +89,7 @@ async function notifySubscriptionPaymentSubmitted({ tenant, item, submittedByUse
     ownerName: contact.ownerName || submitter?.name || null,
     ownerEmail: contact.ownerEmail || submitter?.email || null,
     ownerPhone: contact.ownerPhone || submitter?.phone || null,
+    ownerWhatsapp: contact.ownerWhatsapp || submitter?.phone || null,
   };
 
   try {
@@ -116,6 +135,7 @@ async function notifySubscriptionPaymentApproved({
     ownerName: contact.ownerName,
     ownerEmail: contact.ownerEmail,
     ownerPhone: contact.ownerPhone,
+    ownerWhatsapp: contact.ownerWhatsapp,
     plan: formattedPlan,
     expiryDate: expiry,
     amount: paymentRequest.amountSent || paymentRequest.amount,
@@ -154,4 +174,5 @@ module.exports = {
   getTenantOwnerContact,
   notifySubscriptionPaymentSubmitted,
   notifySubscriptionPaymentApproved,
+  notifySubscriptionChangeWhatsApp,
 };

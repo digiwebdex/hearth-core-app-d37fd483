@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const { authenticate, requireSuperAdmin, prisma } = require("../middleware/auth");
-const { notifySubscriptionPaymentApproved } = require("../services/subscriptionNotificationService");
+const { notifySubscriptionPaymentApproved, notifySubscriptionChangeWhatsApp } = require("../services/subscriptionNotificationService");
 const { incrementCouponUsage } = require("../services/subscriptionCouponService");
 const { getDefaultManualPaymentMethods } = require("../lib/paymentGatewayConfig");
 
@@ -139,6 +139,26 @@ async function manualTenantUpdate(req, tenant, nextState) {
     oldValue: JSON.stringify({ plan: tenant.subscriptionPlan, status: tenant.subscriptionStatus, expiry: tenant.subscriptionExpiry }),
     newValue: JSON.stringify({ plan: updated.subscriptionPlan, status: updated.subscriptionStatus, expiry: updated.subscriptionExpiry }),
   });
+
+  // WhatsApp notification to agency owner for every manual admin action
+  const actionLabels = {
+    activated: "✅ Activated",
+    renewed: "✅ Renewed",
+    upgraded: "⬆️ Upgraded",
+    upgrade_scheduled: "📅 Upgrade Scheduled",
+    extended: "📅 Extended",
+    suspended: "⛔ Suspended",
+    cancelled: "❌ Cancelled",
+    trial_skipped: "⏭️ Trial Ended",
+    trial_ended_paid: "✅ Trial Ended — Plan Activated",
+  };
+  const actionLabel = actionLabels[nextState.actionType] || `🔄 ${nextState.actionType}`;
+  const planLabel = (updated.subscriptionPlan || nextState.plan || "").charAt(0).toUpperCase() + (updated.subscriptionPlan || nextState.plan || "").slice(1);
+  const expiry = nextState.expiryDate ? new Date(nextState.expiryDate).toISOString().slice(0, 10) : "N/A";
+  let waMsg = `${actionLabel} — *${tenant.name}*\nPlan: *${planLabel}*\nStatus: *${updated.subscriptionStatus}*\nValid until: ${expiry}`;
+  if (nextState.note) waMsg += `\nNote: ${nextState.note}`;
+  notifySubscriptionChangeWhatsApp(tenant.id, waMsg).catch(() => {});
+
   return updated;
 }
 
@@ -313,6 +333,13 @@ router.patch("/payment-requests/:id", async (req, res) => {
         },
       });
       await audit(req, { tenantId: tenant.id, tenantName: tenant.name, module: "subscription", action: normalized, targetType: "paymentRequest", targetId: paymentRequest.id, targetLabel: `${paymentRequest.requestedPlan || paymentRequest.plan} - ${paymentRequest.amountSent || paymentRequest.amount}`, newValue: JSON.stringify({ status: normalized, reason: req.body.rejectionReason || req.body.reason || null }) });
+
+      // WhatsApp to agency owner
+      const reason = req.body.rejectionReason || req.body.reason || null;
+      const waStatusLabel = normalized === "rejected" ? "❌ Rejected" : normalized === "needs_info" ? "⚠️ More info needed" : "🔄 Status updated";
+      const waMsg = `${waStatusLabel} — *${tenant.name}* subscription payment request for *${paymentRequest.requestedPlan || paymentRequest.plan}* plan has been marked as *${normalized}*.${reason ? `\n\nReason: ${reason}` : ""}\n\nContact support if you have questions.`;
+      notifySubscriptionChangeWhatsApp(tenant.id, waMsg).catch(() => {});
+
       return res.json(updated);
     }
 
