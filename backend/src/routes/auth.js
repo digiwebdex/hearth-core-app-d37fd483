@@ -594,4 +594,34 @@ router.get("/totp/status", authenticate, async (req, res) => {
   }
 });
 
+// POST /api/auth/super-admin/reset-password — super admin resets own password (no current password needed)
+router.post("/super-admin/reset-password", authenticate, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.userId } });
+    if (!user || user.role !== "super_admin") return res.status(403).json({ message: "Super admin only" });
+    const { newPassword } = req.body;
+    if (!newPassword || newPassword.length < 8) return res.status(400).json({ message: "Password must be at least 8 characters" });
+    const { validatePassword } = require("../utils/passwordPolicy");
+    const check = validatePassword(newPassword);
+    if (!check.ok) return res.status(400).json({ message: check.message });
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({ where: { id: req.userId }, data: { password: hashed } });
+    res.json({ success: true, message: "Password updated successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/auth/whatsapp-config — get WhatsApp provider config
+router.get("/whatsapp-config", authenticate, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.userId }, select: { role: true } });
+    if (!user || user.role !== "super_admin") return res.status(403).json({ message: "Super admin only" });
+    const { getWhatsAppConfig } = require("../services/whatsappService");
+    res.json(getWhatsAppConfig());
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;
