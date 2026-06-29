@@ -231,6 +231,9 @@ async function normalizeBookingInput(data, tenantId, existingBooking = null) {
   if (!next.opsStatus && !existingBooking?.opsStatus) {
     next.opsStatus = "pending";
   }
+  if (next.followUpDate !== undefined) {
+    next.followUpDate = next.followUpDate ? new Date(next.followUpDate) : null;
+  }
   return next;
 }
 
@@ -369,6 +372,74 @@ router.delete("/:id", requirePermission("bookings", "delete"), async (req, res) 
     const result = await prisma.booking.deleteMany({ where: { id: req.params.id, tenantId: req.tenantId } });
     if (!result.count) return res.status(404).json({ message: "Not found" });
     res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /bookings/follow-ups — inquiry bookings that need follow-up (the "Inquiries to follow up" widget)
+router.get("/board/follow-ups", requirePermission("bookings", "view"), async (req, res) => {
+  try {
+    const bookings = await prisma.booking.findMany({
+      where: { tenantId: req.tenantId, status: "inquiry" },
+      include: BOOKING_LIST_INCLUDE,
+      orderBy: [{ followUpDate: "asc" }, { createdAt: "desc" }],
+    });
+
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+
+    const formatted = bookings.map(formatBooking);
+    const due = [];
+    const upcoming = [];
+    const noDate = [];
+    for (const b of formatted) {
+      if (!b.followUpDate) { noDate.push(b); continue; }
+      const fd = new Date(b.followUpDate);
+      if (fd <= endOfToday) due.push(b);
+      else upcoming.push(b);
+    }
+    res.json({
+      due,        // overdue + today — call these now
+      upcoming,   // snoozed to a future date
+      noDate,     // inquiries with no follow-up date set
+      counts: { due: due.length, upcoming: upcoming.length, noDate: noDate.length, total: formatted.length },
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// PATCH /bookings/:id/follow-up — set/snooze follow-up date + note, or convert to confirmed
+router.patch("/:id/follow-up", requirePermission("bookings", "edit"), async (req, res) => {
+  try {
+    const existing = await getTenantBooking(req.params.id, req.tenantId, BOOKING_LIST_INCLUDE);
+    if (!existing) return res.status(404).json({ message: "Not found" });
+
+    const data = {};
+    if (req.body.followUpDate !== undefined) data.followUpDate = req.body.followUpDate ? new Date(req.body.followUpDate) : null;
+    if (req.body.followUpNote !== undefined) data.followUpNote = req.body.followUpNote || null;
+    if (req.body.status !== undefined) data.status = req.body.status;
+
+    await prisma.booking.updateMany({ where: { id: req.params.id, tenantId: req.tenantId }, data });
+
+    if (req.body.status && req.body.status !== existing.status) {
+      await prisma.bookingTimelineEvent.create({
+        data: {
+          bookingId: req.params.id,
+          type: "status_change",
+          content: `Status: ${existing.status} → ${req.body.status}`,
+          oldStatus: existing.status,
+          newStatus: req.body.status,
+          createdBy: req.userId,
+        },
+      }).catch(() => {});
+    }
+
+    const updated = await getTenantBooking(req.params.id, req.tenantId, BOOKING_LIST_INCLUDE);
+    res.json(formatBooking(updated));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

@@ -595,6 +595,7 @@
       "insurance": "Insurance"
     },
     "statuses": {
+      "inquiry": "Inquiry",
       "pending": "Pending",
       "confirmed": "Confirmed",
       "ticketed": "Ticketed",
@@ -2603,6 +2604,25 @@
           "Total leads, bookings, invoices and income/expense graphs are shown.",
           "Track recent activity and upcoming tasks.",
           "Click any card to jump to that module."
+        ]
+      },
+      "inquiry-followup": {
+        "title": "Inquiry & Follow-up",
+        "intro": "Never lose a customer who asked for a price. An \"Inquiry\" is simply a booking that is not confirmed yet — no separate module to learn.",
+        "steps": [
+          "When someone asks a price (WhatsApp, call, walk-in), go to Sales → Bookings → Add Booking.",
+          "Fill the customer name, phone and service, then set Status = \"Inquiry\".",
+          "The inquiry automatically appears on your Dashboard under \"Inquiries to follow up\".",
+          "Each day, open the Dashboard. The \"Call today\" list shows who to contact now.",
+          "Tap the WhatsApp button to message the customer in one tap.",
+          "Not ready to decide? Tap the clock icon and snooze to Tomorrow, 3 days, 1 week, or pick a date. It disappears and comes back on that day.",
+          "When the customer says yes, tap the green tick — \"Convert to booking\". The status becomes Confirmed and an invoice is generated."
+        ],
+        "tips": [
+          "You never create a separate \"lead\". Just set the booking status to Inquiry — that is the whole system.",
+          "Add a short note when snoozing (e.g. \"wants price for family of 4\") so you remember the context.",
+          "Overdue follow-ups show in red — clear them first every morning.",
+          "Confirmed → invoice → payment → receipt all happen from the same booking, so nothing is retyped."
         ]
       },
       "clients": {

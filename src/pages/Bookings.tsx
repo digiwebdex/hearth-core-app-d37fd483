@@ -19,7 +19,7 @@ import { format, isAfter, isBefore, addDays, parseISO } from "date-fns";
 import {
   Plus, Pencil, Trash2, Plane, Search, Eye, DollarSign,
   CalendarIcon, MapPin, AlertTriangle, Clock, CheckCircle2, XCircle,
-  Ticket, Hotel, Stamp, Package, Filter, FileText, GraduationCap, HardHat, Car, Shield,
+  Ticket, Hotel, Stamp, Package, Filter, FileText, GraduationCap, HardHat, Car, Shield, HelpCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -57,6 +57,7 @@ import {
 } from "@/lib/bookingRoutePresets";
 
 const STATUS_META: { value: BookingStatus; color: string; icon: any }[] = [
+  { value: "inquiry", color: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200", icon: HelpCircle },
   { value: "pending", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200", icon: Clock },
   { value: "confirmed", color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200", icon: CheckCircle2 },
   { value: "ticketed", color: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200", icon: Ticket },
@@ -893,8 +894,8 @@ const Bookings = () => {
                   <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v as BookingStatus }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {(editingId ? STATUS_META : STATUS_META.filter((s) => s.value === "pending" || s.value === "confirmed")).map((s) => (
-                        <SelectItem key={s.value} value={s.value}>{t(`bookingsForm.statuses.${s.value}`)}</SelectItem>
+                      {(editingId ? STATUS_META : STATUS_META.filter((s) => s.value === "inquiry" || s.value === "pending" || s.value === "confirmed")).map((s) => (
+                        <SelectItem key={s.value} value={s.value}>{t(`bookingsForm.statuses.${s.value}`, { defaultValue: s.value })}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

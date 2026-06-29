@@ -471,6 +471,8 @@ model Booking {
   internalNotes        String?
   serviceDetails       Json?
   opsStatus            String?                @default("pending")
+  followUpDate         DateTime?
+  followUpNote         String?
   tenantId             String
   tenant               Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   createdAt            DateTime               @default(now())
@@ -494,6 +496,7 @@ model Booking {
   @@index([tenantId, createdAt])
   @@index([tenantId, paymentStatus])
   @@index([tenantId, agentId])
+  @@index([tenantId, followUpDate])
 }
 
 model BookingSegment {

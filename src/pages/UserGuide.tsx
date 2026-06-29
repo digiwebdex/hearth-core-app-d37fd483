@@ -6,7 +6,8 @@ import { useTranslation } from "react-i18next";
 import {
   LayoutDashboard, Users, UserCheck, UserCog, Store, Target, ListTodo, FileText, Plane, Package2,
   Receipt, Wallet, BarChart3, Bell, Moon, Building2, Globe, Crown, Settings, BookOpen,
-  ListOrdered, Briefcase, Clock, FolderOpen, ArrowRight, PlayCircle,
+  ListOrdered, Briefcase, Clock, FolderOpen, ArrowRight, PlayCircle, HelpCircle,
+  MessageCircle, CalendarClock, CheckCircle2,
 } from "lucide-react";
 
 const sectionIcons: Record<string, typeof BookOpen> = {
@@ -14,6 +15,7 @@ const sectionIcons: Record<string, typeof BookOpen> = {
   "daily-workflow": ListOrdered,
   "sidebar-map": LayoutDashboard,
   dashboard: LayoutDashboard,
+  "inquiry-followup": HelpCircle,
   clients: UserCheck,
   agents: UserCog,
   vendors: Store,
@@ -45,6 +47,7 @@ const sectionIds = [
   "daily-workflow",
   "sidebar-map",
   "dashboard",
+  "inquiry-followup",
   "leads",
   "follow-ups",
   "quotations",
@@ -167,6 +170,71 @@ const UserGuide = () => {
                   </ol>
                 </div>
               ))}
+          </CardContent>
+        </Card>
+
+        {/* Inquiry → Booking process map (organogram) */}
+        <Card className="border-orange-500/30 bg-orange-500/5">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <HelpCircle className="h-5 w-5 text-orange-500" />
+              {t("userGuide.sections.inquiry-followup.title", { defaultValue: "Inquiry & Follow-up" })}
+            </CardTitle>
+            <CardDescription>
+              {t("userGuide.sections.inquiry-followup.intro", { defaultValue: "How a price-asking customer becomes a confirmed booking." })}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col items-stretch gap-2">
+              {/* Step row 1: add as inquiry */}
+              <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500/15 text-orange-600 shrink-0"><HelpCircle className="h-4 w-4" /></span>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">1 · Add booking as “Inquiry”</p>
+                  <p className="text-xs text-muted-foreground">Customer asked a price — name, phone, service. 10 seconds.</p>
+                </div>
+              </div>
+              <div className="flex justify-center text-muted-foreground"><ArrowRight className="h-4 w-4 rotate-90" /></div>
+
+              {/* Step row 2: shows on dashboard */}
+              <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/15 text-blue-600 shrink-0"><LayoutDashboard className="h-4 w-4" /></span>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">2 · Shows on Dashboard automatically</p>
+                  <p className="text-xs text-muted-foreground">“Inquiries to follow up” → the only screen you open daily.</p>
+                </div>
+              </div>
+              <div className="flex justify-center text-muted-foreground"><ArrowRight className="h-4 w-4 rotate-90" /></div>
+
+              {/* Step row 3: branch */}
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/15 text-amber-600 shrink-0"><CalendarClock className="h-4 w-4" /></span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">Not yet? Snooze</p>
+                    <p className="text-xs text-muted-foreground">Pick a date — comes back on that day.</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500/15 text-green-600 shrink-0"><MessageCircle className="h-4 w-4" /></span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">Ready? WhatsApp / call</p>
+                    <p className="text-xs text-muted-foreground">One tap to message the customer.</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-center text-muted-foreground"><ArrowRight className="h-4 w-4 rotate-90" /></div>
+
+              {/* Step row 4: convert */}
+              <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 shrink-0"><CheckCircle2 className="h-4 w-4" /></span>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">3 · Convert to booking</p>
+                  <p className="text-xs text-muted-foreground">Status → Confirmed. Invoice, payment & receipt follow automatically — no retyping.</p>
+                </div>
+              </div>
+            </div>
+            <p className="mt-3 text-xs text-center text-muted-foreground">No separate lead module — the booking status does everything.</p>
           </CardContent>
         </Card>
 

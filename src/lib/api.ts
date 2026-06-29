@@ -390,6 +390,9 @@ export const bookingApi = {
     return request<Booking[]>(`/bookings${query ? `?${query}` : ""}`);
   },
   updateStatus: (id: string, status: BookingStatus) => request<Booking>(`/bookings/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
+  getFollowUps: () => request<BookingFollowUps>(`/bookings/board/follow-ups`),
+  updateFollowUp: (id: string, data: { followUpDate?: string | null; followUpNote?: string | null; status?: BookingStatus }) =>
+    request<Booking>(`/bookings/${id}/follow-up`, { method: "PATCH", body: JSON.stringify(data) }),
   getSegments: (id: string) => request<BookingSegment[]>(`/bookings/${id}/segments`),
   addSegment: (id: string, data: Omit<BookingSegment, "id">) => request<BookingSegment>(`/bookings/${id}/segments`, { method: "POST", body: JSON.stringify(data) }),
   deleteSegment: (id: string, segId: string) => request<void>(`/bookings/${id}/segments/${segId}`, { method: "DELETE" }),
@@ -634,7 +637,13 @@ export type LeadStatus = "new" | "contacted" | "qualified" | "quoted" | "won" | 
 export interface Lead { id: string; name: string; phone: string; email: string; status: LeadStatus; source?: string; destination?: string; travelDateFrom?: string; travelDateTo?: string; travelerCount?: number; budget?: number; assignedTo?: string; assignedToName?: string; nextFollowUp?: string; notes?: string; tags?: string[]; tenantId: string; createdAt: string; updatedAt?: string; }
 export interface LeadActivity { id: string; leadId: string; type: "note" | "status_change" | "follow_up" | "call" | "email" | "meeting"; content: string; oldStatus?: LeadStatus; newStatus?: LeadStatus; createdBy?: string; createdByName?: string; createdAt: string; }
 export interface Task { id: string; title: string; description: string; status: "todo" | "in_progress" | "done"; priority: "low" | "medium" | "high"; dueDate?: string; assignedTo?: string; tenantId: string; createdAt: string; }
-export type BookingStatus = "pending" | "confirmed" | "ticketed" | "traveling" | "completed" | "cancelled";
+export type BookingStatus = "inquiry" | "pending" | "confirmed" | "ticketed" | "traveling" | "completed" | "cancelled";
+export interface BookingFollowUps {
+  due: Booking[];
+  upcoming: Booking[];
+  noDate: Booking[];
+  counts: { due: number; upcoming: number; noDate: number; total: number };
+}
 export type BookingType = "tour" | "ticket" | "hotel" | "visa" | "package" | "student" | "manpower" | "transport" | "corporate" | "insurance";
 export interface BookingListParams {
   type?: BookingType | string;
@@ -676,6 +685,8 @@ export interface Booking {
   internalNotes?: string;
   serviceDetails?: Record<string, unknown> | null;
   opsStatus?: string;
+  followUpDate?: string | null;
+  followUpNote?: string | null;
   tenantId: string;
   createdAt: string;
   updatedAt?: string;

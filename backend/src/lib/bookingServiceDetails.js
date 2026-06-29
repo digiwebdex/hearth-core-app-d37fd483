@@ -28,6 +28,8 @@ const BOOKING_SCALAR_KEYS = new Set([
   "internalNotes",
   "serviceDetails",
   "opsStatus",
+  "followUpDate",
+  "followUpNote",
   "tenantId",
   "createdAt",
   "updatedAt",

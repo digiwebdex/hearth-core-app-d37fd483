@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
+import { InquiryFollowUpWidget } from "@/components/InquiryFollowUpWidget";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -406,6 +407,8 @@ const Dashboard = () => {
             loading={loading}
           />
         </div>
+
+        <InquiryFollowUpWidget />
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <WidgetCard
