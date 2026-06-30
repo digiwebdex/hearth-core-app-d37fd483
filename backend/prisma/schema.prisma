@@ -1839,3 +1839,17 @@ model WhatsAppLog {
   @@index([status])
   @@index([createdAt])
 }
+
+model PlatformStaff {
+  id          String   @id @default(uuid())
+  name        String
+  email       String   @unique
+  password    String
+  phone       String?
+  status      String   @default("active")
+  permissions String[] @default([])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+}

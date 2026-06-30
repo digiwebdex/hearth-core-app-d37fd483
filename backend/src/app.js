@@ -159,6 +159,7 @@ function createApp() {
   app.use("/api/website", require("./routes/website"));
 
   app.use("/api/admin", require("./routes/adminSubscriptionWorkflow"));
+  app.use("/api/admin/platform-staff", require("./routes/adminPlatformStaff"));
   app.use("/api/admin", require("./routes/admin"));
   app.use("/api/admin/master-data", require("./routes/adminMasterData"));
   const domainsRouter = require("./routes/domains");
