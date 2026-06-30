@@ -329,7 +329,7 @@ router.post("/nightly-report", async (_req, res) => {
           ``,
           `━━━━━━━━━━━━━━━━━━━━━━`,
           `🔗 Login: app.travelagencyweb.com`,
-          `_Powered by Hearth ERP_`,
+          `_Powered by Travel Agency ERP_`,
         ].filter(l => l !== null && l !== undefined).join("\n");
 
         const waResult = await sendWhatsApp({ to: waPhone, message: msg }).catch(e => ({ success: false, error: e.message }));
