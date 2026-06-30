@@ -196,76 +196,156 @@ router.post("/process-expiry", async (_req, res) => {
   }
 });
 
-// ─── Nightly Report (11 PM) ────────────────────────────────────────────────
+// ─── Nightly Report (11 PM BD time) ──────────────────────────────────────────
 router.post("/nightly-report", async (_req, res) => {
-  const { sendSms } = require("../services/smsService");
   const { sendWhatsApp } = require("../services/whatsappService");
 
   try {
-    const today = new Date();
-    const startOfDay = new Date(today); startOfDay.setHours(0, 0, 0, 0);
-    const todayIso = today.toISOString().slice(0, 10);
+    // BD timezone offset = UTC+6
+    const now = new Date();
+    const bdOffset = 6 * 60 * 60 * 1000;
+    const bdNow = new Date(now.getTime() + bdOffset);
+    const bdDateStr = bdNow.toISOString().slice(0, 10);
+    const dayName = bdNow.toLocaleDateString("en-BD", { weekday: "long", timeZone: "Asia/Dhaka" });
 
-    // All active tenants
+    const startOfDayBD = new Date(bdNow);
+    startOfDayBD.setUTCHours(0, 0, 0, 0);
+    const startOfDayUTC = new Date(startOfDayBD.getTime() - bdOffset);
+
+    // Yesterday start (for comparison)
+    const startOfYesterdayUTC = new Date(startOfDayUTC.getTime() - 86400000);
+
     const tenants = await prisma.tenant.findMany({
       where: { subscriptionStatus: { in: ["active", "trial"] } },
-      select: { id: true, name: true },
+      select: { id: true, name: true, subscriptionExpiry: true, subscriptionPlan: true },
     });
 
     const results = [];
+
     for (const tenant of tenants) {
       try {
         const contact = await resolveTenantOwnerContact(prisma, tenant.id);
-        const phone = contact?.phone;
-        if (!phone) continue;
+        const waPhone = contact?.whatsapp || contact?.phone;
+        if (!waPhone) continue;
 
-        // Gather stats
-        const [clients, bookings, todayBookings, invoiceAgg, todayRevenue] = await Promise.all([
+        const ownerName = contact?.ownerName || "Owner";
+
+        // ── Fetch all stats in parallel ───────────────────────────────────
+        const [
+          todayBookings,
+          yesterdayBookings,
+          todayNewClients,
+          totalClients,
+          todayPayments,
+          totalDue,
+          openInquiries,
+          overdueFollowUps,
+          pendingInvoices,
+          upcomingDepartures,
+        ] = await Promise.all([
+          // Today's new bookings
+          prisma.booking.count({ where: { tenantId: tenant.id, createdAt: { gte: startOfDayUTC } } }),
+          // Yesterday's bookings (for comparison)
+          prisma.booking.count({ where: { tenantId: tenant.id, createdAt: { gte: startOfYesterdayUTC, lt: startOfDayUTC } } }),
+          // New clients today
+          prisma.client.count({ where: { tenantId: tenant.id, createdAt: { gte: startOfDayUTC } } }),
+          // Total clients
           prisma.client.count({ where: { tenantId: tenant.id } }),
-          prisma.booking.count({ where: { tenantId: tenant.id } }),
-          prisma.booking.count({ where: { tenantId: tenant.id, createdAt: { gte: startOfDay } } }),
-          prisma.invoice.aggregate({
-            where: { tenantId: tenant.id },
-            _sum: { totalAmount: true, paidAmount: true, dueAmount: true },
-          }),
+          // Today's payments received
           prisma.payment.aggregate({
-            where: { tenantId: tenant.id, createdAt: { gte: startOfDay } },
+            where: { tenantId: tenant.id, createdAt: { gte: startOfDayUTC } },
             _sum: { amount: true },
           }),
+          // Total outstanding due
+          prisma.invoice.aggregate({
+            where: { tenantId: tenant.id, status: { notIn: ["paid", "cancelled"] } },
+            _sum: { dueAmount: true },
+          }),
+          // Open inquiries (not yet converted)
+          prisma.booking.count({ where: { tenantId: tenant.id, status: "inquiry" } }),
+          // Overdue follow-ups (inquiry with followUpDate in the past)
+          prisma.booking.count({
+            where: {
+              tenantId: tenant.id,
+              status: "inquiry",
+              followUpDate: { lt: startOfDayUTC },
+            },
+          }),
+          // Unpaid invoices count
+          prisma.invoice.count({ where: { tenantId: tenant.id, status: { in: ["unpaid", "partial"] } } }),
+          // Bookings departing in next 3 days
+          prisma.booking.count({
+            where: {
+              tenantId: tenant.id,
+              departureDate: { gte: startOfDayUTC, lte: new Date(startOfDayUTC.getTime() + 3 * 86400000) },
+              status: { in: ["confirmed", "processing"] },
+            },
+          }).catch(() => 0),
         ]);
 
-        const totalRevenue = invoiceAgg._sum.paidAmount || 0;
-        const totalDue = invoiceAgg._sum.dueAmount || 0;
-        const todayIncome = todayRevenue._sum.amount || 0;
+        const todaySale = todayPayments._sum.amount || 0;
+        const totalOutstanding = totalDue._sum.dueAmount || 0;
 
-        const msg =
-          `📊 *${tenant.name}* — Daily Report ${todayIso}\n` +
-          `👥 Clients: ${clients} | 📋 Bookings: ${bookings} (+${todayBookings} today)\n` +
-          `💰 Collected: ৳${totalRevenue.toLocaleString()} | Due: ৳${totalDue.toLocaleString()}\n` +
-          `🏦 Today Income: ৳${todayIncome.toLocaleString()}`;
+        // ── Trend arrow ───────────────────────────────────────────────────
+        const bookingTrend = todayBookings > yesterdayBookings ? "📈" : todayBookings < yesterdayBookings ? "📉" : "➡️";
 
-        const smsMsg =
-          `[${tenant.name}] ${todayIso}: ` +
-          `Clients:${clients} Bookings:${bookings}(+${todayBookings}) ` +
-          `Collected:${totalRevenue} Due:${totalDue} Today:${todayIncome}`;
+        // ── Subscription expiry warning ───────────────────────────────────
+        let expiryWarning = "";
+        if (tenant.subscriptionExpiry) {
+          const daysLeft = Math.ceil((new Date(tenant.subscriptionExpiry).getTime() - now.getTime()) / 86400000);
+          if (daysLeft <= 7 && daysLeft > 0) {
+            expiryWarning = `\n⚠️ *Subscription expires in ${daysLeft} day${daysLeft === 1 ? "" : "s"}* — renew now to avoid disruption.`;
+          } else if (daysLeft <= 0) {
+            expiryWarning = `\n🚨 *Subscription EXPIRED* — please renew immediately.`;
+          }
+        }
 
-        const [smsRes, waRes] = await Promise.allSettled([
-          sendSms({ to: phone, message: smsMsg }),
-          sendWhatsApp({ to: phone, message: msg }),
-        ]);
+        // ── Alerts section ────────────────────────────────────────────────
+        const alerts = [];
+        if (overdueFollowUps > 0) alerts.push(`🔴 ${overdueFollowUps} overdue follow-up${overdueFollowUps > 1 ? "s" : ""} — call today`);
+        if (pendingInvoices > 0) alerts.push(`📄 ${pendingInvoices} unpaid invoice${pendingInvoices > 1 ? "s" : ""} pending`);
+        if (upcomingDepartures > 0) alerts.push(`✈️ ${upcomingDepartures} departure${upcomingDepartures > 1 ? "s" : ""} in next 3 days`);
+        if (openInquiries > 0) alerts.push(`💬 ${openInquiries} open inquir${openInquiries > 1 ? "ies" : "y"} — follow up`);
+        const alertSection = alerts.length > 0 ? `\n\n⚡ *Action Needed:*\n${alerts.map(a => `  • ${a}`).join("\n")}` : "";
+
+        // ── Build WhatsApp message ─────────────────────────────────────────
+        const msg = [
+          `🌙 *Good evening, ${ownerName}!*`,
+          `📅 *${dayName}, ${bdDateStr}* — End of Day Report`,
+          `━━━━━━━━━━━━━━━━━━━━━━`,
+          ``,
+          `🏢 *${tenant.name}*`,
+          ``,
+          `📋 *Today's Activity*`,
+          `  • New Bookings: *${todayBookings}* ${bookingTrend} (vs ${yesterdayBookings} yesterday)`,
+          `  • New Clients: *${todayNewClients}* (Total: ${totalClients})`,
+          `  • Payments In: *৳${todaySale.toLocaleString("en-IN")}*`,
+          ``,
+          `💰 *Account Balance*`,
+          `  • Outstanding Due: *৳${totalOutstanding.toLocaleString("en-IN")}*`,
+          `  • Unpaid Invoices: *${pendingInvoices}*`,
+          alertSection,
+          expiryWarning,
+          ``,
+          `━━━━━━━━━━━━━━━━━━━━━━`,
+          `🔗 Login: app.travelagencyweb.com`,
+          `_Powered by Hearth ERP_`,
+        ].filter(l => l !== null && l !== undefined).join("\n");
+
+        const waResult = await sendWhatsApp({ to: waPhone, message: msg }).catch(e => ({ success: false, error: e.message }));
 
         results.push({
           tenant: tenant.name,
-          phone,
-          sms: smsRes.status === "fulfilled" ? "sent" : "failed",
-          whatsapp: waRes.status === "fulfilled" ? "sent" : "failed",
+          phone: waPhone,
+          whatsapp: waResult.success ? "sent" : "failed",
+          stats: { todayBookings, todaySale, totalOutstanding, overdueFollowUps },
         });
       } catch (e) {
         results.push({ tenant: tenant.name, error: e.message });
       }
     }
 
-    res.json({ sent: results.length, results, timestamp: today.toISOString() });
+    res.json({ sent: results.filter(r => r.whatsapp === "sent").length, total: results.length, results, date: bdDateStr });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
