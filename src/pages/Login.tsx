@@ -28,10 +28,11 @@ const Login = () => {
     try {
       // Try login without TOTP first — server returns requires2FA if needed
       const loggedInUser = await login(email, password);
+      if (!loggedInUser) throw Object.assign(new Error("2FA_REQUIRED"), { requires2FA: true });
       const role = mapLegacyRole(loggedInUser.role);
       navigate(role === "super_admin" ? "/admin" : "/dashboard");
     } catch (err: any) {
-      if (err.requires2FA) {
+      if (err.requires2FA || err.message === "2FA_REQUIRED") {
         setStep("totp");
         setTotpCode("");
       } else {
