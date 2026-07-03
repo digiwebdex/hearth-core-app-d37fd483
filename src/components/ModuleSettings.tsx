@@ -14,7 +14,9 @@ import {
   buildServiceSelectionPayload,
   normalizeEnabledSubcategories,
 } from "@/lib/enabledServiceTypes";
-import { ADVANCED_MODULES, planCanUseAdvancedModules } from "@/lib/moduleAccess";
+import { ADVANCED_MODULES, planCanUseAdvancedModules, planCanUseModule, moduleMinPlan } from "@/lib/moduleAccess";
+
+const PLAN_LABEL: Record<string, string> = { pro: "Pro", business: "Business", enterprise: "Ultimate" };
 
 export default function ModuleSettings() {
   const { t, i18n } = useTranslation();
@@ -112,18 +114,28 @@ export default function ModuleSettings() {
           <div className="divide-y rounded-md border">
             {ADVANCED_MODULES.map((m) => {
               const on = modules.includes(m.id);
+              const planAllows = planCanUseModule(m.id, currentPlan);
+              const floorLabel = PLAN_LABEL[moduleMinPlan(m.id)] || moduleMinPlan(m.id);
               return (
                 <div key={m.id} className="flex items-start justify-between gap-3 p-3">
                   <div className="min-w-0">
                     <p className="text-sm font-medium">{t(m.labelKey)}</p>
                     <p className="text-xs text-muted-foreground">{t(m.descKey)}</p>
                   </div>
-                  <Switch
-                    checked={on}
-                    disabled={!canEdit || !canUseAdvanced || savingModules}
-                    onCheckedChange={(v) => toggleModule(m.id, v)}
-                    aria-label={t(m.labelKey)}
-                  />
+                  <div className="flex items-center gap-2 shrink-0">
+                    {!planAllows ? (
+                      <Badge variant="secondary" className="gap-1 whitespace-nowrap">
+                        <Lock className="h-3 w-3" />
+                        {floorLabel}
+                      </Badge>
+                    ) : null}
+                    <Switch
+                      checked={on && planAllows}
+                      disabled={!canEdit || !planAllows || savingModules}
+                      onCheckedChange={(v) => toggleModule(m.id, v)}
+                      aria-label={t(m.labelKey)}
+                    />
+                  </div>
                 </div>
               );
             })}
