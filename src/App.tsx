@@ -24,6 +24,7 @@ import WebsiteCustomizer from "./pages/WebsiteCustomizer";
 import WebsiteBuilderHome from "./pages/WebsiteBuilderHome";
 import WebsitePublishGuide from "./pages/WebsitePublishGuide";
 import Clients from "./pages/Clients";
+import Crm from "./pages/Crm";
 import Agents from "./pages/Agents";
 import AgentProfile from "./pages/AgentProfile";
 import Vendors from "./pages/Vendors";
@@ -211,6 +212,7 @@ const AppContent = () => (
           <Route path="/site/:slug/blog/:postSlug" element={<SiteSlugWrapper page="blog" />} />
 
           <Route path="/dashboard" element={<P><Dashboard /></P>} />
+          <Route path="/crm" element={<P><Crm /></P>} />
           <Route path="/clients" element={<P><Clients /></P>} />
           <Route path="/clients/:id" element={<P><ClientProfile /></P>} />
           <Route path="/corporate" element={<P><CorporateTravel /></P>} />

@@ -163,7 +163,8 @@
     "tourGroupTravel": "Tours & Group Travel",
     "financeAccounts": "Finance & Accounts",
     "hrPayroll": "HR & Payroll",
-    "marketingLoyalty": "Marketing & Loyalty"
+    "marketingLoyalty": "Marketing & Loyalty",
+    "crmWorkspace": "CRM workspace"
   },
   "packagesPage": {
     "pageTitle": "Packages & services",
@@ -403,7 +404,9 @@
     "marketing": "Marketing & loyalty",
     "marketingDesc": "Loyalty program and customer referrals.",
     "website": "Website & CMS",
-    "websiteDesc": "Public website builder, blog, SEO, and publishing."
+    "websiteDesc": "Public website builder, blog, SEO, and publishing.",
+    "crm": "CRM suite",
+    "crmDesc": "Full CRM workspace — leads, follow-ups, complaints, campaigns and CRM reports in one place."
   },
   "followUps": {
     "title": "Follow-ups",

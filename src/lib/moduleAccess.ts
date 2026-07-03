@@ -18,6 +18,7 @@ export interface AdvancedModule {
 }
 
 export const ADVANCED_MODULES: AdvancedModule[] = [
+  { id: "crm", labelKey: "modules.crm", descKey: "modules.crmDesc", items: ["crm-hub"] },
   { id: "subAgents", labelKey: "modules.subAgents", descKey: "modules.subAgentsDesc", items: ["agents", "commissions"] },
   { id: "corporate", labelKey: "modules.corporate", descKey: "modules.corporateDesc", items: ["corporate", "travel-approvals"] },
   { id: "ticketing", labelKey: "modules.ticketing", descKey: "modules.ticketingDesc", items: ["ticket-transactions", "flight-reminders"] },
