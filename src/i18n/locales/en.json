@@ -2449,467 +2449,484 @@
     }
   },
   "userGuide": {
-    "title": "User Guide",
-    "subtitle": "Step-by-step guide for running your travel agency — from first login to payment collection.",
-    "badge": "Updated Jun 2026",
-    "quickNav": "Module reference (A–Z)",
+    "title": "User guide",
+    "subtitle": "Everything you need to run your travel agency — from first login to daily operations.",
+    "badge": "Updated for the latest version",
+    "quickNav": "Jump to a topic",
     "steps": "Steps",
     "tips": "Tips",
-    "help": "Need Help?",
-    "helpIntro": "If you face any issue, contact our support team:",
-    "helpEmail": "Email: support@travelagencyweb.com",
-    "helpWeb": "Website: travelagencyweb.com/contact-us",
+    "watch": "Watch",
+    "comingSoon": "Coming soon",
+    "help": "Need more help?",
+    "helpIntro": "We're here if you get stuck. The fastest way to learn is to open the demo data and click around — nothing you do can break it.",
+    "helpEmail": "Email support: support@travelagencyweb.com",
+    "helpWeb": "Help centre and updates: travelagencyweb.com/help",
     "quickStartVideo": {
-      "title": "3-minute quick start (BN)",
-      "subtitle": "New agency owners — follow this checklist on day one.",
-      "duration": "~3 min",
+      "title": "Quick start — your first 10 minutes",
+      "subtitle": "Do these six things and your agency is live.",
+      "duration": "10 min",
       "steps": [
-        "Dashboard → Getting started checklist — complete each step.",
-        "CRM → Leads — add your first enquiry.",
-        "CRM → Clients — create a client from the lead.",
-        "Sales → Quotations — send a price from a catalog package.",
-        "Sales → Bookings — confirm the sale.",
-        "Finance → Invoices → Payments — record money received.",
-        "Administration → Team — invite one staff member."
+        "Set your agency name, logo and phone number in Settings → Organization.",
+        "Add your first client (Clients → New client).",
+        "Add a service or package you sell (Packages → New).",
+        "Create a booking for the client, or add a quick inquiry to follow up later.",
+        "Raise the invoice from the booking and record the advance payment.",
+        "Open the Dashboard — your revenue, dues and follow-ups now appear automatically."
       ],
-      "note": "Video walkthrough coming soon — use the checklist above and this User Guide daily."
+      "note": "Tip: your plan starts with the essential menu. Advanced modules (Hajj desk, website builder, HR, sub-agents) can be switched on by Business and Ultimate plans in Settings → Optional modules."
+    },
+    "videoTutorials": {
+      "title": "Video tutorials",
+      "subtitle": "Short, step-by-step videos for every part of the system.",
+      "note": "Videos open in a new tab. New tutorials are added regularly — check back for more.",
+      "items": [
+        {
+          "title": "Getting started & your dashboard",
+          "desc": "First login, setting up your agency, and reading the dashboard.",
+          "duration": "4 min",
+          "url": ""
+        },
+        {
+          "title": "Add a client & upload documents",
+          "desc": "Create a client record, store passport/NID, and set expiry alerts.",
+          "duration": "3 min",
+          "url": ""
+        },
+        {
+          "title": "Create & send a quotation",
+          "desc": "Build a price quote, add line items, and share it with the customer.",
+          "duration": "4 min",
+          "url": ""
+        },
+        {
+          "title": "Turn an inquiry into a booking",
+          "desc": "From a price-asking customer to a confirmed booking — no retyping.",
+          "duration": "5 min",
+          "url": ""
+        },
+        {
+          "title": "Raise an invoice & record payment",
+          "desc": "Generate the invoice, take an advance, and track the balance due.",
+          "duration": "4 min",
+          "url": ""
+        },
+        {
+          "title": "Dues, expenses & the ledger",
+          "desc": "Follow receivables, log expenses, and read your accounts.",
+          "duration": "5 min",
+          "url": ""
+        },
+        {
+          "title": "Reports & business insights",
+          "desc": "Sales, profit, and payment reports to understand your agency.",
+          "duration": "3 min",
+          "url": ""
+        },
+        {
+          "title": "Manage your team & roles",
+          "desc": "Invite staff, assign roles, and control who sees what.",
+          "duration": "3 min",
+          "url": ""
+        },
+        {
+          "title": "Settings, plan & optional modules",
+          "desc": "Branding, billing, and switching advanced modules on or off.",
+          "duration": "4 min",
+          "url": ""
+        },
+        {
+          "title": "Switch language (English ⇄ Bangla)",
+          "desc": "Change the whole interface between English and Bangla in one tap.",
+          "duration": "1 min",
+          "url": ""
+        }
+      ]
     },
     "workflow": {
-      "title": "Full agency workflow (step by step)",
-      "subtitle": "Use this flow for every customer — enquiry to payment to delivery.",
+      "title": "The core workflow",
+      "subtitle": "Every agency runs on the same money trail. Follow it and nothing slips.",
       "phases": [
         {
-          "title": "A. One-time setup (do once when you start)",
+          "title": "Capture the customer",
           "steps": [
-            "Log in at https://app.travelagencyweb.com with your owner account.",
-            "Open Administration → Organization — add company name, logo, phone, address (shows on invoice & quotation).",
-            "Open Administration → Team — invite staff; assign roles (Sales, Accountant, Manager).",
-            "Open Service catalog (Packages & services) — create your tour, Hajj, visa, hotel programs with price.",
-            "Optional: Administration → Website — publish packages on your public site.",
-            "Optional: CRM → Vendors — add airlines, hotels, visa agents you pay.",
-            "Optional: CRM → Agents — add sub-agents with commission %."
+            "Someone asks for a price — add them as a client (or as a quick inquiry booking).",
+            "Record what they want: destination, dates, number of travellers.",
+            "Send a quotation if they need a formal price."
           ]
         },
         {
-          "title": "B. When a customer enquires (CRM)",
+          "title": "Confirm the sale",
           "steps": [
-            "CRM → Leads → Add Lead — name, phone, destination, budget, travel date.",
-            "Set status: New → Contacted → Qualified.",
-            "CRM → Follow-ups — set next call date so nothing is missed.",
-            "CRM → Clients — create client record when you have confirmed details (passport, email)."
+            "When they agree, create (or convert the quotation into) a booking.",
+            "Set the booking status to Confirmed.",
+            "Assign a staff member or agent so it's clear who owns it."
           ]
         },
         {
-          "title": "C. Send a price (Sales — quotation)",
+          "title": "Collect the money",
           "steps": [
-            "Sales → Quotations → New Quotation.",
-            "Select client (or pick from lead).",
-            "Add line items — or open Service catalog and click Create quotation on a package row.",
-            "Set total price, tax, discount → Save.",
-            "Print / PDF / share with customer on WhatsApp.",
-            "When customer accepts → Convert to Booking (one click)."
+            "Raise the invoice from the booking — totals are filled in for you.",
+            "Record each payment (cash, bKash, bank, card). The balance updates automatically.",
+            "Overdue and partly-paid invoices show up on the Dashboard and Invoices page."
           ]
         },
         {
-          "title": "D. Confirm the sale (Sales — booking)",
+          "title": "Track profit & operations",
           "steps": [
-            "Sales → Bookings → Add Booking (or open converted booking).",
-            "Choose booking type: Tour, Flight, Hotel, Visa, Hajj package, Student, Corporate, etc.",
-            "Fill destination, travel dates, amount, assign agent if any.",
-            "Open booking row → Booking details: add travelers, passport, upload documents.",
-            "Update status: Pending → Confirmed → Ticketed → Completed."
-          ]
-        },
-        {
-          "title": "E. Collect money (Finance)",
-          "steps": [
-            "Finance → Invoices — invoice is created from booking (or add manually).",
-            "Send invoice PDF to customer.",
-            "Finance → Payments — record each payment (Cash, bKash, Bank).",
-            "On invoice → Installments tab — split total into kisti (1st, 2nd, 3rd) if needed.",
-            "Finance → Payment reminders — see overdue invoices and due installments; send reminder.",
-            "Finance → Accounts — see cash/bank balance and ledger."
-          ]
-        },
-        {
-          "title": "F. Deliver the service (Operations)",
-          "steps": [
-            "Operations → Service ops desk — visa, ticket, hotel, transport queues by status.",
-            "Open each booking → Ops tab — update PNR, visa status, hotel confirmation.",
-            "Operations → Documents — all uploaded files in one place.",
-            "Operations → Tasks — assign internal to-do to team.",
-            "Hajj/Umrah season only: Operations → Hajj/Umrah ops desk — pilgrims, groups, rooming."
-          ]
-        },
-        {
-          "title": "G. Customer & partner portals (optional)",
-          "steps": [
-            "Customer portal: portal.travelagencyweb.com — client enters their email → magic link → My Bookings, invoice & kisti summary.",
-            "Sub-agent portal: same URL — agent email → Commissions wallet (pending/paid).",
-            "Supplier portal: vendor email → Purchase orders (payables)."
-          ]
-        },
-        {
-          "title": "H. Monitor the business (daily habit)",
-          "steps": [
-            "Overview → Dashboard — leads, bookings, overdue invoices, quick actions.",
-            "Finance → Reports — sales, payments, profit (Business plan).",
-            "Administration → Activity log — who changed what (owner/manager).",
-            "Bell icon (top bar) — system notifications."
+            "Log supplier costs and office expenses so profit is real, not a guess.",
+            "Use Reports to see revenue, dues and profit for any date range.",
+            "Complete the trip, then keep the client for repeat business."
           ]
         }
       ]
     },
     "threePillars": {
-      "title": "Three areas — do not mix them up",
-      "subtitle": "The sidebar is organized so each job has one home.",
+      "title": "Three areas, one system",
+      "subtitle": "Understanding these three keeps the menu simple.",
       "items": [
         {
-          "title": "📦 Service catalog (Packages)",
-          "desc": "What you sell — templates with price, itinerary, website publish. Not a customer sale yet."
+          "title": "Catalog — what you sell",
+          "desc": "Packages and services you offer. Reusable templates for quotes and bookings."
         },
         {
-          "title": "✈️ Sales (Quotations & Bookings)",
-          "desc": "Real customer deals — quote, confirm, invoice, payment. One row = one customer trip."
+          "title": "Sales & operations — the deal",
+          "desc": "Quotations and bookings for a specific customer. This is where the work happens."
         },
         {
-          "title": "🔧 Operations & Finance",
-          "desc": "Deliver the trip (visa, ticket, docs) and track money (kisti, reminders, ledger)."
+          "title": "Money — cash in and out",
+          "desc": "Invoices, payments, expenses and the ledger. The heart of the system."
         }
       ]
     },
     "sections": {
       "getting-started": {
-        "title": "Getting Started",
-        "intro": "Your agency account lives at app.travelagencyweb.com. Bangla is the default language — switch EN/বাং from the top bar.",
+        "title": "Getting started",
+        "intro": "Set up your agency once, then you're ready to work. This takes about five minutes.",
         "steps": [
-          "Register or log in at app.travelagencyweb.com.",
-          "Complete Onboarding: company name, services you offer (Hajj, tour, visa, etc.).",
-          "Fill Organization profile — used on every invoice and quotation.",
-          "Invite team from Team page; give Sales staff access to Leads & Bookings only.",
-          "Create at least one package in Service catalog so quotations are faster.",
-          "Bookmark the User Guide (Administration → User Guide) for your staff."
+          "Log in with the email and password you were given. The interface opens in English — switch to Bangla any time from the language button in the top bar.",
+          "Open Settings → Organization and enter your agency name, logo, phone, address and website.",
+          "Review your plan under Subscription so you know your limits and which modules you have.",
+          "Add your team under Team so each person logs in with their own account and role.",
+          "Add a client and a service, then create your first booking to see the flow end to end."
         ],
         "tips": [
-          "Use Chrome or Brave with Shields off for app.travelagencyweb.com if pages look blank.",
-          "After each software update on VPS, press Ctrl+Shift+R once to refresh."
+          "Practise on the demo account first — you can't break anything there.",
+          "The onboarding checklist on the Dashboard walks you through the same steps."
         ]
       },
       "daily-workflow": {
-        "title": "Daily workflow (quick checklist)",
-        "intro": "Print this mentally every morning — same order for every agency.",
+        "title": "Your daily routine",
+        "intro": "Open one screen a day and you'll never lose a customer or a payment.",
         "steps": [
-          "1. Dashboard — check overdue invoices & follow-ups due today.",
-          "2. Follow-ups — call/WhatsApp customers due today.",
-          "3. Leads — update status for new enquiries from phone/Facebook.",
-          "4. Quotations — send pending quotes.",
-          "5. Bookings — confirm new sales; update ops status on open trips.",
-          "6. Invoices & Payments — record money received today.",
-          "7. Service ops desk — process visa/ticket/hotel queue.",
-          "8. Payment reminders — chase overdue kisti before travel date."
+          "Open the Dashboard — it shows today's follow-ups, dues, and new inquiries.",
+          "Work the follow-up list: message or call each customer, then snooze or convert.",
+          "Record any payments that came in — the balances update everywhere instantly.",
+          "Add new inquiries as they arrive (name, phone, what they want — 10 seconds).",
+          "Before closing, check overdue invoices and send a reminder where needed."
         ],
         "tips": [
-          "Rule: No booking without client record. No payment without invoice."
+          "If you only do one thing a day, clear the Dashboard follow-up list."
+        ]
+      },
+      "language": {
+        "title": "Language — English & Bangla",
+        "intro": "The whole system works in both English and Bangla. English is the default; Bangla is one tap away.",
+        "steps": [
+          "Find the language button in the top bar (it shows the other language you can switch to).",
+          "Tap it to switch the entire interface between English and Bangla instantly.",
+          "Your choice is remembered on this device for next time."
+        ],
+        "tips": [
+          "Each staff member can choose their own language — it doesn't change it for anyone else."
         ]
       },
       "sidebar-map": {
-        "title": "Sidebar map (menu groups)",
-        "intro": "Menu order follows real business flow: CRM → Catalog → Sales → Operations → Finance → Website → Admin.",
+        "title": "The menu, explained",
+        "intro": "The left menu is grouped so you always know where to look.",
         "steps": [
-          "Overview — Dashboard.",
-          "CRM — Leads, Follow-ups, Clients, Agents, Vendors.",
-          "Service catalog — Packages & services (all program types in one place).",
-          "Sales — Quotations, Bookings (use category filter: Hajj, Tour, Visa…).",
-          "Operations — Documents, Tasks, Service ops desk, Hajj ops desk (if enabled), BD ops (student/manpower).",
-          "Finance — Invoices, Payments, Payment reminders, Expenses, Commissions, Accounts, Reports.",
-          "Website CMS — build & publish public site.",
-          "Administration — Team, Roles, Activity log, Notifications, Settings, Organization, Subscription, User Guide."
+          "Overview — your Dashboard and daily snapshot.",
+          "Contacts — Clients and Vendors/Suppliers.",
+          "Sales & bookings — Quotations, Bookings and your service catalog.",
+          "Money — Invoices, Payments, Expenses, Accounts and Reports.",
+          "Manage — Tasks, Team, Settings, Organization and Subscription.",
+          "Advanced modules (Hajj desk, website, HR, sub-agents and more) appear only on Business and Ultimate plans, once switched on in Settings → Optional modules."
         ]
       },
       "dashboard": {
         "title": "Dashboard",
-        "intro": "See a snapshot of your business at a glance.",
+        "intro": "Your agency at a glance — the numbers that matter and the tasks that need you today.",
         "steps": [
-          "Total leads, bookings, invoices and income/expense graphs are shown.",
-          "Track recent activity and upcoming tasks.",
-          "Click any card to jump to that module."
+          "Top cards show revenue, dues, bookings and profit for the current period.",
+          "The follow-up strip lists inquiries due today so nothing is forgotten.",
+          "Click any card or row to jump straight to the underlying list."
         ]
       },
       "inquiry-followup": {
-        "title": "Inquiry & Follow-up",
-        "intro": "Never lose a customer who asked for a price. An \"Inquiry\" is simply a booking that is not confirmed yet — no separate module to learn.",
+        "title": "Inquiries & follow-ups",
+        "intro": "A customer who only asked a price is your most valuable lead. Capture it in seconds.",
         "steps": [
-          "When someone asks a price (WhatsApp, call, walk-in), go to Sales → Bookings → Add Booking.",
-          "Fill the customer name, phone and service, then set Status = \"Inquiry\".",
-          "The inquiry automatically appears on your Dashboard under \"Inquiries to follow up\".",
-          "Each day, open the Dashboard. The \"Call today\" list shows who to contact now.",
-          "Tap the WhatsApp button to message the customer in one tap.",
-          "Not ready to decide? Tap the clock icon and snooze to Tomorrow, 3 days, 1 week, or pick a date. It disappears and comes back on that day.",
-          "When the customer says yes, tap the green tick — \"Convert to booking\". The status becomes Confirmed and an invoice is generated."
+          "When someone asks for a price, add a booking and set its status to Inquiry.",
+          "It appears on the Dashboard under 'inquiries to follow up'.",
+          "Not ready to buy? Snooze it to a date and it comes back on that day.",
+          "Ready? Message or call them straight from the row.",
+          "When they agree, change the status to Confirmed — invoice and payment follow automatically."
         ],
         "tips": [
-          "You never create a separate \"lead\". Just set the booking status to Inquiry — that is the whole system.",
-          "Add a short note when snoozing (e.g. \"wants price for family of 4\") so you remember the context.",
-          "Overdue follow-ups show in red — clear them first every morning.",
-          "Confirmed → invoice → payment → receipt all happen from the same booking, so nothing is retyped."
+          "There's no separate lead module — the booking status handles the whole journey.",
+          "Set a follow-up date on every inquiry so it never falls through the cracks."
         ]
       },
       "clients": {
         "title": "Clients",
-        "intro": "Store and manage all your client information.",
+        "intro": "Your customer database — the asset that drives repeat business.",
         "steps": [
-          "Open Clients page and click \"Add Client\".",
-          "Fill in name, phone, email, passport number, address etc.",
-          "Save to add the client to the list.",
-          "Click any client name to see full profile, bookings & payment history.",
-          "Use Edit/Delete icons to update or remove."
+          "Add a client with name and phone; email, passport, NID and address are optional.",
+          "Upload passport and document scans to the client's profile for quick access.",
+          "Set passport expiry so you get alerts before it lapses.",
+          "Mark corporate clients as a company to track their staff travel together.",
+          "Open any client to see their full history: bookings, invoices and payments."
         ],
         "tips": [
-          "Use the search bar to find clients fast.",
-          "Use Export to download all clients as CSV/Excel."
-        ]
-      },
-      "agents": {
-        "title": "Agents",
-        "intro": "Manage sub-agents or commission-based salespeople.",
-        "steps": [
-          "Add a new agent from the Agents page.",
-          "Set commission rate for each agent.",
-          "View bookings and commission reports per agent."
+          "Tag your best customers as VIP or Repeat to find them fast.",
+          "A complete client profile makes the next booking twice as quick."
         ]
       },
       "vendors": {
-        "title": "Vendors / Suppliers",
-        "intro": "Maintain supplier records — airlines, hotels, transport companies etc.",
+        "title": "Vendors & suppliers",
+        "intro": "Airlines, hotels, transport and visa partners — and what you owe them.",
         "steps": [
-          "Use Add Vendor to add supplier information.",
-          "Track payables with each vendor.",
-          "View all purchase & payment history from Vendor Details."
-        ]
-      },
-      "leads": {
-        "title": "Leads",
-        "intro": "Capture and follow up potential customer enquiries.",
-        "steps": [
-          "Add a new enquiry from Add Lead (name, phone, destination, budget).",
-          "Update lead status: New → Contacted → Qualified → Converted/Lost.",
-          "Add notes and follow-up dates on each lead.",
-          "Create a quotation directly from a lead."
+          "Add each supplier with a category (airline, hotel, transport, visa).",
+          "Record supplier bills against a booking to track your costs.",
+          "Log payments to suppliers so payables stay accurate."
         ],
         "tips": [
-          "Check Pending Follow-up leads every day."
+          "The payables view shows who you owe and when it's due."
         ]
       },
-      "tasks": {
-        "title": "Tasks",
-        "intro": "Assign and track tasks for your team.",
+      "corporate": {
+        "title": "Corporate travel",
+        "intro": "Manage company clients whose staff travel regularly. (Business & Ultimate plans.)",
         "steps": [
-          "Create new task with Add Task.",
-          "Set deadline, priority and assignee.",
-          "Mark Completed when done."
+          "Add the company as a corporate client.",
+          "Book travel for their employees and group it under the company.",
+          "Use the corporate view to see each company's spend and open invoices."
         ]
       },
       "quotations": {
         "title": "Quotations",
-        "intro": "Send professional quotations/proposals to clients.",
+        "intro": "A professional price quote the customer can say yes to.",
         "steps": [
-          "Go to Quotations → New Quotation.",
-          "Select client and add service items (flight, hotel, visa etc.).",
-          "Set price, tax and discount.",
-          "Save then Print/PDF download or email.",
-          "Convert to Booking in one click when accepted."
+          "Create a quotation from a client or an inquiry.",
+          "Add line items (flights, hotel, transport) with your selling price.",
+          "Start from a package to fill the details automatically.",
+          "Send it to the customer; track whether it's sent, accepted or rejected.",
+          "When accepted, convert it to a booking in one click — nothing is retyped."
         ]
       },
       "packages": {
         "title": "Packages & services",
-        "intro": "Your service catalog — reusable templates for the website and quotations. Not individual customer sales.",
+        "intro": "Reusable templates for what you sell — so quotes and bookings are fast.",
         "steps": [
-          "Open Packages & services from the sidebar (Catalog group).",
-          "Use tabs (Tour, Hajj, Visa, etc.) to filter program types.",
-          "Create or edit a template: pricing, itinerary, inclusions, publish status.",
-          "Published templates sync to your public website packages page.",
-          "Click Create quotation on a row to prefill the quotation builder."
+          "Create a package with a title, code and price.",
+          "Set the service type (Umrah, tour, air ticket, visa, and more).",
+          "Add inclusions, itinerary and pricing so it's ready to reuse.",
+          "Mark your best sellers as featured.",
+          "Reuse a package in any quotation or booking to save typing."
         ],
         "tips": [
-          "Programs (catalog) vs Bookings (sales) vs Hajj ops desk (pilgrimage seasons) — keep them separate."
+          "Keep a few well-built packages — they speed up every sale."
         ]
       },
       "bookings": {
         "title": "Bookings",
-        "intro": "Confirmed customer sales — one booking = one trip or service contract.",
+        "intro": "The confirmed deal — the centre of your operations.",
         "steps": [
-          "Sales → Bookings → Add Booking (or convert from quotation).",
-          "Pick type: Tour, Flight, Hotel, Visa, Package (Hajj/Umrah), Student, Manpower, Transport, Corporate.",
-          "Use sidebar filters (/bookings/hajj, /bookings/visa, etc.) to focus one category.",
-          "Open booking → Details: travelers, timeline, documents, segments.",
-          "Link agent for commission; link package for snapshot price.",
-          "Statuses: Pending → Confirmed → Ticketed → Traveling → Completed."
+          "Create a booking directly, or convert it from a quotation.",
+          "Pick the type (package, ticket, hotel, visa, tour) and the client.",
+          "Enter the selling amount and your cost — profit is calculated for you.",
+          "Set the status: Inquiry, Confirmed, Completed or Cancelled.",
+          "Assign a staff member or agent so ownership is clear.",
+          "Raise the invoice straight from the booking."
         ],
         "tips": [
-          "Delivery work happens in Booking details + Service ops desk — not in Packages catalog."
-        ]
-      },
-      "operations": {
-        "title": "Service operations desk",
-        "intro": "Operations team queue for visa, tickets, hotels, transport — without mixing all bookings in one list.",
-        "steps": [
-          "Operations → Service ops desk.",
-          "Tabs/desks: Visa, Ticket, Hotel, Transport, Departures.",
-          "Open a row → Booking ops panel — update ops status, PNR, embassy, check-in dates.",
-          "Filter by pending / in-progress / done.",
-          "Student/Manpower agencies: Operations → BD operations desk (if enabled in settings)."
-        ]
-      },
-      "finance-desk": {
-        "title": "Finance — installments & reminders",
-        "intro": "Phase 4 finance tools — kisti plans and overdue chasing.",
-        "steps": [
-          "Finance → Invoices → open invoice → Installments tab → add kisti rows with due dates.",
-          "When customer pays, payment auto-allocates to oldest unpaid kisti first.",
-          "Finance → Payment reminders — lists overdue invoices + due installments.",
-          "Click Send reminder (uses SMS/email if configured; console mode in dev).",
-          "Finance → Commissions — agent commission per booking; mark paid when settled.",
-          "Finance → Accounts → Expenses tab for office cost; Ledger for full history."
-        ]
-      },
-      "portal": {
-        "title": "Customer & agent portal",
-        "intro": "Self-service at portal.travelagencyweb.com — separate from staff app.",
-        "steps": [
-          "Customer: must have Client email in CRM → portal login with that email → magic link.",
-          "Customer sees: booking list, trip detail, invoice total, kisti status.",
-          "Sub-agent: Agent record email → portal → Commissions tab (pending/paid wallet).",
-          "Supplier: Vendor email → Purchase orders (amount due to them).",
-          "Staff app remains app.travelagencyweb.com — do not confuse the two URLs."
-        ],
-        "tips": [
-          "Magic link expires in 15 minutes — ask customer to check spam folder."
-        ]
-      },
-      "follow-ups": {
-        "title": "Follow-ups",
-        "intro": "Daily call-back list so leads and clients are not forgotten.",
-        "steps": [
-          "CRM → Follow-ups.",
-          "See all leads/clients with next follow-up date today or overdue.",
-          "After call, update lead status and set next follow-up date.",
-          "Convert hot lead to quotation when ready."
-        ]
-      },
-      "documents": {
-        "title": "Documents hub",
-        "intro": "All files uploaded across bookings and clients in one searchable place.",
-        "steps": [
-          "Operations → Documents.",
-          "Browse by booking/client upload.",
-          "Upload passport, visa copy, ticket PDF from booking details — they appear here too."
+          "Use Inquiry status for price-askers so they land on your Dashboard."
         ]
       },
       "invoices": {
         "title": "Invoices",
-        "intro": "Create invoices and issue payment receipts for clients.",
+        "intro": "Bill the customer and always know exactly what's owed.",
         "steps": [
-          "Invoice generates automatically from booking, or add manually.",
-          "Print, Download PDF, or email it.",
-          "Record received payments with \"Add Payment\".",
-          "Print receipts from the Receipt page."
+          "Generate the invoice from a booking — totals are filled in for you.",
+          "Send it to the customer; the status tracks paid, partial, unpaid and overdue.",
+          "Record payments against it and the balance updates automatically.",
+          "The Invoices page and Dashboard highlight anything overdue."
+        ]
+      },
+      "payments": {
+        "title": "Payments",
+        "intro": "Record money as it comes in so dues are always accurate.",
+        "steps": [
+          "Open an invoice and add a payment (cash, bKash, bank transfer, card).",
+          "The invoice balance and the client's dues update instantly.",
+          "Partial payments are supported — take an advance now, the rest later.",
+          "Each payment posts to your ledger automatically."
+        ],
+        "tips": [
+          "Installments are ideal for Hajj and big tour packages — record each one as it arrives."
+        ]
+      },
+      "expenses": {
+        "title": "Expenses",
+        "intro": "Log what your agency spends so profit is real, not a guess.",
+        "steps": [
+          "Add an expense with a category (rent, salary, marketing, utilities).",
+          "Set the amount, date and how it was paid.",
+          "Expenses flow into your accounts and profit reports."
         ]
       },
       "accounts": {
-        "title": "Accounts",
-        "intro": "Cash, bank, receivables, payables and expenses — complete accounting.",
+        "title": "Accounts & ledger",
+        "intro": "The full financial picture — cash, bank, receivables and payables.",
         "steps": [
-          "Add bank/cash accounts from the Cash & Bank Accounts tab.",
-          "Payments Received: track client payments.",
-          "Vendor Payables: see and pay vendor dues.",
-          "Add office expenses in the Expenses tab.",
-          "View all transactions in the Ledger tab.",
-          "Profit & loss summary in Profitability tab."
+          "Set up your cash, bank and mobile (bKash) accounts.",
+          "Every payment and expense posts to the ledger automatically.",
+          "See receivables (what customers owe) and payables (what you owe suppliers).",
+          "Check profitability per booking and overall.",
+          "Filter the ledger by date to reconcile a period.",
+          "Export to CSV for your accountant."
         ]
       },
       "reports": {
         "title": "Reports",
-        "intro": "View detailed analytical reports of your business.",
+        "intro": "Understand your business with numbers, not guesswork.",
         "steps": [
-          "Sales Report: sales breakdown.",
-          "Payment Report: payment collection.",
-          "Profitability Report: P&L.",
-          "Vendor Report: vendor-wise spend.",
-          "Staff Performance: per-staff performance.",
-          "Leads & Quotation Report: conversion rate.",
-          "Filter by custom date range and Export."
+          "Pick a date range to focus any report.",
+          "Sales report — revenue and bookings over time.",
+          "Profitability — selling price minus cost, per booking and overall.",
+          "Payments — what came in, by method.",
+          "Receivables — outstanding dues by customer.",
+          "Staff and agent performance — who's driving revenue.",
+          "Export any report for records or sharing."
         ]
       },
-      "notifications": {
-        "title": "Notifications",
-        "intro": "Log of all email/SMS notifications sent by the system.",
+      "tasks": {
+        "title": "Tasks",
+        "intro": "Simple to-dos so operational steps never get missed.",
         "steps": [
-          "View delivery status of each notification.",
-          "Check reason on failure and re-send."
+          "Add a task with a title, due date and priority.",
+          "Assign it to a team member.",
+          "Mark it done when complete — overdue tasks stay visible."
         ]
       },
-      "hajj": {
-        "title": "Hajj / Umrah ops desk",
-        "intro": "Seasonal pilgrimage operations — pilgrims, groups, rooming, and installment payments. Package templates live under Packages & services.",
+      "documents": {
+        "title": "Documents",
+        "intro": "Keep passports, tickets and vouchers in one safe place.",
         "steps": [
-          "Enable the Hajj/Umrah ops desk in Settings if your agency runs pilgrimage seasons.",
-          "Manage pilgrims, groups, visa progress, and payments from the ops desk.",
-          "Create Hajj/Umrah program templates under Packages → Hajj or Umrah tabs.",
-          "Customer sales remain under Sales → Bookings (Hajj/Umrah filter)."
-        ],
-        "tips": [
-          "Pure tour agencies can turn the ops desk off — Hajj program templates and bookings still work if needed."
+          "Upload documents to a client, booking or the central library.",
+          "Find a file fast by client or booking.",
+          "Download or share when you need it."
         ]
       },
       "team": {
-        "title": "Team & Roles",
-        "intro": "Add staff and set their access levels.",
+        "title": "Team & roles",
+        "intro": "Add your staff and control who can see and do what.",
         "steps": [
-          "Use Invite Member on Team page to add new staff.",
-          "An invitation email is sent — they set their password.",
-          "Create custom roles (e.g. Sales, Accountant, Manager) in Roles.",
-          "Set View/Create/Edit/Delete permissions per module."
+          "Invite a team member by email from the Team page.",
+          "Choose a role: Owner, Manager, Sales agent, Accountant or Operations.",
+          "Each role sees only the parts of the system it needs.",
+          "Deactivate anyone who leaves so their access ends immediately."
         ],
         "tips": [
-          "Owner role has full access — assign carefully."
+          "Keep finance (Accountant) separate from booking approval — it protects your cash."
         ]
       },
       "organization": {
         "title": "Organization",
-        "intro": "Your company info — shown on invoices, quotations and website.",
+        "intro": "Your agency's identity across the whole system.",
         "steps": [
-          "Fill company name, logo, address, phone, email, website.",
-          "Add Trade License / TIN number.",
-          "Set default currency and tax rate."
-        ]
-      },
-      "website": {
-        "title": "Website Customizer",
-        "intro": "Launch a professional travel agency website on your subdomain.",
-        "steps": [
-          "Choose a template (Travel Agency / Tour Packages / Hajj-Umrah).",
-          "Customize hero section, colors, logo, content.",
-          "Add packages to display on the website.",
-          "Connect a custom domain from Admin → Domains."
+          "Set your name, logo, phone, address and website.",
+          "These details appear on invoices, quotations and your public site.",
+          "Keep them current — customers see them everywhere."
         ]
       },
       "subscription": {
-        "title": "Subscription",
-        "intro": "Your subscription plan, billing and upgrade.",
+        "title": "Subscription & plan",
+        "intro": "Your plan sets your limits and which modules you can use.",
         "steps": [
-          "View current plan and expiry.",
-          "Click Upgrade to move to a higher plan (Basic / Pro / Business / Enterprise).",
-          "Choose payment method (bKash / SSLCommerz / Card).",
-          "Download payment history and invoices."
+          "See your current plan, price and renewal date.",
+          "Compare plans to know what each unlocks.",
+          "Upgrade to Business or Ultimate to switch on advanced modules.",
+          "Submit a payment request to renew; the admin approves it."
         ]
       },
       "settings": {
         "title": "Settings",
-        "intro": "Your account and configuration.",
+        "intro": "Configure the system to match how your agency works.",
         "steps": [
-          "Profile: update your name and password.",
-          "SMTP Settings: send client emails via your own email server.",
-          "Data Export: download full data backup."
+          "Organization, billing, notifications and optional modules live here.",
+          "Business & Ultimate: switch advanced modules on or off under Optional modules.",
+          "Set notification preferences for new bookings, payments and inquiries."
+        ]
+      },
+      "agents": {
+        "title": "Sub-agents & commission",
+        "intro": "Work with B2B sub-agents and track their commission. (Business & Ultimate plans.)",
+        "steps": [
+          "Add each agent and set their commission rate.",
+          "Assign bookings to an agent to attribute the sale.",
+          "See each agent's bookings, sales and commission owed."
+        ]
+      },
+      "operations": {
+        "title": "Service operations desk",
+        "intro": "Operational tracking for visa, ticketing and service files. (Business & Ultimate plans.)",
+        "steps": [
+          "Track the operational status of each service file separately from payment.",
+          "Move files through their steps to completion.",
+          "See what's pending action across all bookings."
+        ]
+      },
+      "hajj": {
+        "title": "Hajj & Umrah operations",
+        "intro": "A dedicated desk for pilgrims, groups and installments. (Business & Ultimate plans.)",
+        "steps": [
+          "Create Hajj/Umrah packages and groups.",
+          "Add pilgrims with passport, mahram and rooming details.",
+          "Track each pilgrim's installment payments and balance.",
+          "Manage visa and document status per pilgrim."
+        ],
+        "tips": [
+          "Installment tracking is built for the way Hajj is paid in Bangladesh."
+        ]
+      },
+      "website": {
+        "title": "Website & CMS",
+        "intro": "Build a public website for your agency. (Business & Ultimate plans.)",
+        "steps": [
+          "Choose a template and set your colours, logo and content.",
+          "Publish your packages so customers can browse them online.",
+          "Add a blog and set SEO details to be found on Google.",
+          "Connect your own domain and go live."
+        ]
+      },
+      "notifications": {
+        "title": "Notifications — SMS, email & WhatsApp",
+        "intro": "Keep customers informed automatically. (SMS/WhatsApp on higher plans.)",
+        "steps": [
+          "The bell shows in-app alerts for bookings, payments and inquiries.",
+          "Set up SMS and WhatsApp under Settings to send confirmations and reminders automatically."
+        ]
+      },
+      "portal": {
+        "title": "Customer & supplier portal",
+        "intro": "A self-service login for your customers and suppliers.",
+        "steps": [
+          "Customers sign in with a magic link (no password to remember).",
+          "They see their bookings, invoices and payment status.",
+          "Suppliers can review the bills you've shared with them."
+        ],
+        "tips": [
+          "The portal is separate from your staff login and shows only that person's records."
         ]
       }
     }
