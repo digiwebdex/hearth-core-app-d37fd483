@@ -14,21 +14,17 @@ describe("moduleAccess", () => {
     }
   });
 
-  it("business-floor items stay hidden for basic and pro even if opted in", () => {
+  it("advanced items stay hidden for basic and pro even if opted in", () => {
     expect(isNavItemModuleEnabled("hajj-operations", "basic", ["hajj"])).toBe(false);
     expect(isNavItemModuleEnabled("group-tours", "pro", ["tourGroups"])).toBe(false);
-  });
-
-  it("website is a Pro-floor module: Pro can enable it, Basic cannot", () => {
-    expect(isNavItemModuleEnabled("website-builder", "pro", ["website"])).toBe(true);
-    expect(isNavItemModuleEnabled("website-seo", "pro", ["website"])).toBe(true);
+    // website builder is Business/Ultimate only — not available on Pro
+    expect(isNavItemModuleEnabled("website-builder", "pro", ["website"])).toBe(false);
     expect(isNavItemModuleEnabled("website-builder", "basic", ["website"])).toBe(false);
-    // still off by default until opted in
-    expect(isNavItemModuleEnabled("website-builder", "pro", [])).toBe(false);
   });
 
   it("business and ultimate can activate advanced items via enabled modules", () => {
     expect(isNavItemModuleEnabled("hajj-operations", "business", ["hajj"])).toBe(true);
+    expect(isNavItemModuleEnabled("website-builder", "business", ["website"])).toBe(true);
     expect(isNavItemModuleEnabled("website-builder", "enterprise", ["website"])).toBe(true);
     expect(isNavItemModuleEnabled("hajj-operations", "unlimited", ["hajj"])).toBe(true);
   });
@@ -38,19 +34,19 @@ describe("moduleAccess", () => {
     expect(isNavItemModuleEnabled("payroll", "enterprise", [])).toBe(false);
   });
 
-  it("planCanUseAdvancedModules: pro qualifies (website), basic and free do not", () => {
+  it("planCanUseAdvancedModules only allows business and enterprise", () => {
     expect(planCanUseAdvancedModules("business")).toBe(true);
     expect(planCanUseAdvancedModules("enterprise")).toBe(true);
     expect(planCanUseAdvancedModules("unlimited")).toBe(true);
-    expect(planCanUseAdvancedModules("pro")).toBe(true);
+    expect(planCanUseAdvancedModules("pro")).toBe(false);
     expect(planCanUseAdvancedModules("basic")).toBe(false);
     expect(planCanUseAdvancedModules("free")).toBe(false);
   });
 
-  it("sanitizeEnabledModules drops unknown ids and ids above the plan floor", () => {
+  it("sanitizeEnabledModules drops unknown ids and clears for sub-business plans", () => {
     expect(sanitizeEnabledModules(["hajj", "bogus"], "business")).toEqual(["hajj"]);
-    // pro can keep website but not the business-floor hajj bundle
-    expect(sanitizeEnabledModules(["hajj", "website"], "pro")).toEqual(["website"]);
+    // pro cannot keep any advanced module, including website
+    expect(sanitizeEnabledModules(["hajj", "website"], "pro")).toEqual([]);
     expect(sanitizeEnabledModules(["website"], "basic")).toEqual([]);
   });
 });
