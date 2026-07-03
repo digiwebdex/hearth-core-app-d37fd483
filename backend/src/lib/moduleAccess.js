@@ -8,6 +8,7 @@ const MODULE_MIN_PLAN = {
 };
 
 const ADVANCED_MODULE_IDS = [
+  "crm",
   "subAgents",
   "corporate",
   "ticketing",

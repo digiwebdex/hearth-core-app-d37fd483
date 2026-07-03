@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
+  LayoutGrid,
   UserCheck,
   UserCog,
   Store,
@@ -126,6 +127,7 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
       labelKey: "sidebar.crm",
       icon: UserCheck,
       items: [
+        { id: "crm-hub", titleKey: "sidebar.crmWorkspace", url: "/crm", icon: LayoutGrid, module: "clients" },
         { id: "clients", titleKey: "sidebar.clients", url: "/clients", icon: UserCheck, module: "clients" },
         {
           id: "corporate",
