@@ -138,13 +138,13 @@ export default function ServiceCatalogPicker({ value, onChange, disabled, compac
               }}
             >
               <div className="rounded-lg border">
-                <CollapsibleTrigger asChild>
-                  <button
-                    type="button"
-                    className="flex w-full items-center justify-between gap-2 p-3 text-left hover:bg-muted/40"
-                    disabled={disabled}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
+                <div className="flex w-full items-center justify-between gap-2 p-3 hover:bg-muted/40">
+                  <CollapsibleTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex flex-1 items-center gap-2 min-w-0 text-left"
+                      disabled={disabled}
+                    >
                       <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", isOpen && "rotate-180")} />
                       <span className="font-medium text-sm truncate">{getLocalizedCategoryLabel(cat.id, isBn)}</span>
                       {selectedInCat > 0 ? (
@@ -152,23 +152,20 @@ export default function ServiceCatalogPicker({ value, onChange, disabled, compac
                           {selectedInCat}/{catIds.length}
                         </Badge>
                       ) : null}
-                    </div>
-                    {!disabled ? (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 text-xs shrink-0"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleCategoryAll(cat.id);
-                        }}
-                      >
-                        {allInCat ? (isBn ? "সব বাতিল" : "Deselect") : isBn ? "সব নির্বাচন" : "Select all"}
-                      </Button>
-                    ) : null}
-                  </button>
-                </CollapsibleTrigger>
+                    </button>
+                  </CollapsibleTrigger>
+                  {!disabled ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs shrink-0"
+                      onClick={() => toggleCategoryAll(cat.id)}
+                    >
+                      {allInCat ? (isBn ? "সব বাতিল" : "Deselect") : isBn ? "সব নির্বাচন" : "Select all"}
+                    </Button>
+                  ) : null}
+                </div>
                 <CollapsibleContent>
                   <div className="grid gap-1 px-3 pb-3 sm:grid-cols-2">
                     {cat.subcategories.map((sub) => {

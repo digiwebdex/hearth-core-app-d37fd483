@@ -510,7 +510,8 @@ export const websiteApi = {
     try {
       const res = await fetch(`${BASE_URL}/website/config`, { headers: authHeaders() });
       if (!res.ok) throw new Error();
-      return res.json();
+      const data = await res.json();
+      return data ?? templateDefaults["travel-agency"];
     } catch {
       return templateDefaults["travel-agency"];
     }

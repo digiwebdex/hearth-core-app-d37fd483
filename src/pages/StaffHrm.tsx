@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { format, differenceInCalendarDays, parseISO } from "date-fns";
@@ -433,8 +433,8 @@ const StaffHrm = () => {
                           const expanded = expandedAttRow === m.id;
                           const timeData = attTimeForm[m.id] || { checkIn: row?.checkIn || "", checkOut: row?.checkOut || "", notes: row?.notes || "" };
                           return (
-                            <>
-                              <TableRow key={m.id} className={expanded ? "border-b-0" : ""}>
+                            <Fragment key={m.id}>
+                              <TableRow className={expanded ? "border-b-0" : ""}>
                                 <TableCell>
                                   <div className="font-medium text-sm">{m.name}</div>
                                   <div className="text-xs text-muted-foreground">{m.profile?.jobTitle || m.email}</div>
@@ -477,7 +477,7 @@ const StaffHrm = () => {
                                 </TableCell>
                               </TableRow>
                               {expanded && (
-                                <TableRow key={`${m.id}-expand`} className="bg-muted/30">
+                                <TableRow className="bg-muted/30">
                                   <TableCell colSpan={6} className="py-3 px-4">
                                     <div className="flex flex-wrap gap-3 items-end">
                                       <div className="space-y-1">
@@ -514,7 +514,7 @@ const StaffHrm = () => {
                                   </TableCell>
                                 </TableRow>
                               )}
-                            </>
+                            </Fragment>
                           );
                         })}
                       </TableBody>

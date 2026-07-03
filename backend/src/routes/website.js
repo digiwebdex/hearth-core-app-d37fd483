@@ -394,7 +394,8 @@ router.get("/config", requirePermission("website", "view"), async (req, res) => 
     if (!tenant) return res.status(404).json({ message: "Tenant not found" });
 
     const config = parseNotes(tenant.notes).websiteConfig;
-    if (!config) return res.status(404).json({ message: "Website config not found" });
+    // Not configured yet is a normal state, not an error — clients fall back to template defaults.
+    if (!config) return res.json(null);
     res.json(normalizeWebsiteConfig(config));
   } catch (err) {
     console.error("website/config GET error", err);

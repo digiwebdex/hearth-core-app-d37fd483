@@ -2,8 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const { PrismaClient } = require("@prisma/client");
-const { authLimiter } = require("./middleware/rateLimit");
-const { portalAuthLimiter } = require("./middleware/rateLimit");
+const { credentialAuthLimiter } = require("./middleware/rateLimit");
 const { getTrialDays } = require("./lib/trialConfig");
 const { getGatewayStatus } = require("./lib/paymentGatewayConfig");
 
@@ -115,7 +114,7 @@ function createApp() {
   const { subscriptionAccessGate } = require("./middleware/subscriptionAccess");
   app.use("/api", subscriptionAccessGate);
 
-  app.use("/api/auth", authLimiter, require("./routes/auth"));
+  app.use("/api/auth", credentialAuthLimiter, require("./routes/auth"));
   app.use("/api/tenants", require("./routes/tenants"));
   app.use("/api/master-data", require("./routes/masterData"));
   app.use("/api/tenant-domains", require("./routes/tenantDomains"));

@@ -23,4 +23,24 @@ const portalAuthLimiter = createLimiter({
   message: "Too many portal sign-in attempts. Please try again later.",
 });
 
-module.exports = { authLimiter, portalAuthLimiter };
+// Only credential/abuse-prone endpoints share the strict auth budget.
+// Session reads like GET /me fire on every page load and must never be
+// throttled by failed-login counting, or one busy office IP locks out the app.
+const CREDENTIAL_PATHS = new Set([
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/verify-email",
+  "/resend-verification",
+  "/check-email",
+  "/whatsapp-otp/send",
+  "/whatsapp-otp/verify",
+]);
+
+function credentialAuthLimiter(req, res, next) {
+  if (CREDENTIAL_PATHS.has(req.path)) return authLimiter(req, res, next);
+  return next();
+}
+
+module.exports = { authLimiter, portalAuthLimiter, credentialAuthLimiter };

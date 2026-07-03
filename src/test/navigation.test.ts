@@ -2,16 +2,20 @@ import { describe, it, expect } from "vitest";
 import { getNavigationGroups } from "@/config/navigation";
 
 describe("getNavigationGroups", () => {
-  it("orders groups CRM → catalog → sales → operations", () => {
+  it("orders groups CRM → sales & bookings → operations", () => {
     const ids = getNavigationGroups().map((g) => g.id);
     const crm = ids.indexOf("crm");
-    const catalog = ids.indexOf("serviceCatalog");
-    const sales = ids.indexOf("sales");
+    const salesBookings = ids.indexOf("salesBookings");
     const operations = ids.indexOf("operations");
     expect(crm).toBeGreaterThanOrEqual(0);
-    expect(catalog).toBeGreaterThan(crm);
-    expect(sales).toBeGreaterThan(catalog);
-    expect(operations).toBeGreaterThan(sales);
+    expect(salesBookings).toBeGreaterThan(crm);
+    expect(operations).toBeGreaterThan(salesBookings);
+  });
+
+  it("keeps the service catalog inside sales & bookings", () => {
+    const sales = getNavigationGroups().find((g) => g.id === "salesBookings");
+    const catalog = sales?.items.find((i) => i.id === "service-catalog");
+    expect(catalog?.url).toBe("/packages/all");
   });
 
   it("uses hajj ops desk label key when module enabled", () => {
