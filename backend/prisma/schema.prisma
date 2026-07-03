@@ -350,6 +350,7 @@ model Lead {
   travelDateTo   String?
   travelerCount  Int?
   budget         Float?
+  score          Int      @default(0)
   assignedTo     String?
   nextFollowUp   String?
   notes          String?

@@ -18,15 +18,15 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { leadApi, taskApi, quotationApi, type Lead, type LeadActivity, type LeadStatus, type Quotation } from "@/lib/api";
+import { leadApi, taskApi, quotationApi, tenantApi, type Lead, type LeadActivity, type LeadStatus, type Quotation, type User } from "@/lib/api";
 import { buildLeadQuotationParams, buildLeadBookingParams } from "@/lib/leadNavigation";
 import { WorkflowNextStep } from "@/components/WorkflowNextStep";
 import { InlineEmpty } from "@/components/EmptyState";
 import { useHumanError } from "@/hooks/useHumanError";
 import {
   ArrowLeft, Phone, Mail, MapPin, CalendarIcon, Users, DollarSign, UserPlus,
-  MessageSquare, Clock, ArrowRight, RefreshCw, Send, FileText, CheckSquare,
-  AlertTriangle, ExternalLink, Plane,
+  MessageSquare, MessageCircle, Clock, ArrowRight, RefreshCw, Send, FileText, CheckSquare,
+  AlertTriangle, ExternalLink, Plane, Star, UserCog,
 } from "lucide-react";
 
 const LEAD_STATUSES: { value: LeadStatus; label: string; color: string }[] = [
@@ -43,6 +43,7 @@ const getStatusMeta = (s: LeadStatus) => LEAD_STATUSES.find((x) => x.value === s
 const ACTIVITY_TYPES = [
   { value: "note", label: "Note", icon: MessageSquare },
   { value: "call", label: "Call", icon: Phone },
+  { value: "whatsapp", label: "WhatsApp", icon: MessageCircle },
   { value: "email", label: "Email", icon: Mail },
   { value: "meeting", label: "Meeting", icon: Users },
   { value: "follow_up", label: "Follow-up", icon: Clock },
@@ -79,6 +80,8 @@ const LeadDetails = () => {
   const [followUpDate, setFollowUpDate] = useState<Date | undefined>();
   const [followUpNote, setFollowUpNote] = useState("");
   const [creatingTask, setCreatingTask] = useState(false);
+  const [members, setMembers] = useState<User[]>([]);
+  const [savingMeta, setSavingMeta] = useState(false);
   const { toast } = useToast();
   const { t } = useTranslation();
   const { formatError, errorTitle } = useHumanError();
@@ -103,6 +106,40 @@ const LeadDetails = () => {
   }, [id]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    tenantApi.getMembers().then(setMembers).catch(() => setMembers([]));
+  }, []);
+
+  const handleAssign = async (userId: string) => {
+    if (!lead) return;
+    const assignedTo = userId === "unassigned" ? "" : userId;
+    setSavingMeta(true);
+    try {
+      await leadApi.update(lead.id, { assignedTo });
+      const name = members.find((m) => m.id === assignedTo)?.name;
+      setLead((p) => (p ? { ...p, assignedTo, assignedToName: name } : p));
+      toast({ title: assignedTo ? `Assigned to ${name}` : "Unassigned" });
+    } catch (err: unknown) {
+      toast({ title: errorTitle, description: formatError(err), variant: "destructive" });
+    } finally {
+      setSavingMeta(false);
+    }
+  };
+
+  const handleScore = async (score: number) => {
+    if (!lead) return;
+    const clamped = Math.max(0, Math.min(100, Math.round(score)));
+    setSavingMeta(true);
+    try {
+      await leadApi.update(lead.id, { score: clamped });
+      setLead((p) => (p ? { ...p, score: clamped } : p));
+    } catch (err: unknown) {
+      toast({ title: errorTitle, description: formatError(err), variant: "destructive" });
+    } finally {
+      setSavingMeta(false);
+    }
+  };
 
   const handleStatusChange = async (status: LeadStatus) => {
     if (!lead) return;
@@ -306,6 +343,47 @@ const LeadDetails = () => {
                 )}
                 {lead.travelerCount && <div className="flex items-center gap-2"><Users className="h-4 w-4 text-muted-foreground" /> {lead.travelerCount} travelers</div>}
                 {lead.budget ? <div className="flex items-center gap-2"><DollarSign className="h-4 w-4 text-muted-foreground" /> ৳{lead.budget.toLocaleString()}</div> : null}
+              </CardContent>
+            </Card>
+
+            {/* Score & assignment */}
+            <Card>
+              <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Star className="h-4 w-4 text-muted-foreground" /> Score &amp; assignment</CardTitle></CardHeader>
+              <CardContent className="space-y-4 text-sm">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs text-muted-foreground">Lead score</Label>
+                    <Badge variant="secondary" className={cn(
+                      "font-medium",
+                      (lead.score ?? 0) >= 70 ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" :
+                      (lead.score ?? 0) >= 40 ? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200" :
+                      "bg-muted text-muted-foreground",
+                    )}>{lead.score ?? 0}/100</Badge>
+                  </div>
+                  <PermissionGate module="leads" action="edit" fallback={null}>
+                    <input
+                      type="range" min={0} max={100} step={5}
+                      value={lead.score ?? 0}
+                      disabled={savingMeta}
+                      onChange={(e) => setLead((p) => (p ? { ...p, score: Number(e.target.value) } : p))}
+                      onMouseUp={(e) => handleScore(Number((e.target as HTMLInputElement).value))}
+                      onTouchEnd={(e) => handleScore(Number((e.target as HTMLInputElement).value))}
+                      className="w-full accent-primary cursor-pointer"
+                    />
+                  </PermissionGate>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground flex items-center gap-1.5"><UserCog className="h-3.5 w-3.5" /> Assigned to</Label>
+                  <PermissionGate module="leads" action="edit" fallback={<p className="text-sm">{lead.assignedToName || "Unassigned"}</p>}>
+                    <Select value={lead.assignedTo || "unassigned"} onValueChange={handleAssign} disabled={savingMeta}>
+                      <SelectTrigger className="w-full"><SelectValue placeholder="Unassigned" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                        {members.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </PermissionGate>
+                </div>
               </CardContent>
             </Card>
 

@@ -16,10 +16,9 @@ interface Group { id: string; title: string; titleBn: string; icon: typeof Targe
 
 const GROUPS: Group[] = [
   { id: "leads", title: "Leads", titleBn: "লিড", icon: Target, url: "/leads", leaves: [
-    { label: "New lead" }, { label: "Lead source" }, { label: "Lead status" }, { label: "Follow-up" },
+    { label: "New lead" }, { label: "Lead source" }, { label: "Lead status" }, { label: "Lead score" },
+    { label: "Assignment" }, { label: "Follow-up" }, { label: "Call / WhatsApp / Email log" }, { label: "Meeting schedule" },
     { label: "Timeline" }, { label: "Notes" }, { label: "Duplicate detection" }, { label: "Convert to customer" },
-    { label: "Lead score", soon: true }, { label: "Assignment", soon: true },
-    { label: "Call / WhatsApp / Email log", soon: true }, { label: "Meeting schedule", soon: true },
   ] },
   { id: "customers", title: "Customers", titleBn: "গ্রাহক", icon: UserCheck, url: "/clients", leaves: [
     { label: "Individual & corporate" }, { label: "Profile, passport, NID" }, { label: "Emergency contact" },
