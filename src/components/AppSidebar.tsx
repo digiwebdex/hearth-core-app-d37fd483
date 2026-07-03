@@ -62,6 +62,7 @@ export function AppSidebar() {
             key={group.id}
             group={group}
             currentPlan={currentPlan}
+            enabledModules={tenant?.enabledModules}
           />
         ))}
 

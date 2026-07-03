@@ -541,6 +541,7 @@ export interface Tenant {
   enableBdOperationsModule?: boolean;
   enabledServiceTypes?: string[];
   enabledSubcategories?: string[];
+  enabledModules?: string[];
   createdAt: string;
   trialDaysConfigured?: number;
 }

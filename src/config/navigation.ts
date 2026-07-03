@@ -38,7 +38,6 @@ import {
 } from "lucide-react";
 import type { PlanType } from "@/lib/plans";
 import type { Module } from "@/lib/permissions";
-import { normalizeEnabledServiceTypes, resolveEffectiveServiceTypes } from "@/lib/enabledServiceTypes";
 
 export interface NavItemConfig {
   id: string;
@@ -73,25 +72,12 @@ export interface NavigationOptions {
 }
 
 export function getNavigationGroups(options: NavigationOptions = {}): NavGroupConfig[] {
-  const enabled = resolveEffectiveServiceTypes(
-    normalizeEnabledServiceTypes(options.enabledServiceTypes),
-    options.enabledSubcategories,
-  );
-  const showAllServices = enabled.length === 0 && !(options.enabledSubcategories?.length);
+  // Sidebar visibility is now driven by opt-in advanced modules (see
+  // src/lib/moduleAccess.ts), applied in AppSidebarNav with the current plan.
+  // navigation.ts returns the full static tree; the module gate + RBAC filter it.
   const showActivityLog = options.showActivityLog === true;
 
-  /** Returns true when the item should be visible for the current service selection. */
-  function serviceAllowed(item: NavItemConfig): boolean {
-    if (!item.requiredServiceTypes?.length) return true;
-    if (showAllServices) return true;
-    return item.requiredServiceTypes.some((t) => enabled.includes(t));
-  }
-
-  function filterByService(items: NavItemConfig[]): NavItemConfig[] {
-    return items.filter(serviceAllowed);
-  }
-
-  const operationsItems = filterByService([
+  const operationsItems: NavItemConfig[] = ([
     { id: "documents", titleKey: "sidebar.documents", url: "/documents", icon: FolderOpen, module: "clients" },
     { id: "tasks", titleKey: "sidebar.tasks", url: "/tasks", icon: ListTodo, module: "tasks" },
     { id: "service-operations", titleKey: "sidebar.serviceOperations", url: "/operations/services", icon: Briefcase, module: "bookings" },
@@ -151,7 +137,7 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
         },
         { id: "agents", titleKey: "sidebar.agents", url: "/agents", icon: UserCog, module: "agents" },
         { id: "vendors", titleKey: "sidebar.vendors", url: "/vendors", icon: Store, module: "vendors" },
-      ].filter(serviceAllowed),
+      ],
     },
 
     // 3 — Sales & Bookings
@@ -159,7 +145,7 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
       id: "salesBookings",
       labelKey: "sidebar.salesBookings",
       icon: Plane,
-      items: filterByService([
+      items: ([
         { id: "quotations", titleKey: "sidebar.quotations", url: "/quotations", icon: FileText, module: "quotations" },
         { id: "bookings", titleKey: "sidebar.bookings", url: "/bookings", icon: Plane, module: "bookings" },
         { id: "service-catalog", titleKey: "sidebar.serviceCatalogItem", url: "/packages/all", icon: Package2, module: "packages" },
@@ -187,7 +173,7 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
       id: "tourGroupTravel",
       labelKey: "sidebar.tourGroupTravel",
       icon: Globe,
-      items: filterByService([
+      items: ([
         {
           id: "group-tours",
           titleKey: "sidebar.groupTours",
@@ -240,7 +226,7 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
       id: "financeAccounts",
       labelKey: "sidebar.financeAccounts",
       icon: Wallet,
-      items: filterByService([
+      items: ([
         { id: "invoices", titleKey: "sidebar.invoices", url: "/invoices", icon: Receipt, module: "invoices" },
         { id: "payments", titleKey: "sidebar.payments", url: "/payments", icon: CreditCard, module: "invoices" },
         { id: "expenses", titleKey: "sidebar.expenses", url: "/expenses", icon: Banknote, module: "accounts", minPlan: "basic" },
