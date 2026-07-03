@@ -1,15 +1,20 @@
+import type { PlanType } from "@/lib/plans";
+
 // Advanced (opt-in) sidebar modules.
 //
 // The lean core menu is visible to every plan by default. Everything below is
-// OFF by default and can be switched on only by Business and Ultimate
-// (enterprise) plan owners in Settings. Each bundle maps to one or more nav
-// item ids from src/config/navigation.ts.
+// OFF by default and can be switched on in Settings. Most bundles are reserved
+// for Business and Ultimate (enterprise); a bundle may set its own `minPlan`
+// floor when the underlying feature is already sold on a lower plan (e.g.
+// Website is a Pro feature, so its floor is Pro).
 
 export interface AdvancedModule {
   id: string;
   labelKey: string;
   descKey: string;
   items: string[];
+  /** Lowest plan that may activate this bundle. Defaults to "business". */
+  minPlan?: PlanType;
 }
 
 export const ADVANCED_MODULES: AdvancedModule[] = [
@@ -23,10 +28,19 @@ export const ADVANCED_MODULES: AdvancedModule[] = [
   { id: "documentsDesk", labelKey: "modules.documentsDesk", descKey: "modules.documentsDeskDesc", items: ["documents", "service-operations"] },
   { id: "hrPayroll", labelKey: "modules.hrPayroll", descKey: "modules.hrPayrollDesc", items: ["hrm", "activity-log", "payroll"] },
   { id: "marketing", labelKey: "modules.marketing", descKey: "modules.marketingDesc", items: ["loyalty", "referrals"] },
-  { id: "website", labelKey: "modules.website", descKey: "modules.websiteDesc", items: ["website-home", "website-builder", "website-blog", "website-publish", "website-seo"] },
+  // Website is a Pro plan feature — Pro owners may turn it on; it just isn't in the lean default.
+  { id: "website", labelKey: "modules.website", descKey: "modules.websiteDesc", minPlan: "pro", items: ["website-home", "website-builder", "website-blog", "website-publish", "website-seo"] },
 ];
 
 export const ADVANCED_MODULE_IDS: string[] = ADVANCED_MODULES.map((m) => m.id);
+
+const MODULE_BY_ID: Record<string, AdvancedModule> = ADVANCED_MODULES.reduce(
+  (acc, m) => {
+    acc[m.id] = m;
+    return acc;
+  },
+  {} as Record<string, AdvancedModule>,
+);
 
 // Reverse lookup: nav item id → the advanced bundle that controls it.
 const ITEM_TO_MODULE: Record<string, string> = ADVANCED_MODULES.reduce(
@@ -37,26 +51,40 @@ const ITEM_TO_MODULE: Record<string, string> = ADVANCED_MODULES.reduce(
   {} as Record<string, string>,
 );
 
-// Plans allowed to activate advanced modules. "Ultimate" is the enterprise tier.
-const ADVANCED_PLAN_TIERS = new Set(["business", "enterprise"]);
+const PLAN_RANK: Record<string, number> = { free: 0, basic: 1, pro: 2, business: 3, enterprise: 4 };
+const DEFAULT_MODULE_MIN_PLAN: PlanType = "business";
 
-export function planCanUseAdvancedModules(plan?: string | null): boolean {
+function planRank(plan?: string | null): number {
   const p = String(plan || "").toLowerCase().trim();
   const normalized = p === "unlimited" ? "enterprise" : p;
-  return ADVANCED_PLAN_TIERS.has(normalized);
+  return PLAN_RANK[normalized] ?? 0;
+}
+
+/** Lowest plan allowed to activate a given bundle. */
+export function moduleMinPlan(bundleId: string): PlanType {
+  return MODULE_BY_ID[bundleId]?.minPlan ?? DEFAULT_MODULE_MIN_PLAN;
+}
+
+/** True when this plan is allowed to activate the given advanced bundle. */
+export function planCanUseModule(bundleId: string, plan?: string | null): boolean {
+  return planRank(plan) >= planRank(moduleMinPlan(bundleId));
+}
+
+/** True when the plan can activate at least one advanced bundle. */
+export function planCanUseAdvancedModules(plan?: string | null): boolean {
+  return ADVANCED_MODULE_IDS.some((id) => planCanUseModule(id, plan));
 }
 
 /** True when a nav item should be visible for this plan + enabled-module set. */
 export function isNavItemModuleEnabled(itemId: string, plan?: string | null, enabledModules?: string[] | null): boolean {
   const bundle = ITEM_TO_MODULE[itemId];
   if (!bundle) return true; // core item — always available
-  if (!planCanUseAdvancedModules(plan)) return false; // gated to Business / Ultimate
+  if (!planCanUseModule(bundle, plan)) return false; // below this bundle's plan floor
   return Array.isArray(enabledModules) && enabledModules.includes(bundle);
 }
 
-/** Keep only known bundle ids; empty when the plan cannot use advanced modules. */
+/** Keep only known bundle ids the plan is allowed to activate. */
 export function sanitizeEnabledModules(values?: string[] | null, plan?: string | null): string[] {
-  if (!planCanUseAdvancedModules(plan)) return [];
   const known = new Set(ADVANCED_MODULE_IDS);
-  return [...new Set((values || []).map((v) => String(v).trim()).filter((v) => known.has(v)))];
+  return [...new Set((values || []).map((v) => String(v).trim()).filter((v) => known.has(v) && planCanUseModule(v, plan)))];
 }
