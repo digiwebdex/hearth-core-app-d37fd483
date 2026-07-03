@@ -2,6 +2,7 @@ const router = require("express").Router();
 const { normalizeEnabledSubcategories } = require("../constants/serviceSubcategories");
 
 const { authenticate, requireRole, requirePermission, checkPlanLimit, prisma } = require("../middleware/auth");
+const { sanitizeEnabledModules } = require("../lib/moduleAccess");
 const {
   ensureTenantSettings,
   formatSettingsResponse,
@@ -14,7 +15,7 @@ router.use(authenticate);
 const ALLOWED_TENANT_FIELDS = [
   "name", "logo", "phone", "whatsapp", "website", "address", "city", "country",
   "currency", "timezone", "websiteConfig", "enableHajjUmrahModule", "enableBdOperationsModule",
-  "enabledServiceTypes", "enabledSubcategories",
+  "enabledServiceTypes", "enabledSubcategories", "enabledModules",
 ];
 
 function pickAllowed(body, allowedFields) {
@@ -51,6 +52,15 @@ router.patch("/me", requireRole("tenant_owner"), async (req, res) => {
     }
     if (data.enabledSubcategories !== undefined) {
       data.enabledSubcategories = normalizeEnabledSubcategories(data.enabledSubcategories);
+    }
+    if (data.enabledModules !== undefined) {
+      // Advanced modules are gated to Business / Ultimate plans; sanitize against
+      // the tenant's real plan so the API can't be used to bypass the plan tier.
+      const current = await prisma.tenant.findUnique({
+        where: { id: req.tenantId },
+        select: { subscriptionPlan: true },
+      });
+      data.enabledModules = sanitizeEnabledModules(data.enabledModules, current?.subscriptionPlan);
     }
     const tenant = await prisma.tenant.update({ where: { id: req.tenantId }, data });
     res.json(tenant);

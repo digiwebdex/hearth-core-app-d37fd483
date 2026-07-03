@@ -7,6 +7,7 @@ import type { PlanType } from "@/lib/plans";
 import type { Module } from "@/lib/permissions";
 import type { NavGroupConfig, NavItemConfig } from "@/config/navigation";
 import { navItemIsActive } from "@/lib/navActive";
+import { isNavItemModuleEnabled } from "@/lib/moduleAccess";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -80,17 +81,32 @@ function SidebarNavItem({ item, currentPlan, pathname }: { item: NavItemConfig; 
   return <SidebarNavLeaf item={item} title={title} pathname={pathname} />;
 }
 
-function filterVisibleItems(items: NavItemConfig[], canAccess: (module: Module) => boolean): NavItemConfig[] {
-  return items.filter((item) => canAccess(item.module));
+function filterVisibleItems(
+  items: NavItemConfig[],
+  canAccess: (module: Module) => boolean,
+  currentPlan: PlanType,
+  enabledModules?: string[] | null,
+): NavItemConfig[] {
+  return items.filter(
+    (item) => canAccess(item.module) && isNavItemModuleEnabled(item.id, currentPlan, enabledModules),
+  );
 }
 
 // ── Group — always expanded, label is a plain section header ─────────────────
-export function AppSidebarNavGroup({ group, currentPlan }: { group: NavGroupConfig; currentPlan: PlanType }) {
+export function AppSidebarNavGroup({
+  group,
+  currentPlan,
+  enabledModules,
+}: {
+  group: NavGroupConfig;
+  currentPlan: PlanType;
+  enabledModules?: string[] | null;
+}) {
   const { t } = useTranslation();
   const { canAccess } = usePermissions();
   const { pathname } = useLocation();
 
-  const visibleItems = filterVisibleItems(group.items, canAccess);
+  const visibleItems = filterVisibleItems(group.items, canAccess, currentPlan, enabledModules);
   if (visibleItems.length === 0) return null;
 
   const GroupIcon = group.icon;
