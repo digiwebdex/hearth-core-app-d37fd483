@@ -7,70 +7,75 @@ import {
   LayoutDashboard, Users, UserCheck, UserCog, Store, Target, ListTodo, FileText, Plane, Package2,
   Receipt, Wallet, BarChart3, Bell, Moon, Building2, Globe, Crown, Settings, BookOpen,
   ListOrdered, Briefcase, Clock, FolderOpen, ArrowRight, PlayCircle, HelpCircle,
-  MessageCircle, CalendarClock, CheckCircle2,
+  MessageCircle, CalendarClock, CheckCircle2, CreditCard, Banknote, Languages,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const sectionIcons: Record<string, typeof BookOpen> = {
   "getting-started": BookOpen,
   "daily-workflow": ListOrdered,
+  language: Languages,
   "sidebar-map": LayoutDashboard,
   dashboard: LayoutDashboard,
   "inquiry-followup": HelpCircle,
   clients: UserCheck,
-  agents: UserCog,
   vendors: Store,
-  leads: Target,
-  "follow-ups": Clock,
-  tasks: ListTodo,
+  corporate: Building2,
   quotations: FileText,
   packages: Package2,
   bookings: Plane,
-  operations: Briefcase,
   invoices: Receipt,
-  "finance-desk": Bell,
+  payments: CreditCard,
+  expenses: Banknote,
   accounts: Wallet,
   reports: BarChart3,
-  notifications: Bell,
-  hajj: Moon,
-  portal: Globe,
+  tasks: ListTodo,
   documents: FolderOpen,
   team: Users,
   organization: Building2,
-  website: Globe,
   subscription: Crown,
   settings: Settings,
+  // Advanced modules (Business / Ultimate plans)
+  agents: UserCog,
+  operations: Briefcase,
+  hajj: Moon,
+  website: Globe,
+  notifications: Bell,
+  portal: Globe,
 };
 
-/** Display order — most important for new agency owners first. */
+/** Display order — core modules first, advanced (Business/Ultimate) at the end. */
 const sectionIds = [
   "getting-started",
   "daily-workflow",
+  "language",
   "sidebar-map",
   "dashboard",
   "inquiry-followup",
-  "leads",
-  "follow-ups",
+  "clients",
+  "vendors",
+  "corporate",
   "quotations",
   "packages",
   "bookings",
-  "operations",
   "invoices",
-  "finance-desk",
+  "payments",
+  "expenses",
   "accounts",
-  "clients",
-  "agents",
-  "vendors",
-  "hajj",
-  "portal",
-  "documents",
-  "tasks",
   "reports",
-  "notifications",
+  "tasks",
+  "documents",
   "team",
   "organization",
-  "website",
   "subscription",
   "settings",
+  // Advanced modules — only visible on Business / Ultimate plans
+  "agents",
+  "operations",
+  "hajj",
+  "website",
+  "notifications",
+  "portal",
 ];
 
 const UserGuide = () => {
@@ -92,6 +97,13 @@ const UserGuide = () => {
     duration: string;
     steps: string[];
     note: string;
+  };
+
+  const videos = t("userGuide.videoTutorials", { returnObjects: true }) as {
+    title: string;
+    subtitle: string;
+    note: string;
+    items: Array<{ title: string; duration: string; desc: string; url?: string }>;
   };
 
   const sections = sectionIds
@@ -140,6 +152,51 @@ const UserGuide = () => {
                 ))}
               </ol>
               <p className="text-xs text-muted-foreground border-t pt-3">{quickStart.note}</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Video tutorials */}
+        {videos?.title && Array.isArray(videos.items) && videos.items.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <PlayCircle className="h-5 w-5 text-primary" />
+                {videos.title}
+              </CardTitle>
+              <CardDescription>{videos.subtitle}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                {videos.items.map((v, i) => (
+                  <div key={i} className="flex flex-col rounded-lg border p-3">
+                    <div className="flex items-start gap-2">
+                      <PlayCircle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium truncate">{v.title}</p>
+                          {v.duration && <Badge variant="outline" className="shrink-0 text-[10px]">{v.duration}</Badge>}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">{v.desc}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      {v.url ? (
+                        <Button asChild size="sm" variant="outline" className="w-full">
+                          <a href={v.url} target="_blank" rel="noopener noreferrer">
+                            <PlayCircle className="mr-1.5 h-4 w-4" /> {t("userGuide.watch", { defaultValue: "Watch" })}
+                          </a>
+                        </Button>
+                      ) : (
+                        <Badge variant="secondary" className="w-full justify-center py-1.5 font-normal">
+                          {t("userGuide.comingSoon", { defaultValue: "Coming soon" })}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {videos.note && <p className="text-xs text-muted-foreground border-t pt-3">{videos.note}</p>}
             </CardContent>
           </Card>
         )}
