@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { MessageCircle, Send, Loader2, CheckCircle2, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { usePlanAccess } from "@/hooks/usePlanAccess";
 const API = import.meta.env.VITE_API_URL || "/api";
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem("token");
@@ -32,13 +34,34 @@ const WhatsAppSettings = () => {
   const [testPhone, setTestPhone] = useState("");
   const [testing, setTesting] = useState(false);
   const { toast } = useToast();
+  const { currentPlan } = useAuth();
+  const { canUseWhatsApp } = usePlanAccess(currentPlan);
 
   useEffect(() => {
+    if (!canUseWhatsApp) return;
     apiFetch<WhatsAppConfig>("/whatsapp/config").then((c) => {
       setConfig(c);
       setProvider(c.provider || "wasender");
     }).catch(() => {});
-  }, []);
+  }, [canUseWhatsApp]);
+
+  if (!canUseWhatsApp) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 text-green-500" />
+            WhatsApp Notifications
+            <Badge variant="secondary" className="ml-auto">Upgrade required</Badge>
+          </CardTitle>
+          <CardDescription>
+            WhatsApp notifications are not included in your current plan. Upgrade to enable booking
+            confirmations, payment alerts, and renewal reminders over WhatsApp.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   const handleTest = async () => {
     if (!testPhone) return;
