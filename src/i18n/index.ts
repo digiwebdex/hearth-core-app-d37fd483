@@ -22,8 +22,9 @@ i18n
       lookupLocalStorage: "lang",
       caches: ["localStorage"],
     },
-    // If nothing is stored yet, force Bangla as primary
-    lng: typeof window !== "undefined" && !localStorage.getItem("lang") ? "bn" : undefined,
+    // First visit (nothing stored yet) defaults to English; Bangla is the
+    // switchable secondary. A saved choice in localStorage always wins.
+    lng: typeof window !== "undefined" && !localStorage.getItem("lang") ? "en" : undefined,
   });
 
 // Keep <html lang> in sync
@@ -33,7 +34,7 @@ const applyHtmlLang = (lng: string) => {
     document.documentElement.setAttribute("data-lang", lng);
   }
 };
-applyHtmlLang(i18n.language || "bn");
+applyHtmlLang(i18n.language || "en");
 i18n.on("languageChanged", applyHtmlLang);
 
 export default i18n;
