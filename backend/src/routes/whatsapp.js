@@ -6,9 +6,19 @@ const { sendWhatsApp, getWhatsAppConfig } = require("../services/whatsappService
 router.use(authenticate);
 router.use(requireFeature("hasWhatsApp"));
 
-// GET /api/whatsapp/config — return current provider config (no secrets)
+// GET /api/whatsapp/config — provider config (no secrets) + this month's quota
 router.get("/config", async (req, res) => {
-  res.json(getWhatsAppConfig());
+  const cfg = getWhatsAppConfig();
+  try {
+    const { getPlanLimit } = require("../lib/planFeatures");
+    const tenant = await prisma.tenant.findUnique({ where: { id: req.tenantId }, select: { subscriptionPlan: true } });
+    const limit = getPlanLimit(tenant?.subscriptionPlan, "whatsapp");
+    const start = new Date(); start.setUTCDate(1); start.setUTCHours(0, 0, 0, 0);
+    const used = await prisma.whatsAppLog.count({ where: { tenantId: req.tenantId, status: "sent", createdAt: { gte: start } } });
+    res.json({ ...cfg, quota: { limit: limit ?? 0, used, unlimited: limit === -1 } });
+  } catch {
+    res.json(cfg);
+  }
 });
 
 // POST /api/whatsapp/test — send a test message

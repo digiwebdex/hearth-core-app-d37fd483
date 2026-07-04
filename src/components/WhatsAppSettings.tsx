@@ -26,6 +26,7 @@ interface WhatsAppConfig {
   wasenderInstanceId: string;
   metaPhoneId: string;
   twilioFrom: string;
+  quota?: { limit: number; used: number; unlimited: boolean };
 }
 
 const WhatsAppSettings = () => {
@@ -100,6 +101,31 @@ const WhatsAppSettings = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
+        {config?.quota && (
+          <div className="rounded-lg border p-3 space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-medium">Monthly WhatsApp messages</span>
+              <span className="text-muted-foreground">
+                {config.quota.unlimited
+                  ? `${config.quota.used.toLocaleString()} sent · Unlimited`
+                  : `${config.quota.used.toLocaleString()} / ${config.quota.limit.toLocaleString()}`}
+              </span>
+            </div>
+            {!config.quota.unlimited && config.quota.limit > 0 && (
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${config.quota.used >= config.quota.limit ? "bg-destructive" : "bg-green-500"}`}
+                  style={{ width: `${Math.min(100, Math.round((config.quota.used / config.quota.limit) * 100))}%` }}
+                />
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              {config.quota.unlimited
+                ? "Your plan includes unlimited WhatsApp messages."
+                : `Your plan includes ${config.quota.limit.toLocaleString()} WhatsApp messages per month${config.quota.used >= config.quota.limit ? " — limit reached; upgrade for more." : "."}`}
+            </p>
+          </div>
+        )}
         <div className="space-y-2">
           <Label>Provider</Label>
           <Select value={provider} onValueChange={setProvider}>
