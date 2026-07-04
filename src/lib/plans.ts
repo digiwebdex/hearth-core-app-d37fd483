@@ -113,6 +113,7 @@ export const PLANS: PlanConfig[] = [
       "Operations desks (Hajj, ticketing, visa, corporate)",
       "Website design",
       "SMS, Email & WhatsApp integration",
+      "Daily WhatsApp summary + auto backup",
       "Advanced analytics + accounting",
       "25 team members",
     ],
@@ -135,6 +136,7 @@ export const PLANS: PlanConfig[] = [
       "Unlimited team members",
       "Unlimited branches & multi-office management",
       "Full CRM suite, campaigns & operations desks",
+      "Daily WhatsApp summary + automatic backup",
       "Unlimited SMS & WhatsApp automation",
       "Unlimited storage",
       "Unlimited custom domains",
@@ -253,6 +255,7 @@ export function checkUsage(sub: TenantSubscription): UsageCheck[] {
 export const FEATURE_COMPARISON = [
   { category: "Core", features: [
     { name: "Dashboard", basic: true, pro: true, business: true, enterprise: true },
+    { name: "Automatic daily backup (data safety)", basic: true, pro: true, business: true, enterprise: true },
     { name: "CRM System", basic: "500 clients", pro: "1,000 clients", business: "2,000 clients", enterprise: "Unlimited" },
     { name: "Bookings", basic: "500", pro: "1,000", business: "2,000", enterprise: "Unlimited" },
     { name: "Team Members", basic: "3", pro: "10", business: "25", enterprise: "Unlimited" },
@@ -271,6 +274,7 @@ export const FEATURE_COMPARISON = [
     { name: "SMS Integration", basic: "None", pro: "500/mo", business: "2,000/mo", enterprise: "Unlimited" },
     { name: "WhatsApp", basic: false, pro: false, business: true, enterprise: true },
     { name: "Marketing Campaigns (bulk SMS / WhatsApp / Email)", basic: false, pro: false, business: true, enterprise: true },
+    { name: "Daily WhatsApp summary to owner (+ auto-backup confirmation)", basic: false, pro: false, business: true, enterprise: true },
   ]},
   { category: "Website & Storage", features: [
     { name: "Company Domain (charges excluded)", basic: false, pro: "1", business: "2", enterprise: "Unlimited" },
