@@ -50,6 +50,8 @@ const cmpRows = [
   ["Email to customers", "n", "y", "y", "y"],
   ["SMS per month", "—", "500", "2,000", "Unlimited"],
   ["WhatsApp", "n", "n", "y", "y"],
+  ["Daily WhatsApp summary to owner", "n", "n", "y", "y"],
+  ["Automatic daily backup (data safety)", "y", "y", "y", "y"],
   ["Agent commission", "n", "y", "y", "y"],
   ["Advanced modules (CRM, Hajj, ticketing, visa, corporate)", "n", "n", "y", "y"],
   ["Website & CMS", "n", "n", "y", "y"],
@@ -136,6 +138,13 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><style>
     `).join("")}
   </div>
   <p class="sub" style="margin-top:14px;font-size:9.5pt;"><b>Supporting all steps:</b> Vendors/suppliers (your costs) · Expenses · Tasks · Team &amp; roles · Settings.</p>
+  <div style="margin-top:14px;background:#E1F5EE;border:1px solid #5DCAA5;border-radius:10px;padding:12px 14px;">
+    <div style="font-weight:700;color:#0F6E56;font-size:11pt;">🔔 Runs on autopilot every day</div>
+    <ul style="margin:6px 0 0;padding-left:18px;font-size:9.5pt;color:#085041;">
+      <li><b>Daily WhatsApp summary</b> to the owner every evening — today's bookings, payments received, outstanding dues, unpaid invoices and what needs action. <i>(Business &amp; Unlimited)</i></li>
+      <li><b>Automatic daily backup</b> — every agency's data is safely backed up each day, no button to press. <i>(All packages)</i></li>
+    </ul>
+  </div>
 </div>
 
 <div class="page">

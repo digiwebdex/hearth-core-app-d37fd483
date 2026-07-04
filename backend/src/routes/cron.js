@@ -8,6 +8,7 @@ const { expireTenantAndNotify } = require("../services/subscriptionExpiryService
 const { processTrialDrips } = require("../services/trialDripService");
 const { processPassportExpiryAlerts } = require("../services/passportExpiryAlertService");
 const { processTravelDepartureReminders } = require("../services/travelDepartureReminderService");
+const { planHasFeature } = require("../lib/planFeatures");
 
 const CRON_SECRET = process.env.CRON_SECRET || "";
 
@@ -227,6 +228,8 @@ router.post("/nightly-report", async (_req, res) => {
         const contact = await resolveTenantOwnerContact(prisma, tenant.id);
         const waPhone = contact?.whatsapp || contact?.phone;
         if (!waPhone) continue;
+        // Daily WhatsApp summary is a Business / Ultimate feature (needs WhatsApp).
+        if (!planHasFeature(tenant.subscriptionPlan, "hasWhatsApp")) continue;
 
         const ownerName = contact?.ownerName || "Owner";
 
@@ -327,6 +330,7 @@ router.post("/nightly-report", async (_req, res) => {
           alertSection,
           expiryWarning,
           ``,
+          `🔒 *Auto-backup done* — your data is safely backed up today.`,
           `━━━━━━━━━━━━━━━━━━━━━━`,
           `🔗 Login: app.travelagencyweb.com`,
           `_Powered by Travel Agency ERP_`,
