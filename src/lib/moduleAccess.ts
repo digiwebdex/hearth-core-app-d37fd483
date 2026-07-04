@@ -29,7 +29,7 @@ export const ADVANCED_MODULES: AdvancedModule[] = [
   { id: "documentsDesk", labelKey: "modules.documentsDesk", descKey: "modules.documentsDeskDesc", items: ["documents", "service-operations"] },
   { id: "hrPayroll", labelKey: "modules.hrPayroll", descKey: "modules.hrPayrollDesc", items: ["hrm", "activity-log", "payroll"] },
   { id: "marketing", labelKey: "modules.marketing", descKey: "modules.marketingDesc", items: ["loyalty", "referrals"] },
-  { id: "website", labelKey: "modules.website", descKey: "modules.websiteDesc", items: ["website-home", "website-builder", "website-blog", "website-publish", "website-seo"] },
+  { id: "website", labelKey: "modules.website", descKey: "modules.websiteDesc", minPlan: "pro", items: ["website-home", "website-builder", "website-blog", "website-publish", "website-seo"] },
 ];
 
 export const ADVANCED_MODULE_IDS: string[] = ADVANCED_MODULES.map((m) => m.id);

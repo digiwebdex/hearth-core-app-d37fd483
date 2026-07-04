@@ -12,9 +12,27 @@
  */
 
 const { PrismaClient } = require("@prisma/client");
+const { getPlanLimit } = require("../lib/planFeatures");
 const _prisma = new PrismaClient();
 
 const WHATSAPP_PROVIDER = () => process.env.WHATSAPP_PROVIDER || "console";
+
+// Per-tenant monthly WhatsApp quota (e.g. Pro = 200/mo, Business/Ultimate = unlimited).
+async function _withinWhatsAppQuota(tenantId) {
+  if (!tenantId) return true;
+  try {
+    const tenant = await _prisma.tenant.findUnique({ where: { id: tenantId }, select: { subscriptionPlan: true } });
+    const limit = getPlanLimit(tenant?.subscriptionPlan, "whatsapp");
+    if (limit === -1) return true;              // unlimited
+    if (!limit || limit <= 0) return false;     // 0 / undefined → not allowed
+    const start = new Date();
+    start.setUTCDate(1); start.setUTCHours(0, 0, 0, 0);
+    const used = await _prisma.whatsAppLog.count({ where: { tenantId, status: "sent", createdAt: { gte: start } } });
+    return used < limit;
+  } catch {
+    return true; // fail-open: never block a send because the counter errored
+  }
+}
 
 async function _saveLog({ to, message, result, tenantId, templateType, createdByUserId }) {
   try {
@@ -43,6 +61,13 @@ async function _saveLog({ to, message, result, tenantId, templateType, createdBy
  * @param {{ to: string, message: string, templateName?: string, templateParams?: string[], tenantId?: string, templateType?: string, createdByUserId?: string }} opts
  */
 async function sendWhatsApp({ to, message, templateName, templateParams, tenantId, templateType, createdByUserId }) {
+  // Enforce the plan's monthly WhatsApp quota before spending a message.
+  if (tenantId && !(await _withinWhatsAppQuota(tenantId))) {
+    const result = { success: false, provider: "quota", error: "WhatsApp monthly limit reached", limitReached: true };
+    await _saveLog({ to, message, result, tenantId, templateType, createdByUserId });
+    return result;
+  }
+
   const provider = WHATSAPP_PROVIDER();
   let result;
 

@@ -4,10 +4,10 @@
 
 // ── Count limits (−1 = unlimited, 0 = not allowed) ──
 const PLAN_LIMITS = {
-  basic:      { clients: 500,  bookings: 500,  users: 3,  domains: 0, leads: 500,  quotations: 500 },
-  pro:        { clients: 1000, bookings: 1000, users: 10, domains: 1, leads: 1000, quotations: 1000 },
-  business:   { clients: 2000, bookings: 2000, users: 25, domains: 2, leads: 2000, quotations: 2000 },
-  enterprise: { clients: -1,   bookings: -1,   users: -1, domains: -1, leads: -1,  quotations: -1 },
+  basic:      { clients: 500,  bookings: 500,  users: 3,  domains: 0, leads: 500,  quotations: 500,  whatsapp: 0 },
+  pro:        { clients: 1000, bookings: 1000, users: 10, domains: 1, leads: 1000, quotations: 1000, whatsapp: 200 },
+  business:   { clients: 2000, bookings: 2000, users: 25, domains: 2, leads: 2000, quotations: 2000, whatsapp: -1 },
+  enterprise: { clients: -1,   bookings: -1,   users: -1, domains: -1, leads: -1,  quotations: -1,   whatsapp: -1 },
 };
 
 const RESOURCE_MODEL_MAP = {
@@ -29,7 +29,7 @@ const PLAN_FEATURES = {
   },
   pro: {
     hasCustomDomain: true, hasWebsiteTemplates: true, hasSmsIntegration: true,
-    hasWhatsApp: false, hasEmailNotifications: true, hasAgentCommission: true,
+    hasWhatsApp: true, hasEmailNotifications: true, hasAgentCommission: true,
     hasAdvancedAnalytics: false, hasMarketingTools: false, hasApiAccess: false,
     hasRefundSystem: false, hasHajjUmrah: true, hasPrioritySupport: false,
   },
