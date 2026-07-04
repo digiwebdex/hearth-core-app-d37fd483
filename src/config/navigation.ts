@@ -150,6 +150,7 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
       items: ([
         { id: "quotations", titleKey: "sidebar.quotations", url: "/quotations", icon: FileText, module: "quotations" },
         { id: "bookings", titleKey: "sidebar.bookings", url: "/bookings", icon: Plane, module: "bookings" },
+        { id: "visa-stock", titleKey: "sidebar.visaStock", url: "/visa-stock", icon: FileText, module: "bookings" },
         { id: "service-catalog", titleKey: "sidebar.serviceCatalogItem", url: "/packages/all", icon: Package2, module: "packages" },
         {
           id: "ticket-transactions",

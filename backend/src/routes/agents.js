@@ -270,6 +270,34 @@ router.get("/:id", requirePermission("agents", "view"), async (req, res) => {
   }
 });
 
+// ── Agent ledger (deposit / payment / balance) ───────────────────────────────
+router.get("/:id/ledger", requirePermission("agents", "view"), async (req, res) => {
+  try {
+    const agent = await getTenantAgent(req.params.id, req.tenantId);
+    if (!agent) return res.status(404).json({ message: "Not found" });
+    const transactions = await prisma.agentTransaction.findMany({ where: { agentId: req.params.id }, orderBy: { createdAt: "desc" }, take: 100 });
+    res.json({ balance: agent.balance || 0, transactions });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.post("/:id/ledger", requirePermission("agents", "edit"), async (req, res) => {
+  try {
+    const agent = await getTenantAgent(req.params.id, req.tenantId);
+    if (!agent) return res.status(404).json({ message: "Not found" });
+    const amount = Math.abs(Number(req.body.amount) || 0);
+    if (!amount) return res.status(400).json({ message: "Amount is required" });
+    // deposit: agent adds money to their account (balance up). payment: agent draws / we pay out (balance down).
+    const type = ["deposit", "payment", "adjustment"].includes(req.body.type) ? req.body.type : "deposit";
+    const delta = type === "payment" ? -amount : amount;
+    const balance = (agent.balance || 0) + delta;
+    const [, txn] = await prisma.$transaction([
+      prisma.agent.update({ where: { id: req.params.id }, data: { balance } }),
+      prisma.agentTransaction.create({ data: { agentId: req.params.id, tenantId: req.tenantId, type, amount, balance, method: req.body.method, note: req.body.note, createdBy: req.userId } }),
+    ]);
+    res.status(201).json({ balance, transaction: txn });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 router.post("/", requirePermission("agents", "create"), async (req, res) => {
   try {
     const name = String(req.body.name || "").trim();

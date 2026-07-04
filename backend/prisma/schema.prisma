@@ -37,6 +37,8 @@ model Tenant {
   complaints            Complaint[]
   campaigns             Campaign[]
   crmConfig             CrmConfig?
+  agentTransactions     AgentTransaction[]
+  visaStocks            VisaStock[]
   tasks                 Task[]
   supportTickets        SupportTicket[]
   staffProfiles         StaffProfile[]
@@ -258,11 +260,55 @@ model Agent {
   name              String
   phone             String                  @default("")
   email             String                  @default("")
+  address           String?
+  balance           Float                   @default(0)
   tenantId          String
   tenant            Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   createdAt         DateTime                @default(now())
   bookings          Booking[]
   commissionProfile AgentCommissionProfile?
+  transactions      AgentTransaction[]
+}
+
+model AgentTransaction {
+  id        String   @id @default(uuid())
+  agentId   String
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  type      String   @default("deposit")
+  amount    Float
+  balance   Float    @default(0)
+  method    String?
+  note      String?
+  createdBy String?
+  createdAt DateTime @default(now())
+
+  @@index([agentId])
+}
+
+model VisaStock {
+  id           String   @id @default(uuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  visaType     String
+  country      String?
+  duration     String?
+  sponsorId    String?
+  visaId       String?
+  occupation   String?
+  buyingPrice  Float    @default(0)
+  sellingPrice Float    @default(0)
+  profit       Float    @default(0)
+  status       String   @default("available")
+  buyerName    String?
+  agentId      String?
+  notes        String?
+  createdBy    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([tenantId, status])
 }
 
 model AgentCommissionProfile {

@@ -175,10 +175,28 @@ export const clientApi = {
 export interface ClientFamilyMember { id: string; clientId: string; name: string; relation: string; passportNumber?: string; dateOfBirth?: string; createdAt: string }
 export interface WalletTransaction { id: string; clientId: string; type: "credit" | "debit"; amount: number; balance: number; note?: string; createdAt: string }
 export interface ClientBirthday { id: string; name: string; phone?: string; date?: string; inDays: number }
+export interface AgentTransaction { id: string; agentId: string; type: "deposit" | "payment" | "adjustment"; amount: number; balance: number; method?: string; note?: string; createdAt: string }
 export const agentApi = {
   ...createCrudApi<Agent>("agents"),
   getMe: () => request<Agent | null>("/agents/me"),
   getSummary: (id: string) => request<AgentSummary>(`/agents/${id}/summary`),
+  getLedger: (id: string) => request<{ balance: number; transactions: AgentTransaction[] }>(`/agents/${id}/ledger`),
+  addLedger: (id: string, data: { type: "deposit" | "payment" | "adjustment"; amount: number; method?: string; note?: string }) =>
+    request<{ balance: number; transaction: AgentTransaction }>(`/agents/${id}/ledger`, { method: "POST", body: JSON.stringify(data) }),
+};
+
+export interface VisaStock {
+  id: string; visaType: string; country?: string; duration?: string; sponsorId?: string; visaId?: string;
+  occupation?: string; buyingPrice: number; sellingPrice: number; profit: number;
+  status: "available" | "processing" | "sold" | "completed"; buyerName?: string; agentId?: string; notes?: string;
+  tenantId: string; createdAt: string; updatedAt?: string;
+}
+export interface VisaStockStats { total: number; available: number; processing: number; sold: number; completed: number; stockValue: number; soldProfit: number }
+export const visaStockApi = {
+  ...createCrudApi<VisaStock>("visa-stock"),
+  getStats: () => request<VisaStockStats>("/visa-stock/stats"),
+  sell: (id: string, data: { buyerName?: string; sellingPrice?: number; agentId?: string }) =>
+    request<VisaStock>(`/visa-stock/${id}/sell`, { method: "POST", body: JSON.stringify(data) }),
 };
 export const vendorApi = {
   ...createCrudApi<Vendor>("vendors"),
@@ -672,6 +690,8 @@ export interface Agent {
   email: string;
   commissionRate: number;
   status: AgentStatus;
+  address?: string;
+  balance?: number;
   userId?: string | null;
   tenantId: string;
   createdAt: string;
