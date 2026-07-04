@@ -34,6 +34,7 @@ model Tenant {
   agents                Agent[]
   vendors               Vendor[]
   leads                 Lead[]
+  complaints            Complaint[]
   tasks                 Task[]
   supportTickets        SupportTicket[]
   staffProfiles         StaffProfile[]
@@ -1854,4 +1855,28 @@ model PlatformStaff {
   updatedAt   DateTime @updatedAt
 
   @@index([status])
+}
+
+model Complaint {
+  id          String    @id @default(uuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subject     String
+  description String    @default("")
+  clientId    String?
+  clientName  String?
+  bookingId   String?
+  category    String    @default("general")
+  priority    String    @default("medium")
+  status      String    @default("open")
+  assignedTo  String?
+  resolution  String?
+  resolvedAt  DateTime?
+  feedback    String?
+  rating      Int?
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([tenantId, status])
 }
