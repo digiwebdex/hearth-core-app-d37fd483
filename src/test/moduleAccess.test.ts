@@ -19,12 +19,14 @@ describe("moduleAccess", () => {
     expect(isNavItemModuleEnabled("group-tours", "pro", ["tourGroups"])).toBe(false);
   });
 
-  it("website is a Pro-floor module: Pro can enable it, Basic cannot", () => {
-    expect(isNavItemModuleEnabled("website-builder", "pro", ["website"])).toBe(true);
-    expect(isNavItemModuleEnabled("website-seo", "pro", ["website"])).toBe(true);
+  it("website is a Pro-floor plan feature: auto-on for Pro+, hidden for Basic", () => {
+    // auto-on — shows for Pro without opting in
+    expect(isNavItemModuleEnabled("website-builder", "pro", [])).toBe(true);
+    expect(isNavItemModuleEnabled("website-seo", "pro", [])).toBe(true);
+    expect(isNavItemModuleEnabled("website-builder", "business", [])).toBe(true);
+    // below the Pro floor
     expect(isNavItemModuleEnabled("website-builder", "basic", ["website"])).toBe(false);
-    // still off by default until opted in
-    expect(isNavItemModuleEnabled("website-builder", "pro", [])).toBe(false);
+    expect(isNavItemModuleEnabled("website-builder", "free", [])).toBe(false);
   });
 
   it("business and ultimate can activate advanced items via enabled modules", () => {

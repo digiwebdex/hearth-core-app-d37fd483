@@ -14,7 +14,7 @@ import {
   buildServiceSelectionPayload,
   normalizeEnabledSubcategories,
 } from "@/lib/enabledServiceTypes";
-import { ADVANCED_MODULES, planCanUseAdvancedModules, planCanUseModule, moduleMinPlan } from "@/lib/moduleAccess";
+import { ADVANCED_MODULES, planCanUseAdvancedModules, planCanUseModule, moduleMinPlan, isModuleAutoOn } from "@/lib/moduleAccess";
 
 const PLAN_LABEL: Record<string, string> = { pro: "Pro", business: "Business", enterprise: "Ultimate" };
 
@@ -112,7 +112,7 @@ export default function ModuleSettings() {
           <p className="text-sm text-muted-foreground">{t("settingsModules.advancedDesc")}</p>
 
           <div className="divide-y rounded-md border">
-            {ADVANCED_MODULES.map((m) => {
+            {ADVANCED_MODULES.filter((m) => !isModuleAutoOn(m.id)).map((m) => {
               const on = modules.includes(m.id);
               const planAllows = planCanUseModule(m.id, currentPlan);
               const floorLabel = PLAN_LABEL[moduleMinPlan(m.id)] || moduleMinPlan(m.id);
