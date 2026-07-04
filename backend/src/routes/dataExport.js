@@ -91,175 +91,142 @@ router.get("/csv", async (req, res) => {
   }
 });
 
-// ── Full Excel workbook export (Summary dashboard + one sheet per module) ─────
+// ── Full Excel workbook export — Summary dashboard + one sheet per menu ────────
+// "All info": every module the tenant has, with every field, is included.
 
 const BRAND = "FFE8890C";
 const HEADER_FILL = { type: "pattern", pattern: "solid", fgColor: { argb: BRAND } };
 const d10 = (v) => (v ? new Date(v).toISOString().slice(0, 10) : "");
-const money = "#,##0";
+const MONEY_FMT = "#,##0";
+const isMoneyKey = (k) => /(amount|cost|profit|price|balance|budget|salary|selling|grandtotal|payable|receivable|paid|due|credit|fare)/i.test(k) && !/count|score|rate/i.test(k);
+const titleize = (k) => k.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/^./, (c) => c.toUpperCase());
+const cellVal = (v) => (v instanceof Date ? d10(v) : v && typeof v === "object" ? JSON.stringify(v) : v);
 
-function addDataSheet(wb, name, columns, rows) {
+// Build one sheet from raw rows, including every scalar field (JSON stringified).
+function fullSheet(wb, name, rows, maps = {}) {
+  if (!rows || !rows.length) return 0;
+  const enriched = rows.map((r) => {
+    const o = { ...r };
+    if (maps.users && o.assignedTo) o.assignedToName = maps.users[o.assignedTo] || "";
+    if (maps.users && o.receivedBy) o.receivedByName = maps.users[o.receivedBy] || "";
+    if (maps.clients && o.clientId && !o.clientName) o.clientName = maps.clients[o.clientId] || "";
+    return o;
+  });
+  const drop = new Set(["tenantId", "updatedAt"]);
+  const keys = [...new Set(enriched.flatMap((r) => Object.keys(r)))].filter((k) => !drop.has(k));
   const ws = wb.addWorksheet(name.slice(0, 31), { views: [{ state: "frozen", ySplit: 1 }] });
-  ws.columns = columns.map((c) => ({ header: c.header, key: c.key, width: c.width || 16 }));
+  ws.columns = keys.map((k) => ({ header: titleize(k), key: k, width: Math.min(32, Math.max(12, titleize(k).length + 2)) }));
   const head = ws.getRow(1);
   head.font = { bold: true, color: { argb: "FFFFFFFF" } };
-  head.fill = HEADER_FILL;
-  head.alignment = { vertical: "middle" };
-  head.height = 20;
-  for (const r of rows) ws.addRow(r);
-  columns.forEach((c, i) => { if (c.money) ws.getColumn(i + 1).numFmt = money; });
-  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: columns.length } };
+  head.fill = HEADER_FILL; head.height = 20;
+  for (const r of enriched) ws.addRow(keys.reduce((a, k) => { a[k] = cellVal(r[k]); return a; }, {}));
+  keys.forEach((k, i) => { if (isMoneyKey(k)) ws.getColumn(i + 1).numFmt = MONEY_FMT; });
+  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: keys.length } };
   return rows.length;
 }
+
+const EXPORT_MODULES = [
+  ["Clients", "client"], ["Client Family", "clientFamilyMember"], ["Wallet Ledger", "walletTransaction"],
+  ["Leads", "lead"], ["Vendors", "vendor"], ["Vendor Bills", "vendorBill"],
+  ["Agents", "agent"], ["Quotations", "quotation"], ["Bookings", "booking"],
+  ["Invoices", "invoice"], ["Invoice Installments", "invoiceInstallment"], ["Payments", "payment"],
+  ["Expenses", "expense"], ["Ledger", "transaction"], ["Accounts", "account"], ["Tasks", "task"],
+  ["Complaints", "complaint"], ["Campaigns", "campaign"], ["Travel Packages", "travelPackage"],
+  ["Hajj Packages", "hajjPackage"], ["Hajj Groups", "hajjGroup"], ["Hajj Pilgrims", "hajjPilgrim"],
+  ["Group Tours", "groupTour"], ["MICE Events", "miceEvent"], ["Visa Applications", "visaApplication"],
+  ["Support Tickets", "supportTicket"], ["Loyalty Accounts", "loyaltyAccount"],
+  ["Loyalty Ledger", "loyaltyTransaction"], ["Referrals", "referralCode"], ["Staff Profiles", "staffProfile"],
+];
 
 router.get("/workbook", async (req, res) => {
   const tenantId = req.tenantId;
   const range = dateRange(req.query.from, req.query.to);
   const createdAt = range || undefined;
-  const w = createdAt ? { tenantId, createdAt } : { tenantId };
+
+  async function grab(model) {
+    try { return await prisma[model].findMany({ where: { tenantId, ...(createdAt ? { createdAt } : {}) }, orderBy: { createdAt: "desc" } }); }
+    catch {
+      // Retry without the date filter; if the model can't be tenant-scoped, skip it
+      // entirely — never fall back to an unscoped query (would leak other tenants).
+      try { return await prisma[model].findMany({ where: { tenantId } }); }
+      catch { return []; }
+    }
+  }
 
   try {
     const ExcelJS = require("exceljs");
     const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { name: true } });
+    const users = await prisma.user.findMany({ where: { tenantId }, select: { id: true, name: true } });
+    const clientsAll = await prisma.client.findMany({ where: { tenantId }, select: { id: true, name: true } });
+    const maps = {
+      users: Object.fromEntries(users.map((u) => [u.id, u.name])),
+      clients: Object.fromEntries(clientsAll.map((c) => [c.id, c.name])),
+    };
 
-    const [clients, leads, vendors, agents, quotations, bookings, invoices, payments, expenses, transactions, tasks, complaints, campaigns, users] = await Promise.all([
-      prisma.client.findMany({ where: w, orderBy: { createdAt: "desc" } }),
-      prisma.lead.findMany({ where: w, orderBy: { createdAt: "desc" } }),
-      prisma.vendor.findMany({ where: w, orderBy: { createdAt: "desc" } }),
-      prisma.agent.findMany({ where: w, orderBy: { createdAt: "desc" } }),
-      prisma.quotation.findMany({ where: w, orderBy: { createdAt: "desc" } }),
-      prisma.booking.findMany({ where: w, orderBy: { createdAt: "desc" } }),
-      prisma.invoice.findMany({ where: w, orderBy: { createdAt: "desc" } }),
-      prisma.payment.findMany({ where: w, orderBy: { createdAt: "desc" } }),
-      prisma.expense.findMany({ where: w, orderBy: { createdAt: "desc" } }),
-      prisma.transaction.findMany({ where: w, orderBy: { createdAt: "desc" } }),
-      prisma.task.findMany({ where: w, orderBy: { createdAt: "desc" } }),
-      prisma.complaint.findMany({ where: w, orderBy: { createdAt: "desc" } }).catch(() => []),
-      prisma.campaign.findMany({ where: w, orderBy: { createdAt: "desc" } }).catch(() => []),
-      prisma.user.findMany({ where: { tenantId }, select: { id: true, name: true } }),
-    ]);
-
-    const userName = (id) => users.find((u) => u.id === id)?.name || "";
-    const clientName = (id) => clients.find((c) => c.id === id)?.name || "";
-    const sum = (arr, k) => arr.reduce((s, x) => s + (Number(x[k]) || 0), 0);
+    const data = {};
+    for (const [, model] of EXPORT_MODULES) data[model] = await grab(model);
+    const D = (m) => data[m] || [];
+    const sum = (m, k) => D(m).reduce((s, x) => s + (Number(x[k]) || 0), 0);
 
     const wb = new ExcelJS.Workbook();
     wb.creator = "TravelAgencyWeb";
 
     // ── Sheet 1: Summary (dashboard) ──
     const s = wb.addWorksheet("Summary", { views: [{ showGridLines: false }] });
-    s.columns = [{ width: 34 }, { width: 20 }];
-    const title = s.addRow([`${tenant?.name || "Agency"} — Data Export`]);
+    s.columns = [{ width: 36 }, { width: 20 }];
+    const title = s.addRow([`${tenant?.name || "Agency"} — Full Data Export`]);
     title.font = { bold: true, size: 16, color: { argb: BRAND } };
     s.mergeCells("A1:B1");
-    const meta = s.addRow([`Exported ${d10(new Date())}${req.query.from || req.query.to ? `  ·  Range: ${req.query.from || "…"} to ${req.query.to || "…"}` : "  ·  All time"}`]);
+    const meta = s.addRow([`Exported ${d10(new Date())}${req.query.from || req.query.to ? `  ·  Range ${req.query.from || "…"} to ${req.query.to || "…"}` : "  ·  All time"}`]);
     meta.font = { color: { argb: "FF888880" }, size: 10 };
     s.mergeCells("A2:B2");
     s.addRow([]);
     const section = (label) => { const r = s.addRow([label]); r.font = { bold: true, color: { argb: "FFFFFFFF" } }; r.fill = HEADER_FILL; s.mergeCells(`A${r.number}:B${r.number}`); };
-    const metric = (label, value, isMoney) => { const r = s.addRow([label, value]); if (isMoney) r.getCell(2).numFmt = money; r.getCell(2).alignment = { horizontal: "right" }; };
+    const metric = (label, value, isMoney) => { const r = s.addRow([label, value]); if (isMoney) r.getCell(2).numFmt = MONEY_FMT; r.getCell(2).alignment = { horizontal: "right" }; };
 
     section("Sales & operations");
-    metric("Total clients", clients.length);
-    metric("Total leads", leads.length);
-    metric("Total quotations", quotations.length);
-    metric("Total bookings", bookings.length);
-    metric("Confirmed bookings", bookings.filter((b) => b.status === "confirmed").length);
-    metric("Total sales value", sum(bookings, "amount"), true);
-    metric("Total profit", sum(bookings, "profit"), true);
+    metric("Total clients", D("client").length);
+    metric("Total leads", D("lead").length);
+    metric("Total quotations", D("quotation").length);
+    metric("Total bookings", D("booking").length);
+    metric("Confirmed bookings", D("booking").filter((b) => b.status === "confirmed").length);
+    metric("Total sales value", sum("booking", "amount"), true);
+    metric("Total profit", sum("booking", "profit"), true);
     s.addRow([]);
     section("Money");
-    metric("Total invoiced", sum(invoices, "totalAmount"), true);
-    metric("Total collected", sum(payments, "amount"), true);
-    metric("Outstanding due", sum(invoices, "dueAmount"), true);
-    metric("Total expenses", sum(expenses, "amount"), true);
-    metric("Net (collected − expenses)", sum(payments, "amount") - sum(expenses, "amount"), true);
+    metric("Total invoiced", sum("invoice", "totalAmount"), true);
+    metric("Total collected", sum("payment", "amount"), true);
+    metric("Outstanding due", sum("invoice", "dueAmount"), true);
+    metric("Total expenses", sum("expense", "amount"), true);
+    metric("Net (collected − expenses)", sum("payment", "amount") - sum("expense", "amount"), true);
+    s.addRow([]);
+    section("Catalog & operations");
+    metric("Travel packages", D("travelPackage").length);
+    metric("Hajj pilgrims", D("hajjPilgrim").length);
+    metric("Group tours", D("groupTour").length);
+    metric("MICE events", D("miceEvent").length);
+    metric("Visa applications", D("visaApplication").length);
+    metric("Support tickets", D("supportTicket").length);
     s.addRow([]);
     section("Contacts & CRM");
-    metric("Vendors / suppliers", vendors.length);
-    metric("Agents", agents.length);
-    metric("Tasks", tasks.length);
-    metric("Complaints", complaints.length);
-    metric("Campaigns", campaigns.length);
+    metric("Vendors / suppliers", D("vendor").length);
+    metric("Agents", D("agent").length);
+    metric("Tasks", D("task").length);
+    metric("Complaints", D("complaint").length);
+    metric("Campaigns", D("campaign").length);
 
-    // ── Module sheets ──
-    addDataSheet(wb, "Clients", [
-      { header: "Name", key: "name", width: 22 }, { header: "Phone", key: "phone" }, { header: "Email", key: "email", width: 24 },
-      { header: "Type", key: "clientType" }, { header: "Company", key: "companyName", width: 20 }, { header: "Nationality", key: "nationality" },
-      { header: "Passport", key: "passportNumber" }, { header: "Passport expiry", key: "passportExpiry" }, { header: "Wallet balance", key: "walletBalance", money: true },
-      { header: "Created", key: "created" },
-    ], clients.map((c) => ({ ...c, created: d10(c.createdAt) })));
-
-    addDataSheet(wb, "Leads", [
-      { header: "Name", key: "name", width: 22 }, { header: "Phone", key: "phone" }, { header: "Email", key: "email", width: 22 },
-      { header: "Status", key: "status" }, { header: "Source", key: "source" }, { header: "Destination", key: "destination", width: 18 },
-      { header: "Budget", key: "budget", money: true }, { header: "Score", key: "score" }, { header: "Assigned to", key: "assignedToName", width: 18 },
-      { header: "Next follow-up", key: "nextFollowUp" }, { header: "Created", key: "created" },
-    ], leads.map((l) => ({ ...l, assignedToName: userName(l.assignedTo), created: d10(l.createdAt) })));
-
-    addDataSheet(wb, "Vendors", [
-      { header: "Name", key: "name", width: 24 }, { header: "Category", key: "category" }, { header: "Phone", key: "phone" },
-      { header: "Email", key: "email", width: 24 }, { header: "Status", key: "status" }, { header: "Created", key: "created" },
-    ], vendors.map((v) => ({ ...v, created: d10(v.createdAt) })));
-
-    addDataSheet(wb, "Agents", [
-      { header: "Name", key: "name", width: 22 }, { header: "Phone", key: "phone" }, { header: "Email", key: "email", width: 24 }, { header: "Created", key: "created" },
-    ], agents.map((a) => ({ ...a, created: d10(a.createdAt) })));
-
-    addDataSheet(wb, "Quotations", [
-      { header: "Title", key: "title", width: 26 }, { header: "Client", key: "clientNm", width: 20 }, { header: "Destination", key: "destination", width: 18 },
-      { header: "Status", key: "status" }, { header: "Travelers", key: "travelerCount" }, { header: "Selling", key: "totalSelling", money: true },
-      { header: "Cost", key: "totalCost", money: true }, { header: "Profit", key: "totalProfit", money: true }, { header: "Grand total", key: "grandTotal", money: true },
-      { header: "Valid until", key: "validUntil" }, { header: "Created", key: "created" },
-    ], quotations.map((q) => ({ ...q, clientNm: clientName(q.clientId), created: d10(q.createdAt) })));
-
-    addDataSheet(wb, "Bookings", [
-      { header: "Title", key: "title", width: 26 }, { header: "Client", key: "clientNm", width: 20 }, { header: "Type", key: "type" },
-      { header: "Service", key: "serviceType", width: 16 }, { header: "Status", key: "status" }, { header: "Destination", key: "destination", width: 18 },
-      { header: "Travelers", key: "travelerCount" }, { header: "Amount", key: "amount", money: true }, { header: "Cost", key: "cost", money: true },
-      { header: "Profit", key: "profit", money: true }, { header: "Paid", key: "paidAmount", money: true }, { header: "Due", key: "dueAmount", money: true },
-      { header: "Payment", key: "paymentStatus" }, { header: "Travel from", key: "travelDateFrom" }, { header: "Travel to", key: "travelDateTo" }, { header: "Created", key: "created" },
-    ], bookings.map((b) => ({ ...b, clientNm: clientName(b.clientId), created: d10(b.createdAt) })));
-
-    addDataSheet(wb, "Invoices", [
-      { header: "Invoice #", key: "invoiceNumber" }, { header: "Client", key: "clientName", width: 20 }, { header: "Booking", key: "bookingTitle", width: 24 },
-      { header: "Total", key: "totalAmount", money: true }, { header: "Paid", key: "paidAmount", money: true }, { header: "Due", key: "dueAmount", money: true },
-      { header: "Status", key: "status" }, { header: "Issued", key: "issuedDate" }, { header: "Due date", key: "dueDate" }, { header: "Created", key: "created" },
-    ], invoices.map((i) => ({ ...i, created: d10(i.createdAt) })));
-
-    addDataSheet(wb, "Payments", [
-      { header: "Amount", key: "amount", money: true }, { header: "Method", key: "method" }, { header: "Reference", key: "transactionRef", width: 18 },
-      { header: "Date", key: "date" }, { header: "Note", key: "notes", width: 26 }, { header: "Created", key: "created" },
-    ], payments.map((p) => ({ ...p, created: d10(p.createdAt) })));
-
-    addDataSheet(wb, "Expenses", [
-      { header: "Category", key: "category" }, { header: "Description", key: "description", width: 28 }, { header: "Amount", key: "amount", money: true },
-      { header: "Method", key: "paymentMethod" }, { header: "Date", key: "date" }, { header: "Created", key: "created" },
-    ], expenses.map((e) => ({ ...e, created: d10(e.createdAt) })));
-
-    addDataSheet(wb, "Ledger", [
-      { header: "Type", key: "type" }, { header: "Category", key: "category" }, { header: "Description", key: "description", width: 28 },
-      { header: "Amount", key: "amount", money: true }, { header: "Method", key: "paymentMethod" }, { header: "Date", key: "date" }, { header: "Created", key: "created" },
-    ], transactions.map((t) => ({ ...t, created: d10(t.createdAt) })));
-
-    addDataSheet(wb, "Tasks", [
-      { header: "Title", key: "title", width: 30 }, { header: "Status", key: "status" }, { header: "Priority", key: "priority" },
-      { header: "Due date", key: "dueDate" }, { header: "Assigned to", key: "assignedToName", width: 18 }, { header: "Created", key: "created" },
-    ], tasks.map((t) => ({ ...t, assignedToName: userName(t.assignedTo), created: d10(t.createdAt) })));
-
-    addDataSheet(wb, "Complaints", [
-      { header: "Subject", key: "subject", width: 30 }, { header: "Customer", key: "clientName", width: 20 }, { header: "Category", key: "category" },
-      { header: "Priority", key: "priority" }, { header: "Status", key: "status" }, { header: "Rating", key: "rating" }, { header: "Created", key: "created" },
-    ], complaints.map((c) => ({ ...c, created: d10(c.createdAt) })));
-
-    addDataSheet(wb, "Campaigns", [
-      { header: "Name", key: "name", width: 26 }, { header: "Channel", key: "channel" }, { header: "Audience", key: "audienceType" },
-      { header: "Status", key: "status" }, { header: "Recipients", key: "recipientCount" }, { header: "Sent", key: "sentCount" }, { header: "Created", key: "created" },
-    ], campaigns.map((c) => ({ ...c, created: d10(c.createdAt) })));
+    // ── One sheet per module (only those with data) ──
+    const included = [];
+    for (const [name, model] of EXPORT_MODULES) {
+      if (fullSheet(wb, name, data[model], maps)) included.push(`${name} (${data[model].length})`);
+    }
+    s.addRow([]);
+    section("Sheets in this file");
+    for (const line of included) s.addRow([line]);
 
     const label = req.query.from && req.query.to ? `${req.query.from}_to_${req.query.to}` : "all";
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    res.setHeader("Content-Disposition", `attachment; filename="hearth_export_${label}.xlsx"`);
+    res.setHeader("Content-Disposition", `attachment; filename="hearth_full_export_${label}.xlsx"`);
     await wb.xlsx.write(res);
     res.end();
   } catch (err) {
