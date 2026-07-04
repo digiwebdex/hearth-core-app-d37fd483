@@ -15,6 +15,9 @@ export interface AdvancedModule {
   items: string[];
   /** Lowest plan that may activate this bundle. Defaults to "business". */
   minPlan?: PlanType;
+  /** When true the bundle is shown automatically for eligible plans (it's a
+   *  plan feature, not a hidden opt-in) and is not listed as a Settings toggle. */
+  autoOn?: boolean;
 }
 
 export const ADVANCED_MODULES: AdvancedModule[] = [
@@ -29,8 +32,14 @@ export const ADVANCED_MODULES: AdvancedModule[] = [
   { id: "documentsDesk", labelKey: "modules.documentsDesk", descKey: "modules.documentsDeskDesc", items: ["documents", "service-operations"] },
   { id: "hrPayroll", labelKey: "modules.hrPayroll", descKey: "modules.hrPayrollDesc", items: ["hrm", "activity-log", "payroll"] },
   { id: "marketing", labelKey: "modules.marketing", descKey: "modules.marketingDesc", items: ["loyalty", "referrals"] },
-  { id: "website", labelKey: "modules.website", descKey: "modules.websiteDesc", minPlan: "pro", items: ["website-home", "website-builder", "website-blog", "website-publish", "website-seo"] },
+  { id: "website", labelKey: "modules.website", descKey: "modules.websiteDesc", minPlan: "pro", autoOn: true, items: ["website-home", "website-builder", "website-blog", "website-publish", "website-seo"] },
 ];
+
+/** Bundles shown automatically for eligible plans (plan features, not opt-in toggles). */
+export const AUTO_ON_MODULE_IDS: string[] = ADVANCED_MODULES.filter((m) => m.autoOn).map((m) => m.id);
+export function isModuleAutoOn(bundleId: string): boolean {
+  return AUTO_ON_MODULE_IDS.includes(bundleId);
+}
 
 export const ADVANCED_MODULE_IDS: string[] = ADVANCED_MODULES.map((m) => m.id);
 
@@ -80,6 +89,7 @@ export function isNavItemModuleEnabled(itemId: string, plan?: string | null, ena
   const bundle = ITEM_TO_MODULE[itemId];
   if (!bundle) return true; // core item — always available
   if (!planCanUseModule(bundle, plan)) return false; // below this bundle's plan floor
+  if (isModuleAutoOn(bundle)) return true; // plan feature — shown automatically for eligible plans
   return Array.isArray(enabledModules) && enabledModules.includes(bundle);
 }
 
