@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AlertCircle, Plus, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { complaintApi, tenantApi, type Complaint, type User } from "@/lib/api";
+import { complaintApi, tenantApi, crmSettingsApi, type Complaint, type User } from "@/lib/api";
 
 const STATUS: Record<string, string> = {
   open: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
@@ -25,7 +25,7 @@ const PRIORITY: Record<string, string> = {
   medium: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
   low: "bg-muted text-muted-foreground",
 };
-const CATEGORIES = ["general", "booking", "payment", "service", "refund", "staff"];
+const DEFAULT_CATEGORIES = ["general", "booking", "payment", "service", "refund", "staff"];
 const TABS = ["all", "open", "in_progress", "resolved", "closed"] as const;
 
 const emptyForm = { subject: "", clientName: "", description: "", category: "general", priority: "medium" as Complaint["priority"] };
@@ -40,6 +40,7 @@ export default function Complaints() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState<Complaint | null>(null);
+  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -50,6 +51,9 @@ export default function Complaints() {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { tenantApi.getMembers().then(setMembers).catch(() => setMembers([])); }, []);
+  useEffect(() => {
+    crmSettingsApi.get().then((c) => { if (c.complaintCategories?.length) setCategories(c.complaintCategories); }).catch(() => {});
+  }, []);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: items.length, open: 0, in_progress: 0, resolved: 0, closed: 0 };
@@ -148,7 +152,7 @@ export default function Complaints() {
               <div><Label>Category</Label>
                 <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{CATEGORIES.map((c) => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}</SelectContent>
+                  <SelectContent>{categories.map((c) => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div><Label>Priority</Label>

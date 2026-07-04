@@ -51,9 +51,26 @@ router.post("/", requirePermission("clients", "create"), async (req, res) => {
   try {
     const data = pick(req.body);
     if (!data.subject) return res.status(400).json({ message: "Subject is required" });
-    res.status(201).json(await prisma.complaint.create({
+    const complaint = await prisma.complaint.create({
       data: { ...data, tenantId: req.tenantId, createdBy: req.userId },
-    }));
+    });
+
+    // CRM automation: optionally notify the owner when a complaint is logged.
+    const cfg = await prisma.crmConfig.findUnique({ where: { tenantId: req.tenantId } }).catch(() => null);
+    if (cfg?.automations?.complaintNotifyOwner) {
+      const tenant = await prisma.tenant.findUnique({ where: { id: req.tenantId }, select: { ownerId: true } });
+      if (tenant?.ownerId) {
+        await prisma.notification.create({
+          data: {
+            tenantId: req.tenantId, userId: tenant.ownerId, actorUserId: req.userId,
+            type: "complaint", title: "New complaint logged",
+            message: `${complaint.clientName || "A customer"}: ${complaint.subject}`,
+            link: "/complaints",
+          },
+        }).catch((err) => console.error("[automation] complaintNotifyOwner:", err.message));
+      }
+    }
+    res.status(201).json(complaint);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

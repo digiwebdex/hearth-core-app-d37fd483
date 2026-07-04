@@ -127,6 +127,7 @@ function createApp() {
   app.use("/api/complaints", require("./routes/complaints"));
   app.use("/api/campaigns", require("./routes/campaigns"));
   app.use("/api/crm-analytics", require("./routes/crmAnalytics"));
+  app.use("/api/crm-settings", require("./routes/crmSettings"));
   app.use("/api/tasks", require("./routes/crud")("task"));
   app.use("/api/support-tickets", require("./routes/supportTickets"));
   app.use("/api/hrm", require("./routes/hrm"));

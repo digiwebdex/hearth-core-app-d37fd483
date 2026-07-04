@@ -245,6 +245,18 @@ export const crmAnalyticsApi = {
   },
 };
 
+export interface CrmCustomField { key: string; label: string; type: "text" | "number" | "date" | "select"; appliesTo: "client" | "lead"; options?: string[] }
+export interface CrmConfig {
+  id: string; tenantId: string;
+  leadSources: string[]; followUpTypes: string[]; complaintCategories: string[];
+  customFields: CrmCustomField[];
+  automations: { leadWonCreateTask?: boolean; complaintNotifyOwner?: boolean };
+}
+export const crmSettingsApi = {
+  get: () => request<CrmConfig>("/crm-settings"),
+  update: (data: Partial<CrmConfig>) => request<CrmConfig>("/crm-settings", { method: "PATCH", body: JSON.stringify(data) }),
+};
+
 export const leadApi = {
   ...createCrudApi<Lead>("leads"),
   updateStatus: (id: string, status: string) =>
@@ -606,7 +618,7 @@ export interface Tenant {
   createdAt: string;
   trialDaysConfigured?: number;
 }
-export interface Client { id: string; name: string; phone: string; email: string; alternatePhone?: string; address?: string; dateOfBirth?: string; passportNumber?: string; passportExpiry?: string; nidNumber?: string; nationality?: string; emergencyContact?: string; emergencyPhone?: string; notes?: string; tags?: string[]; documents?: ClientDocument[]; companyName?: string; clientType?: "individual" | "corporate"; walletBalance?: number; creditLimit?: number; contractRef?: string; contractExpiry?: string; tenantId: string; createdAt: string; updatedAt?: string; }
+export interface Client { id: string; name: string; phone: string; email: string; alternatePhone?: string; address?: string; dateOfBirth?: string; passportNumber?: string; passportExpiry?: string; nidNumber?: string; nationality?: string; emergencyContact?: string; emergencyPhone?: string; notes?: string; tags?: string[]; documents?: ClientDocument[]; companyName?: string; clientType?: "individual" | "corporate"; walletBalance?: number; creditLimit?: number; contractRef?: string; contractExpiry?: string; customFields?: Record<string, string>; tenantId: string; createdAt: string; updatedAt?: string; }
 export interface ClientDocument { id: string; clientId: string; name: string; type: string; url: string; uploadedAt: string; }
 export interface CorporateSummaryRow {
   clientId: string;

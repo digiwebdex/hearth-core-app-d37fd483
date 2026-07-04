@@ -125,6 +125,22 @@ router.patch("/:id/status", requirePermission("leads", "edit"), async (req, res)
     if (!old) return res.status(404).json({ message: "Not found" });
     await prisma.lead.updateMany({ where: { id: req.params.id, tenantId: req.tenantId }, data: { status: req.body.status } });
     await prisma.leadActivity.create({ data: { leadId: req.params.id, type: "status_change", content: `Status changed from ${old.status} to ${req.body.status}`, oldStatus: old.status, newStatus: req.body.status, createdBy: req.userId } });
+
+    // CRM automation: when a lead is won, optionally create a follow-up task.
+    if (req.body.status === "won" && old.status !== "won") {
+      const cfg = await prisma.crmConfig.findUnique({ where: { tenantId: req.tenantId } }).catch(() => null);
+      if (cfg?.automations?.leadWonCreateTask) {
+        await prisma.task.create({
+          data: {
+            title: `Onboard won lead: ${old.name}`,
+            description: `Lead "${old.name}" was marked won. Follow up to confirm booking and collect documents.`,
+            status: "todo", priority: "high",
+            assignedTo: old.assignedTo || req.userId,
+            tenantId: req.tenantId,
+          },
+        }).catch((err) => console.error("[automation] leadWonCreateTask:", err.message));
+      }
+    }
     res.json(await prisma.lead.findFirst({ where: { id: req.params.id, tenantId: req.tenantId } }));
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

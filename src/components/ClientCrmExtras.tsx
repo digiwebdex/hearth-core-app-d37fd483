@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Wallet, Users, Building2, Plus, Trash2 } from "lucide-react";
+import { Wallet, Users, Building2, Plus, Trash2, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import PermissionGate from "@/components/PermissionGate";
-import { clientApi, type Client, type ClientFamilyMember, type WalletTransaction } from "@/lib/api";
+import { clientApi, crmSettingsApi, type Client, type ClientFamilyMember, type WalletTransaction, type CrmCustomField } from "@/lib/api";
 
 const money = (n: number) => `৳${(n || 0).toLocaleString()}`;
 
@@ -25,11 +25,24 @@ export default function ClientCrmExtras({ client }: { client: Client }) {
   const [credit, setCredit] = useState(client.creditLimit != null ? String(client.creditLimit) : "");
   const [contractRef, setContractRef] = useState(client.contractRef || "");
   const [contractExpiry, setContractExpiry] = useState(client.contractExpiry || "");
+  const [customFields, setCustomFields] = useState<CrmCustomField[]>([]);
+  const [cfValues, setCfValues] = useState<Record<string, string>>(client.customFields || {});
 
   useEffect(() => {
     clientApi.getWallet(client.id).then((w) => { setBalance(w.balance); setTxns(w.transactions); }).catch(() => {});
     clientApi.getFamily(client.id).then(setFamily).catch(() => {});
+    crmSettingsApi.get().then((c) => setCustomFields((c.customFields || []).filter((f) => f.appliesTo === "client"))).catch(() => {});
   }, [client.id]);
+
+  const saveCustomFields = async () => {
+    setBusy(true);
+    try {
+      await clientApi.update(client.id, { customFields: cfValues });
+      toast({ title: "Custom fields saved" });
+    } catch (err: unknown) {
+      toast({ title: "Save failed", description: err instanceof Error ? err.message : String(err), variant: "destructive" });
+    } finally { setBusy(false); }
+  };
 
   const adjustWallet = async () => {
     const amt = Number(amount);
@@ -153,6 +166,34 @@ export default function ClientCrmExtras({ client }: { client: Client }) {
               <div className="space-y-1.5"><Label className="text-xs text-muted-foreground">Contract reference</Label><Input className="h-9" value={contractRef} onChange={(e) => setContractRef(e.target.value)} placeholder="Contract no." /></div>
               <div className="space-y-1.5"><Label className="text-xs text-muted-foreground">Contract expiry</Label><Input className="h-9" type="date" value={contractExpiry} onChange={(e) => setContractExpiry(e.target.value)} /></div>
               <Button size="sm" className="w-full" disabled={busy} onClick={saveCorporate}>Save corporate details</Button>
+            </PermissionGate>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Custom fields (defined in CRM settings) */}
+      {customFields.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Sparkles className="h-4 w-4 text-muted-foreground" /> Custom fields</CardTitle></CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            {customFields.map((f) => (
+              <div key={f.key} className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">{f.label}</Label>
+                <PermissionGate module="clients" action="edit" fallback={<p>{cfValues[f.key] || "—"}</p>}>
+                  {f.type === "select" ? (
+                    <Select value={cfValues[f.key] || ""} onValueChange={(v) => setCfValues((p) => ({ ...p, [f.key]: v }))}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Select…" /></SelectTrigger>
+                      <SelectContent>{(f.options || []).map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+                    </Select>
+                  ) : (
+                    <Input className="h-9" type={f.type === "number" ? "number" : f.type === "date" ? "date" : "text"}
+                      value={cfValues[f.key] || ""} onChange={(e) => setCfValues((p) => ({ ...p, [f.key]: e.target.value }))} />
+                  )}
+                </PermissionGate>
+              </div>
+            ))}
+            <PermissionGate module="clients" action="edit" fallback={null}>
+              <Button size="sm" className="w-full" disabled={busy} onClick={saveCustomFields}>Save custom fields</Button>
             </PermissionGate>
           </CardContent>
         </Card>

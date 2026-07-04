@@ -36,6 +36,7 @@ model Tenant {
   leads                 Lead[]
   complaints            Complaint[]
   campaigns             Campaign[]
+  crmConfig             CrmConfig?
   tasks                 Task[]
   supportTickets        SupportTicket[]
   staffProfiles         StaffProfile[]
@@ -221,6 +222,7 @@ model Client {
   creditLimit      Float?
   contractRef      String?
   contractExpiry   String?
+  customFields     Json?
   tenantId         String
   tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   familyMembers      ClientFamilyMember[]
@@ -1937,4 +1939,17 @@ model WalletTransaction {
   createdAt DateTime @default(now())
 
   @@index([clientId])
+}
+
+model CrmConfig {
+  id                  String   @id @default(uuid())
+  tenantId            String   @unique
+  tenant              Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  leadSources         String[] @default([])
+  followUpTypes       String[] @default([])
+  complaintCategories String[] @default([])
+  customFields        Json     @default("[]")
+  automations         Json     @default("{}")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }
