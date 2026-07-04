@@ -64,10 +64,9 @@ const GROUPS: Group[] = [
     { label: "Executive performance" }, { label: "Retention report" }, { label: "CRM analytics" },
     { label: "Customer & corporate report" },
   ] },
-  { id: "settings", title: "CRM settings", titleBn: "CRM সেটিংস", icon: Settings, url: "/settings", leaves: [
-    { label: "WhatsApp / SMS / SMTP API" }, { label: "User permissions" },
-    { label: "Lead sources", soon: true }, { label: "Lead status", soon: true }, { label: "Follow-up types", soon: true },
-    { label: "Custom fields", soon: true }, { label: "Automation rules", soon: true },
+  { id: "settings", title: "CRM settings", titleBn: "CRM সেটিংস", icon: Settings, url: "/crm-settings", leaves: [
+    { label: "Lead sources" }, { label: "Follow-up types" }, { label: "Complaint categories" },
+    { label: "Custom fields" }, { label: "Automation rules" }, { label: "WhatsApp / SMS / SMTP API" },
   ] },
 ];
 
