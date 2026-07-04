@@ -15,12 +15,9 @@ const tok = () => localStorage.getItem("token") || "";
 
 interface BackupInfo { lastBackup: string | null; count: number; }
 
-const CSV_SECTIONS = [
-  { label: "Clients",  color: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300" },
-  { label: "Bookings", color: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300" },
-  { label: "Invoices", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300" },
-  { label: "Payments", color: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300" },
-  { label: "Leads",    color: "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300" },
+const SHEETS = [
+  "Summary", "Clients", "Leads", "Vendors", "Agents", "Quotations", "Bookings",
+  "Invoices", "Payments", "Expenses", "Ledger", "Tasks", "Complaints", "Campaigns",
 ];
 
 async function downloadBlob(res: Response, fallback: string) {
@@ -41,6 +38,7 @@ export default function DataExport() {
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate]     = useState(today);
   const [csvLoading, setCsvLoading]     = useState(false);
+  const [xlsxLoading, setXlsxLoading]   = useState(false);
   const [backupLoading, setBackupLoading] = useState(false);
   const [backupInfo, setBackupInfo] = useState<BackupInfo | null>(null);
 
@@ -62,6 +60,19 @@ export default function DataExport() {
     } finally { setCsvLoading(false); }
   }
 
+  async function doExcel(all = false) {
+    setXlsxLoading(true);
+    try {
+      const url = all ? `${API}/export/workbook` : `${API}/export/workbook?from=${fromDate}&to=${toDate}`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${tok()}` } });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || "Failed"); }
+      const fname = await downloadBlob(res, `hearth_export_${today}.xlsx`);
+      toast({ title: "Excel workbook downloaded", description: fname });
+    } catch (e: any) {
+      toast({ title: "Export failed", description: e.message, variant: "destructive" });
+    } finally { setXlsxLoading(false); }
+  }
+
   async function doBackup() {
     setBackupLoading(true);
     try {
@@ -79,24 +90,24 @@ export default function DataExport() {
   return (
     <div className="space-y-6">
 
-      {/* ── CSV Export ── */}
+      {/* ── Excel / CSV Export ── */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <FileSpreadsheet className="h-5 w-5 text-green-600" />
-            Export Data as CSV
+            Export data to Excel
           </CardTitle>
           <CardDescription>
-            Download clients, bookings, invoices, payments and leads as a spreadsheet file.
+            One organised Excel workbook: a <strong>Summary</strong> dashboard sheet first, then one sheet per menu — all your data, easy to read.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
 
-          {/* Tags */}
-          <div className="flex flex-wrap gap-2">
-            {CSV_SECTIONS.map((s) => (
-              <span key={s.label} className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${s.color}`}>
-                {s.label}
+          {/* Sheet tags */}
+          <div className="flex flex-wrap gap-1.5">
+            {SHEETS.map((s) => (
+              <span key={s} className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${s === "Summary" ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+                {s}
               </span>
             ))}
           </div>
@@ -106,7 +117,7 @@ export default function DataExport() {
           {/* Date range */}
           <div>
             <p className="text-sm font-semibold mb-3 flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" /> Filter by Date Range
+              <Calendar className="h-4 w-4 text-muted-foreground" /> Filter by date range (optional)
             </p>
             <div className="grid grid-cols-2 gap-3 max-w-xs">
               <div>
@@ -121,13 +132,22 @@ export default function DataExport() {
           </div>
 
           <div className="flex gap-3 flex-wrap">
-            <Button onClick={() => doCSV(false)} disabled={csvLoading} className="gap-2">
-              {csvLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              Download Date Range CSV
+            <Button onClick={() => doExcel(true)} disabled={xlsxLoading} className="gap-2">
+              {xlsxLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
+              Download full Excel (all sheets)
             </Button>
-            <Button variant="outline" onClick={() => doCSV(true)} disabled={csvLoading} className="gap-2">
-              <FileSpreadsheet className="h-4 w-4" />
-              Export All Data
+            <Button variant="outline" onClick={() => doExcel(false)} disabled={xlsxLoading} className="gap-2">
+              <Download className="h-4 w-4" />
+              Excel for date range
+            </Button>
+          </div>
+
+          <Separator />
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-xs text-muted-foreground">Prefer a plain file?</span>
+            <Button variant="ghost" size="sm" onClick={() => doCSV(true)} disabled={csvLoading} className="gap-2 h-8">
+              {csvLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              Download CSV instead
             </Button>
           </div>
         </CardContent>
