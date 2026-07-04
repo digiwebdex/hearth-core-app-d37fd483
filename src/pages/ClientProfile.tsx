@@ -20,6 +20,7 @@ import {
   Plane, Receipt, Wallet, FileText, AlertTriangle, Shield,
 } from "lucide-react";
 import { WorkflowNextStep } from "@/components/WorkflowNextStep";
+import ClientCrmExtras from "@/components/ClientCrmExtras";
 import { InlineEmpty } from "@/components/EmptyState";
 import { useHumanError } from "@/hooks/useHumanError";
 
@@ -172,6 +173,8 @@ const ClientProfile = () => {
                 <CardContent><p className="text-sm text-muted-foreground whitespace-pre-wrap">{client.notes}</p></CardContent>
               </Card>
             )}
+
+            <ClientCrmExtras client={client} />
 
             {/* Documents */}
             <Card>

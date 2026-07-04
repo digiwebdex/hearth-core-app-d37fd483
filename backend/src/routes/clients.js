@@ -76,6 +76,29 @@ router.get("/corporate-summary", requirePermission("clients", "view"), async (re
   }
 });
 
+// Upcoming customer birthdays (by month/day, ignoring year), within N days.
+router.get("/birthdays", requirePermission("clients", "view"), async (req, res) => {
+  try {
+    const days = Math.min(Math.max(parseInt(String(req.query.days || "30"), 10) || 30, 1), 366);
+    const clients = await prisma.client.findMany({
+      where: { tenantId: req.tenantId, dateOfBirth: { not: null } },
+      select: { id: true, name: true, phone: true, dateOfBirth: true },
+    });
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const out = [];
+    for (const c of clients) {
+      const dob = new Date(c.dateOfBirth);
+      if (isNaN(dob.getTime())) continue;
+      let next = new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
+      if (next < today) next = new Date(today.getFullYear() + 1, dob.getMonth(), dob.getDate());
+      const inDays = Math.round((next - today) / 86400000);
+      if (inDays <= days) out.push({ id: c.id, name: c.name, phone: c.phone, date: c.dateOfBirth, inDays });
+    }
+    out.sort((a, b) => a.inDays - b.inDays);
+    res.json(out);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 router.get("/expiring-passports", requirePermission("clients", "view"), async (req, res) => {
   try {
     const windowDays = Math.min(Math.max(parseInt(String(req.query.days || "30"), 10) || 30, 1), 365);
@@ -169,6 +192,58 @@ router.delete("/:id", requirePermission("clients", "delete"), async (req, res) =
     const result = await prisma.client.deleteMany({ where: { id: req.params.id, tenantId: req.tenantId } });
     if (!result.count) return res.status(404).json({ message: "Not found" });
     res.json({ success: true });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ── Family members ──────────────────────────────────────────────────────────
+router.get("/:id/family", requirePermission("clients", "view"), async (req, res) => {
+  try {
+    const client = await getTenantClient(req.params.id, req.tenantId);
+    if (!client) return res.status(404).json({ message: "Not found" });
+    res.json(await prisma.clientFamilyMember.findMany({ where: { clientId: req.params.id }, orderBy: { createdAt: "asc" } }));
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+router.post("/:id/family", requirePermission("clients", "edit"), async (req, res) => {
+  try {
+    const client = await getTenantClient(req.params.id, req.tenantId);
+    if (!client) return res.status(404).json({ message: "Not found" });
+    const { name, relation, passportNumber, dateOfBirth } = req.body;
+    if (!name) return res.status(400).json({ message: "Name is required" });
+    res.status(201).json(await prisma.clientFamilyMember.create({
+      data: { clientId: req.params.id, tenantId: req.tenantId, name, relation: relation || "family", passportNumber, dateOfBirth },
+    }));
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+router.delete("/:id/family/:memberId", requirePermission("clients", "edit"), async (req, res) => {
+  try {
+    const result = await prisma.clientFamilyMember.deleteMany({ where: { id: req.params.memberId, clientId: req.params.id, tenantId: req.tenantId } });
+    if (!result.count) return res.status(404).json({ message: "Not found" });
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ── Wallet ──────────────────────────────────────────────────────────────────
+router.get("/:id/wallet", requirePermission("clients", "view"), async (req, res) => {
+  try {
+    const client = await getTenantClient(req.params.id, req.tenantId);
+    if (!client) return res.status(404).json({ message: "Not found" });
+    const transactions = await prisma.walletTransaction.findMany({ where: { clientId: req.params.id }, orderBy: { createdAt: "desc" }, take: 50 });
+    res.json({ balance: client.walletBalance || 0, transactions });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+router.post("/:id/wallet", requirePermission("clients", "edit"), async (req, res) => {
+  try {
+    const client = await getTenantClient(req.params.id, req.tenantId);
+    if (!client) return res.status(404).json({ message: "Not found" });
+    const amount = Math.abs(Number(req.body.amount) || 0);
+    const type = req.body.type === "debit" ? "debit" : "credit";
+    if (!amount) return res.status(400).json({ message: "Amount is required" });
+    const balance = type === "credit" ? (client.walletBalance || 0) + amount : (client.walletBalance || 0) - amount;
+    const [, txn] = await prisma.$transaction([
+      prisma.client.update({ where: { id: req.params.id }, data: { walletBalance: balance } }),
+      prisma.walletTransaction.create({ data: { clientId: req.params.id, tenantId: req.tenantId, type, amount, balance, note: req.body.note, createdBy: req.userId } }),
+    ]);
+    res.status(201).json({ balance, transaction: txn });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

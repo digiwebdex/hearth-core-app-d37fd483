@@ -162,7 +162,19 @@ export const clientApi = {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       body: data,
     }).then((r) => r.json()),
+  getFamily: (id: string) => request<ClientFamilyMember[]>(`/clients/${id}/family`),
+  addFamily: (id: string, data: Partial<ClientFamilyMember>) =>
+    request<ClientFamilyMember>(`/clients/${id}/family`, { method: "POST", body: JSON.stringify(data) }),
+  deleteFamily: (id: string, memberId: string) =>
+    request<void>(`/clients/${id}/family/${memberId}`, { method: "DELETE" }),
+  getWallet: (id: string) => request<{ balance: number; transactions: WalletTransaction[] }>(`/clients/${id}/wallet`),
+  adjustWallet: (id: string, data: { amount: number; type: "credit" | "debit"; note?: string }) =>
+    request<{ balance: number; transaction: WalletTransaction }>(`/clients/${id}/wallet`, { method: "POST", body: JSON.stringify(data) }),
+  getBirthdays: (days = 30) => request<ClientBirthday[]>(`/clients/birthdays?days=${days}`),
 };
+export interface ClientFamilyMember { id: string; clientId: string; name: string; relation: string; passportNumber?: string; dateOfBirth?: string; createdAt: string }
+export interface WalletTransaction { id: string; clientId: string; type: "credit" | "debit"; amount: number; balance: number; note?: string; createdAt: string }
+export interface ClientBirthday { id: string; name: string; phone?: string; date?: string; inDays: number }
 export const agentApi = {
   ...createCrudApi<Agent>("agents"),
   getMe: () => request<Agent | null>("/agents/me"),
@@ -594,7 +606,7 @@ export interface Tenant {
   createdAt: string;
   trialDaysConfigured?: number;
 }
-export interface Client { id: string; name: string; phone: string; email: string; alternatePhone?: string; address?: string; dateOfBirth?: string; passportNumber?: string; passportExpiry?: string; nidNumber?: string; nationality?: string; emergencyContact?: string; emergencyPhone?: string; notes?: string; tags?: string[]; documents?: ClientDocument[]; companyName?: string; clientType?: "individual" | "corporate"; tenantId: string; createdAt: string; updatedAt?: string; }
+export interface Client { id: string; name: string; phone: string; email: string; alternatePhone?: string; address?: string; dateOfBirth?: string; passportNumber?: string; passportExpiry?: string; nidNumber?: string; nationality?: string; emergencyContact?: string; emergencyPhone?: string; notes?: string; tags?: string[]; documents?: ClientDocument[]; companyName?: string; clientType?: "individual" | "corporate"; walletBalance?: number; creditLimit?: number; contractRef?: string; contractExpiry?: string; tenantId: string; createdAt: string; updatedAt?: string; }
 export interface ClientDocument { id: string; clientId: string; name: string; type: string; url: string; uploadedAt: string; }
 export interface CorporateSummaryRow {
   clientId: string;
