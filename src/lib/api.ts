@@ -215,6 +215,24 @@ export const campaignApi = {
   send: (id: string) => request<Campaign>(`/campaigns/${id}/send`, { method: "POST" }),
 };
 
+export interface CrmAnalytics {
+  leads: { total: number; won: number; lost: number; conversionRate: number; lostRate: number; funnel: Array<{ status: string; count: number; pct: number }> };
+  bySource: Array<{ source: string; total: number; won: number; value: number; conversion: number }>;
+  byAssignee: Array<{ userId: string; name: string; total: number; won: number; conversion: number }>;
+  retention: { totalCustomers: number; repeatCustomers: number; repeatRate: number };
+  complaints: { total: number; open: number; resolved: number; avgRating: number | null };
+  campaigns: { total: number; messagesSent: number };
+}
+export const crmAnalyticsApi = {
+  get: (from?: string, to?: string) => {
+    const q = new URLSearchParams();
+    if (from) q.set("from", from);
+    if (to) q.set("to", to);
+    const qs = q.toString();
+    return request<CrmAnalytics>(`/crm-analytics${qs ? `?${qs}` : ""}`);
+  },
+};
+
 export const leadApi = {
   ...createCrudApi<Lead>("leads"),
   updateStatus: (id: string, status: string) =>

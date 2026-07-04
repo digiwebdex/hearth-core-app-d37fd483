@@ -60,10 +60,10 @@ const GROUPS: Group[] = [
     { label: "Customer segmentation" }, { label: "Loyalty program" }, { label: "Referral program" },
     { label: "Promotions", soon: true },
   ] },
-  { id: "reports", title: "Reports", titleBn: "রিপোর্ট", icon: BarChart3, url: "/reports", leaves: [
-    { label: "Customer report" }, { label: "Corporate report" }, { label: "Follow-up report" },
-    { label: "Lead & source report", soon: true }, { label: "Conversion report", soon: true },
-    { label: "Lost lead report", soon: true }, { label: "Retention report", soon: true }, { label: "CRM analytics", soon: true },
+  { id: "reports", title: "CRM analytics", titleBn: "CRM অ্যানালিটিক্স", icon: BarChart3, url: "/crm-analytics", leaves: [
+    { label: "Lead & source report" }, { label: "Conversion report" }, { label: "Lost lead report" },
+    { label: "Executive performance" }, { label: "Retention report" }, { label: "CRM analytics" },
+    { label: "Customer & corporate report" },
   ] },
   { id: "settings", title: "CRM settings", titleBn: "CRM সেটিংস", icon: Settings, url: "/settings", leaves: [
     { label: "WhatsApp / SMS / SMTP API" }, { label: "User permissions" },
