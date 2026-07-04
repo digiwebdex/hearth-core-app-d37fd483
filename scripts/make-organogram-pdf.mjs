@@ -11,7 +11,7 @@ const core = [
 const advanced = [
   "CRM workspace", "Hajj & Umrah ops desk", "Air ticketing ops", "Visa tracker",
   "Tour & group / MICE", "Corporate travel", "Sub-agents & commission",
-  "Documents & service desk", "HR & payroll", "Marketing & loyalty", "Website & CMS",
+  "Documents & service desk", "HR & payroll", "Marketing & loyalty",
 ];
 
 const workflow = [
@@ -27,10 +27,10 @@ const workflow = [
 const tiers = [
   { id: "basic", name: "Basic", price: "৳500", color: "#5F5E5A", bg: "#F1EFE8", who: "New / small agency getting organised.",
     adds: ["Full core: clients, bookings, quotations, invoices, payments, expenses, accounts, reports", "500 clients · 500 bookings · 3 team members", "Manual payment recording", "500 MB storage"] },
-  { id: "pro", name: "Pro", price: "৳800", color: "#185FA5", bg: "#E6F1FB", who: "Growing agency reaching customers online.",
-    adds: ["Everything in Basic, plus:", "1,000 clients · 1,000 bookings · 10 team members", "Email + SMS (500/mo) to customers", "SSLCommerz online payments", "Agent commission tracking", "1 custom domain · 2 GB storage"] },
+  { id: "pro", name: "Pro", price: "৳800", color: "#185FA5", bg: "#E6F1FB", who: "Growing agency getting online & reaching customers.",
+    adds: ["Everything in Basic, plus:", "1,000 clients · 1,000 bookings · 10 team members", "Website builder & CMS", "WhatsApp (200/mo) + daily WhatsApp summary", "Email + SMS (500/mo) to customers", "SSLCommerz payments · agent commission", "1 custom domain · 2 GB storage"] },
   { id: "business", name: "Business", price: "৳1,500", color: "#854F0B", bg: "#FAEEDA", who: "Established agency wanting the full toolkit.",
-    adds: ["Everything in Pro, plus ALL advanced modules:", "CRM workspace · Hajj/Umrah ops · Ticketing · Visa · Corporate · Sub-agents", "Website & CMS · Marketing & loyalty · HR & payroll", "WhatsApp + bKash · Refund system · Advanced analytics", "2,000 clients/bookings · 25 users · 2 domains · 10 GB · priority support"] },
+    adds: ["Everything in Pro, plus the advanced modules:", "CRM workspace · Hajj/Umrah ops · Ticketing · Visa · Corporate · Sub-agents", "Marketing campaigns · loyalty · HR & payroll", "Unlimited WhatsApp + bKash · Refund system · Advanced analytics", "2,000 clients/bookings · 25 users · 2 domains · 10 GB · priority support"] },
   { id: "ult", name: "Unlimited", price: "৳5,000", color: "#3C3489", bg: "#EEEDFE", who: "Large / multi-branch agency at scale.",
     adds: ["Everything in Business, plus:", "Unlimited clients, bookings, users, domains, SMS & storage", "API access & custom integrations", "Full automation & workflow engine", "Multi-branch management · dedicated account manager"] },
 ];
@@ -49,12 +49,12 @@ const cmpRows = [
   ["Refund system", "n", "n", "y", "y"],
   ["Email to customers", "n", "y", "y", "y"],
   ["SMS per month", "—", "500", "2,000", "Unlimited"],
-  ["WhatsApp", "n", "n", "y", "y"],
-  ["Daily WhatsApp summary to owner", "n", "n", "y", "y"],
+  ["WhatsApp", "n", "200/mo", "y", "y"],
+  ["Daily WhatsApp summary to owner", "n", "y", "y", "y"],
   ["Automatic daily backup (data safety)", "y", "y", "y", "y"],
   ["Agent commission", "n", "y", "y", "y"],
   ["Advanced modules (CRM, Hajj, ticketing, visa, corporate)", "n", "n", "y", "y"],
-  ["Website & CMS", "n", "n", "y", "y"],
+  ["Website & CMS", "n", "y", "y", "y"],
   ["Marketing & loyalty", "n", "n", "y", "y"],
   ["Advanced analytics", "n", "n", "y", "y"],
   ["Priority support", "n", "n", "y", "y"],
@@ -141,7 +141,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><style>
   <div style="margin-top:14px;background:#E1F5EE;border:1px solid #5DCAA5;border-radius:10px;padding:12px 14px;">
     <div style="font-weight:700;color:#0F6E56;font-size:11pt;">🔔 Runs on autopilot every day</div>
     <ul style="margin:6px 0 0;padding-left:18px;font-size:9.5pt;color:#085041;">
-      <li><b>Daily WhatsApp summary</b> to the owner every evening — today's bookings, payments received, outstanding dues, unpaid invoices and what needs action. <i>(Business &amp; Unlimited)</i></li>
+      <li><b>Daily WhatsApp summary</b> to the owner every evening — today's bookings, payments received, outstanding dues, unpaid invoices and what needs action. <i>(Pro — 200 WhatsApp/mo · Business &amp; Unlimited — unlimited)</i></li>
       <li><b>Automatic daily backup</b> — every agency's data is safely backed up each day, no button to press. <i>(All packages)</i></li>
     </ul>
   </div>
@@ -167,7 +167,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><style>
       <div class="items">${advanced.map((a) => chip(a)).join("")}</div>
     </div>
   </div>
-  <p class="sub" style="margin-top:14px;font-size:9.5pt;">Advanced modules are <b>off by default</b>. On Business &amp; Unlimited the owner switches on the ones they need in <b>Settings → Optional modules</b>. Any package can still <b>sell</b> Hajj, visa, tickets and tours as bookings — the advanced tiers add the dedicated operation desks and growth tools.</p>
+  <p class="sub" style="margin-top:14px;font-size:9.5pt;">Advanced modules are <b>off by default</b>. On Business &amp; Unlimited the owner switches on the ones they need in <b>Settings → Optional modules</b>. Any package can still <b>sell</b> Hajj, visa, tickets and tours as bookings — the advanced tiers add the dedicated operation desks and growth tools. The <b>website builder</b> and <b>WhatsApp</b> are available from <b>Pro</b> upward.</p>
 </div>
 
 <div class="page">

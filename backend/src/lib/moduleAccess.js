@@ -4,7 +4,8 @@
 // Menu-hiding on the frontend is not enough — this enforces the plan floor.
 
 const MODULE_MIN_PLAN = {
-  // default floor is "business"; per-bundle overrides would go here
+  // default floor is "business"; per-bundle overrides:
+  website: "pro", // website builder is available from Pro upward
 };
 
 const ADVANCED_MODULE_IDS = [
