@@ -199,6 +199,22 @@ export const complaintApi = {
   getStats: () => request<ComplaintStats>("/complaints/stats"),
 };
 
+export interface Campaign {
+  id: string; name: string;
+  channel: "sms" | "email" | "whatsapp";
+  subject?: string; body: string;
+  audienceType: "all" | "tag" | "clientType"; audienceValue?: string;
+  status: "draft" | "sent";
+  recipientCount: number; sentCount: number; failedCount: number;
+  sentAt?: string; createdBy?: string; tenantId: string; createdAt: string; updatedAt?: string;
+}
+export const campaignApi = {
+  ...createCrudApi<Campaign>("campaigns"),
+  audiencePreview: (type: string, value: string, channel: string) =>
+    request<{ count: number }>(`/campaigns/audience-preview?type=${encodeURIComponent(type)}&value=${encodeURIComponent(value)}&channel=${encodeURIComponent(channel)}`),
+  send: (id: string) => request<Campaign>(`/campaigns/${id}/send`, { method: "POST" }),
+};
+
 export const leadApi = {
   ...createCrudApi<Lead>("leads"),
   updateStatus: (id: string, status: string) =>
