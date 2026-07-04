@@ -55,10 +55,10 @@ const GROUPS: Group[] = [
     { label: "New complaint" }, { label: "Assigned staff" }, { label: "Resolution" },
     { label: "Customer feedback" }, { label: "Complaint history" },
   ] },
-  { id: "marketing", title: "Marketing", titleBn: "মার্কেটিং", icon: Megaphone, url: "/loyalty", leaves: [
-    { label: "Loyalty program" }, { label: "Referral program" },
-    { label: "Email campaign", soon: true }, { label: "SMS campaign", soon: true }, { label: "WhatsApp campaign", soon: true },
-    { label: "Customer segmentation", soon: true }, { label: "Promotions", soon: true },
+  { id: "marketing", title: "Marketing", titleBn: "মার্কেটিং", icon: Megaphone, url: "/campaigns", leaves: [
+    { label: "SMS campaign" }, { label: "WhatsApp campaign" }, { label: "Email campaign" },
+    { label: "Customer segmentation" }, { label: "Loyalty program" }, { label: "Referral program" },
+    { label: "Promotions", soon: true },
   ] },
   { id: "reports", title: "Reports", titleBn: "রিপোর্ট", icon: BarChart3, url: "/reports", leaves: [
     { label: "Customer report" }, { label: "Corporate report" }, { label: "Follow-up report" },
