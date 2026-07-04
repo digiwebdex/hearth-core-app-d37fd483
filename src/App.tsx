@@ -27,6 +27,7 @@ import Clients from "./pages/Clients";
 import Crm from "./pages/Crm";
 import Complaints from "./pages/Complaints";
 import Campaigns from "./pages/Campaigns";
+import CrmAnalytics from "./pages/CrmAnalytics";
 import Agents from "./pages/Agents";
 import AgentProfile from "./pages/AgentProfile";
 import Vendors from "./pages/Vendors";
@@ -217,6 +218,7 @@ const AppContent = () => (
           <Route path="/crm" element={<P><Crm /></P>} />
           <Route path="/complaints" element={<P><Complaints /></P>} />
           <Route path="/campaigns" element={<P><Campaigns /></P>} />
+          <Route path="/crm-analytics" element={<P><CrmAnalytics /></P>} />
           <Route path="/clients" element={<P><Clients /></P>} />
           <Route path="/clients/:id" element={<P><ClientProfile /></P>} />
           <Route path="/corporate" element={<P><CorporateTravel /></P>} />
