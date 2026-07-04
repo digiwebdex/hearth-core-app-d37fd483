@@ -17,7 +17,8 @@ interface BackupInfo { lastBackup: string | null; count: number; }
 
 const SHEETS = [
   "Summary", "Clients", "Leads", "Vendors", "Agents", "Quotations", "Bookings",
-  "Invoices", "Payments", "Expenses", "Ledger", "Tasks", "Complaints", "Campaigns",
+  "Invoices", "Payments", "Expenses", "Ledger", "Accounts", "Tasks", "Complaints",
+  "Campaigns", "Packages", "Hajj", "Visa", "Tours", "Support", "…every module",
 ];
 
 async function downloadBlob(res: Response, fallback: string) {
@@ -98,7 +99,7 @@ export default function DataExport() {
             Export data to Excel
           </CardTitle>
           <CardDescription>
-            One organised Excel workbook: a <strong>Summary</strong> dashboard sheet first, then one sheet per menu — all your data, easy to read.
+            One organised Excel workbook: a <strong>Summary</strong> dashboard sheet first, then a sheet for <strong>every module</strong> — with <strong>all fields</strong> for each record. Complete, and easy to read.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
