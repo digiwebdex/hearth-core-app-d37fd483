@@ -24,12 +24,11 @@ const GROUPS: Group[] = [
     { label: "Individual & corporate" }, { label: "Profile, passport, NID" }, { label: "Emergency contact" },
     { label: "Travel / booking / payment history" }, { label: "Loyalty points" }, { label: "Tags" },
     { label: "Documents" }, { label: "Passport expiry reminder" },
-    { label: "Family members", soon: true }, { label: "Customer wallet", soon: true }, { label: "Birthday reminder", soon: true },
+    { label: "Family members" }, { label: "Customer wallet" }, { label: "Birthday reminder" },
   ] },
   { id: "corporate", title: "Corporate clients", titleBn: "কর্পোরেট ক্লায়েন্ট", icon: Building2, url: "/corporate", leaves: [
     { label: "Company profile" }, { label: "Corporate bookings" }, { label: "Billing information" },
-    { label: "Contact persons", soon: true }, { label: "Employees", soon: true },
-    { label: "Credit limit", soon: true }, { label: "Contract", soon: true },
+    { label: "Family / contact persons" }, { label: "Credit limit" }, { label: "Contract" },
   ] },
   { id: "quotations", title: "Quotations", titleBn: "কোটেশন", icon: FileText, url: "/quotations", leaves: [
     { label: "Air ticket / visa / hotel quote" }, { label: "Tour / Hajj / Umrah quote" }, { label: "Transport / insurance quote" },

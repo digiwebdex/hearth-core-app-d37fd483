@@ -217,8 +217,14 @@ model Client {
   companyName      String?
   clientType       String   @default("individual")
   tags             String[] @default([])
+  walletBalance    Float    @default(0)
+  creditLimit      Float?
+  contractRef      String?
+  contractExpiry   String?
   tenantId         String
   tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  familyMembers      ClientFamilyMember[]
+  walletTransactions WalletTransaction[]
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   bookings         Booking[]
@@ -1902,4 +1908,33 @@ model Campaign {
   updatedAt      DateTime  @updatedAt
 
   @@index([tenantId])
+}
+
+model ClientFamilyMember {
+  id             String   @id @default(uuid())
+  clientId       String
+  client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tenantId       String
+  name           String
+  relation       String   @default("family")
+  passportNumber String?
+  dateOfBirth    String?
+  createdAt      DateTime @default(now())
+
+  @@index([clientId])
+}
+
+model WalletTransaction {
+  id        String   @id @default(uuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tenantId  String
+  type      String   @default("credit")
+  amount    Float
+  balance   Float    @default(0)
+  note      String?
+  createdBy String?
+  createdAt DateTime @default(now())
+
+  @@index([clientId])
 }
