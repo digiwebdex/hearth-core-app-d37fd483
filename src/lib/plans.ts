@@ -87,13 +87,12 @@ export const PLANS: PlanConfig[] = [
       "1,000 bookings",
       "Hajj, Umrah, Visa, Air Ticket, Hotel + Tour, Transport, Manpower, Student & more",
       "Company domain (domain charge excluded)",
-      "Website design",
       "SMS & Email integration",
       "Accounting",
       "Invoice + payments",
       "10 team members",
     ],
-    restrictions: ["No WhatsApp", "No advanced analytics"],
+    restrictions: ["No WhatsApp", "No website builder", "No advanced analytics"],
     paymentGateways: ["manual", "sslcommerz"],
     hasCustomDomain: true, hasWebsiteTemplates: true, hasSmsIntegration: true,
     hasWhatsApp: false, hasEmailNotifications: true, hasAgentCommission: true,
@@ -274,7 +273,7 @@ export const FEATURE_COMPARISON = [
   ]},
   { category: "Website & Storage", features: [
     { name: "Company Domain (charges excluded)", basic: false, pro: "1", business: "2", enterprise: "Unlimited" },
-    { name: "Website Design", basic: false, pro: true, business: true, enterprise: true },
+    { name: "Website Design", basic: false, pro: false, business: true, enterprise: true },
     { name: "Storage", basic: "500 MB", pro: "2 GB", business: "10 GB", enterprise: "Unlimited" },
   ]},
   { category: "Advanced", features: [
