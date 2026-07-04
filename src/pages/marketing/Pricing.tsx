@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import MarketingLayout from "@/components/MarketingLayout";
@@ -218,8 +218,8 @@ const Pricing = () => {
               </TableHeader>
               <TableBody>
                 {FEATURE_COMPARISON.map((cat) => (
-                  <>
-                    <TableRow key={cat.category} className="border-white/8 bg-white/[0.02]">
+                  <Fragment key={cat.category}>
+                    <TableRow className="border-white/8 bg-white/[0.02]">
                       <TableCell colSpan={5} className="font-semibold text-amber-400 text-sm py-2">{cat.category}</TableCell>
                     </TableRow>
                     {cat.features.map((feat) => (
@@ -235,7 +235,7 @@ const Pricing = () => {
                         })}
                       </TableRow>
                     ))}
-                  </>
+                  </Fragment>
                 ))}
               </TableBody>
             </Table>
