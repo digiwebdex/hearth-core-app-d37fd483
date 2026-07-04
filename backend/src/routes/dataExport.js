@@ -128,7 +128,8 @@ function fullSheet(wb, name, rows, maps = {}) {
 const EXPORT_MODULES = [
   ["Clients", "client"], ["Client Family", "clientFamilyMember"], ["Wallet Ledger", "walletTransaction"],
   ["Leads", "lead"], ["Vendors", "vendor"], ["Vendor Bills", "vendorBill"],
-  ["Agents", "agent"], ["Quotations", "quotation"], ["Bookings", "booking"],
+  ["Agents", "agent"], ["Agent Ledger", "agentTransaction"], ["Visa Stock", "visaStock"],
+  ["Quotations", "quotation"], ["Bookings", "booking"],
   ["Invoices", "invoice"], ["Invoice Installments", "invoiceInstallment"], ["Payments", "payment"],
   ["Expenses", "expense"], ["Ledger", "transaction"], ["Accounts", "account"], ["Tasks", "task"],
   ["Complaints", "complaint"], ["Campaigns", "campaign"], ["Travel Packages", "travelPackage"],
@@ -206,6 +207,8 @@ router.get("/workbook", async (req, res) => {
     metric("Group tours", D("groupTour").length);
     metric("MICE events", D("miceEvent").length);
     metric("Visa applications", D("visaApplication").length);
+    metric("Visa stock — in stock", D("visaStock").filter((v) => v.status === "available" || v.status === "processing").length);
+    metric("Visa stock — sold profit", D("visaStock").filter((v) => v.status === "sold" || v.status === "completed").reduce((sum2, v) => sum2 + (Number(v.profit) || 0), 0), true);
     metric("Support tickets", D("supportTicket").length);
     s.addRow([]);
     section("Contacts & CRM");

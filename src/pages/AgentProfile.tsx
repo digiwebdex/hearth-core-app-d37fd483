@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
+import AgentLedger from "@/components/AgentLedger";
 import PermissionGate from "@/components/PermissionGate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -148,6 +149,8 @@ const AgentProfile = () => {
             </>
           )}
         </div>
+
+        <AgentLedger agentId={agent.id} />
 
         <Card>
           <CardHeader>

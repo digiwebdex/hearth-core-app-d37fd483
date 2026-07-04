@@ -30,6 +30,7 @@ import Campaigns from "./pages/Campaigns";
 import CrmAnalytics from "./pages/CrmAnalytics";
 import CrmSettings from "./pages/CrmSettings";
 import Agents from "./pages/Agents";
+import VisaStock from "./pages/VisaStock";
 import AgentProfile from "./pages/AgentProfile";
 import Vendors from "./pages/Vendors";
 import VendorDetails from "./pages/VendorDetails";
@@ -226,6 +227,7 @@ const AppContent = () => (
           <Route path="/corporate" element={<P><CorporateTravel /></P>} />
           <Route path="/agents" element={<P><Agents /></P>} />
           <Route path="/agents/:id" element={<P><AgentProfile /></P>} />
+          <Route path="/visa-stock" element={<P><VisaStock /></P>} />
           <Route path="/vendors" element={<P><Vendors /></P>} />
           <Route path="/vendors/:id" element={<P><VendorDetails /></P>} />
           <Route path="/leads" element={<P><Leads /></P>} />

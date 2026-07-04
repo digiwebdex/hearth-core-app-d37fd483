@@ -23,7 +23,7 @@ const RESOURCE_MODEL_MAP = {
 const PLAN_FEATURES = {
   basic: {
     hasCustomDomain: false, hasWebsiteTemplates: false, hasSmsIntegration: false,
-    hasWhatsApp: false, hasEmailNotifications: false, hasAgentCommission: false,
+    hasWhatsApp: false, hasEmailNotifications: true, hasAgentCommission: false,
     hasAdvancedAnalytics: false, hasMarketingTools: false, hasApiAccess: false,
     hasRefundSystem: false, hasHajjUmrah: true, hasPrioritySupport: false,
   },

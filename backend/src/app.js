@@ -149,6 +149,7 @@ function createApp() {
   app.use("/api/mice", require("./routes/mice"));
   app.use("/api/travel-policy", require("./routes/travelPolicy"));
   app.use("/api/visa", require("./routes/visa"));
+  app.use("/api/visa-stock", require("./routes/visaStock"));
   app.use("/api/inventory", require("./routes/inventory"));
   app.use("/api/recruitment", require("./routes/recruitment"));
   app.use("/api/ticket-refunds", require("./routes/ticketRefunds"));
