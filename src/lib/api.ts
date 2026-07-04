@@ -184,6 +184,21 @@ export const vendorApi = {
     request<VendorNote>(`/vendors/${id}/notes`, { method: "POST", body: JSON.stringify(data) }),
   getPayableReport: () => request<VendorBill[]>("/vendors/reports/payables"),
 };
+export interface Complaint {
+  id: string; subject: string; description?: string;
+  clientId?: string; clientName?: string; bookingId?: string;
+  category: string; priority: "low" | "medium" | "high";
+  status: "open" | "in_progress" | "resolved" | "closed";
+  assignedTo?: string; resolution?: string; resolvedAt?: string;
+  feedback?: string; rating?: number;
+  createdBy?: string; tenantId: string; createdAt: string; updatedAt?: string;
+}
+export interface ComplaintStats { open: number; in_progress: number; resolved: number; closed: number; total: number }
+export const complaintApi = {
+  ...createCrudApi<Complaint>("complaints"),
+  getStats: () => request<ComplaintStats>("/complaints/stats"),
+};
+
 export const leadApi = {
   ...createCrudApi<Lead>("leads"),
   updateStatus: (id: string, status: string) =>

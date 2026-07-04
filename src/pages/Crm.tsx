@@ -51,9 +51,9 @@ const GROUPS: Group[] = [
     { label: "Passport / visa copy" }, { label: "Air ticket / hotel voucher" }, { label: "Invoice / money receipt" },
     { label: "Agreement & other" }, { label: "Document expiry alerts" },
   ] },
-  { id: "complaints", title: "Complaints", titleBn: "অভিযোগ", icon: AlertCircle, leaves: [
-    { label: "New complaint", soon: true }, { label: "Assigned staff", soon: true }, { label: "Resolution", soon: true },
-    { label: "Customer feedback", soon: true }, { label: "Complaint history", soon: true },
+  { id: "complaints", title: "Complaints", titleBn: "অভিযোগ", icon: AlertCircle, url: "/complaints", leaves: [
+    { label: "New complaint" }, { label: "Assigned staff" }, { label: "Resolution" },
+    { label: "Customer feedback" }, { label: "Complaint history" },
   ] },
   { id: "marketing", title: "Marketing", titleBn: "মার্কেটিং", icon: Megaphone, url: "/loyalty", leaves: [
     { label: "Loyalty program" }, { label: "Referral program" },
