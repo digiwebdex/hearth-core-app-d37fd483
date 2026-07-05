@@ -241,6 +241,13 @@ function createApp() {
   // integrates the pre-existing VisaApplication model for Visa Tracking.
   // Additive: /api/bookings is unchanged. See docs/v2-master/11-Architecture-Freeze.md §5.
   app.use("/api/visa-bookings", require("./routes/visaBookings"));
+  // Finance Core — read/composition layer over the existing single-entry
+  // Transaction ledger + Account/Invoice/VendorBill (customer & supplier
+  // ledgers, cash/bank/bKash/Nagad books, journal, daily closing,
+  // receivable, payable), plus a manual journal adjustment. Additive: no
+  // existing accounting flow is changed; every transaction still originates
+  // from Invoice/Payment/Booking. See docs/v2-master/11-Architecture-Freeze.md §11.
+  app.use("/api/finance-core", require("./routes/financeCore"));
 
   app.get("/api/health", async (_req, res) => {
     let dbStatus = "disconnected";
