@@ -110,8 +110,9 @@ router.post("/", requirePermission("accounts", "create"), async (req, res) => {
 });
 router.patch("/:id", requirePermission("accounts", "edit"), async (req, res) => {
   try {
-    await prisma.account.updateMany({ where: { id: req.params.id, tenantId: req.tenantId }, data: req.body });
-    res.json(await prisma.account.findFirst({ where: { id: req.params.id } }));
+    const result = await prisma.account.updateMany({ where: { id: req.params.id, tenantId: req.tenantId }, data: req.body });
+    if (result.count === 0) return res.status(404).json({ message: "Not found" });
+    res.json(await prisma.account.findFirst({ where: { id: req.params.id, tenantId: req.tenantId } }));
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 router.delete("/:id", requirePermission("accounts", "delete"), async (req, res) => {

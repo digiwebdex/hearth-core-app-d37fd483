@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const { authenticate, requireRole } = require("../middleware/auth");
+const { authenticate, requireSuperAdmin, requirePermission } = require("../middleware/auth");
 const { prisma } = require("../middleware/auth");
 const { execFile } = require("child_process");
 const path = require("path");
@@ -32,7 +32,7 @@ function dateRange(from, to) {
 
 // ── Daily CSV export ──────────────────────────────────────────────────────────
 
-router.get("/csv", async (req, res) => {
+router.get("/csv", requirePermission("reports", "export"), async (req, res) => {
   const { from, to } = req.query;
   const tenantId = req.tenantId;
   const range = dateRange(from, to);
@@ -139,7 +139,7 @@ const EXPORT_MODULES = [
   ["Loyalty Ledger", "loyaltyTransaction"], ["Referrals", "referralCode"], ["Staff Profiles", "staffProfile"],
 ];
 
-router.get("/workbook", async (req, res) => {
+router.get("/workbook", requirePermission("reports", "export"), async (req, res) => {
   const tenantId = req.tenantId;
   const range = dateRange(req.query.from, req.query.to);
   const createdAt = range || undefined;
@@ -237,9 +237,11 @@ router.get("/workbook", async (req, res) => {
   }
 });
 
-// ── Full DB backup (tenant_owner only, pg_dump) ───────────────────────────────
+// ── Full DB backup (SUPER ADMIN ONLY, pg_dump) ────────────────────────────────
+// Security: this dumps the ENTIRE platform database (all tenants). It must never
+// be reachable by a tenant_owner/tenant admin. Gated by requireSuperAdmin.
 
-router.post("/db-backup", requireRole("tenant_owner", "super_admin"), async (req, res) => {
+router.post("/db-backup", requireSuperAdmin, async (req, res) => {
   // Parse connection from DATABASE_URL
   const url = process.env.DATABASE_URL || "";
   const match = url.match(/postgresql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([^?]+)/);
@@ -273,7 +275,7 @@ router.post("/db-backup", requireRole("tenant_owner", "super_admin"), async (req
 
 // ── Backup status / last-backup info ─────────────────────────────────────────
 
-router.get("/backup-info", requireRole("tenant_owner", "super_admin"), (_req, res) => {
+router.get("/backup-info", requireSuperAdmin, (_req, res) => {
   const backupDir = "/var/backups/hearth-core";
   fs.readdir(backupDir, (err, files) => {
     if (err) return res.json({ lastBackup: null, count: 0 });
