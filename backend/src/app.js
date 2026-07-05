@@ -188,6 +188,10 @@ function createApp() {
   app.use("/api/export", require("./routes/dataExport"));
   app.use("/api/landing-cms", require("./routes/landingCms"));
 
+  // Phase 1 (v2 Architecture Freeze) — Module Registry read endpoint. Additive,
+  // nothing else in the app consumes it yet. See docs/v2-master/11-Architecture-Freeze.md §6.
+  app.use("/api/registry", require("./routes/registry"));
+
   app.get("/api/health", async (_req, res) => {
     let dbStatus = "disconnected";
     try {
