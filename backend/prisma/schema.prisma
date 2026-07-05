@@ -18,6 +18,7 @@ model Tenant {
   city                  String?
   country               String?
   website               String?
+  logo                  String?
   notes                 String?
   subscriptionPlan      String                @default("free")
   subscriptionStatus    String                @default("active")

@@ -48,12 +48,18 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="none">
-      {/* Brand header */}
+      {/* Brand header — shows the agency's own logo when uploaded (Organization → Company Logo) */}
       <div className="flex items-center gap-2 border-b px-3 py-3 shrink-0">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground text-xs font-bold">
-          H
-        </div>
-        <span className="text-sm font-bold tracking-tight truncate">{t("common.brand")}</span>
+        {tenant?.logo ? (
+          <img src={tenant.logo} alt={tenant.name || "Agency"} className="h-7 max-w-[150px] w-auto object-contain" />
+        ) : (
+          <>
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground text-xs font-bold">
+              H
+            </div>
+            <span className="text-sm font-bold tracking-tight truncate">{tenant?.name || t("common.brand")}</span>
+          </>
+        )}
       </div>
 
       <SidebarContent className="gap-0">
