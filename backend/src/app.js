@@ -194,6 +194,10 @@ function createApp() {
   // Phase 1 Milestone 2 — Feature Flag Engine. Additive, all flags default
   // OFF, nothing else in the app consumes them yet. See docs/v2-master/11-Architecture-Freeze.md §12.
   app.use("/api/feature-flags", require("./routes/featureFlags"));
+  // Phase 1 Milestone 3 — Plan Engine. Read-only, additive. Wraps
+  // planFeatures.js/planPricing.js/moduleAccess.js (backend is the single
+  // source of truth) — no plan data is redefined. See docs/v2-master/11-Architecture-Freeze.md §9.
+  app.use("/api/plan-engine", require("./routes/planEngine"));
 
   app.get("/api/health", async (_req, res) => {
     let dbStatus = "disconnected";
