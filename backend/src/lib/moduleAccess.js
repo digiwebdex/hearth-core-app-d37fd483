@@ -6,7 +6,6 @@
 const MODULE_MIN_PLAN = {
   // default floor is "business"; per-bundle overrides:
   website: "pro", // website builder is available from Pro upward
-  catalog: "pro", // package/tour catalog builder — Pro upward (hidden on lean Basic)
 };
 
 const ADVANCED_MODULE_IDS = [
@@ -22,7 +21,6 @@ const ADVANCED_MODULE_IDS = [
   "hrPayroll",
   "marketing",
   "website",
-  "catalog",
 ];
 
 const PLAN_RANK = { free: 0, basic: 1, pro: 2, business: 3, enterprise: 4 };

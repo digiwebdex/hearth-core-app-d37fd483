@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { tenantApi } from "@/lib/api";
+import { getPlan, type PlanType } from "@/lib/plans";
 import { useToast } from "@/hooks/use-toast";
 import {
   deriveModuleFlagsFromServiceTypes,
@@ -177,6 +178,8 @@ const Organization = () => {
 
   const plan = tenant?.subscriptionPlan || "free";
   const planMeta = PLAN_LABELS[plan] || PLAN_LABELS.free;
+  // Website builder/domain/SEO are Pro+ features — don't surface them to Basic (ERP-only).
+  const canWebsite = getPlan(plan as PlanType).hasWebsiteTemplates;
   const appUrl = `https://app.travelagencyweb.com/site/${tenant?.slug || ""}`;
   const siteUrl = window.location.hostname !== "app.travelagencyweb.com"
     ? `https://${window.location.hostname}`
@@ -469,9 +472,12 @@ const Organization = () => {
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {[
-                { to: "/website", icon: Globe, label: "Website & CMS", desc: "Edit homepage, packages, theme" },
-                { to: "/website/publish", icon: Shield, label: "Domain & Publish", desc: "Custom domain, SSL, publish guide" },
-                { to: "/website/seo", icon: Star, label: "SEO Settings", desc: "Meta title, description, OG image" },
+                // Website links are Pro+ only — filtered out for Basic (ERP-only) plans.
+                ...(canWebsite ? [
+                  { to: "/website", icon: Globe, label: "Website & CMS", desc: "Edit homepage, packages, theme" },
+                  { to: "/website/publish", icon: Shield, label: "Domain & Publish", desc: "Custom domain, SSL, publish guide" },
+                  { to: "/website/seo", icon: Star, label: "SEO Settings", desc: "Meta title, description, OG image" },
+                ] : []),
                 { to: "/team", icon: Building2, label: "Team Members", desc: "Add or manage staff accounts" },
                 { to: "/settings/billing", icon: CreditCard, label: "Subscription & Billing", desc: "Upgrade, invoices, plan info" },
                 { to: "/settings", icon: Settings2, label: "System Settings", desc: "SMS, WhatsApp, email, integrations" },
