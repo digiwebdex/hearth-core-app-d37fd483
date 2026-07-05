@@ -268,6 +268,14 @@ function createApp() {
   // documents. Additive: /api/bookings and /api/hajj are both unchanged.
   // See docs/v2-master/11-Architecture-Freeze.md §4.
   app.use("/api/hajj-bookings", require("./routes/hajjBookings"));
+  // Tour Booking — the fifth complete booking module. One unified module for
+  // domestic + international tours (generic Booking, serviceType derived from
+  // tourType), with day-wise itinerary, destinations, hotel/transport
+  // allocation, and guide assignment as serviceDetails sub-collections,
+  // travellers via BookingTraveler, and reused identity/pricing/status/
+  // documents. Additive: /api/bookings and /api/group-tours are unchanged.
+  // See docs/v2-master/11-Architecture-Freeze.md §5.
+  app.use("/api/tour-bookings", require("./routes/tourBookings"));
 
   app.get("/api/health", async (_req, res) => {
     let dbStatus = "disconnected";
