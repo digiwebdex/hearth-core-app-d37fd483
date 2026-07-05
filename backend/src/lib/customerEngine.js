@@ -7,6 +7,11 @@
 // existing /api/clients routes (backend/src/routes/clients.js), which keep
 // working unchanged.
 //
+// passportNumber/passportExpiry/nationality were added to the select below
+// (Visa Booking Module) — real, pre-existing Client columns that just
+// weren't selected yet; not a schema change, and every existing consumer of
+// resolveCustomerContext() only gets additional fields, never fewer.
+//
 // Real read failures (a down/unmigrated database) are NOT masked here —
 // unlike Feature Flags (Milestone 2), there is no sensible "safe default"
 // for "what is this customer's data", so this throws like every other
@@ -24,6 +29,7 @@ async function resolveCustomerContext(clientId, tenantId) {
     select: {
       id: true, name: true, phone: true, email: true, clientType: true, companyName: true,
       walletBalance: true, creditLimit: true, tags: true, createdAt: true, updatedAt: true,
+      passportNumber: true, passportExpiry: true, nationality: true,
     },
   });
   if (!client) return null;
