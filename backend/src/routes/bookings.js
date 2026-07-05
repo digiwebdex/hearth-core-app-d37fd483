@@ -648,4 +648,16 @@ router.delete("/:id/documents/:docId", requirePermission("bookings", "delete"), 
   }
 });
 
-module.exports = router;
+// Additive exports (router itself is unchanged/still the default export Express
+// mounts) — lets type-scoped booking routes (e.g. routes/airTicketBookings.js)
+// reuse this file's client/agent resolution, commission sync, and response
+// shaping instead of re-implementing them. See docs/v2-master/11-Architecture-Freeze.md §5.
+module.exports = Object.assign(router, {
+  normalizeBookingInput,
+  formatBooking,
+  getTenantBooking,
+  BOOKING_LIST_INCLUDE,
+  BOOKING_DETAIL_INCLUDE,
+  syncAgentCommission,
+  upload,
+});
