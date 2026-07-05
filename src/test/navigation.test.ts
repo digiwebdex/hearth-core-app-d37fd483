@@ -1,34 +1,65 @@
 import { describe, it, expect } from "vitest";
 import { getNavigationGroups } from "@/config/navigation";
 
-describe("getNavigationGroups", () => {
-  it("orders groups CRM → sales & bookings → operations", () => {
+describe("getNavigationGroups — 15-section master hierarchy", () => {
+  it("returns the 15 Tenant-ERP sections in blueprint order", () => {
     const ids = getNavigationGroups().map((g) => g.id);
-    const crm = ids.indexOf("crm");
-    const salesBookings = ids.indexOf("salesBookings");
-    const operations = ids.indexOf("operations");
-    expect(crm).toBeGreaterThanOrEqual(0);
-    expect(salesBookings).toBeGreaterThan(crm);
-    expect(operations).toBeGreaterThan(salesBookings);
+    expect(ids).toEqual([
+      "dashboard",
+      "crm",
+      "sales",
+      "booking",
+      "travelServices",
+      "financeAccounts",
+      "hrPayroll",
+      "documents",
+      "marketing",
+      "websiteCms",
+      "reports",
+      "automation",
+      "integrations",
+      "settings",
+      "subscription",
+    ]);
   });
 
-  it("keeps the service catalog inside sales & bookings", () => {
-    const sales = getNavigationGroups().find((g) => g.id === "salesBookings");
+  it("keeps the service catalog inside Sales and pointing at /packages/all", () => {
+    const sales = getNavigationGroups().find((g) => g.id === "sales");
     const catalog = sales?.items.find((i) => i.id === "service-catalog");
     expect(catalog?.url).toBe("/packages/all");
   });
 
-  it("uses hajj ops desk label key when module enabled", () => {
-    const ops = getNavigationGroups({ enableHajjUmrahModule: true }).find((g) => g.id === "operations");
-    const hajj = ops?.items.find((i) => i.id === "hajj-operations");
-    expect(hajj?.titleKey).toBe("sidebar.hajjUmrahOperations");
+  it("surfaces the 13 travel services as their own section", () => {
+    const svc = getNavigationGroups().find((g) => g.id === "travelServices");
+    expect(svc?.items).toHaveLength(13);
+    const titles = svc?.items.map((i) => i.title);
+    expect(titles).toContain("Air Ticket");
+    expect(titles).toContain("Visa");
+    expect(titles).toContain("Hajj & Umrah");
+    expect(titles).toContain("Student Consultancy");
+    expect(titles).toContain("Overseas Manpower");
+  });
+
+  it("every travel service declares a service-type gate (so it can lock, not hide)", () => {
+    const svc = getNavigationGroups().find((g) => g.id === "travelServices");
+    for (const item of svc?.items ?? []) {
+      expect(item.requiredServiceTypes?.length).toBeGreaterThan(0);
+      expect(item.url).toBeTruthy();
+    }
+  });
+
+  it("routes travel services to existing views only (no invented pages)", () => {
+    const svc = getNavigationGroups().find((g) => g.id === "travelServices");
+    const air = svc?.items.find((i) => i.id === "svc-air-ticket");
+    const hajj = svc?.items.find((i) => i.id === "svc-hajj-umrah");
+    expect(air?.url).toBe("/bookings/flight");
     expect(hajj?.url).toBe("/hajj-umrah");
   });
 
-  it("includes service operations desk in operations group", () => {
-    const ops = getNavigationGroups().find((g) => g.id === "operations");
-    const serviceOps = ops?.items.find((i) => i.id === "service-operations");
-    expect(serviceOps?.titleKey).toBe("sidebar.serviceOperations");
-    expect(serviceOps?.url).toBe("/operations/services");
+  it("gates Website CMS on the hasWebsiteTemplates feature + pro plan", () => {
+    const cms = getNavigationGroups().find((g) => g.id === "websiteCms");
+    const home = cms?.items.find((i) => i.id === "website-home");
+    expect(home?.requiredFeature).toBe("hasWebsiteTemplates");
+    expect(home?.minPlan).toBe("pro");
   });
 });
