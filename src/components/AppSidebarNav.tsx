@@ -1,13 +1,18 @@
+import { useState } from "react";
 import { Lock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { usePermissions } from "@/hooks/usePermissions";
-import type { PlanType } from "@/lib/plans";
+import { usePlanAccess } from "@/hooks/usePlanAccess";
+import type { PlanType, PlanConfig } from "@/lib/plans";
 import type { Module } from "@/lib/permissions";
+import type { ServiceType } from "@/lib/serviceTypes";
 import type { NavGroupConfig, NavItemConfig } from "@/config/navigation";
 import { navItemIsActive } from "@/lib/navActive";
 import { isNavItemModuleEnabled } from "@/lib/moduleAccess";
+import { isServiceTypeEnabled, normalizeEnabledServiceTypes } from "@/lib/enabledServiceTypes";
+import { UpgradePlanDialog, type LockReason } from "@/components/UpgradePlanDialog";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -24,25 +29,91 @@ function isPlanSufficient(minPlan: PlanType | undefined, currentPlan: PlanType):
   return planOrder.indexOf(minPlan) <= planOrder.indexOf(currentPlan);
 }
 
-// ── Locked item row ──────────────────────────────────────────────────────────
-function LockedNavRow({ item, title, minPlan }: { item: NavItemConfig; title: string; minPlan?: PlanType }) {
-  const { t } = useTranslation();
+function titleFor(item: NavItemConfig, t: (k: string) => string): string {
+  return item.titleKey ? t(item.titleKey) : item.title ?? item.id;
+}
+
+function planLabel(p?: PlanType | null): string | null {
+  if (!p) return null;
+  return p.charAt(0).toUpperCase() + p.slice(1);
+}
+
+// ── Lock resolution (config-driven; no hardcoded plan/permission logic) ──────
+interface LockInfo {
+  locked: boolean;
+  reason?: LockReason;
+  requiredPlan?: PlanType | null;
+}
+
+/**
+ * Resolve whether an item is LOCKED (shown greyed with 🔒 + upgrade), given the
+ * tenant's plan, enabled advanced modules, and enabled service focus. RBAC is
+ * handled separately (it hides). Order: plan floor → feature flag → service
+ * focus → advanced-module bundle.
+ */
+function resolveLock(
+  item: NavItemConfig,
+  currentPlan: PlanType,
+  enabledModules: string[] | null | undefined,
+  serviceEnabled: (type: ServiceType) => boolean,
+  access: ReturnType<typeof usePlanAccess>,
+): LockInfo {
+  if (!isPlanSufficient(item.minPlan, currentPlan)) {
+    return { locked: true, reason: "plan", requiredPlan: item.minPlan ?? null };
+  }
+  if (item.requiredFeature && !access.hasFeature(item.requiredFeature as keyof PlanConfig)) {
+    return { locked: true, reason: "feature", requiredPlan: access.getUpgradePlan(item.requiredFeature as keyof PlanConfig) };
+  }
+  if (item.requiredServiceTypes?.length && !item.requiredServiceTypes.some((s) => serviceEnabled(s))) {
+    return { locked: true, reason: "service", requiredPlan: null };
+  }
+  if (!isNavItemModuleEnabled(item.id, currentPlan, enabledModules)) {
+    return { locked: true, reason: "module", requiredPlan: "business" };
+  }
+  return { locked: false };
+}
+
+// ── Locked item row (🔒 + upgrade badge + tooltip + click → upgrade dialog) ──
+function LockedNavRow({ item, title, lock }: { item: NavItemConfig; title: string; lock: LockInfo }) {
+  const [open, setOpen] = useState(false);
+  const label = planLabel(lock.requiredPlan);
+  const tooltip =
+    lock.reason === "service"
+      ? `${title} isn't enabled for your agency — click to enable or upgrade`
+      : `This feature is available in the ${label ?? "a higher"} plan.`;
+
   return (
     <SidebarMenuItem>
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center gap-2 px-3 py-2 text-muted-foreground/40 cursor-not-allowed select-none rounded-md">
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-muted-foreground/50 transition-colors hover:bg-muted/40 hover:text-muted-foreground"
+            >
               <item.icon className="h-4 w-4 shrink-0" />
-              <span className="flex-1 truncate text-xs">{title}</span>
+              <span className="flex-1 truncate text-sm">{title}</span>
+              {label && lock.reason !== "service" && (
+                <span className="rounded-sm bg-primary/10 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary">
+                  {label}
+                </span>
+              )}
               <Lock className="h-3 w-3 shrink-0" />
-            </div>
+            </button>
           </TooltipTrigger>
           <TooltipContent side="right">
-            <p>{t("sidebar.upgradeTo")} {minPlan?.charAt(0).toUpperCase()}{minPlan?.slice(1)}</p>
+            <p>{tooltip}</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
+      <UpgradePlanDialog
+        open={open}
+        onOpenChange={setOpen}
+        moduleName={title}
+        requiredPlanLabel={label}
+        reason={lock.reason ?? "plan"}
+      />
     </SidebarMenuItem>
   );
 }
@@ -72,24 +143,27 @@ function SidebarNavLeaf({ item, title, pathname }: { item: NavItemConfig; title:
 }
 
 // ── Nav item ─────────────────────────────────────────────────────────────────
-function SidebarNavItem({ item, currentPlan, pathname }: { item: NavItemConfig; currentPlan: PlanType; pathname: string }) {
+function SidebarNavItem({
+  item,
+  currentPlan,
+  enabledModules,
+  serviceEnabled,
+  access,
+  pathname,
+}: {
+  item: NavItemConfig;
+  currentPlan: PlanType;
+  enabledModules?: string[] | null;
+  serviceEnabled: (type: ServiceType) => boolean;
+  access: ReturnType<typeof usePlanAccess>;
+  pathname: string;
+}) {
   const { t } = useTranslation();
-  const title = t(item.titleKey);
-  const planOk = isPlanSufficient(item.minPlan, currentPlan);
+  const title = titleFor(item, t);
+  const lock = resolveLock(item, currentPlan, enabledModules, serviceEnabled, access);
 
-  if (!planOk) return <LockedNavRow item={item} title={title} minPlan={item.minPlan} />;
+  if (lock.locked) return <LockedNavRow item={item} title={title} lock={lock} />;
   return <SidebarNavLeaf item={item} title={title} pathname={pathname} />;
-}
-
-function filterVisibleItems(
-  items: NavItemConfig[],
-  canAccess: (module: Module) => boolean,
-  currentPlan: PlanType,
-  enabledModules?: string[] | null,
-): NavItemConfig[] {
-  return items.filter(
-    (item) => canAccess(item.module) && isNavItemModuleEnabled(item.id, currentPlan, enabledModules),
-  );
 }
 
 // ── Group — always expanded, label is a plain section header ─────────────────
@@ -97,20 +171,29 @@ export function AppSidebarNavGroup({
   group,
   currentPlan,
   enabledModules,
+  enabledServiceTypes,
+  enabledSubcategories,
 }: {
   group: NavGroupConfig;
   currentPlan: PlanType;
   enabledModules?: string[] | null;
+  enabledServiceTypes?: string[] | null;
+  enabledSubcategories?: string[] | null;
 }) {
   const { t } = useTranslation();
   const { canAccess } = usePermissions();
   const { pathname } = useLocation();
+  const access = usePlanAccess(currentPlan);
 
-  const visibleItems = filterVisibleItems(group.items, canAccess, currentPlan, enabledModules);
+  // RBAC is the only gate that HIDES an item; everything else shows it locked.
+  const visibleItems = group.items.filter((item) => canAccess(item.module));
   if (visibleItems.length === 0) return null;
 
+  const normalizedTypes = normalizeEnabledServiceTypes(enabledServiceTypes);
+  const serviceEnabled = (type: ServiceType) => isServiceTypeEnabled(type, normalizedTypes, enabledSubcategories);
+
   const GroupIcon = group.icon;
-  const label = t(group.labelKey);
+  const label = group.labelKey ? t(group.labelKey) : group.label ?? group.id;
 
   return (
     <SidebarGroup className="py-0 px-2 mt-1">
@@ -125,7 +208,15 @@ export function AppSidebarNavGroup({
       <SidebarGroupContent>
         <SidebarMenu>
           {visibleItems.map((item) => (
-            <SidebarNavItem key={item.id} item={item} currentPlan={currentPlan} pathname={pathname} />
+            <SidebarNavItem
+              key={item.id}
+              item={item}
+              currentPlan={currentPlan}
+              enabledModules={enabledModules}
+              serviceEnabled={serviceEnabled}
+              access={access}
+              pathname={pathname}
+            />
           ))}
         </SidebarMenu>
       </SidebarGroupContent>

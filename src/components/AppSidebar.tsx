@@ -69,6 +69,8 @@ export function AppSidebar() {
             group={group}
             currentPlan={currentPlan}
             enabledModules={tenant?.enabledModules}
+            enabledServiceTypes={tenant?.enabledServiceTypes}
+            enabledSubcategories={tenant?.enabledSubcategories}
           />
         ))}
 
