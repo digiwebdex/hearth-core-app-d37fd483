@@ -5,6 +5,7 @@ const { expireTenantIfNeeded } = require("../services/subscriptionExpiryService"
 const EXEMPT_PREFIXES = [
   "/auth",
   "/payment-requests",
+  "/billing", // Subscription & Billing Engine — an expired/suspended tenant must reach billing to renew
   "/admin",
   "/cron",
   "/public",
