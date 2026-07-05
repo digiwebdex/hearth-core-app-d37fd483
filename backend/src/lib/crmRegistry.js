@@ -18,6 +18,14 @@
 //     Client.clientType === "corporate" — is not a separate model; it's
 //     already reachable through Customer Engine by filtering on clientType,
 //     so nothing is missing under either reading.
+//
+// Added after the CRM architecture review: `agent` and `supplier` — the two
+// entities identified as having their own distinct business workflow
+// (commission ledger; payables) rather than being a thin Contact Engine
+// lookup. Every supplier subtype (Airline, Hotel Partner, Visa Partner,
+// Tour Operator, Transport Provider, Guide, Insurance Company) is handled
+// via Vendor.category inside supplierEngine.js, not as a separate entity
+// here.
 
 const CRM_REGISTRY = {
   customer: {
@@ -52,6 +60,25 @@ const CRM_REGISTRY = {
     keyFields: ["id", "name", "slug", "phone", "whatsapp", "website", "address", "city", "country", "logo", "currency", "timezone"],
     resolvedBy: "organizationEngine",
     note: "The agency's own profile. The B2B-corporate-account reading (Client.clientType === 'corporate') is already covered by Customer Engine, not a separate model.",
+  },
+  agent: {
+    label: "Agent",
+    model: "Agent",
+    tenantScoped: true,
+    keyFields: ["id", "name", "phone", "email", "address", "balance", "tenantId", "createdAt"],
+    relations: ["commissionProfile", "transactions", "bookings"],
+    resolvedBy: "agentEngine",
+    note: "commissionRate and status live on the related AgentCommissionProfile, not on Agent itself.",
+  },
+  supplier: {
+    label: "Supplier",
+    model: "Vendor",
+    tenantScoped: true,
+    keyFields: ["id", "name", "phone", "email", "category", "contactPerson", "address", "serviceAreas", "website", "status", "tenantId", "createdAt"],
+    relations: ["bills", "vendorNotes"],
+    resolvedBy: "supplierEngine",
+    categories: ["airline", "hotel", "visa_partner", "tour_operator", "transport", "guide", "insurance", "other"],
+    note: "Airline/Hotel Partner/Visa Partner/Tour Operator/Transport Provider/Guide/Insurance Company are all Vendor.category values, not separate models.",
   },
 };
 
