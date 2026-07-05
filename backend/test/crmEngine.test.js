@@ -15,8 +15,27 @@ const { CONTACT_TYPES, resolveContactContext } = require("../src/lib/contactEngi
 const { resolveOrganizationContext } = require("../src/lib/organizationEngine");
 
 describe("crmRegistry — shape", () => {
-  it("registers exactly the 4 CRM entities", () => {
-    assert.deepEqual(Object.keys(getCrmRegistry()).sort(), ["contact", "customer", "lead", "organization"].sort());
+  it("registers exactly the 6 CRM entities", () => {
+    assert.deepEqual(
+      Object.keys(getCrmRegistry()).sort(),
+      ["agent", "contact", "customer", "lead", "organization", "supplier"].sort(),
+    );
+  });
+
+  it("agent entity wraps the real Agent model and notes where commission/status actually live", () => {
+    const entity = getCrmEntity("agent");
+    assert.equal(entity.model, "Agent");
+    assert.equal(entity.resolvedBy, "agentEngine");
+  });
+
+  it("supplier entity wraps Vendor and lists every approved category, including the new Insurance Company one", () => {
+    const entity = getCrmEntity("supplier");
+    assert.equal(entity.model, "Vendor");
+    assert.equal(entity.resolvedBy, "supplierEngine");
+    assert.deepEqual(
+      entity.categories.sort(),
+      ["airline", "hotel", "visa_partner", "tour_operator", "transport", "guide", "insurance", "other"].sort(),
+    );
   });
 
   it("customer entity wraps the real Client model, not a new one", () => {
@@ -128,6 +147,18 @@ describe("GET /api/crm-engine", () => {
 
   it("requires authentication on /organization (401 without a token)", async () => {
     const res = await request(app).get("/api/crm-engine/organization");
+    assert.equal(res.status, 401);
+    assert.match(res.body.message, /token/i);
+  });
+
+  it("requires authentication on /agent/:id (401 without a token)", async () => {
+    const res = await request(app).get("/api/crm-engine/agent/some-id");
+    assert.equal(res.status, 401);
+    assert.match(res.body.message, /token/i);
+  });
+
+  it("requires authentication on /supplier/:id (401 without a token)", async () => {
+    const res = await request(app).get("/api/crm-engine/supplier/some-id");
     assert.equal(res.status, 401);
     assert.match(res.body.message, /token/i);
   });

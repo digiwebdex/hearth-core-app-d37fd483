@@ -13,6 +13,8 @@ const { resolveCustomerContext } = require("../lib/customerEngine");
 const { resolveLeadContext } = require("../lib/leadEngine");
 const { resolveContactContext } = require("../lib/contactEngine");
 const { resolveOrganizationContext } = require("../lib/organizationEngine");
+const { resolveAgentContext } = require("../lib/agentEngine");
+const { resolveSupplierContext } = require("../lib/supplierEngine");
 
 router.use(authenticate);
 
@@ -62,6 +64,28 @@ router.get("/organization", async (req, res) => {
     res.json(context);
   } catch (err) {
     res.status(500).json({ message: err.message || "Failed to resolve organization context" });
+  }
+});
+
+/** Agent Engine: one agent's composed context (commission, running balance, ledger, booking attribution). */
+router.get("/agent/:id", async (req, res) => {
+  try {
+    const context = await resolveAgentContext(req.params.id, req.tenantId);
+    if (!context) return res.status(404).json({ message: "Agent not found" });
+    res.json(context);
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to resolve agent context" });
+  }
+});
+
+/** Supplier Engine: one supplier's composed context (payables, outstanding balance, summary). */
+router.get("/supplier/:id", async (req, res) => {
+  try {
+    const context = await resolveSupplierContext(req.params.id, req.tenantId);
+    if (!context) return res.status(404).json({ message: "Supplier not found" });
+    res.json(context);
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Failed to resolve supplier context" });
   }
 });
 
