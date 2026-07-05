@@ -289,6 +289,19 @@ function createApp() {
   // documents. Additive: /api/bookings and /api/group-tours are unchanged.
   // See docs/v2-master/11-Architecture-Freeze.md §5.
   app.use("/api/tour-bookings", require("./routes/tourBookings"));
+  // Subscription & Billing Engine — the SaaS billing layer. A COMPOSITION over
+  // the existing subscription machinery: Plan Engine (catalog/limits/pricing),
+  // the Subscription/PaymentRequest/SubscriptionHistory models, the coupon +
+  // gateway config + expiry services, Permission Engine, Audit Log, and
+  // Notification Engine. It ADDS the tenant self-service billing views (current
+  // subscription, usage vs effective limits, history, transactions, computed
+  // invoice), the add-on lifecycle (Additional Users/Branch/Storage/SMS/
+  // WhatsApp/API, extending limits without changing plan), and admin revenue
+  // analytics (subscribers, MRR, ARR, revenue-by-plan). It does NOT re-implement
+  // plan activation/renewal/upgrade approval — those stay in
+  // adminSubscriptionWorkflow.js/paymentRequests.js. Additive; no existing
+  // subscription route changes. See docs/v2-master/11-Architecture-Freeze.md §9.
+  app.use("/api/billing", require("./routes/billingEngine"));
 
   app.get("/api/health", async (_req, res) => {
     let dbStatus = "disconnected";

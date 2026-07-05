@@ -1101,6 +1101,30 @@ model PaymentMethodConfig {
   updatedAt     DateTime @updatedAt
 }
 
+// ── Subscription & Billing Engine ──
+// Add-ons extend a tenant's plan limits WITHOUT changing the plan (Additional
+// Users / Branch / Storage / SMS / WhatsApp / API — see backend/src/lib/billingEngine.js
+// ADDON_TYPES). Additive model with a plain scalar tenantId (no Tenant relation) —
+// same non-breaking pattern as SystemFlag / Document, so the Tenant model is
+// untouched. Effective limits = plan limits (Plan Engine) + active add-ons.
+model SubscriptionAddon {
+  id           String    @id @default(uuid())
+  tenantId     String
+  type         String
+  quantity     Int       @default(1)
+  unitPrice    Float     @default(0)
+  billingCycle String    @default("monthly")
+  status       String    @default("active")
+  note         String?
+  startDate    DateTime  @default(now())
+  endDate      DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+}
+
 model DemoRequest {
   id        String   @id @default(uuid())
   name      String
