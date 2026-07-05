@@ -98,9 +98,13 @@ router.post("/runs", requireRole("tenant_owner", "manager"), async (req, res) =>
   try {
     const { month, year, notes } = req.body;
     if (!month || !year) return res.status(400).json({ message: "month and year are required" });
+    // PayrollRun.month is a String column; coerce to a zero-padded string so a numeric
+    // month from an API client doesn't trip a Prisma type error (500), and so the
+    // @@unique([tenantId, month, year]) dedup below matches the stored format.
+    const monthStr = String(month).padStart(2, "0");
 
     const existing = await prisma.payrollRun.findFirst({
-      where: { tenantId: req.tenantId, month, year: parseInt(year) },
+      where: { tenantId: req.tenantId, month: monthStr, year: parseInt(year) },
     });
     if (existing) return res.status(409).json({ message: "Payroll run already exists for this month/year" });
 
@@ -175,7 +179,7 @@ router.post("/runs", requireRole("tenant_owner", "manager"), async (req, res) =>
     const run = await prisma.payrollRun.create({
       data: {
         tenantId: req.tenantId,
-        month,
+        month: monthStr,
         year: parseInt(year),
         status: "draft",
         totalAmount,
