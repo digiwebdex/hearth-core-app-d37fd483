@@ -236,6 +236,11 @@ function createApp() {
   // /api/bookings is completely unchanged and keeps handling every booking
   // type, including ticket, exactly as before. See docs/v2-master/11-Architecture-Freeze.md §5.
   app.use("/api/air-ticket-bookings", require("./routes/airTicketBookings"));
+  // Visa Booking — the second complete booking module, reusing the Air
+  // Ticket architecture exactly (CRUD, identity, pricing, status). Also
+  // integrates the pre-existing VisaApplication model for Visa Tracking.
+  // Additive: /api/bookings is unchanged. See docs/v2-master/11-Architecture-Freeze.md §5.
+  app.use("/api/visa-bookings", require("./routes/visaBookings"));
 
   app.get("/api/health", async (_req, res) => {
     let dbStatus = "disconnected";
