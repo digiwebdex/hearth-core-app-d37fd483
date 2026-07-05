@@ -226,4 +226,4 @@ function requireFeature(flag) {
   };
 }
 
-module.exports = { authenticate, requireSuperAdmin, requireRole, requirePermission, checkPlanLimit, requireFeature, prisma, SECRET };
+module.exports = { authenticate, requireSuperAdmin, requireRole, requirePermission, checkPlanLimit, requireFeature, prisma, SECRET, ROLE_PERMISSIONS };
