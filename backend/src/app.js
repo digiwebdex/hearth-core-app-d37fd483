@@ -203,6 +203,11 @@ function createApp() {
   // permission data is redefined, and requirePermission()/requireRole()
   // enforcement is completely unchanged. See docs/v2-master/11-Architecture-Freeze.md §8.
   app.use("/api/permission-engine", require("./routes/permissionEngine"));
+  // Phase 1 Milestone 5 — Status Engine. Read-only, additive. Documents
+  // status values and transitions; enforces nothing and validates nothing —
+  // every existing route keeps writing status strings exactly as before.
+  // See docs/v2-master/11-Architecture-Freeze.md §10.
+  app.use("/api/status-engine", require("./routes/statusEngine"));
 
   app.get("/api/health", async (_req, res) => {
     let dbStatus = "disconnected";
