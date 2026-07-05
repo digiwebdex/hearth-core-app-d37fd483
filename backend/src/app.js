@@ -198,6 +198,11 @@ function createApp() {
   // planFeatures.js/planPricing.js/moduleAccess.js (backend is the single
   // source of truth) — no plan data is redefined. See docs/v2-master/11-Architecture-Freeze.md §9.
   app.use("/api/plan-engine", require("./routes/planEngine"));
+  // Phase 1 Milestone 4 — Permission Engine. Read-only, additive. Wraps
+  // auth.js's ROLE_PERMISSIONS (backend is the single source of truth) — no
+  // permission data is redefined, and requirePermission()/requireRole()
+  // enforcement is completely unchanged. See docs/v2-master/11-Architecture-Freeze.md §8.
+  app.use("/api/permission-engine", require("./routes/permissionEngine"));
 
   app.get("/api/health", async (_req, res) => {
     let dbStatus = "disconnected";
