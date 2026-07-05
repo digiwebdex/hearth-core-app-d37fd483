@@ -191,6 +191,9 @@ function createApp() {
   // Phase 1 (v2 Architecture Freeze) — Module Registry read endpoint. Additive,
   // nothing else in the app consumes it yet. See docs/v2-master/11-Architecture-Freeze.md §6.
   app.use("/api/registry", require("./routes/registry"));
+  // Phase 1 Milestone 2 — Feature Flag Engine. Additive, all flags default
+  // OFF, nothing else in the app consumes them yet. See docs/v2-master/11-Architecture-Freeze.md §12.
+  app.use("/api/feature-flags", require("./routes/featureFlags"));
 
   app.get("/api/health", async (_req, res) => {
     let dbStatus = "disconnected";

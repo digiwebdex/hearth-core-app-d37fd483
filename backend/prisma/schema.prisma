@@ -1999,3 +1999,26 @@ model CrmConfig {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }
+
+// ── Feature Flags (v2 Architecture Freeze — Phase 1 Milestone 2) ──
+// Additive control-plane table backing backend/src/lib/featureFlags.js.
+// A row with tenantId = null is the global default for `key`; a row with
+// tenantId set overrides that default for one tenant only. No row => OFF.
+//
+// Note: Postgres treats each NULL as distinct for uniqueness purposes, so
+// @@unique([key, tenantId]) does not by itself prevent two global (tenantId
+// = null) rows for the same key. featureFlags.js is written to never create
+// a duplicate (it looks up the exact row before writing), so this is a
+// documented limitation of the constraint, not a correctness gap in the app.
+model SystemFlag {
+  id          String   @id @default(uuid())
+  key         String
+  tenantId    String?
+  enabled     Boolean  @default(false)
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([key, tenantId])
+  @@index([key])
+}
