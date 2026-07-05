@@ -1499,3 +1499,31 @@ export const recruitmentApi = {
   deleteApplication: (id: string) => request<{ message: string }>(`/recruitment/applications/${id}`, { method: "DELETE" }),
   pipeline: () => request<Record<string, number>>("/recruitment/pipeline"),
 };
+
+// ── Module Registry (Phase 1 — v2 Architecture Freeze) ──
+// Read-only, additive. See backend/src/lib/moduleRegistry.js and
+// docs/v2-master/11-Architecture-Freeze.md §6. Not yet consumed by any
+// component — AppSidebar continues to use src/config/navigation.ts until the
+// Dynamic Sidebar milestone wires this in behind a feature flag.
+export interface ModuleRegistryEntry {
+  id: string;
+  group: string;
+  groupLabelKey: string;
+  route: string;
+  titleKey: string;
+  rbacModule: string;
+  minPlan?: string;
+  requiredFeature?: string;
+  requiredServiceTypes?: string[];
+  website: boolean;
+  reports: boolean;
+  api: string | null;
+}
+export interface ModuleRegistryGroup {
+  id: string;
+  labelKey: string;
+  items: ModuleRegistryEntry[];
+}
+export const registryApi = {
+  get: () => request<{ groups: ModuleRegistryGroup[] }>("/registry"),
+};
