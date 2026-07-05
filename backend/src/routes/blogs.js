@@ -4,14 +4,7 @@ const { authenticate, requirePermission, requireFeature, prisma } = require("../
 router.use(authenticate);
 router.use(requireFeature("hasWebsiteTemplates"));
 
-function slugify(value) {
-  return String(value || "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
-}
+const { slugify } = require("../lib/numeric");
 
 async function uniqueSlug(tenantId, base, excludeId) {
   let slug = base || "post";

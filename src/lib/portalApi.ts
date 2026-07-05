@@ -1,5 +1,6 @@
+import { API_BASE_URL } from "@/lib/apiConfig";
 // Portal API client — separate token namespace from the agency app.
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+const BASE_URL = API_BASE_URL;
 const TOKEN_KEY = "portal_token";
 
 export function getPortalToken(): string | null {

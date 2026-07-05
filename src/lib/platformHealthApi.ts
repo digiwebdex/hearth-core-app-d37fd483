@@ -1,4 +1,5 @@
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+import { API_BASE_URL } from "@/lib/apiConfig";
+const BASE_URL = API_BASE_URL;
 
 export async function fetchPlatformHealth() {
   const res = await fetch(`${BASE_URL}/health`);

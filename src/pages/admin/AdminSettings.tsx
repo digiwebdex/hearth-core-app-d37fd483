@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "@/lib/apiConfig";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import AdminLayout from "@/components/AdminLayout";
@@ -19,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { GatewayStatusPanel } from "@/components/admin/GatewayStatusPanel";
 import { smsApi, type SmsConfig } from "@/lib/smsApi";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+const BASE_URL = API_BASE_URL;
 const authReq = (path: string, opts: RequestInit = {}) => {
   const token = localStorage.getItem("token");
   return fetch(`${BASE_URL}${path}`, {

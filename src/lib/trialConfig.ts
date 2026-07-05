@@ -1,7 +1,8 @@
+import { API_BASE_URL } from "@/lib/apiConfig";
 /** Default trial length when API config is unavailable */
 export const DEFAULT_TRIAL_DAYS = 7;
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+const API_BASE = API_BASE_URL;
 
 let cachedTrialDays: number | null = null;
 

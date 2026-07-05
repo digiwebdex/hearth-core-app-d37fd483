@@ -6,7 +6,7 @@ const { authenticate, requireRole, prisma } = require("../middleware/auth");
 const { notifySubscriptionPaymentSubmitted } = require("../services/subscriptionNotificationService");
 const { getDefaultManualPaymentMethods, isOnlinePaymentMethod, getGatewayStatus } = require("../lib/paymentGatewayConfig");
 const { applyCouponToPaymentRequest } = require("../services/subscriptionCouponService");
-const { getPlanPrice } = require("../lib/planPricing");
+const { getPlanPrice, normalizePlan } = require("../lib/planPricing");
 
 const DEFAULT_PAYMENT_METHODS = getDefaultManualPaymentMethods();
 
@@ -21,10 +21,6 @@ const ALLOWED_PROOF_MIME = {
 };
 const MAX_PROOF_SIZE_BYTES = 5 * 1024 * 1024;
 const PROOF_UPLOAD_DIR = path.join(__dirname, "../../uploads/payment-proofs");
-
-function normalizePlan(plan) {
-  return String(plan || "free").trim().toLowerCase();
-}
 
 function normalizeBillingCycle(cycle) {
   return String(cycle || "monthly").trim().toLowerCase() === "yearly" ? "yearly" : "monthly";

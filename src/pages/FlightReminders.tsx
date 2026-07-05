@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "@/lib/apiConfig";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -12,7 +13,7 @@ import { Bell, Send, Plane } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+const BASE_URL = API_BASE_URL;
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem("token");
   const res = await fetch(`${BASE_URL}${path}`, {

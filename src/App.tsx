@@ -1,116 +1,123 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, useInRouterContext, useParams } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useInRouterContext, useParams, Navigate } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { WebsiteProvider } from "@/contexts/WebsiteContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import PermissionRoute from "@/components/PermissionRoute";
 import AdminRoute from "@/components/AdminRoute";
-import type { Module } from "@/lib/permissions";
-import Login from "./pages/Login";
-import { Navigate } from "react-router-dom";
-import { getReservedSubdomain, resolveHostname } from "@/lib/domainResolver";
-import Register from "./pages/Register";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import Dashboard from "./pages/Dashboard";
-import Team from "./pages/Team";
-import StaffHrm from "./pages/StaffHrm";
-import Organization from "./pages/Organization";
-import SettingsPage from "./pages/SettingsPage";
-import WebsiteCustomizer from "./pages/WebsiteCustomizer";
-import WebsiteBuilderHome from "./pages/WebsiteBuilderHome";
-import WebsitePublishGuide from "./pages/WebsitePublishGuide";
-import Clients from "./pages/Clients";
-import Crm from "./pages/Crm";
-import Complaints from "./pages/Complaints";
-import Campaigns from "./pages/Campaigns";
-import CrmAnalytics from "./pages/CrmAnalytics";
-import CrmSettings from "./pages/CrmSettings";
-import Agents from "./pages/Agents";
-import VisaStock from "./pages/VisaStock";
-import AgentProfile from "./pages/AgentProfile";
-import Vendors from "./pages/Vendors";
-import VendorDetails from "./pages/VendorDetails";
-import Leads from "./pages/Leads";
-import FollowUps from "./pages/FollowUps";
-import ActivityLog from "./pages/ActivityLog";
-import Documents from "./pages/Documents";
-import LeadDetails from "./pages/LeadDetails";
-import ClientProfile from "./pages/ClientProfile";
-import Tasks from "./pages/Tasks";
-import Quotations from "./pages/Quotations";
-import QuotationBuilder from "./pages/QuotationBuilder";
-import QuotationDetails from "./pages/QuotationDetails";
-import QuotationPrint from "./pages/QuotationPrint";
-import Packages from "./pages/Packages";
-import Bookings from "./pages/Bookings";
-import BookingDetails from "./pages/BookingDetails";
-import Invoices from "./pages/Invoices";
-import InvoiceReceipt from "./pages/InvoiceReceipt";
-import Accounts from "./pages/Accounts";
-import Reports from "./pages/Reports";
-import HajjUmrah from "./pages/HajjUmrah";
+import SubscriptionRoute from "./components/SubscriptionRoute";
+import BookingSegmentRoute from "./components/BookingSegmentRoute";
 import { HajjModuleGate } from "@/components/HajjModuleGate";
 import { BdModuleGate } from "@/components/BdModuleGate";
-import BdOperations from "./pages/BdOperations";
-import ServiceOperations from "./pages/ServiceOperations";
-import SupportTickets from "./pages/SupportTickets";
-import FinanceReminders from "./pages/FinanceReminders";
-import SubscriptionRoute from "./components/SubscriptionRoute";
-import PaymentCallback from "./pages/PaymentCallback";
-import RoleManagement from "./pages/RoleManagement";
-import NotificationLog from "./pages/NotificationLog";
-import Onboarding from "./pages/Onboarding";
-import VerifyEmail from "./pages/VerifyEmail";
-import SettingsBilling from "./pages/SettingsBilling";
-import UserGuide from "./pages/UserGuide";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminLandingCMS from "./pages/admin/AdminLandingCMS";
-import AdminTenants from "./pages/admin/AdminTenants";
-import AdminPendingUsers from "./pages/admin/AdminPendingUsers";
-import AdminPayments from "./pages/admin/AdminPayments";
-import AdminPlans from "./pages/admin/AdminPlans";
-import AdminSubscriptions from "./pages/admin/AdminSubscriptions";
-import AdminTenantDetails from "./pages/admin/AdminTenantDetails";
-import AdminDomains from "./pages/admin/AdminDomains";
-import AdminSettings from "./pages/admin/AdminSettings";
-import AdminFeatures from "./pages/admin/AdminFeatures";
-import AdminSmsTemplates from "./pages/admin/AdminSmsTemplates";
-import AdminWhatsAppTemplates from "./pages/admin/AdminWhatsAppTemplates";
-import AdminCoupons from "./pages/admin/AdminCoupons";
-import AdminSmsLogs from "./pages/admin/AdminSmsLogs";
-import AdminWhatsAppLogs from "./pages/admin/AdminWhatsAppLogs";
-import AdminRoles from "./pages/admin/AdminRoles";
-import AdminAuditLog from "./pages/admin/AdminAuditLog";
-import AdminReports from "./pages/admin/AdminReports";
-import AdminMasterData from "./pages/admin/AdminMasterData";
-import AdminTwoFactor from "./pages/admin/AdminTwoFactor";
-import AdminStaff from "./pages/admin/AdminStaff";
-import SiteHome from "./pages/site/SiteHome";
-import SiteAbout from "./pages/site/SiteAbout";
-import SitePackages from "./pages/site/SitePackages";
-import SiteContact from "./pages/site/SiteContact";
-import SiteBlog from "./pages/site/SiteBlog";
-import SitePricing from "./pages/site/SitePricing";
-import WebsiteBlog from "./pages/WebsiteBlog";
-import CorporateTravel from "./pages/CorporateTravel";
-import NotFound from "./pages/NotFound";
-import BookingSegmentRoute from "./components/BookingSegmentRoute";
+import type { Module } from "@/lib/permissions";
+import { getReservedSubdomain, resolveHostname } from "@/lib/domainResolver";
 import { packagesDefaultPath } from "./config/navigation";
-import Index from "./pages/Index";
-import Features from "./pages/marketing/Features";
-import Pricing from "./pages/marketing/Pricing";
-import Demo from "./pages/marketing/Demo";
-import ContactUs from "./pages/marketing/ContactUs";
-import FAQ from "./pages/marketing/FAQ";
-import Privacy from "./pages/marketing/Privacy";
-import Terms from "./pages/marketing/Terms";
-import { lazy, Suspense } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
 
+// ── All route pages are code-split (lazy) behind one top-level Suspense
+// boundary — this keeps the initial bundle small (docs/v2-master/104-Codebase-Review.md §8).
+// Guards/providers above stay eager because they wrap every route.
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Team = lazy(() => import("./pages/Team"));
+const StaffHrm = lazy(() => import("./pages/StaffHrm"));
+const Organization = lazy(() => import("./pages/Organization"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const WebsiteCustomizer = lazy(() => import("./pages/WebsiteCustomizer"));
+const WebsiteBuilderHome = lazy(() => import("./pages/WebsiteBuilderHome"));
+const WebsitePublishGuide = lazy(() => import("./pages/WebsitePublishGuide"));
+const Clients = lazy(() => import("./pages/Clients"));
+const Crm = lazy(() => import("./pages/Crm"));
+const Complaints = lazy(() => import("./pages/Complaints"));
+const Campaigns = lazy(() => import("./pages/Campaigns"));
+const CrmAnalytics = lazy(() => import("./pages/CrmAnalytics"));
+const CrmSettings = lazy(() => import("./pages/CrmSettings"));
+const Agents = lazy(() => import("./pages/Agents"));
+const VisaStock = lazy(() => import("./pages/VisaStock"));
+const AgentProfile = lazy(() => import("./pages/AgentProfile"));
+const Vendors = lazy(() => import("./pages/Vendors"));
+const VendorDetails = lazy(() => import("./pages/VendorDetails"));
+const Leads = lazy(() => import("./pages/Leads"));
+const FollowUps = lazy(() => import("./pages/FollowUps"));
+const ActivityLog = lazy(() => import("./pages/ActivityLog"));
+const Documents = lazy(() => import("./pages/Documents"));
+const LeadDetails = lazy(() => import("./pages/LeadDetails"));
+const ClientProfile = lazy(() => import("./pages/ClientProfile"));
+const Tasks = lazy(() => import("./pages/Tasks"));
+const Quotations = lazy(() => import("./pages/Quotations"));
+const QuotationBuilder = lazy(() => import("./pages/QuotationBuilder"));
+const QuotationDetails = lazy(() => import("./pages/QuotationDetails"));
+const QuotationPrint = lazy(() => import("./pages/QuotationPrint"));
+const Packages = lazy(() => import("./pages/Packages"));
+const Bookings = lazy(() => import("./pages/Bookings"));
+const Invoices = lazy(() => import("./pages/Invoices"));
+const InvoiceReceipt = lazy(() => import("./pages/InvoiceReceipt"));
+const Accounts = lazy(() => import("./pages/Accounts"));
+const Reports = lazy(() => import("./pages/Reports"));
+const HajjUmrah = lazy(() => import("./pages/HajjUmrah"));
+const BdOperations = lazy(() => import("./pages/BdOperations"));
+const ServiceOperations = lazy(() => import("./pages/ServiceOperations"));
+const SupportTickets = lazy(() => import("./pages/SupportTickets"));
+const FinanceReminders = lazy(() => import("./pages/FinanceReminders"));
+const PaymentCallback = lazy(() => import("./pages/PaymentCallback"));
+const RoleManagement = lazy(() => import("./pages/RoleManagement"));
+const NotificationLog = lazy(() => import("./pages/NotificationLog"));
+const SettingsBilling = lazy(() => import("./pages/SettingsBilling"));
+const UserGuide = lazy(() => import("./pages/UserGuide"));
+const WebsiteBlog = lazy(() => import("./pages/WebsiteBlog"));
+const CorporateTravel = lazy(() => import("./pages/CorporateTravel"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Index = lazy(() => import("./pages/Index"));
+
+// Admin console
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminLandingCMS = lazy(() => import("./pages/admin/AdminLandingCMS"));
+const AdminTenants = lazy(() => import("./pages/admin/AdminTenants"));
+const AdminPendingUsers = lazy(() => import("./pages/admin/AdminPendingUsers"));
+const AdminPayments = lazy(() => import("./pages/admin/AdminPayments"));
+const AdminPlans = lazy(() => import("./pages/admin/AdminPlans"));
+const AdminSubscriptions = lazy(() => import("./pages/admin/AdminSubscriptions"));
+const AdminTenantDetails = lazy(() => import("./pages/admin/AdminTenantDetails"));
+const AdminDomains = lazy(() => import("./pages/admin/AdminDomains"));
+const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
+const AdminFeatures = lazy(() => import("./pages/admin/AdminFeatures"));
+const AdminSmsTemplates = lazy(() => import("./pages/admin/AdminSmsTemplates"));
+const AdminWhatsAppTemplates = lazy(() => import("./pages/admin/AdminWhatsAppTemplates"));
+const AdminCoupons = lazy(() => import("./pages/admin/AdminCoupons"));
+const AdminSmsLogs = lazy(() => import("./pages/admin/AdminSmsLogs"));
+const AdminWhatsAppLogs = lazy(() => import("./pages/admin/AdminWhatsAppLogs"));
+const AdminRoles = lazy(() => import("./pages/admin/AdminRoles"));
+const AdminAuditLog = lazy(() => import("./pages/admin/AdminAuditLog"));
+const AdminReports = lazy(() => import("./pages/admin/AdminReports"));
+const AdminMasterData = lazy(() => import("./pages/admin/AdminMasterData"));
+const AdminTwoFactor = lazy(() => import("./pages/admin/AdminTwoFactor"));
+const AdminStaff = lazy(() => import("./pages/admin/AdminStaff"));
+
+// Public tenant site + marketing
+const SiteHome = lazy(() => import("./pages/site/SiteHome"));
+const SiteAbout = lazy(() => import("./pages/site/SiteAbout"));
+const SitePackages = lazy(() => import("./pages/site/SitePackages"));
+const SiteContact = lazy(() => import("./pages/site/SiteContact"));
+const SiteBlog = lazy(() => import("./pages/site/SiteBlog"));
+const SitePricing = lazy(() => import("./pages/site/SitePricing"));
+const Features = lazy(() => import("./pages/marketing/Features"));
+const Pricing = lazy(() => import("./pages/marketing/Pricing"));
+const Demo = lazy(() => import("./pages/marketing/Demo"));
+const ContactUs = lazy(() => import("./pages/marketing/ContactUs"));
+const FAQ = lazy(() => import("./pages/marketing/FAQ"));
+const Privacy = lazy(() => import("./pages/marketing/Privacy"));
+const Terms = lazy(() => import("./pages/marketing/Terms"));
+
+// Heavier / less-common pages (already lazy before this cleanup)
 const SettingsTax = lazy(() => import("./pages/SettingsTax"));
 const FinancialStatements = lazy(() => import("./pages/FinancialStatements"));
 const Payroll = lazy(() => import("./pages/Payroll"));
@@ -181,7 +188,8 @@ const AppContent = () => (
       <AuthProvider>
         <Toaster />
         <Sonner />
-        <Routes>
+        <Suspense fallback={<div className="p-8"><Skeleton className="h-64 w-full" /></div>}>
+          <Routes>
           <Route path="/" element={<PublicSiteRoute page="home" />} />
           <Route path="/about" element={<PublicSiteRoute page="about" />} />
           <Route path="/packages" element={<PublicSiteRoute page="packages" />} />
@@ -278,21 +286,21 @@ const AppContent = () => (
           <Route path="/website/theme-builder" element={<PM module="website"><Navigate to="/website/builder" replace /></PM>} />
           <Route path="/website/publish" element={<PM module="website"><WebsitePublishGuide /></PM>} />
           <Route path="/website/domains" element={<PM module="website"><WebsitePublishGuide /></PM>} />
-          <Route path="/website/seo" element={<PM module="website"><Suspense fallback={<div className="p-8"><Skeleton className="h-64 w-full" /></div>}><WebsiteSeo /></Suspense></PM>} />
-          <Route path="/settings/tax" element={<PM module="settings"><Suspense fallback={<div className="p-8"><Skeleton className="h-64 w-full" /></div>}><SettingsTax /></Suspense></PM>} />
-          <Route path="/financial-statements" element={<PM module="reports"><Suspense fallback={<div className="p-8"><Skeleton className="h-64 w-full" /></div>}><FinancialStatements /></Suspense></PM>} />
-          <Route path="/payroll" element={<PM module="team"><Suspense fallback={<div className="p-8"><Skeleton className="h-64 w-full" /></div>}><Payroll /></Suspense></PM>} />
-          <Route path="/loyalty" element={<PM module="clients"><Suspense fallback={<div className="p-8"><Skeleton className="h-64 w-full" /></div>}><Loyalty /></Suspense></PM>} />
-          <Route path="/referrals" element={<PM module="clients"><Suspense fallback={<div className="p-8"><Skeleton className="h-64 w-full" /></div>}><Referrals /></Suspense></PM>} />
-          <Route path="/sales-analytics" element={<PM module="reports"><Suspense fallback={<div className="p-8"><Skeleton className="h-64 w-full" /></div>}><SalesAnalytics /></Suspense></PM>} />
-          <Route path="/group-tours" element={<PM module="bookings"><Suspense fallback={<div className="p-8"><Skeleton className="h-64 w-full" /></div>}><GroupTours /></Suspense></PM>} />
-          <Route path="/mice" element={<PM module="bookings"><Suspense fallback={<div className="p-8"><Skeleton className="h-64 w-full" /></div>}><MiceEvents /></Suspense></PM>} />
-          <Route path="/travel-approvals" element={<PM module="bookings"><Suspense fallback={<div className="p-8"><Skeleton className="h-64 w-full" /></div>}><TravelApprovals /></Suspense></PM>} />
-          <Route path="/visa-tracker" element={<PM module="bookings"><Suspense fallback={<div className="p-8"><Skeleton className="h-64 w-full" /></div>}><VisaTracker /></Suspense></PM>} />
-          <Route path="/inventory" element={<PM module="bookings"><Suspense fallback={<div className="p-8"><Skeleton className="h-64 w-full" /></div>}><Inventory /></Suspense></PM>} />
-          <Route path="/recruitment" element={<PM module="team"><Suspense fallback={<div className="p-8"><Skeleton className="h-64 w-full" /></div>}><Recruitment /></Suspense></PM>} />
-          <Route path="/ticket-transactions" element={<PM module="bookings"><Suspense fallback={<div className="p-8"><Skeleton className="h-64 w-full" /></div>}><TicketTransactions /></Suspense></PM>} />
-          <Route path="/flight-reminders" element={<PM module="bookings"><Suspense fallback={<div className="p-8"><Skeleton className="h-64 w-full" /></div>}><FlightReminders /></Suspense></PM>} />
+          <Route path="/website/seo" element={<PM module="website"><WebsiteSeo /></PM>} />
+          <Route path="/settings/tax" element={<PM module="settings"><SettingsTax /></PM>} />
+          <Route path="/financial-statements" element={<PM module="reports"><FinancialStatements /></PM>} />
+          <Route path="/payroll" element={<PM module="team"><Payroll /></PM>} />
+          <Route path="/loyalty" element={<PM module="clients"><Loyalty /></PM>} />
+          <Route path="/referrals" element={<PM module="clients"><Referrals /></PM>} />
+          <Route path="/sales-analytics" element={<PM module="reports"><SalesAnalytics /></PM>} />
+          <Route path="/group-tours" element={<PM module="bookings"><GroupTours /></PM>} />
+          <Route path="/mice" element={<PM module="bookings"><MiceEvents /></PM>} />
+          <Route path="/travel-approvals" element={<PM module="bookings"><TravelApprovals /></PM>} />
+          <Route path="/visa-tracker" element={<PM module="bookings"><VisaTracker /></PM>} />
+          <Route path="/inventory" element={<PM module="bookings"><Inventory /></PM>} />
+          <Route path="/recruitment" element={<PM module="team"><Recruitment /></PM>} />
+          <Route path="/ticket-transactions" element={<PM module="bookings"><TicketTransactions /></PM>} />
+          <Route path="/flight-reminders" element={<PM module="bookings"><FlightReminders /></PM>} />
           <Route path="/user-guide" element={<P><UserGuide /></P>} />
 
           <Route path="/admin" element={<A><AdminDashboard /></A>} />
@@ -319,7 +327,8 @@ const AppContent = () => (
           <Route path="/admin/staff" element={<A><AdminStaff /></A>} />
 
           <Route path="*" element={<NotFound />} />
-        </Routes>
+          </Routes>
+        </Suspense>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

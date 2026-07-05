@@ -1,5 +1,6 @@
+import { API_BASE_URL } from "@/lib/apiConfig";
 // Payment Gateway API — SSLCommerz, bKash, COD
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+const BASE_URL = API_BASE_URL;
 
 function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem("token");

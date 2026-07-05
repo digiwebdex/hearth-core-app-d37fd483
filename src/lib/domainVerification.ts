@@ -1,6 +1,7 @@
+import { API_BASE_URL } from "@/lib/apiConfig";
 // Domain Verification — generate tokens and check DNS TXT records
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+const BASE_URL = API_BASE_URL;
 
 /**
  * Generate a unique verification token for a domain.

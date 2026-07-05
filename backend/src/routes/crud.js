@@ -72,14 +72,7 @@ const PACKAGE_CHILD_CONFIG = {
   },
 };
 
-function slugify(value) {
-  return String(value || "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
-}
+const { slugify } = require("../lib/numeric");
 
 function normalizeTravelPackagePayload(body = {}, tenantId, createdBy) {
   const title = String(body.title || "").trim();

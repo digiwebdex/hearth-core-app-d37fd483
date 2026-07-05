@@ -1,5 +1,6 @@
+import { API_BASE_URL } from "@/lib/apiConfig";
 // Public API — no auth required, fetches tenant data by slug
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+const BASE_URL = API_BASE_URL;
 
 async function publicRequest<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`);
