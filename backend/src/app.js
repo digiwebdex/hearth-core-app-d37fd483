@@ -214,6 +214,11 @@ function createApp() {
   // sidebar (src/config/navigation.ts, AppSidebarNav.tsx) is unchanged and
   // keeps rendering exactly as before. See docs/v2-master/11-Architecture-Freeze.md §6.
   app.use("/api/sidebar-engine", require("./routes/sidebarEngine"));
+  // Phase 2 — CRM Foundation. Read-only, additive. Wraps Client/Lead/
+  // Agent/Vendor/Tenant with composed, per-record read contexts. Existing
+  // /api/clients, /api/leads, /api/crm-analytics, /api/crm-settings,
+  // /api/tenants routes are unchanged.
+  app.use("/api/crm-engine", require("./routes/crmEngine"));
 
   app.get("/api/health", async (_req, res) => {
     let dbStatus = "disconnected";
