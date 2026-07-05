@@ -114,4 +114,7 @@ module.exports = {
   sanitizePortalBookingDetail,
   sanitizeAgentBooking,
   summarizeAgentCommissions,
+  // Exported for the Portal Foundation's Invoice View so it reuses the exact
+  // same customer-safe invoice shape instead of duplicating it.
+  sanitizeInvoice,
 };
