@@ -207,6 +207,19 @@ const STATUS_REGISTRY = {
       { value: "platinum", label: "Platinum", color: "bg-indigo-100 text-indigo-800" },
     ],
   },
+
+  // ── Document Verification (added for the Shared Document Engine) ──
+  // The document-verification vocabulary lives here, in the central Status
+  // Engine, rather than as a parallel status list inside the document engine —
+  // consistent with the frozen rule that every status is centrally defined.
+  documentVerificationStatus: {
+    category: "Document Verification", entity: "Document", field: "verificationStatus", confidence: "verified",
+    values: [
+      { value: "unverified", label: "Unverified", color: "bg-gray-100 text-gray-700" },
+      { value: "verified", label: "Verified", color: "bg-green-100 text-green-800" },
+      { value: "rejected", label: "Rejected", color: "bg-red-100 text-red-700" },
+    ],
+  },
 };
 
 // ── Workflow Status Registry: documented transitions + workflow stage ──
@@ -321,6 +334,11 @@ const WORKFLOW_STATUS_REGISTRY = {
     silver: { stage: "in_progress", nextStatuses: ["gold"] },
     gold: { stage: "in_progress", nextStatuses: ["platinum"] },
     platinum: { stage: "terminal_positive", nextStatuses: [] },
+  },
+  documentVerificationStatus: {
+    unverified: { stage: "initial", nextStatuses: ["verified", "rejected"] },
+    verified: { stage: "terminal_positive", nextStatuses: ["unverified"] },
+    rejected: { stage: "terminal_negative", nextStatuses: ["unverified"] },
   },
 };
 

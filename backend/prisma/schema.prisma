@@ -2023,3 +2023,41 @@ model SystemFlag {
   @@unique([key, tenantId])
   @@index([key])
 }
+
+// ── Shared Document Engine ──
+// Entity-agnostic document record backing backend/src/lib/documentRegistry.js.
+// One Document belongs to one entity (entityType + entityId) — a booking of
+// any type, a customer, a supplier, an invoice, or an employee — so every
+// module uses the same document system instead of the minimal per-entity
+// BookingDocument/ClientDocument tables (which remain untouched for backward
+// compatibility). versions/history/shares are append-mostly structured JSON
+// (consistent with this schema's existing serviceDetails/customFields/metadata
+// Json usage); the queryable dimensions (entityType/entityId/category/tags/
+// verificationStatus/expiryDate) are real columns + indexes. Like SystemFlag,
+// tenantId is a plain scalar (no Tenant relation) so this addition touches no
+// existing model — a `prisma migrate` must be run against a real database
+// before the table exists anywhere.
+model Document {
+  id                 String    @id @default(uuid())
+  tenantId           String
+  entityType         String
+  entityId           String
+  category           String    @default("other")
+  title              String
+  tags               String[]  @default([])
+  verificationStatus String    @default("unverified")
+  verifiedBy         String?
+  verifiedAt         DateTime?
+  expiryDate         DateTime?
+  currentVersion     Int       @default(1)
+  versions           Json      @default("[]")
+  history            Json      @default("[]")
+  shares             Json      @default("[]")
+  createdBy          String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([tenantId, entityType, entityId])
+  @@index([tenantId, verificationStatus])
+  @@index([tenantId, expiryDate])
+}
