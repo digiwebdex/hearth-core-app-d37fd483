@@ -222,12 +222,25 @@ async function syncAgentCommission(bookingId, data, tenantId, existingBooking = 
 }
 
 async function normalizeBookingInput(data, tenantId, existingBooking = null) {
-  let next = stripCommissionFields(pickServiceDetailsPayload({ ...data }));
+  // Resolve the client/agent from the RAW top-level fields FIRST. pickServiceDetailsPayload
+  // buries any non-scalar key (clientName/clientPhone/clientEmail) inside serviceDetails,
+  // which would leave resolveClientForBooking unable to create/link the client — the
+  // inline "new client" booking path then 500s with "Argument `client` is missing".
+  let next = stripCommissionFields({ ...data });
+  next = await resolveClientForBooking(next, tenantId, existingBooking);
+  next = await resolveAgentForBooking(next, tenantId);
+  next = pickServiceDetailsPayload(next);
   if (next.packageId && !existingBooking?.packageId) {
     next = await enrichBookingFromPackage(next, tenantId);
   }
-  next = await resolveClientForBooking(next, tenantId, existingBooking);
-  next = await resolveAgentForBooking(next, tenantId);
+  // Derive profit from the effective amount/cost when the caller omits it, mirroring the
+  // package and quotation-conversion paths. Uses existing values for the field not being
+  // changed so a partial update (e.g. amount only) never zeroes profit.
+  if (next.profit === undefined && (next.amount !== undefined || next.cost !== undefined)) {
+    const amt = next.amount !== undefined ? Number(next.amount) || 0 : Number(existingBooking?.amount) || 0;
+    const cst = next.cost !== undefined ? Number(next.cost) || 0 : Number(existingBooking?.cost) || 0;
+    next.profit = amt - cst;
+  }
   if (!next.opsStatus && !existingBooking?.opsStatus) {
     next.opsStatus = "pending";
   }

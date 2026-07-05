@@ -128,8 +128,20 @@ router.patch("/:id/bills/:billId", requirePermission("vendors", "edit"), async (
 });
 router.delete("/:id/bills/:billId", requirePermission("vendors", "delete"), async (req, res) => {
   try {
-    const result = await prisma.vendorBill.deleteMany({ where: { id: req.params.billId, vendorId: req.params.id, tenantId: req.tenantId } });
-    if (!result.count) return res.status(404).json({ message: "Not found" });
+    const bill = await prisma.vendorBill.findFirst({
+      where: { id: req.params.billId, vendorId: req.params.id, tenantId: req.tenantId },
+      include: { payments: { select: { id: true } } },
+    });
+    if (!bill) return res.status(404).json({ message: "Not found" });
+    const paymentIds = bill.payments.map((p) => p.id);
+    await prisma.vendorBill.delete({ where: { id: bill.id } });
+    // Remove the synced expense-ledger rows for this bill's payments so reported
+    // spend/expense totals don't drift with orphaned transactions.
+    if (paymentIds.length) {
+      await prisma.transaction.deleteMany({
+        where: { tenantId: req.tenantId, referenceType: "vendor_bill_payment", referenceId: { in: paymentIds } },
+      }).catch(() => {});
+    }
     res.json({ success: true });
   }
   catch (err) { res.status(500).json({ message: err.message }); }
@@ -144,7 +156,7 @@ router.post("/:id/bills/:billId/payments", requirePermission("vendors", "edit"),
 
     const payment = await prisma.vendorBillPayment.create({ data: { ...req.body, billId: req.params.billId, paidBy: req.userId } });
     const paid = [...bill.payments, payment].reduce((s, p) => s + p.amount, 0);
-    await prisma.vendorBill.update({ where: { id: req.params.billId }, data: { paidAmount: paid, dueAmount: bill.totalAmount - paid, status: paid >= bill.totalAmount ? "paid" : paid > 0 ? "partial" : "unpaid" } });
+    await prisma.vendorBill.update({ where: { id: req.params.billId }, data: { paidAmount: paid, dueAmount: Math.max(0, bill.totalAmount - paid), status: paid >= bill.totalAmount ? "paid" : paid > 0 ? "partial" : "unpaid" } });
     await syncVendorBillPaymentTransaction({ tenantId: req.tenantId, payment, bill });
     res.status(201).json(payment);
   } catch (err) { res.status(500).json({ message: err.message }); }

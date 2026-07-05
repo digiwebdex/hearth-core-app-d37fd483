@@ -147,19 +147,29 @@ router.post("/:id/items", requirePermission("bookings", "edit"), async (req, res
 // PATCH /api/mice/:id/items/:itemId
 router.patch("/:id/items/:itemId", requirePermission("bookings", "edit"), async (req, res) => {
   try {
+    // Scope to the tenant's event, then the item within it (prevents cross-tenant IDOR).
+    const event = await prisma.miceEvent.findFirst({ where: { id: req.params.id, tenantId: req.tenantId }, select: { id: true } });
+    if (!event) return res.status(404).json({ message: "Event not found" });
+    const existing = await prisma.miceEventItem.findFirst({ where: { id: req.params.itemId, miceEventId: event.id } });
+    if (!existing) return res.status(404).json({ message: "Item not found" });
+
     const { itemType, description, quantity, unitCost, vendorId, notes } = req.body;
     const qty = quantity !== undefined ? parseInt(quantity) : undefined;
     const cost = unitCost !== undefined ? parseFloat(unitCost) : undefined;
+    // Recompute totalCost from the EFFECTIVE values (fall back to the persisted value for
+    // whichever field is not being changed) so a single-field update never zeroes the total.
+    const effectiveQty = qty !== undefined ? qty : existing.quantity;
+    const effectiveCost = cost !== undefined ? cost : existing.unitCost;
 
     const item = await prisma.miceEventItem.update({
-      where: { id: req.params.itemId },
+      where: { id: existing.id },
       data: {
         ...(itemType !== undefined && { itemType }),
         ...(description !== undefined && { description }),
         ...(qty !== undefined && { quantity: qty }),
         ...(cost !== undefined && { unitCost: cost }),
         ...(qty !== undefined || cost !== undefined
-          ? { totalCost: (qty ?? 1) * (cost ?? 0) }
+          ? { totalCost: effectiveQty * effectiveCost }
           : {}),
         ...(vendorId !== undefined && { vendorId: vendorId || null }),
         ...(notes !== undefined && { notes }),
@@ -174,7 +184,11 @@ router.patch("/:id/items/:itemId", requirePermission("bookings", "edit"), async 
 // DELETE /api/mice/:id/items/:itemId
 router.delete("/:id/items/:itemId", requirePermission("bookings", "edit"), async (req, res) => {
   try {
-    await prisma.miceEventItem.delete({ where: { id: req.params.itemId } });
+    // Scope the delete to the tenant's event so items can't be removed cross-tenant.
+    const event = await prisma.miceEvent.findFirst({ where: { id: req.params.id, tenantId: req.tenantId }, select: { id: true } });
+    if (!event) return res.status(404).json({ message: "Event not found" });
+    const result = await prisma.miceEventItem.deleteMany({ where: { id: req.params.itemId, miceEventId: event.id } });
+    if (!result.count) return res.status(404).json({ message: "Item not found" });
     res.json({ message: "Deleted" });
   } catch (e) {
     res.status(500).json({ message: "Server error" });

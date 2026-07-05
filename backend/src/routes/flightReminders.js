@@ -40,7 +40,10 @@ router.get("/upcoming", async (req, res) => {
           where: {
             tenantId: req.tenantId,
             module: "bookings",
-            action: `departure_reminder_${daysLeft}`,
+            // Batch sends log a daysLeft-keyed action; manual sends log
+            // "departure_reminder_manual" (no suffix). Match either so a manually
+            // sent reminder still reflects in the "sent today" indicator.
+            action: { in: [`departure_reminder_${daysLeft}`, "departure_reminder_manual"] },
             targetId: b.id,
             createdAt: { gte: startOfDay },
           },
