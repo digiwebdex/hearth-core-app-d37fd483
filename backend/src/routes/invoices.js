@@ -16,6 +16,23 @@ async function getTenantInvoice(invoiceId, tenantId, include = undefined) {
   return prisma.invoice.findFirst({ where: { id: invoiceId, tenantId }, include });
 }
 
+// Only these Invoice columns are client-settable. The create/edit forms also send
+// display-only fields (e.g. bookingCost, bookingProfit) that are NOT Invoice
+// columns; forwarding them to Prisma throws "Unknown argument". Whitelist instead.
+const INVOICE_WRITABLE_FIELDS = [
+  "bookingId", "clientId", "clientName", "bookingTitle",
+  "totalAmount", "paidAmount", "dueAmount", "refundedAmount",
+  "status", "dueDate", "issuedDate", "notes", "cancelReason",
+  "taxRuleId", "taxRate", "taxAmount", "subTotal",
+];
+function pickInvoiceFields(body = {}) {
+  const out = {};
+  for (const key of INVOICE_WRITABLE_FIELDS) {
+    if (body[key] !== undefined) out[key] = body[key];
+  }
+  return out;
+}
+
 async function getNextInvoiceNumber(tenantId) {
   const invoices = await prisma.invoice.findMany({
     where: { tenantId },
@@ -43,7 +60,7 @@ router.get("/:id", requirePermission("invoices", "view"), async (req, res) => {
 router.post("/", requirePermission("invoices", "create"), async (req, res) => {
   try {
     const invoiceNumber = await getNextInvoiceNumber(req.tenantId);
-    const invoice = await prisma.invoice.create({ data: { ...req.body, invoiceNumber, createdBy: req.userId, tenantId: req.tenantId } });
+    const invoice = await prisma.invoice.create({ data: { ...pickInvoiceFields(req.body), invoiceNumber, createdBy: req.userId, tenantId: req.tenantId } });
 
     // Audit log — invoice create
     const user = await prisma.user.findUnique({ where: { id: req.userId }, select: { name: true, email: true, role: true } });
@@ -63,7 +80,9 @@ router.post("/", requirePermission("invoices", "create"), async (req, res) => {
 });
 router.patch("/:id", requirePermission("invoices", "edit"), async (req, res) => {
   try {
-    const result = await prisma.invoice.updateMany({ where: { id: req.params.id, tenantId: req.tenantId }, data: req.body });
+    const data = pickInvoiceFields(req.body);
+    if (Object.keys(data).length === 0) return res.status(400).json({ message: "No valid invoice fields to update" });
+    const result = await prisma.invoice.updateMany({ where: { id: req.params.id, tenantId: req.tenantId }, data });
     if (!result.count) return res.status(404).json({ message: "Not found" });
     res.json(await prisma.invoice.findFirst({ where: { id: req.params.id, tenantId: req.tenantId } }));
   } catch (err) { res.status(500).json({ message: err.message }); }
