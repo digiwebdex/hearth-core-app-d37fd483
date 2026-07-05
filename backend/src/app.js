@@ -260,6 +260,14 @@ function createApp() {
   // and Shared Document Engine documents. Additive: /api/bookings unchanged.
   // See docs/v2-master/11-Architecture-Freeze.md §5.
   app.use("/api/hotel-bookings", require("./routes/hotelBookings"));
+  // Hajj & Umrah Booking — the fourth complete booking module (Bangladesh
+  // differentiator). The SALE layer (generic Booking, one module for both
+  // hajj + umrah) that COMPOSES the existing /api/hajj operations desk
+  // (HajjPackage/HajjGroup) for itinerary/hotel/flight/group, adds a pilgrim
+  // manifest + mahram relationship map, and reuses identity/pricing/status/
+  // documents. Additive: /api/bookings and /api/hajj are both unchanged.
+  // See docs/v2-master/11-Architecture-Freeze.md §4.
+  app.use("/api/hajj-bookings", require("./routes/hajjBookings"));
 
   app.get("/api/health", async (_req, res) => {
     let dbStatus = "disconnected";
