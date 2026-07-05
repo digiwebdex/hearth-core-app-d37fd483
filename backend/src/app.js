@@ -178,6 +178,13 @@ function createApp() {
   app.use("/api/public", require("./routes/public"));
 
   app.use("/api/portal", require("./routes/portal"));
+  // Customer & Agent Portal Foundation — richer portal endpoints (dashboards,
+  // invoices, payments, documents, notifications, profile, agent customers/
+  // ledger) mounted at the SAME /api/portal prefix, additively after portal.js.
+  // Reuses the same portalAuthenticate middleware + email-ownership model —
+  // customers see only their own data, agents only their own customers/bookings.
+  // portal.js's existing endpoints are unchanged. See docs/v2-master/11-Architecture-Freeze.md §7.
+  app.use("/api/portal", require("./routes/portalFoundation"));
 
   app.use("/api/email", require("./routes/email"));
   app.use("/api/sms", require("./routes/sms"));
