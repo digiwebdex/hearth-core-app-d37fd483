@@ -208,6 +208,12 @@ function createApp() {
   // every existing route keeps writing status strings exactly as before.
   // See docs/v2-master/11-Architecture-Freeze.md §10.
   app.use("/api/status-engine", require("./routes/statusEngine"));
+  // Phase 1 Milestone 6 — Sidebar Engine (Phase 1 capstone). Read-only,
+  // additive. Composes Module Registry + Plan Engine + Permission Engine +
+  // Feature Flag Engine into one resolved navigation context. The live
+  // sidebar (src/config/navigation.ts, AppSidebarNav.tsx) is unchanged and
+  // keeps rendering exactly as before. See docs/v2-master/11-Architecture-Freeze.md §6.
+  app.use("/api/sidebar-engine", require("./routes/sidebarEngine"));
 
   app.get("/api/health", async (_req, res) => {
     let dbStatus = "disconnected";
