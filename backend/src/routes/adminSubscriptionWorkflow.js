@@ -3,6 +3,7 @@ const { authenticate, requireSuperAdmin, prisma } = require("../middleware/auth"
 const { notifySubscriptionPaymentApproved, notifySubscriptionChangeWhatsApp } = require("../services/subscriptionNotificationService");
 const { incrementCouponUsage } = require("../services/subscriptionCouponService");
 const { getDefaultManualPaymentMethods } = require("../lib/paymentGatewayConfig");
+const { normalizePlan } = require("../lib/planPricing");
 
 router.use(authenticate);
 router.use(requireSuperAdmin);
@@ -10,7 +11,7 @@ router.use(requireSuperAdmin);
 const DEFAULT_PAYMENT_METHODS = getDefaultManualPaymentMethods();
 const PENDING_REVIEW_STATUSES = ["pending", "submitted", "pending_review", "needs_info"];
 
-const normPlan = (v) => String(v || "free").trim().toLowerCase();
+const normPlan = normalizePlan;
 const normCycle = (v) => String(v || "monthly").trim().toLowerCase() === "yearly" ? "yearly" : "monthly";
 const monthsFor = (cycle) => normCycle(cycle) === "yearly" ? 12 : 1;
 const addMonths = (value, months) => { const d = new Date(value); const n = new Date(d); n.setMonth(n.getMonth() + Number(months || 0)); return n; };

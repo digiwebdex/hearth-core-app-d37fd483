@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { notificationApi, type Notification, type NotificationType } from "@/lib/notificationApi";
+import { timeAgo } from "@/lib/format";
 
 const typeConfig: Record<NotificationType, { icon: React.ElementType; color: string }> = {
   booking_created: { icon: Plane, color: "text-blue-500 bg-blue-500/10" },
@@ -16,17 +17,6 @@ const typeConfig: Record<NotificationType, { icon: React.ElementType; color: str
   task_assigned: { icon: Info, color: "text-sky-500 bg-sky-500/10" },
   system: { icon: Info, color: "text-muted-foreground bg-muted" },
 };
-
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
 
 export default function NotificationBell() {
   const navigate = useNavigate();

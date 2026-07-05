@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "@/lib/apiConfig";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -14,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Undo2, Ban, RefreshCw, Plus, Pencil, Trash2, Search } from "lucide-react";
 
-const BASE = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+const BASE = API_BASE_URL;
 function authHeaders() {
   const token = localStorage.getItem("token");
   return { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };

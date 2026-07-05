@@ -13,6 +13,7 @@ import {
   type AdminNotification,
   type AdminNotificationType,
 } from "@/lib/adminNotificationApi";
+import { timeAgo } from "@/lib/format";
 
 const typeConfig: Record<AdminNotificationType, { icon: React.ElementType; color: string }> = {
   new_tenant: { icon: UserPlus, color: "text-green-500 bg-green-500/10" },
@@ -22,17 +23,6 @@ const typeConfig: Record<AdminNotificationType, { icon: React.ElementType; color
   tenant_suspended: { icon: Shield, color: "text-red-500 bg-red-500/10" },
   system: { icon: Info, color: "text-muted-foreground bg-muted" },
 };
-
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
 
 export default function AdminNotificationBell() {
   const navigate = useNavigate();

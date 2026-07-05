@@ -18,9 +18,7 @@
 // non-negative number (treated as a fixed amount) or { type: "percentage" |
 // "fixed", value }, matching the same shape already used by TaxRule.
 
-function round2(value) {
-  return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
-}
+const { round2 } = require("./numeric");
 
 function nonNegative(value) {
   const n = Number(value);

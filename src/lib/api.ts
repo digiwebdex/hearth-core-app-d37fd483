@@ -1,5 +1,6 @@
+import { API_BASE_URL } from "@/lib/apiConfig";
 // API service layer — point BASE_URL to your VPS backend
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+const BASE_URL = API_BASE_URL;
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem("token");
@@ -157,7 +158,7 @@ export const clientApi = {
       `/clients/expiring-passports?days=${days}&includeExpired=${includeExpired ? "true" : "false"}`,
     ),
   uploadDocument: (id: string, data: FormData) =>
-    fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000/api"}/clients/${id}/documents`, {
+    fetch(`${API_BASE_URL}/clients/${id}/documents`, {
       method: "POST",
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       body: data,
@@ -497,7 +498,7 @@ export const bookingApi = {
   addTimelineEvent: (id: string, data: { type: string; content: string }) => request<BookingTimelineEvent>(`/bookings/${id}/timeline`, { method: "POST", body: JSON.stringify(data) }),
   getDocuments: (id: string) => request<BookingDocument[]>(`/bookings/${id}/documents`),
   uploadDocument: (id: string, data: FormData) =>
-    fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000/api"}/bookings/${id}/documents`, {
+    fetch(`${API_BASE_URL}/bookings/${id}/documents`, {
       method: "POST",
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       body: data,
@@ -521,7 +522,7 @@ export const invoiceApi = {
   deleteInstallment: (id: string, instId: string) =>
     request<void>(`/invoices/${id}/installments/${instId}`, { method: "DELETE" }),
   uploadProof: (id: string, payId: string, data: FormData) =>
-    fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000/api"}/invoices/${id}/payments/${payId}/proof`, {
+    fetch(`${API_BASE_URL}/invoices/${id}/payments/${payId}/proof`, {
       method: "POST",
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       body: data,

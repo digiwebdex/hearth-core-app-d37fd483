@@ -9,9 +9,7 @@
 // just aggregate what they're given, so they cannot introduce a data-leak
 // path; ownership is enforced entirely at the query layer in the route.
 
-function round2(value) {
-  return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
-}
+const { round2 } = require("./numeric");
 function isoDay(value) {
   return String(value || "").slice(0, 10);
 }

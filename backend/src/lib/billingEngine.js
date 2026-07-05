@@ -31,11 +31,7 @@ const { getPlanPrice, normalizeBillingCycle } = require("./planPricing");
 const { normalizePlan } = require("./planFeatures");
 const { getTrialDays } = require("./trialConfig");
 
-// Money rounding — same 2-decimal convention used across the finance libs
-// (reportingCenter.js / financeCore.js each keep their own local copy).
-function round2(value) {
-  return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
-}
+const { round2 } = require("./numeric");
 
 // ── Plan display names (the only genuinely new plan metadata) ──
 // Canonical key -> marketing name from the product spec.

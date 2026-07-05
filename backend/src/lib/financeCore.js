@@ -28,9 +28,7 @@
 // elsewhere in the repo. The route (routes/financeCore.js) fetches the rows
 // and passes them in.
 
-function round2(value) {
-  return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
-}
+const { round2 } = require("./numeric");
 
 // The four cash "books" the business asked for, plus an "other" bucket for
 // anything that can't be attributed to one of them.
