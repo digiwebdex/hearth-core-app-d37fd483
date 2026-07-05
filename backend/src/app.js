@@ -219,6 +219,11 @@ function createApp() {
   // /api/clients, /api/leads, /api/crm-analytics, /api/crm-settings,
   // /api/tenants routes are unchanged.
   app.use("/api/crm-engine", require("./routes/crmEngine"));
+  // Booking Registry — shared booking metadata layer ahead of Booking
+  // Foundation. Read-only, additive. Defines/resolves booking types only —
+  // no booking operations, no booking creation. Existing /api/bookings and
+  // every per-service route are unchanged. See docs/v2-master/11-Architecture-Freeze.md §5.
+  app.use("/api/booking-registry", require("./routes/bookingRegistry"));
 
   app.get("/api/health", async (_req, res) => {
     let dbStatus = "disconnected";
