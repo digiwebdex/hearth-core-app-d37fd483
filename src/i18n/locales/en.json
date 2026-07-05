@@ -406,6 +406,8 @@
     "marketingDesc": "Loyalty program and customer referrals.",
     "website": "Website & CMS",
     "websiteDesc": "Public website builder, blog, SEO, and publishing.",
+    "catalog": "Package & Tour Catalog",
+    "catalogDesc": "Build reusable tour/package products with itineraries and pricing.",
     "crm": "CRM suite",
     "crmDesc": "Full CRM workspace — leads, follow-ups, complaints, campaigns and CRM reports in one place."
   },

@@ -20,6 +20,7 @@ import {
   Building2, Phone, Globe, MapPin, Mail, Calendar, Settings2,
   CreditCard, Star, CheckCircle2, Loader2, Link as LinkIcon,
   Clock, DollarSign, Plane, Moon, Briefcase, Shield, ExternalLink,
+  Image as ImageIcon, Upload, Trash2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -113,6 +114,7 @@ const Organization = () => {
 
   const [saving, setSaving] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [logo, setLogo] = useState<string>("");
 
   useEffect(() => {
     if (tenant && !loaded) {
@@ -127,9 +129,34 @@ const Organization = () => {
         currency: tenant.currency || "BDT",
         timezone: tenant.timezone || "Asia/Dhaka",
       });
+      setLogo(tenant.logo || "");
       setLoaded(true);
     }
   }, [tenant, loaded]);
+
+  // Read an image file → data URI, validate type + size, then persist to Tenant.logo.
+  const onLogoFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Invalid file", description: "Please choose an image (PNG, JPG or SVG).", variant: "destructive" });
+      return;
+    }
+    if (file.size > 300 * 1024) {
+      toast({ title: "Image too large", description: "Please use a logo under 300 KB (tip: a 200×200 PNG is ideal).", variant: "destructive" });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUri = String(reader.result || "");
+      setLogo(dataUri);
+      save("logo", { logo: dataUri });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeLogo = () => { setLogo(""); save("logo", { logo: "" }); };
 
   async function save(section: string, data: Record<string, unknown>) {
     setSaving(section);
@@ -206,6 +233,44 @@ const Organization = () => {
             >
               {saving === "identity" ? <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />Saving…</> : "Save Agency Name"}
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* ── Company Logo ── */}
+        <Card>
+          <CardHeader className="pb-2">
+            <SectionHeader
+              icon={ImageIcon}
+              title="Company Logo"
+              description="Shown on your invoices, receipts and at the top of the app. PNG or JPG, under 300 KB (a square 200×200 image works best)."
+            />
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-5">
+              <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted/40">
+                {logo
+                  ? <img src={logo} alt="Agency logo" className="h-full w-full object-contain p-1.5" />
+                  : <ImageIcon className="h-8 w-8 text-muted-foreground/50" />}
+              </div>
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  <label htmlFor="logo-file">
+                    <input id="logo-file" type="file" accept="image/*" className="hidden" onChange={onLogoFile} disabled={saving === "logo"} />
+                    <Button asChild size="sm" variant="outline" disabled={saving === "logo"}>
+                      <span className="cursor-pointer">
+                        {saving === "logo" ? <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />Saving…</> : <><Upload className="mr-2 h-3.5 w-3.5" />{logo ? "Change logo" : "Upload logo"}</>}
+                      </span>
+                    </Button>
+                  </label>
+                  {logo && (
+                    <Button size="sm" variant="ghost" className="text-destructive" onClick={removeLogo} disabled={saving === "logo"}>
+                      <Trash2 className="mr-2 h-3.5 w-3.5" />Remove
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">Your logo appears automatically on printed invoices and receipts.</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 

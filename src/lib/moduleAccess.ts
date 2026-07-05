@@ -33,6 +33,9 @@ export const ADVANCED_MODULES: AdvancedModule[] = [
   { id: "hrPayroll", labelKey: "modules.hrPayroll", descKey: "modules.hrPayrollDesc", items: ["hrm", "activity-log", "payroll"] },
   { id: "marketing", labelKey: "modules.marketing", descKey: "modules.marketingDesc", items: ["loyalty", "referrals"] },
   { id: "website", labelKey: "modules.website", descKey: "modules.websiteDesc", minPlan: "pro", autoOn: true, items: ["website-home", "website-builder", "website-blog", "website-publish", "website-seo"] },
+  // Package/tour catalog builder: a scaling feature, not needed by a lean Basic
+  // (ticket/visa) agency. Auto-shown for Pro+, hidden on Basic.
+  { id: "catalog", labelKey: "modules.catalog", descKey: "modules.catalogDesc", minPlan: "pro", autoOn: true, items: ["service-catalog"] },
 ];
 
 /** Bundles shown automatically for eligible plans (plan features, not opt-in toggles). */
