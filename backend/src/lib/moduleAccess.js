@@ -51,10 +51,58 @@ function sanitizeEnabledModules(values, plan) {
   return [...new Set(raw.map((v) => String(v).trim()).filter((v) => known.has(v) && planCanUseModule(v, plan)))];
 }
 
+// ── Added for Phase 1 Milestone 6 (Sidebar Engine) ──
+// This file's header already said "keep the two in sync"; these were the
+// pieces the frontend (src/lib/moduleAccess.ts) had that this file didn't
+// yet — ported verbatim from there, additively, so the Sidebar Engine can
+// resolve "is this nav item purchased/enabled" without a second copy of the
+// bundle->item mapping living anywhere else.
+const MODULE_ITEMS = {
+  crm: ["crm-hub"],
+  subAgents: ["commissions"],
+  corporate: ["corporate", "travel-approvals"],
+  ticketing: ["ticket-transactions", "flight-reminders"],
+  tourGroups: ["group-tours", "mice"],
+  visa: ["visa-tracker"],
+  hajj: ["hajj-operations"],
+  studentManpower: ["bd-operations"],
+  documentsDesk: ["documents", "service-operations"],
+  hrPayroll: ["hrm", "activity-log", "payroll"],
+  marketing: ["loyalty", "referrals"],
+  website: ["website-home", "website-builder", "website-blog", "website-publish", "website-seo"],
+};
+
+// Bundles shown automatically for eligible plans (plan features, not opt-in toggles).
+const AUTO_ON_MODULE_IDS = ["website"];
+
+function isModuleAutoOn(bundleId) {
+  return AUTO_ON_MODULE_IDS.includes(bundleId);
+}
+
+// Reverse lookup: nav item id -> the advanced bundle that controls it.
+const ITEM_TO_MODULE = Object.entries(MODULE_ITEMS).reduce((acc, [bundleId, items]) => {
+  for (const item of items) acc[item] = bundleId;
+  return acc;
+}, {});
+
+// True when a nav item should be visible for this plan + enabled-module set.
+function isNavItemModuleEnabled(itemId, plan, enabledModules) {
+  const bundle = ITEM_TO_MODULE[itemId];
+  if (!bundle) return true; // core item — always available
+  if (!planCanUseModule(bundle, plan)) return false; // below this bundle's plan floor
+  if (isModuleAutoOn(bundle)) return true; // plan feature — shown automatically for eligible plans
+  return Array.isArray(enabledModules) && enabledModules.includes(bundle);
+}
+
 module.exports = {
   ADVANCED_MODULE_IDS,
   moduleMinPlan,
   planCanUseModule,
   planCanUseAdvancedModules,
   sanitizeEnabledModules,
+  planRank,
+  ITEM_TO_MODULE,
+  AUTO_ON_MODULE_IDS,
+  isModuleAutoOn,
+  isNavItemModuleEnabled,
 };
