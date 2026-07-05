@@ -804,6 +804,8 @@ model Transaction {
   tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   createdBy     String?
   createdAt     DateTime @default(now())
+
+  @@index([tenantId, createdAt])
 }
 
 model Expense {
@@ -1167,6 +1169,8 @@ model AuditLog {
   metadata    Json?
   ipAddress   String?
   createdAt   DateTime @default(now())
+
+  @@index([tenantId, createdAt])
 }
 
 model SmsTemplate {
