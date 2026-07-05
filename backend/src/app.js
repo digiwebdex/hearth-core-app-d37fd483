@@ -230,6 +230,12 @@ function createApp() {
   // Booking has no persisted number column yet; /preview only reads
   // (counts), never writes. See docs/v2-master/11-Architecture-Freeze.md §5.
   app.use("/api/booking-identity", require("./routes/bookingIdentityEngine"));
+  // Air Ticket Booking — the reference implementation of the Generic
+  // Booking Engine. Type-scoped (Booking.type = "ticket"), with real
+  // validation, delegating all shared persistence to bookings.js. Additive:
+  // /api/bookings is completely unchanged and keeps handling every booking
+  // type, including ticket, exactly as before. See docs/v2-master/11-Architecture-Freeze.md §5.
+  app.use("/api/air-ticket-bookings", require("./routes/airTicketBookings"));
 
   app.get("/api/health", async (_req, res) => {
     let dbStatus = "disconnected";
