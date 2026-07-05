@@ -224,6 +224,12 @@ function createApp() {
   // no booking operations, no booking creation. Existing /api/bookings and
   // every per-service route are unchanged. See docs/v2-master/11-Architecture-Freeze.md §5.
   app.use("/api/booking-registry", require("./routes/bookingRegistry"));
+  // Booking Identity Engine — shared identity layer ahead of Booking
+  // Foundation. Generates/resolves booking numbers, references, public
+  // references, and QR references. No booking creation, no schema change —
+  // Booking has no persisted number column yet; /preview only reads
+  // (counts), never writes. See docs/v2-master/11-Architecture-Freeze.md §5.
+  app.use("/api/booking-identity", require("./routes/bookingIdentityEngine"));
 
   app.get("/api/health", async (_req, res) => {
     let dbStatus = "disconnected";
