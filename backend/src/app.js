@@ -248,6 +248,12 @@ function createApp() {
   // existing accounting flow is changed; every transaction still originates
   // from Invoice/Payment/Booking. See docs/v2-master/11-Architecture-Freeze.md §11.
   app.use("/api/finance-core", require("./routes/financeCore"));
+  // Shared Document Engine — one entity-agnostic document system (versioning,
+  // tags, sharing, verification, expiry, history) for every module. Reuses
+  // the bookings.js multer upload and the Permission/Status engines. Additive:
+  // the existing /api/documents hub and BookingDocument/ClientDocument tables
+  // are unchanged. See docs/v2-master/11-Architecture-Freeze.md §5.
+  app.use("/api/document-engine", require("./routes/documentEngine"));
 
   app.get("/api/health", async (_req, res) => {
     let dbStatus = "disconnected";
