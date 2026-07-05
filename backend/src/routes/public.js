@@ -524,6 +524,10 @@ router.post("/book", async (req, res) => {
         const contact = await resolveTenantOwnerContact(prisma, tenant.id);
         if (!contact) return;
 
+        // Escape untrusted, visitor-supplied values before interpolating them
+        // into the notification email HTML (audit M10 — HTML/link injection).
+        const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
         const msgLines = [
           `🔔 New Booking Inquiry — ${tenant.name}`,
           `👤 ${name} | 📞 ${phone}`,
@@ -548,13 +552,13 @@ router.post("/book", async (req, res) => {
                 <h2 style="color:#0f172a;margin-bottom:4px;">🔔 New Web Booking Inquiry</h2>
                 <p style="color:#6b7280;margin-top:0;">Received from your website — action required</p>
                 <table style="width:100%;border-collapse:collapse;margin:16px 0;">
-                  <tr><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;width:140px;">Customer</td><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;font-weight:600;">${name}</td></tr>
-                  <tr><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;">Phone</td><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;">${phone}</td></tr>
-                  ${email ? `<tr><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;">Email</td><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;">${email}</td></tr>` : ""}
-                  ${packageName ? `<tr><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;">Package</td><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;">${packageName}${packageType ? ` (${packageType})` : ""}</td></tr>` : ""}
-                  ${travelDate ? `<tr><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;">Travel Date</td><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;">${travelDate}${travelDateTo ? ` → ${travelDateTo}` : ""}</td></tr>` : ""}
-                  ${travelers ? `<tr><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;">Travelers</td><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;">${travelers}</td></tr>` : ""}
-                  ${message ? `<tr><td style="padding:8px 0;color:#6b7280;vertical-align:top;">Message</td><td style="padding:8px 0;">${message}</td></tr>` : ""}
+                  <tr><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;width:140px;">Customer</td><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;font-weight:600;">${esc(name)}</td></tr>
+                  <tr><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;">Phone</td><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;">${esc(phone)}</td></tr>
+                  ${email ? `<tr><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;">Email</td><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;">${esc(email)}</td></tr>` : ""}
+                  ${packageName ? `<tr><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;">Package</td><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;">${esc(packageName)}${packageType ? ` (${esc(packageType)})` : ""}</td></tr>` : ""}
+                  ${travelDate ? `<tr><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;">Travel Date</td><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;">${esc(travelDate)}${travelDateTo ? ` → ${esc(travelDateTo)}` : ""}</td></tr>` : ""}
+                  ${travelers ? `<tr><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;">Travelers</td><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;">${esc(travelers)}</td></tr>` : ""}
+                  ${message ? `<tr><td style="padding:8px 0;color:#6b7280;vertical-align:top;">Message</td><td style="padding:8px 0;">${esc(message)}</td></tr>` : ""}
                 </table>
                 <a href="${process.env.FRONTEND_URL || "https://app.travelagencyweb.com"}/leads" style="display:inline-block;background:#0f4c81;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-top:8px;">View in Dashboard →</a>
               </div>

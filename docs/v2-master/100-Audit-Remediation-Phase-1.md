@@ -139,4 +139,10 @@ These are catalogued with IDs, evidence, and a prioritized P1/P2 plan in [99-Pro
 
 ---
 
+## Phase 2 follow-up
+
+The MEDIUM findings above were formally classified into a P1/P2/P3 priority matrix in **[101-Audit-Remediation-Phase-2.md](101-Audit-Remediation-Phase-2.md)**. Phase 2 fixed the two Release-Candidate-blocking Mediums — **M2** (Hajj module permission gates) and **M10a** (public `/book` email HTML injection) — and deferred the rest (P2: M1, M3, M5, M6, M10b, M12 · P3: M4, M7, M8, M9, M11). The two operational follow-ups from Phase 1 (H1 secret rotation, H4 index application via `prisma migrate deploy`/`db:push`) remain outstanding.
+
+---
+
 *Phase 1 complete. Awaiting approval.*
