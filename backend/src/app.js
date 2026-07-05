@@ -254,6 +254,12 @@ function createApp() {
   // the existing /api/documents hub and BookingDocument/ClientDocument tables
   // are unchanged. See docs/v2-master/11-Architecture-Freeze.md §5.
   app.use("/api/document-engine", require("./routes/documentEngine"));
+  // Hotel Booking — the third complete booking module, reusing the Air
+  // Ticket/Visa architecture (CRUD, identity, pricing, status) plus
+  // hotel-specific reservation/voucher/room-assignment/check-in-out workflow
+  // and Shared Document Engine documents. Additive: /api/bookings unchanged.
+  // See docs/v2-master/11-Architecture-Freeze.md §5.
+  app.use("/api/hotel-bookings", require("./routes/hotelBookings"));
 
   app.get("/api/health", async (_req, res) => {
     let dbStatus = "disconnected";
