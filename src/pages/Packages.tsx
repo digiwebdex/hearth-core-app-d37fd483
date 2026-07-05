@@ -41,6 +41,7 @@ import {
 import { useHajjModuleEnabled } from "@/components/HajjModuleGate";
 import { useBdModuleEnabled } from "@/components/BdModuleGate";
 import { useAuth } from "@/contexts/AuthContext";
+import { getPlan, type PlanType } from "@/lib/plans";
 import {
   filterServiceTypesForTenant,
   normalizeEnabledServiceTypes,
@@ -533,8 +534,10 @@ const Packages = () => {
           </div>
         </div>
 
-        {/* Website sync status */}
-        <PackageWebsiteSyncCard packages={items} />
+        {/* Website sync status — only relevant for plans with a public website (Pro+) */}
+        {getPlan((tenant?.subscriptionPlan as PlanType) || "free").hasWebsiteTemplates && (
+          <PackageWebsiteSyncCard packages={items} />
+        )}
 
         {/* Category tabs */}
         <div className="flex flex-wrap gap-2">

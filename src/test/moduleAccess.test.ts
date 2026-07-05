@@ -29,12 +29,10 @@ describe("moduleAccess", () => {
     expect(isNavItemModuleEnabled("website-builder", "free", [])).toBe(false);
   });
 
-  it("package catalog is a Pro-floor auto-on feature: shown for Pro+, hidden for Basic", () => {
+  it("service catalog (Packages) is core ERP — visible on every plan incl. Basic", () => {
+    expect(isNavItemModuleEnabled("service-catalog", "basic", [])).toBe(true);
     expect(isNavItemModuleEnabled("service-catalog", "pro", [])).toBe(true);
-    expect(isNavItemModuleEnabled("service-catalog", "business", [])).toBe(true);
-    expect(isNavItemModuleEnabled("service-catalog", "enterprise", [])).toBe(true);
-    expect(isNavItemModuleEnabled("service-catalog", "basic", [])).toBe(false);
-    expect(isNavItemModuleEnabled("service-catalog", "free", [])).toBe(false);
+    expect(isNavItemModuleEnabled("service-catalog", "free", [])).toBe(true);
   });
 
   it("business and ultimate can activate advanced items via enabled modules", () => {
