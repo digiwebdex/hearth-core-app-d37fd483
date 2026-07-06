@@ -131,10 +131,10 @@ function SidebarNavLeaf({ item, title, pathname }: { item: NavItemConfig; title:
           to={item.url}
           end
           isActiveOverride={activeMatcher}
-          className="hover:bg-primary/15 hover:text-primary rounded-md transition-colors text-sm text-foreground/80"
-          activeClassName="bg-primary text-white font-bold shadow-md border-l-4 border-white/40"
+          className="rounded-md text-sm text-foreground/75 transition-colors hover:bg-primary/10 hover:text-primary"
+          activeClassName="bg-primary text-primary-foreground font-semibold shadow-sm"
         >
-          <item.icon className={`h-4 w-4 shrink-0 ${isActive ? "text-white" : "text-muted-foreground"}`} />
+          <item.icon className={`h-4 w-4 shrink-0 ${isActive ? "text-primary-foreground" : "text-muted-foreground"}`} />
           <span className="truncate">{title}</span>
         </NavLink>
       </SidebarMenuButton>

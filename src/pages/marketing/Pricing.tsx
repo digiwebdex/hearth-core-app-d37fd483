@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { PLANS, FEATURE_COMPARISON, getDisplayMonthlyPrice, FREE_TRIAL_DAYS, type BillingCycle } from "@/lib/plans";
@@ -22,6 +23,21 @@ import {
 import { validateEmail, validatePhone } from "@/lib/contactValidation";
 
 const planIcons: Record<string, React.ElementType> = { free: Star, basic: Zap, pro: Crown, business: Rocket, enterprise: Gem };
+
+const TESTIMONIALS = [
+  { name: "Rahim Uddin", agency: "Skyline Travels, Dhaka", quote: "We moved our Hajj & Umrah bookings, invoices and accounts into one place. Month-end closing that took days now takes an hour." },
+  { name: "Nasrin Akter", agency: "Green Path Tours, Sylhet", quote: "The daily WhatsApp summary and automatic backup mean I finally sleep at night. Support genuinely understands the Bangladesh market." },
+  { name: "Imran Hossain", agency: "AirLink Aviation, Chattogram", quote: "Air-ticket, visa and package sales with agent commissions — all tracked automatically. Our sub-agents love the portal." },
+];
+
+const FAQS = [
+  { q: "Is there a free trial?", a: "Yes — every plan starts with a 7-day free trial. No credit card is required to begin." },
+  { q: "Can I change plans later?", a: "Absolutely. Upgrade or downgrade anytime from your Subscription page; upgrades unlock features immediately." },
+  { q: "Which payment methods do you support?", a: "Manual/offline, bKash, Nagad, and card via SSLCommerz — availability depends on your plan." },
+  { q: "Do you support Hajj & Umrah operations?", a: "Yes. Every plan can sell Hajj, Umrah, Visa, Air Ticket, Hotel, Tour and more, with a dedicated operations desk on higher plans." },
+  { q: "Is my data safe?", a: "Your data is tenant-isolated and backed up automatically, and you can export everything at any time." },
+  { q: "Do you offer Bangla support?", a: "Yes — the product is fully bilingual (বাংলা + English) and our support team is Bangladesh-based." },
+];
 
 const Pricing = () => {
   const { t } = useTranslation();
@@ -261,6 +277,50 @@ const Pricing = () => {
               {t("marketing.pricing.contactSales")}
             </Button>
           </Link>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="py-16">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <h2 className="text-2xl font-bold text-center mb-2">Trusted by travel agencies across Bangladesh</h2>
+          <p className="text-center text-white/45 mb-10">What agency owners say about running their business on TravelAgencyWeb.</p>
+          <div className="grid gap-6 md:grid-cols-3">
+            {TESTIMONIALS.map((tm) => (
+              <div key={tm.name} className="rounded-2xl border border-white/8 bg-white/[0.04] p-6 flex flex-col">
+                <div className="flex gap-0.5 mb-3">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+                <p className="text-sm leading-relaxed text-white/70 flex-1">"{tm.quote}"</p>
+                <div className="mt-5 flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-orange-500 text-sm font-bold text-white">
+                    {tm.name.charAt(0)}
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold">{tm.name}</div>
+                    <div className="text-xs text-white/40">{tm.agency}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="py-16 bg-[#0f1729]">
+        <div className="container mx-auto px-4 max-w-3xl">
+          <h2 className="text-2xl font-bold text-center mb-8">Frequently asked questions</h2>
+          <Accordion type="single" collapsible className="space-y-3">
+            {FAQS.map((f, i) => (
+              <AccordionItem key={i} value={`faq-${i}`} className="rounded-xl border border-white/8 bg-white/[0.03] px-5">
+                <AccordionTrigger className="text-left text-sm font-medium text-white hover:no-underline">{f.q}</AccordionTrigger>
+                <AccordionContent className="text-sm text-white/50">{f.a}</AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         </div>
       </section>
 
