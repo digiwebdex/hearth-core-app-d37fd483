@@ -56,7 +56,7 @@ export function getDisplayMonthlyPrice(plan: PlanConfig, cycle: BillingCycle): n
 
 export const PLANS: PlanConfig[] = [
   {
-    id: "basic", name: "Basic", price: 500, monthlyPrice: 500, yearlyPrice: yearly(500),
+    id: "basic", name: "Starter", price: 500, monthlyPrice: 500, yearlyPrice: yearly(500),
     description: "For small travel agencies getting started", trialDays: 0,
     maxClients: 500, maxBookings: 500, maxUsers: 3, maxDomains: 0,
     maxBranches: 1, maxSmsPerMonth: 0, maxStorageMB: 500, maxReports: 10,
@@ -78,7 +78,7 @@ export const PLANS: PlanConfig[] = [
     hasRefundSystem: false, hasHajjUmrah: true, hasPrioritySupport: false,
   },
   {
-    id: "pro", name: "Pro", price: 800, monthlyPrice: 800, yearlyPrice: yearly(800),
+    id: "pro", name: "Professional", price: 800, monthlyPrice: 800, yearlyPrice: yearly(800),
     description: "For growing agencies that need an online presence", badge: "Most Popular", trialDays: 0,
     maxClients: 1000, maxBookings: 1000, maxUsers: 10, maxDomains: 1,
     maxBranches: 2, maxSmsPerMonth: 500, maxStorageMB: 2048, maxReports: 30,
@@ -160,8 +160,30 @@ export const PLANS: PlanConfig[] = [
 ];
 
 export function getPlan(planId: PlanType): PlanConfig {
-  // "free" is deprecated; fall back to Basic for legacy tenants.
+  // "free" is deprecated; fall back to Starter for legacy tenants.
   return PLANS.find((p) => p.id === planId) || PLANS[0];
+}
+
+// ── Blueprint plan display names ──
+// Internal ids stay basic/pro/business/enterprise (the backend contract); the UI
+// shows the Master-Blueprint names: Free Trial / Starter / Professional /
+// Business / Enterprise (docs/v2-master/08-Plan-Feature-Matrix.md). One helper so
+// no screen hardcodes "Basic"/"Pro".
+export const FREE_TRIAL_DAYS = 7;
+
+const PLAN_DISPLAY_NAMES: Record<string, string> = {
+  free: "Free Trial",
+  trial: "Free Trial",
+  basic: "Starter",
+  pro: "Professional",
+  business: "Business",
+  enterprise: "Enterprise",
+};
+
+/** Blueprint display name for a plan id (or a trial/free subscription status). */
+export function getPlanDisplayName(planId: string | null | undefined): string {
+  const key = String(planId || "").trim().toLowerCase();
+  return PLAN_DISPLAY_NAMES[key] || getPlan((key as PlanType) || "basic").name;
 }
 
 export function getPlanPrice(planId: PlanType, cycle: BillingCycle): number {
@@ -262,7 +284,7 @@ export const FEATURE_COMPARISON = [
     { name: "CRM System", basic: "500 clients", pro: "1,000 clients", business: "2,000 clients", enterprise: "Unlimited" },
     { name: "Bookings", basic: "500", pro: "1,000", business: "2,000", enterprise: "Unlimited" },
     { name: "Team Members", basic: "3", pro: "10", business: "25", enterprise: "Unlimited" },
-    { name: "Branches", basic: "1", pro: "1", business: "1", enterprise: "Unlimited" },
+    { name: "Branches", basic: "1", pro: "2", business: "5", enterprise: "Unlimited" },
   ]},
   { category: "Billing & Payments", features: [
     { name: "Accounting", basic: true, pro: true, business: true, enterprise: true },
