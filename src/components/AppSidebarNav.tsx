@@ -5,7 +5,7 @@ import { useLocation } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { usePermissions } from "@/hooks/usePermissions";
 import { usePlanAccess } from "@/hooks/usePlanAccess";
-import type { PlanType, PlanConfig } from "@/lib/plans";
+import { getPlanDisplayName, type PlanType, type PlanConfig } from "@/lib/plans";
 import type { Module } from "@/lib/permissions";
 import type { ServiceType } from "@/lib/serviceTypes";
 import type { NavGroupConfig, NavItemConfig } from "@/config/navigation";
@@ -35,7 +35,7 @@ function titleFor(item: NavItemConfig, t: (k: string) => string): string {
 
 function planLabel(p?: PlanType | null): string | null {
   if (!p) return null;
-  return p.charAt(0).toUpperCase() + p.slice(1);
+  return getPlanDisplayName(p);
 }
 
 // ── Lock resolution (config-driven; no hardcoded plan/permission logic) ──────

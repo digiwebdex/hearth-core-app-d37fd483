@@ -13,11 +13,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { PLANS, FEATURE_COMPARISON, getDisplayMonthlyPrice, type BillingCycle } from "@/lib/plans";
+import { PLANS, FEATURE_COMPARISON, getDisplayMonthlyPrice, FREE_TRIAL_DAYS, type BillingCycle } from "@/lib/plans";
 import { BillingCycleToggle } from "@/components/marketing/BillingCycleToggle";
 import {
   Check, X, ArrowRight, Star, Zap, Crown, Rocket, Gem,
-  Lock, BarChart3, Receipt,
+  Lock, BarChart3, Receipt, Sparkles,
 } from "lucide-react";
 import { validateEmail, validatePhone } from "@/lib/contactValidation";
 
@@ -93,9 +93,14 @@ const Pricing = () => {
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">
             {t("marketing.pricing.title")}
           </h1>
-          <p className="text-lg text-white/45 max-w-2xl mx-auto mb-8">
+          <p className="text-lg text-white/45 max-w-2xl mx-auto mb-6">
             {t("marketing.pricing.subtitle")}
           </p>
+          <div className="mb-8 flex justify-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-4 py-1.5 text-sm font-medium text-emerald-300">
+              <Sparkles className="h-4 w-4" /> Every plan starts with a {FREE_TRIAL_DAYS}-day free trial — no card required
+            </span>
+          </div>
           <BillingCycleToggle billing={billing} onChange={setBilling} />
         </div>
       </section>

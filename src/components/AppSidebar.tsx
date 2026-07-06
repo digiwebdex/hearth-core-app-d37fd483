@@ -6,6 +6,7 @@ import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { getRoleMeta } from "@/lib/permissions";
+import { getPlanDisplayName } from "@/lib/plans";
 import { getNavigationGroups } from "@/config/navigation";
 import { AppSidebarNavGroup } from "@/components/AppSidebarNav";
 import {
@@ -103,7 +104,7 @@ export function AppSidebar() {
             <p className="text-xs font-medium truncate">{user.name || user.email}</p>
             <p className="text-xs text-muted-foreground truncate">{user.email}</p>
             <div className="flex items-center gap-1.5 pt-0.5">
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">{currentPlan}</Badge>
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0">{getPlanDisplayName(currentPlan)}</Badge>
               <span className={`inline-flex items-center rounded-full px-1.5 py-0 text-[10px] font-medium ${roleMeta.color}`}>
                 {roleMeta.label}
               </span>

@@ -9,7 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { nextSuggestedPlan, useSubscriptionPayment } from "@/hooks/useSubscriptionPayment";
 import type { SubscriptionBlockReason } from "@/lib/subscriptionAccess";
-import type { PlanType } from "@/lib/plans";
+import { getPlanDisplayName, type PlanType } from "@/lib/plans";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -169,8 +169,8 @@ const SubscriptionRenewalPage = ({ reason }: Props) => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-wrap gap-2">
-                <Badge variant="secondary" className="capitalize">
-                  {currentPlan}
+                <Badge variant="secondary">
+                  {getPlanDisplayName(currentPlan)}
                 </Badge>
                 <Badge variant="outline" className="capitalize">
                   {tenant?.subscriptionStatus}

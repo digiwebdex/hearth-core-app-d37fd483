@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { PLANS, type BillingCycle, type PlanType, getPlanPrice } from "@/lib/plans";
+import { PLANS, type BillingCycle, type PlanType, getPlanPrice, getPlanDisplayName } from "@/lib/plans";
 import { tenantSubscriptionWorkflowApi, type WorkflowPaymentMethod, type WorkflowPaymentRequest } from "@/lib/subscriptionWorkflowApi";
 
 const REQUEST_STATUSES = ["pending", "approved", "rejected", "needs_info", "cancelled"];
@@ -230,7 +230,7 @@ const Subscriptions = () => {
           <CardHeader><CardTitle>Current subscription</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center gap-3 flex-wrap">
-              <Badge variant="secondary" className="capitalize text-sm">{currentPlan}</Badge>
+              <Badge variant="secondary" className="text-sm">{getPlanDisplayName(currentPlan)}</Badge>
               <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusClasses[tenant?.subscriptionStatus || "active"] || ""}`}>
                 {tenant?.subscriptionStatus || "active"}
               </span>
