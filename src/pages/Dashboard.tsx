@@ -642,18 +642,23 @@ function WidgetCard({
   subtitleColor?: string;
 }) {
   return (
-    <Card className={onClick ? "cursor-pointer hover:shadow-md transition-shadow" : ""} onClick={onClick}>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className={`h-4 w-4 ${color}`} />
+    <Card
+      className={`border-border/60 transition-all duration-200 ${onClick ? "cursor-pointer hover:-translate-y-0.5 hover:shadow-md hover:border-border" : "hover:shadow-sm"}`}
+      onClick={onClick}
+    >
+      <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
+        <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{title}</CardTitle>
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/60">
+          <Icon className={`h-4 w-4 ${color}`} />
+        </div>
       </CardHeader>
       <CardContent>
         {loading ? (
           <Skeleton className="h-8 w-24" />
         ) : (
           <>
-            <div className="text-2xl font-bold">{value}</div>
-            {subtitle ? <p className={`text-xs mt-0.5 ${subtitleColor || "text-muted-foreground"}`}>{subtitle}</p> : null}
+            <div className="text-2xl font-bold tracking-tight tabular-nums">{value}</div>
+            {subtitle ? <p className={`text-xs mt-1 ${subtitleColor || "text-muted-foreground"}`}>{subtitle}</p> : null}
           </>
         )}
       </CardContent>

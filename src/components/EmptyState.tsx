@@ -11,20 +11,20 @@ interface EmptyStateProps {
 }
 
 const EmptyState = ({ icon: Icon = Inbox, title, description, hint, actionLabel, onAction }: EmptyStateProps) => (
-  <div className="flex flex-col items-center justify-center py-16 text-center">
-    <div className="rounded-full bg-muted p-4 mb-4">
-      <Icon className="h-8 w-8 text-muted-foreground" />
+  <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-muted to-muted/40 ring-1 ring-border/50">
+      <Icon className="h-7 w-7 text-muted-foreground" />
     </div>
-    <h3 className="text-lg font-semibold mb-1">{title}</h3>
+    <h3 className="text-base font-semibold">{title}</h3>
     {(description || hint) && (
-      <p className="text-sm text-muted-foreground max-w-sm mb-4">
+      <p className="mt-1.5 max-w-sm text-sm text-muted-foreground">
         {description}
         {description && hint ? " " : ""}
         {hint}
       </p>
     )}
     {actionLabel && onAction && (
-      <Button onClick={onAction}>{actionLabel}</Button>
+      <Button className="mt-5" onClick={onAction}>{actionLabel}</Button>
     )}
   </div>
 );
