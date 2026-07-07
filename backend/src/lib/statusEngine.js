@@ -388,6 +388,50 @@ function resolveStatus(statusSetId, currentValue) {
   };
 }
 
+// ── Enforcement (wired into write paths as of the Booking Engine milestone) ──
+// Central Status Engine now VALIDATES transitions, per docs/v2-master/11 §10.3
+// and 10-Development-Rules §4 ("no free-text status"). Enforcement is
+// deliberately conservative & backward compatible:
+//   - the target value MUST be a known status for the set (kills free-text);
+//   - a no-op (current === next) is always allowed;
+//   - if the CURRENT value is unknown/legacy (not in the workflow graph), any
+//     known target is allowed (never trap an old record);
+//   - otherwise the target must be in the current value's `nextStatuses`.
+
+/** Is `value` a known status for this set? */
+function isKnownStatus(statusSetId, value) {
+  const set = STATUS_REGISTRY[statusSetId];
+  return !!set && set.values.some((v) => v.value === value);
+}
+
+/**
+ * Validate a status transition against the whitelist.
+ * @returns {{ ok: true } | { ok: false, reason: "unknown_status"|"invalid_transition", allowed: string[] }}
+ */
+function validateTransition(statusSetId, currentValue, nextValue, { allowSame = true } = {}) {
+  const set = STATUS_REGISTRY[statusSetId];
+  // Unknown set id is a caller/config error, not user input — don't block writes.
+  if (!set) return { ok: true };
+
+  if (!isKnownStatus(statusSetId, nextValue)) {
+    return { ok: false, reason: "unknown_status", allowed: allowedNextStatuses(statusSetId, currentValue) };
+  }
+  if (allowSame && currentValue === nextValue) return { ok: true };
+
+  const workflow = WORKFLOW_STATUS_REGISTRY[statusSetId];
+  // Current value not in the documented graph (legacy/initial) → allow any known target.
+  if (!workflow || !workflow[currentValue]) return { ok: true };
+
+  const allowed = workflow[currentValue].nextStatuses || [];
+  if (allowed.includes(nextValue)) return { ok: true };
+  return { ok: false, reason: "invalid_transition", allowed };
+}
+
+/** The valid target statuses from `currentValue` (excludes the no-op self). */
+function allowedNextStatuses(statusSetId, currentValue) {
+  return WORKFLOW_STATUS_REGISTRY[statusSetId]?.[currentValue]?.nextStatuses ?? [];
+}
+
 module.exports = {
   STATUS_REGISTRY,
   WORKFLOW_STATUS_REGISTRY,
@@ -397,4 +441,7 @@ module.exports = {
   getCategories,
   getStatusSetsForCategory,
   resolveStatus,
+  isKnownStatus,
+  validateTransition,
+  allowedNextStatuses,
 };
