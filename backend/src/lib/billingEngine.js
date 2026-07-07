@@ -50,11 +50,11 @@ function planDisplayName(plan) {
 
 // ── Add-on registry ──
 // Add-ons "extend limits without changing plan". Each add-on maps to a limit
-// key. additional_users -> users and additional_whatsapp -> whatsapp overlay the
-// existing Plan Engine limits (planFeatures PLAN_LIMITS). The rest name
-// add-on-only dimensions (branches / storageGb / sms / apiCalls) that have no
-// base plan-limit row today — consistent with the v2 schema having no Branch/
-// storage/SMS/API meters yet — so the add-on itself establishes the allowance.
+// key. additional_users -> users, additional_branch -> branches, and
+// additional_whatsapp -> whatsapp overlay the existing Plan Engine limits
+// (planFeatures PLAN_LIMITS). The rest name add-on-only dimensions (storageGb /
+// sms / apiCalls) that have no base plan-limit row today — so the add-on itself
+// establishes the allowance.
 const ADDON_TYPES = [
   { code: "additional_users", label: "Additional Users", unit: "user", limitKey: "users" },
   { code: "additional_branch", label: "Additional Branch", unit: "branch", limitKey: "branches" },
@@ -109,9 +109,10 @@ function getSubscriptionPlanCatalog() {
     isTrial: true,
     trialDays: getTrialDays(),
     pricing: { monthly: 0, yearly: 0 },
-    // A trial mirrors the entry (basic) tier's capabilities until it expires.
-    limits: resolvePlan("basic").limits,
-    features: resolvePlan("basic").features,
+    // Free Trial = FULL evaluation: mirrors the enterprise tier's capabilities
+    // until it expires (docs/v2-master/111-SaaS-Plan-System.md).
+    limits: resolvePlan("enterprise").limits,
+    features: resolvePlan("enterprise").features,
   };
   const paid = getPlanRegistry().map((p) => ({
     ...p,

@@ -19,7 +19,9 @@ const resolveType = ({ currentPlan, requestedPlan, explicit, subscriptionStatus 
   const e = String(explicit || "").trim().toLowerCase();
   if (["activate", "renew", "upgrade", "downgrade"].includes(e)) return e;
   if (!currentPlan || currentPlan === "free" || subscriptionStatus === "trial" || subscriptionStatus === "expired") return "activate";
-  return currentPlan === requestedPlan ? "renew" : "upgrade";
+  if (currentPlan === requestedPlan) return "renew";
+  const RANK = { basic: 1, pro: 2, business: 3, enterprise: 4 };
+  return (RANK[requestedPlan] || 0) < (RANK[currentPlan] || 0) ? "downgrade" : "upgrade";
 };
 
 async function actor(req) {

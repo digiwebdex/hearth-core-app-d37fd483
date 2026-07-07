@@ -276,7 +276,7 @@ const SubscriptionRenewalPage = ({ reason }: Props) => {
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {loading
                 ? [1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-64 w-full" />)
-                : PLANS.filter((p) => p.id !== "free").map((plan) => {
+                : PLANS.filter((p) => p.id !== "free" && p.id !== "enterprise").map((plan) => {
                     const price = getPlanPrice(plan.id, "monthly");
                     const highlight = plan.id === defaultPlan;
                     return (

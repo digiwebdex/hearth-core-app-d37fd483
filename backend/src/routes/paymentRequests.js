@@ -40,7 +40,8 @@ function resolveRequestType({ currentPlan, requestedPlan, subscriptionStatus, ex
   const requested = normalizePlan(requestedPlan);
   if (!current || current === "free" || subscriptionStatus === "trial" || subscriptionStatus === "expired") return "activate";
   if (current === requested) return "renew";
-  return "upgrade";
+  const RANK = { basic: 1, pro: 2, business: 3, enterprise: 4 };
+  return (RANK[requested] || 0) < (RANK[current] || 0) ? "downgrade" : "upgrade";
 }
 
 function ensureProofDirectory() {
@@ -140,6 +141,14 @@ async function buildPaymentRequestInput(req, body, tenant) {
   const billingCycle = normalizeBillingCycle(body.billingCycle);
   const listPrice = getPlanPrice(requestedPlan, billingCycle);
 
+  // Enterprise is Contact Sales — it has no self-serve price and cannot be
+  // purchased via a payment request. It is activated by an admin after a deal.
+  if (requestedPlan === "enterprise") {
+    const err = new Error("Enterprise is Contact Sales — please contact our team to activate.");
+    err.code = "CONTACT_SALES";
+    throw err;
+  }
+
   let couponCode = body.couponCode ? String(body.couponCode).trim().toUpperCase() : null;
   let originalAmount = listPrice > 0 ? listPrice : null;
   let discountAmount = 0;
@@ -194,7 +203,10 @@ async function buildPaymentRequestInput(req, body, tenant) {
     requestType,
     paymentMethod,
     method: paymentMethod,
-    expectedAmount: originalAmount ?? Number(body.expectedAmount ?? amountSent),
+    // The NET amount the tenant must actually pay (after any coupon). Auto-activation
+    // verifies the gateway-paid amount against this, so it must be the discounted total,
+    // not the pre-discount list price (`originalAmount` is kept separately below).
+    expectedAmount: amountSent,
     amountSent,
     amount: amountSent,
     couponCode: couponCode || null,

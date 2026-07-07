@@ -4,6 +4,7 @@
  */
 const { prisma } = require("../middleware/auth");
 const { notifyEvent } = require("./notificationService");
+const { getPlanPrice } = require("../lib/planPricing");
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "https://travelagencyweb.com";
 
@@ -86,17 +87,43 @@ async function updateInvoiceAndBooking(invoiceId, tenantId) {
   return updatedInvoice;
 }
 
-async function activateSubscriptionFromPaymentRequest(paymentRequestId, transactionId) {
+async function activateSubscriptionFromPaymentRequest(paymentRequestId, transactionId, paidAmount) {
   if (!paymentRequestId) return { subscriptionUpdated: false };
 
   const paymentRequest = await prisma.paymentRequest.findUnique({ where: { id: paymentRequestId } });
   if (!paymentRequest) return { subscriptionUpdated: false };
+
+  // ── Idempotency ── a request that is already approved must not re-activate.
+  // SSLCommerz can fire both /success and /ipn for the same payment; without this
+  // guard a "renew" would double-extend expiry and duplicate Subscription/History rows.
+  if (String(paymentRequest.status).toLowerCase() === "approved") {
+    return { subscriptionUpdated: false, alreadyProcessed: true };
+  }
 
   const tenant = await prisma.tenant.findUnique({ where: { id: paymentRequest.tenantId } });
   if (!tenant) return { subscriptionUpdated: false };
 
   const requestedPlan = String(paymentRequest.requestedPlan || paymentRequest.plan || tenant.subscriptionPlan || "basic").trim().toLowerCase();
   const billingCycle = normalizeCycle(paymentRequest.billingCycle);
+
+  // ── Amount verification ── never provision a paid plan for less than it costs.
+  // The authoritative expected amount is the server-computed request amount (incl.
+  // coupon); fall back to the plan list price. Enterprise (-1/custom) is never
+  // auto-activated online — it is Contact Sales.
+  const listPrice = getPlanPrice(requestedPlan, billingCycle);
+  if (listPrice < 0) {
+    return { subscriptionUpdated: false, contactSales: true };
+  }
+  const expected = Number(paymentRequest.expectedAmount) > 0 ? Number(paymentRequest.expectedAmount) : listPrice;
+  const paid = Number(paidAmount);
+  if (Number.isFinite(paid) && expected > 0 && paid + 0.5 < expected) {
+    await prisma.paymentRequest.update({
+      where: { id: paymentRequestId },
+      data: { status: "needs_info", note: `Underpaid: received ${paid}, expected ${expected}. Not activated.` },
+    }).catch(() => {});
+    return { subscriptionUpdated: false, underpaid: true, expected, paid };
+  }
+
   const months = billingCycle === "yearly" ? 12 : 1;
   const now = new Date();
   const currentExpiry = tenant.subscriptionExpiry ? new Date(tenant.subscriptionExpiry) : null;
@@ -105,18 +132,16 @@ async function activateSubscriptionFromPaymentRequest(paymentRequestId, transact
   const startDate = extendFromCurrentExpiry ? currentExpiry : now;
   const expiryDate = addMonths(startDate, months);
 
-  if (paymentRequest.status !== "approved") {
-    await prisma.paymentRequest.update({
-      where: { id: paymentRequestId },
-      data: {
-        status: "approved",
-        processedAt: new Date(),
-        reviewedAt: new Date(),
-        trxId: transactionId || paymentRequest.trxId || paymentRequest.transactionId || null,
-        transactionId: transactionId || paymentRequest.transactionId || paymentRequest.trxId || null,
-      },
-    }).catch((e) => console.error("[PAYMENT-GATEWAY] Payment request update error:", e.message));
-  }
+  await prisma.paymentRequest.update({
+    where: { id: paymentRequestId },
+    data: {
+      status: "approved",
+      processedAt: new Date(),
+      reviewedAt: new Date(),
+      trxId: transactionId || paymentRequest.trxId || paymentRequest.transactionId || null,
+      transactionId: transactionId || paymentRequest.transactionId || paymentRequest.trxId || null,
+    },
+  }).catch((e) => console.error("[PAYMENT-GATEWAY] Payment request update error:", e.message));
 
   await prisma.tenant.update({
     where: { id: paymentRequest.tenantId },
@@ -155,12 +180,21 @@ async function activateSubscriptionFromPaymentRequest(paymentRequestId, transact
         billingCycle,
         activationDate: startDate,
         expiryDate,
-        actionType: requestType === "renew" ? "renewed" : requestType === "upgrade" ? "upgraded" : "activated",
+        actionType: requestType === "renew" ? "renewed" : requestType === "upgrade" ? "upgraded" : requestType === "downgrade" ? "downgraded" : "activated",
         source: "payment_gateway",
         note: `Payment request approved automatically by payment gateway (${paymentRequest.method || paymentRequest.paymentMethod || "online"})`,
         actorUserId: "system",
       },
     }).catch(() => {});
+  }
+
+  // Redeem the coupon (online auto-activation path — the manual admin-approval path
+  // increments it separately). Without this, gateway-paid coupons never count usage.
+  if (paymentRequest.couponCode) {
+    try {
+      const { incrementCouponUsage } = require("./subscriptionCouponService");
+      await incrementCouponUsage(paymentRequest.couponCode);
+    } catch (e) { console.error("[PAYMENT-GATEWAY] Coupon usage increment error:", e?.message || e); }
   }
 
   const owner = await prisma.user.findFirst({
@@ -241,8 +275,9 @@ async function handlePaymentSuccess({ transactionId, invoiceId, paymentRequestId
   // 2. If linked to a payment request (subscription payment)
   if (paymentRequestId) {
     try {
-      const subscriptionResult = await activateSubscriptionFromPaymentRequest(paymentRequestId, transactionId);
+      const subscriptionResult = await activateSubscriptionFromPaymentRequest(paymentRequestId, transactionId, amount);
       result.subscriptionUpdated = subscriptionResult.subscriptionUpdated;
+      result.subscription = subscriptionResult;
     } catch (e) {
       console.error("[PAYMENT-GATEWAY] Subscription update error:", e.message);
     }
