@@ -210,6 +210,7 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
       icon: UserCog2,
       items: [
         { id: "team", titleKey: "sidebar.team", url: "/team", icon: Users, module: "team" },
+        { id: "branches", title: "Branches", url: "/branches", icon: Building2, module: "branches" },
         { id: "hrm", titleKey: "sidebar.hrm", url: "/hrm", icon: CalendarClock, module: "team" },
         { id: "roles", titleKey: "sidebar.roles", url: "/roles", icon: UserCog2, module: "team" },
         { id: "recruitment", title: "Recruitment", url: "/recruitment", icon: BadgeCheck, module: "team", minPlan: "business" },

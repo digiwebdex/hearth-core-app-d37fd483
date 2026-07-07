@@ -101,15 +101,16 @@ export const tenantApi = {
   get: () => request<Tenant>("/tenants/me"),
   update: (data: Partial<Tenant>) =>
     request<Tenant>("/tenants/me", { method: "PATCH", body: JSON.stringify(data) }),
+  completeOnboarding: () => request<{ onboardingCompletedAt: string }>("/tenants/me/complete-onboarding", { method: "POST" }),
   getMembers: () => request<User[]>("/tenants/me/members"),
-  inviteMember: (email: string, role: string, name?: string) =>
+  inviteMember: (email: string, role: string, name?: string, branchId?: string) =>
     request<User>("/tenants/me/members", {
       method: "POST",
-      body: JSON.stringify({ email, role, name }),
+      body: JSON.stringify({ email, role, name, branchId }),
     }),
   removeMember: (userId: string) =>
     request<void>(`/tenants/me/members/${userId}`, { method: "DELETE" }),
-  updateMember: (userId: string, data: { role?: string; name?: string }) =>
+  updateMember: (userId: string, data: { role?: string; name?: string; branchId?: string | null }) =>
     request<User>(`/tenants/me/members/${userId}`, {
       method: "PATCH",
       body: JSON.stringify(data),
@@ -316,6 +317,27 @@ export const documentHubApi = {
   list: () => request<HubDocument[]>("/documents"),
 };
 export const taskApi = createCrudApi<Task>("tasks");
+
+// ── Branches (core tenant-scoped ERP entity; plan-limited) ──
+export interface Branch {
+  id: string;
+  tenantId: string;
+  name: string;
+  code?: string;
+  address?: string;
+  city?: string;
+  phone?: string;
+  email?: string;
+  isPrimary: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  _count?: { users: number };
+}
+export const branchApi = {
+  ...createCrudApi<Branch>("branches"),
+  setPrimary: (id: string) => request<Branch>(`/branches/${id}/primary`, { method: "PATCH" }),
+};
 
 export type SupportTicketStatus = "open" | "assigned" | "in_progress" | "resolved" | "closed";
 export type SupportTicketPriority = "low" | "medium" | "high" | "urgent";
@@ -611,7 +633,7 @@ export const quotationApi = {
 };
 
 // ── Types ──
-export interface User { id: string; name: string; email: string; role: "super_admin" | "tenant_owner" | "manager" | "sales_agent" | "accountant" | "operations" | "owner" | "admin" | "member"; tenantId: string; emailVerified?: boolean; createdAt: string; }
+export interface User { id: string; name: string; email: string; role: "super_admin" | "tenant_owner" | "manager" | "sales_agent" | "accountant" | "operations" | "owner" | "admin" | "member"; tenantId: string; branchId?: string | null; branch?: { id: string; name: string } | null; emailVerified?: boolean; createdAt: string; }
 export interface Tenant {
   id: string;
   name: string;

@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { UserPlus, Trash2, RefreshCw, Copy, Check, KeyRound, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { tenantApi, type User } from "@/lib/api";
+import { tenantApi, branchApi, type User, type Branch } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { getRoleMeta } from "@/lib/permissions";
@@ -33,6 +33,8 @@ const Team = () => {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteName, setInviteName] = useState("");
   const [inviteRole, setInviteRole] = useState("sales_agent");
+  const [inviteBranchId, setInviteBranchId] = useState("");
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [inviting, setInviting] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [createdMember, setCreatedMember] = useState<CreatedMember | null>(null);
@@ -58,12 +60,25 @@ const Team = () => {
   };
 
   useEffect(() => { fetchMembers(); }, []);
+  useEffect(() => { branchApi.list().then(setBranches).catch(() => {}); }, []);
+
+  const branchName = (id?: string | null) => branches.find((b) => b.id === id)?.name || "—";
+
+  const handleBranchChange = async (memberId: string, branchId: string) => {
+    try {
+      const updated = await tenantApi.updateMember(memberId, { branchId });
+      setMembers((prev) => prev.map((m) => (m.id === memberId ? updated : m)));
+      toast({ title: "Branch updated" });
+    } catch (err: any) {
+      toast({ title: "Failed to update branch", description: err.message, variant: "destructive" });
+    }
+  };
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     setInviting(true);
     try {
-      const res = await tenantApi.inviteMember(inviteEmail, inviteRole, inviteName || undefined) as unknown as CreatedMember & { temporaryPassword?: string; message?: string };
+      const res = await tenantApi.inviteMember(inviteEmail, inviteRole, inviteName || undefined, inviteBranchId || undefined) as unknown as CreatedMember & { temporaryPassword?: string; message?: string };
       const added: CreatedMember = {
         name: inviteName || inviteEmail.split("@")[0],
         email: inviteEmail,
@@ -75,6 +90,7 @@ const Team = () => {
       setInviteEmail("");
       setInviteName("");
       setInviteRole("sales_agent");
+      setInviteBranchId("");
       setDialogOpen(false);
       setCredDialogOpen(true);
       fetchMembers();
@@ -234,6 +250,19 @@ const Team = () => {
                         </SelectContent>
                       </Select>
                     </div>
+                    {branches.length > 0 && (
+                      <div className="space-y-2">
+                        <Label>Branch</Label>
+                        <Select value={inviteBranchId} onValueChange={setInviteBranchId}>
+                          <SelectTrigger><SelectValue placeholder="Primary branch (default)" /></SelectTrigger>
+                          <SelectContent>
+                            {branches.map((b) => (
+                              <SelectItem key={b.id} value={b.id}>{b.name}{b.isPrimary ? " (Primary)" : ""}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     <div className="rounded-lg bg-muted/50 border p-3 text-xs text-muted-foreground space-y-1">
                       <p className="font-medium text-foreground">How login works:</p>
                       <p>• <strong>If SMTP is set up:</strong> The staff receives a password setup link by email.</p>
@@ -267,6 +296,7 @@ const Team = () => {
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
+                    {branches.length > 0 && <TableHead>Branch</TableHead>}
                     <TableHead>Joined</TableHead>
                     {canManageTeam && <TableHead className="w-[80px]">Actions</TableHead>}
                   </TableRow>
@@ -299,6 +329,22 @@ const Team = () => {
                             </Badge>
                           )}
                         </TableCell>
+                        {branches.length > 0 && (
+                          <TableCell>
+                            {canManageTeam ? (
+                              <Select value={m.branchId || ""} onValueChange={(value) => handleBranchChange(m.id, value)}>
+                                <SelectTrigger className="h-8 w-[150px]"><SelectValue placeholder="Unassigned" /></SelectTrigger>
+                                <SelectContent>
+                                  {branches.map((b) => (
+                                    <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">{m.branch?.name || branchName(m.branchId)}</span>
+                            )}
+                          </TableCell>
+                        )}
                         <TableCell className="text-sm text-muted-foreground">{new Date(m.createdAt).toLocaleDateString()}</TableCell>
                         {canManageTeam && (
                           <TableCell>

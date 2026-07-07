@@ -11,8 +11,11 @@ import {
   Plane, BarChart3, Shield, Moon, Receipt,
   Check, ArrowRight, Zap, Crown, Rocket, Gem, Star,
   Target, FileText, Store, UserCheck, MapPin, ChevronDown, Quote,
+  X as XIcon, Layers, LayoutDashboard,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Section, SectionHeading, GlassCard, IconTile, GradientText, GHOST_BTN } from "@/components/marketing/primitives";
+import { TRAVEL_SERVICES, PLATFORM_MODULES } from "@/lib/marketingContent";
 
 const BRAND = "Travel Agency Website & Software Solution";
 const BASE = import.meta.env.VITE_API_URL || "/api";
@@ -122,6 +125,8 @@ const Index = () => {
   const d = cms || defaultCms(t);
 
   const handleSelectPlan = (planId: string) => {
+    // Enterprise is Contact Sales — never self-serve registration.
+    if (planId === "enterprise") { navigate("/contact-us?interest=enterprise"); return; }
     navigate(`/register?plan=${planId}&billing=${billing}`);
   };
 
@@ -172,6 +177,47 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      {/* ───── Problem → Solution ───── */}
+      <Section>
+        <SectionHeading
+          badge={t("landing.problemBadge", { defaultValue: "Why agencies switch" })}
+          title={<>{t("landing.problemTitle", { defaultValue: "Stop running your agency on" })} <GradientText>{t("landing.problemHighlight", { defaultValue: "spreadsheets & WhatsApp" })}</GradientText></>}
+          subtitle={t("landing.problemSubtitle", { defaultValue: "Scattered tools cost you leads, time and profit. One platform brings it all together." })}
+        />
+        <div className="grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
+          <div className="rounded-2xl border border-red-500/15 bg-red-500/[0.04] p-7">
+            <p className="text-sm font-semibold text-red-400/90 mb-4">{t("landing.problemOldWay", { defaultValue: "The old way" })}</p>
+            <ul className="space-y-3">
+              {[
+                t("landing.prob1", { defaultValue: "Leads lost in WhatsApp and notebooks" }),
+                t("landing.prob2", { defaultValue: "Manual invoices and no payment tracking" }),
+                t("landing.prob3", { defaultValue: "No idea which bookings are actually profitable" }),
+                t("landing.prob4", { defaultValue: "Staff, branches and accounts all disconnected" }),
+              ].map((p) => (
+                <li key={p} className="flex items-start gap-2.5 text-sm text-white/55">
+                  <XIcon className="h-4 w-4 text-red-400/70 mt-0.5 shrink-0" />{p}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] p-7">
+            <p className="text-sm font-semibold text-emerald-400/90 mb-4">{t("landing.problemNewWay", { defaultValue: "With one platform" })}</p>
+            <ul className="space-y-3">
+              {[
+                t("landing.sol1", { defaultValue: "Every lead captured in one CRM pipeline" }),
+                t("landing.sol2", { defaultValue: "Automatic invoices, payments and reminders" }),
+                t("landing.sol3", { defaultValue: "Real-time profit on every booking" }),
+                t("landing.sol4", { defaultValue: "Staff, branches, accounts — one connected system" }),
+              ].map((p) => (
+                <li key={p} className="flex items-start gap-2.5 text-sm text-white/70">
+                  <Check className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />{p}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </Section>
 
       {/* ───── Workflow ───── */}
       <section className="py-20 bg-[#0f1729]">
@@ -231,6 +277,54 @@ const Index = () => {
         </div>
       </section>
 
+      {/* ───── Travel services (Industry modules) ───── */}
+      <Section alt>
+        <SectionHeading
+          badge={t("landing.servicesBadge", { defaultValue: "Every travel service" })}
+          title={<>{t("landing.servicesTitle", { defaultValue: "Sell all" })} <GradientText>{TRAVEL_SERVICES.length} {t("landing.servicesTitle2", { defaultValue: "travel services" })}</GradientText></>}
+          subtitle={t("landing.servicesSubtitle", { defaultValue: "Air ticket, visa, Hajj, Umrah, hotel, holiday, corporate, transport, insurance, student, manpower, group tours & cruise — available on every plan, never plan-gated." })}
+        />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {TRAVEL_SERVICES.map((s) => (
+            <GlassCard key={s.id} interactive className="flex items-center gap-3 p-4">
+              <IconTile icon={s.icon} size="sm" />
+              <span className="text-sm font-medium text-white/85">{s.name}</span>
+            </GlassCard>
+          ))}
+        </div>
+        <div className="text-center mt-10">
+          <Link to="/solutions">
+            <Button variant="outline" className={GHOST_BTN}>
+              {t("landing.exploreSolutions", { defaultValue: "Explore solutions by agency type" })}<ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+      </Section>
+
+      {/* ───── Platform modules ───── */}
+      <Section>
+        <SectionHeading
+          badge={t("landing.modulesBadge", { defaultValue: "One platform" })}
+          title={<>{t("landing.modulesTitle", { defaultValue: "14 modules to run" })} <GradientText>{t("landing.modulesTitle2", { defaultValue: "your whole agency" })}</GradientText></>}
+          subtitle={t("landing.modulesSubtitle", { defaultValue: "CRM, booking, accounting, HR, payroll, website, reports, marketing, automation, branches and more — all sharing one database." })}
+        />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {PLATFORM_MODULES.slice(0, 8).map((m) => (
+            <div key={m.id} className="flex items-center gap-2.5 rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
+              <m.icon className="h-4 w-4 text-amber-400 shrink-0" />
+              <span className="text-sm text-white/75">{m.name}</span>
+            </div>
+          ))}
+        </div>
+        <div className="text-center mt-10">
+          <Link to="/modules">
+            <Button variant="outline" className={GHOST_BTN}>
+              <Layers className="mr-2 h-4 w-4" />{t("landing.seeAllModules", { defaultValue: "See all 14 modules" })}
+            </Button>
+          </Link>
+        </div>
+      </Section>
+
       {/* ───── Pricing Preview ───── */}
       <section className="py-24 bg-[#0f1729]">
         <div className="container mx-auto px-4">
@@ -260,7 +354,7 @@ const Index = () => {
                   <CardContent className="space-y-4">
                     <div className="text-center">
                       {price === -1 ? (
-                        <span className="text-2xl font-extrabold text-amber-400">{t("common.custom")}</span>
+                        <span className="text-2xl font-extrabold text-amber-400">{t("marketing.pricing.custom")}</span>
                       ) : (
                         <>
                           <span className="text-3xl font-extrabold text-amber-400">৳{price.toLocaleString()}</span>
@@ -294,6 +388,56 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      {/* ───── Product preview (Screenshots) ───── */}
+      <Section alt>
+        <SectionHeading
+          badge={t("landing.previewBadge", { defaultValue: "See it in action" })}
+          title={<>{t("landing.previewTitle", { defaultValue: "A dashboard built for" })} <GradientText>{t("landing.previewTitle2", { defaultValue: "travel agencies" })}</GradientText></>}
+          subtitle={t("landing.previewSubtitle", { defaultValue: "Everything at a glance — revenue, dues, bookings and your team, in real time." })}
+        />
+        <div className="max-w-5xl mx-auto rounded-2xl border border-white/10 bg-[#0b1220] shadow-2xl shadow-black/40 overflow-hidden">
+          {/* browser chrome */}
+          <div className="flex items-center gap-2 border-b border-white/8 bg-white/[0.03] px-4 py-3">
+            <span className="h-3 w-3 rounded-full bg-red-400/70" />
+            <span className="h-3 w-3 rounded-full bg-amber-400/70" />
+            <span className="h-3 w-3 rounded-full bg-emerald-400/70" />
+            <div className="ml-3 flex items-center gap-2 rounded-md bg-white/5 px-3 py-1 text-[11px] text-white/40">
+              <LayoutDashboard className="h-3 w-3" /> app.travelagencyweb.com/dashboard
+            </div>
+          </div>
+          {/* mock dashboard */}
+          <div className="grid grid-cols-12 gap-0">
+            <div className="hidden sm:flex col-span-3 flex-col gap-1.5 border-r border-white/8 bg-white/[0.02] p-4">
+              {["Dashboard", "Clients", "Bookings", "Invoices", "Accounts", "Reports", "Branches"].map((n, i) => (
+                <div key={n} className={`rounded-md px-3 py-1.5 text-xs ${i === 0 ? "bg-amber-500/15 text-amber-300" : "text-white/45"}`}>{n}</div>
+              ))}
+            </div>
+            <div className="col-span-12 sm:col-span-9 p-5 space-y-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {[
+                  { l: t("landing.previewRevenue", { defaultValue: "Revenue" }), v: "৳12.4L", c: "text-emerald-400" },
+                  { l: t("landing.previewDue", { defaultValue: "Dues" }), v: "৳2.1L", c: "text-amber-400" },
+                  { l: t("landing.previewBookings", { defaultValue: "Bookings" }), v: "348", c: "text-sky-400" },
+                  { l: t("landing.previewProfit", { defaultValue: "Profit" }), v: "৳3.8L", c: "text-violet-400" },
+                ].map((s) => (
+                  <div key={s.l} className="rounded-xl border border-white/8 bg-white/[0.03] p-3">
+                    <p className="text-[10px] uppercase tracking-wide text-white/35">{s.l}</p>
+                    <p className={`text-lg font-bold ${s.c}`}>{s.v}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="rounded-xl border border-white/8 bg-white/[0.03] p-4">
+                <div className="flex items-end gap-2 h-28">
+                  {[45, 62, 38, 72, 55, 80, 48, 68, 58, 88, 70, 95].map((h, i) => (
+                    <div key={i} className="flex-1 rounded-t bg-gradient-to-t from-amber-500/40 to-orange-400/70" style={{ height: `${h}%` }} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Section>
 
       {/* ───── Testimonials ───── */}
       <section className="py-24">

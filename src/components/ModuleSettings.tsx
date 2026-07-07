@@ -16,7 +16,7 @@ import {
 } from "@/lib/enabledServiceTypes";
 import { ADVANCED_MODULES, planCanUseAdvancedModules, planCanUseModule, moduleMinPlan, isModuleAutoOn } from "@/lib/moduleAccess";
 
-const PLAN_LABEL: Record<string, string> = { pro: "Pro", business: "Business", enterprise: "Ultimate" };
+const PLAN_LABEL: Record<string, string> = { basic: "Starter", pro: "Professional", business: "Business", enterprise: "Enterprise" };
 
 export default function ModuleSettings() {
   const { t, i18n } = useTranslation();
@@ -170,8 +170,8 @@ export default function ModuleSettings() {
           <Info className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
           <p className="text-sm text-muted-foreground">
             {isBn
-              ? "সব প্যাকেজে ডিফল্টভাবে প্রয়োজনীয় মূল মেনু চালু থাকে। অতিরিক্ত মডিউলগুলো শুধু Business ও Ultimate প্ল্যানের মালিকরা প্রয়োজন অনুযায়ী চালু করতে পারবেন।"
-              : "Every plan starts with the essential core menu switched on. Advanced modules can be activated only by Business and Ultimate plan owners, when they need them."}
+              ? "সব প্যাকেজে ডিফল্টভাবে প্রয়োজনীয় মূল মেনু চালু থাকে। অতিরিক্ত মডিউলগুলো শুধু Business ও Enterprise প্ল্যানের মালিকরা প্রয়োজন অনুযায়ী চালু করতে পারবেন।"
+              : "Every plan starts with the essential core menu switched on. Advanced modules can be activated only by Business and Enterprise plan owners, when they need them."}
           </p>
         </div>
 

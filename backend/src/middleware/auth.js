@@ -79,6 +79,7 @@ const ROLE_PERMISSIONS = {
     hajj_umrah: ["view", "create", "edit", "delete", "approve", "export"],
     subscription: ["view", "create", "edit", "delete", "approve", "export"],
     team: ["view", "create", "edit", "delete", "approve", "export"],
+    branches: ["view", "create", "edit", "delete", "approve", "export"],
     organization: ["view", "create", "edit", "delete", "approve", "export"],
     settings: ["view", "create", "edit", "delete", "approve", "export"],
     website: ["view", "create", "edit", "delete", "approve", "export"],
@@ -99,6 +100,7 @@ const ROLE_PERMISSIONS = {
     hajj_umrah: ["view", "create", "edit", "delete", "approve", "export"],
     subscription: ["view"],
     team: ["view"],
+    branches: ["view", "create", "edit", "delete", "export"],
     organization: ["view"],
     website: ["view", "edit"],
   },
@@ -114,6 +116,7 @@ const ROLE_PERMISSIONS = {
     bookings: ["view", "create", "edit"],
     invoices: ["view"],
     hajj_umrah: ["view", "create"],
+    branches: ["view"],
   },
   accountant: {
     dashboard: ["view", "export"],
@@ -129,6 +132,7 @@ const ROLE_PERMISSIONS = {
     reports: ["view", "export"],
     hajj_umrah: ["view", "export"],
     subscription: ["view"],
+    branches: ["view"],
   },
   operations: {
     dashboard: ["view"],
@@ -142,6 +146,7 @@ const ROLE_PERMISSIONS = {
     invoices: ["view"],
     reports: ["view"],
     hajj_umrah: ["view", "create", "edit", "export"],
+    branches: ["view"],
   },
 };
 
@@ -161,24 +166,44 @@ function requirePermission(module, action) {
 // Single backend plan config (limits + features) lives in lib/planFeatures.js.
 const { RESOURCE_MODEL_MAP, getPlanLimit } = require("../lib/planFeatures");
 
-// Usage: router.post("/", checkPlanLimit("clients"), handler)
+// Effective plan used for capability gating. A tenant on an ACTIVE Free Trial gets
+// full evaluation access (enterprise capabilities); the subscriptionAccessGate has
+// already blocked EXPIRED trials before any of these gates run.
+function effectiveGatingPlan(tenant) {
+  if (String(tenant?.subscriptionStatus || "").toLowerCase() === "trial") return "enterprise";
+  return tenant?.subscriptionPlan || "basic";
+}
+
+// Usage: router.post("/", checkPlanLimit("users"), handler)
 function checkPlanLimit(resource) {
   return async (req, res, next) => {
     try {
       const tenant = await prisma.tenant.findUnique({
         where: { id: req.tenantId },
-        select: { subscriptionPlan: true },
+        select: { subscriptionPlan: true, subscriptionStatus: true },
       });
       if (!tenant) return res.status(404).json({ message: "Tenant not found" });
 
-      const plan = tenant.subscriptionPlan || "basic";
+      const plan = effectiveGatingPlan(tenant);
       // getPlanLimit normalizes aliases (unlimited→enterprise, free→basic).
-      const limit = getPlanLimit(plan, resource);
+      let limit = getPlanLimit(plan, resource);
 
       // undefined = unknown resource → skip; -1 = unlimited
       if (limit === undefined || limit === -1) return next();
       // 0 = not allowed
       if (limit === 0) return res.status(403).json({ message: `Your ${plan} plan does not include ${resource}` });
+
+      // Active paid add-ons raise the ENFORCED limit (not just the display).
+      // additional_users → users, additional_branch → branches.
+      const ADDON_RESOURCE = { additional_users: "users", additional_branch: "branches" };
+      try {
+        const addons = await prisma.subscriptionAddon.findMany({
+          where: { tenantId: req.tenantId, status: "active" },
+          select: { type: true, quantity: true },
+        });
+        const extra = addons.reduce((s, a) => s + (ADDON_RESOURCE[a.type] === resource ? (Number(a.quantity) || 0) : 0), 0);
+        limit += extra;
+      } catch { /* add-on table unavailable → enforce base plan limit */ }
 
       const model = RESOURCE_MODEL_MAP[resource];
       if (!model) return next(); // unknown resource, skip check
@@ -210,10 +235,10 @@ function requireFeature(flag) {
       if (req.userRole === "super_admin") return next();
       const tenant = await prisma.tenant.findUnique({
         where: { id: req.tenantId },
-        select: { subscriptionPlan: true },
+        select: { subscriptionPlan: true, subscriptionStatus: true },
       });
       if (!tenant) return res.status(404).json({ message: "Tenant not found" });
-      if (planHasFeature(tenant.subscriptionPlan, flag)) return next();
+      if (planHasFeature(effectiveGatingPlan(tenant), flag)) return next();
       return res.status(403).json({
         message: "This feature is not included in your current plan. Please upgrade.",
         code: "FEATURE_NOT_IN_PLAN",

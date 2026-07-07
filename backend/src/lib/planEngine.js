@@ -46,9 +46,11 @@ const { getAllFlags } = require("./featureFlags");
 // here is a second copy of a number that already lives in planFeatures.js /
 // planPricing.js.
 const PLAN_TIERS = ["basic", "pro", "business", "enterprise"];
+// Blueprint display names (docs/v2-master/111-SaaS-Plan-System.md). Keys stay
+// canonical; only the human-facing names follow the Master Blueprint.
 const PLAN_NAMES = {
-  basic: "Basic",
-  pro: "Pro",
+  basic: "Starter",
+  pro: "Professional",
   business: "Business",
   enterprise: "Enterprise",
 };
@@ -106,12 +108,10 @@ function getPlanRegistry() {
 
 // ── Tenant Plan Resolver (the full chain) ──
 // Tenant Plan -> Enabled Modules -> Enabled Features -> Limits -> Service Types -> Feature Flags.
-// Service types are NOT plan-gated today — which of the 14 service types a
-// tenant enables is an onboarding-time choice (see docs/v2-master/04-Service-Modules.md),
-// not a plan restriction. This resolver passes the tenant's raw configuration
-// through unchanged; it does not duplicate the frontend's "effective service
-// types" derivation (src/lib/enabledServiceTypes.ts), which stays the single
-// place that logic lives.
+// Business service types are NOT plan-gated — which of the 14 types a tenant sells
+// is an onboarding / Settings choice (Super Admin or tenant), not a plan
+// restriction. This resolver passes the tenant's service-type config through
+// unchanged; plans gate only PLATFORM capabilities (features + advanced modules).
 async function resolveTenantPlanContext({
   plan,
   enabledModules,
@@ -131,6 +131,7 @@ async function resolveTenantPlanContext({
     features: definition.features, // Default Feature Flags
     limits: definition.limits, // Feature Limits
     serviceTypes: {
+      // NOT plan-gated — passed through as the tenant configured them.
       enabled: Array.isArray(enabledServiceTypes) ? enabledServiceTypes : [],
       enabledSubcategories: Array.isArray(enabledSubcategories) ? enabledSubcategories : [],
     },

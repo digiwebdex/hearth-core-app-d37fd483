@@ -12,7 +12,7 @@
 
 const crypto = require("crypto");
 const router = require("express").Router();
-const { authenticate, requirePermission, checkPlanLimit, prisma } = require("../middleware/auth");
+const { authenticate, requirePermission, prisma } = require("../middleware/auth");
 const { dispatchTenantAutomation } = require("../services/tenantAutomationService");
 const { parseServiceDetails } = require("../lib/bookingServiceDetails");
 const {
@@ -113,7 +113,7 @@ router.get("/:id", requirePermission("bookings", "view"), async (req, res) => {
   }
 });
 
-router.post("/", requirePermission("bookings", "create"), checkPlanLimit("bookings"), async (req, res) => {
+router.post("/", requirePermission("bookings", "create"), async (req, res) => {
   try {
     const incoming = { ...req.body, type: BOOKING_TYPE_VALUE, serviceType: SERVICE_TYPE_VALUE };
     const validation = validateHotelBooking(incoming);

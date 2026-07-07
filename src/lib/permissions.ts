@@ -42,6 +42,7 @@ export type Module =
   | "hajj_umrah"
   | "subscription"
   | "team"
+  | "branches"
   | "organization"
   | "settings"
   | "website"
@@ -82,6 +83,7 @@ export const DEFAULT_PERMISSIONS: Record<AppRole, PermissionMatrix> = {
     hajj_umrah: ALL_ACTIONS,
     subscription: ALL_ACTIONS,
     team: ALL_ACTIONS,
+    branches: ALL_ACTIONS,
     organization: ALL_ACTIONS,
     settings: ALL_ACTIONS,
     website: ALL_ACTIONS,
@@ -104,6 +106,7 @@ export const DEFAULT_PERMISSIONS: Record<AppRole, PermissionMatrix> = {
     hajj_umrah: ALL_ACTIONS,
     subscription: ALL_ACTIONS,
     team: ALL_ACTIONS,
+    branches: ALL_ACTIONS,
     organization: ALL_ACTIONS,
     settings: ALL_ACTIONS,
     website: ALL_ACTIONS,
@@ -126,6 +129,7 @@ export const DEFAULT_PERMISSIONS: Record<AppRole, PermissionMatrix> = {
     hajj_umrah: ALL_ACTIONS,
     subscription: VIEW_ONLY,
     team: VIEW_ONLY,
+    branches: { view: true, create: true, edit: true, delete: true, export: true },
     organization: VIEW_ONLY,
     settings: NONE,
     website: { view: true, edit: true },
@@ -148,6 +152,7 @@ export const DEFAULT_PERMISSIONS: Record<AppRole, PermissionMatrix> = {
     hajj_umrah: VIEW_CREATE,
     subscription: NONE,
     team: NONE,
+    branches: VIEW_ONLY,
     organization: NONE,
     settings: NONE,
     website: NONE,
@@ -170,6 +175,7 @@ export const DEFAULT_PERMISSIONS: Record<AppRole, PermissionMatrix> = {
     hajj_umrah: { view: true, export: true },
     subscription: VIEW_ONLY,
     team: NONE,
+    branches: VIEW_ONLY,
     organization: NONE,
     settings: NONE,
     website: NONE,
@@ -192,6 +198,7 @@ export const DEFAULT_PERMISSIONS: Record<AppRole, PermissionMatrix> = {
     hajj_umrah: { view: true, create: true, edit: true, export: true },
     subscription: NONE,
     team: NONE,
+    branches: VIEW_ONLY,
     organization: NONE,
     settings: NONE,
     website: NONE,
@@ -260,7 +267,7 @@ export function getAccessibleModules(
   const allModules: Module[] = [
     "dashboard", "clients", "agents", "vendors", "leads", "tasks", "quotations",
     "packages", "bookings", "invoices", "accounts", "reports", "hajj_umrah",
-    "subscription", "team", "organization", "settings", "website", "admin_panel",
+    "subscription", "team", "branches", "organization", "settings", "website", "admin_panel",
   ];
   return allModules.filter((m) => canAccessModule(role, m, overrides));
 }
@@ -357,6 +364,7 @@ export const MODULE_METADATA: ModuleMeta[] = [
   { id: "hajj_umrah", label: "Hajj/Umrah", category: "operations" },
   { id: "subscription", label: "Subscription", category: "management" },
   { id: "team", label: "Team", category: "management" },
+  { id: "branches", label: "Branches", category: "management" },
   { id: "organization", label: "Organization", category: "management" },
   { id: "settings", label: "Settings", category: "management" },
   { id: "website", label: "Website", category: "management" },

@@ -32,7 +32,7 @@ function PlanCard({ plan }: { plan: PlanConfig }) {
           {plan.price === 0 ? (
             <span className="text-4xl font-bold">Free</span>
           ) : plan.price === -1 ? (
-            <span className="text-3xl font-bold">Custom</span>
+            <span className="text-3xl font-bold">Contact Sales</span>
           ) : (
             <>
               <span className="text-4xl font-bold">৳{plan.price.toLocaleString()}</span>
@@ -68,7 +68,7 @@ function PlanCard({ plan }: { plan: PlanConfig }) {
 
 function FeatureComparisonTable() {
   const plans: Array<"basic" | "pro" | "business" | "enterprise"> = ["basic", "pro", "business", "enterprise"];
-  const planLabels = { basic: "Basic", pro: "Pro", business: "Business", enterprise: "Unlimited" };
+  const planLabels = { basic: "Starter", pro: "Professional", business: "Business", enterprise: "Enterprise" };
 
   const renderCell = (val: boolean | string) => {
     if (val === true) return <Check className="h-4 w-4 text-primary mx-auto" />;

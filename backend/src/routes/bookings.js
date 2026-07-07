@@ -1,7 +1,7 @@
 const router = require("express").Router();
 const multer = require("multer");
 const path = require("path");
-const { authenticate, requirePermission, checkPlanLimit, prisma } = require("../middleware/auth");
+const { authenticate, requirePermission, prisma } = require("../middleware/auth");
 const { dispatchTenantAutomation } = require("../services/tenantAutomationService");
 const { enrichBookingFromPackage } = require("../services/packageLinkage");
 const {
@@ -281,7 +281,7 @@ router.get("/:id", requirePermission("bookings", "view"), async (req, res) => {
   }
 });
 
-router.post("/", requirePermission("bookings", "create"), checkPlanLimit("bookings"), async (req, res) => {
+router.post("/", requirePermission("bookings", "create"), async (req, res) => {
   try {
     const data = await normalizeBookingInput({ ...req.body, tenantId: req.tenantId }, req.tenantId);
     const booking = await prisma.booking.create({ data });

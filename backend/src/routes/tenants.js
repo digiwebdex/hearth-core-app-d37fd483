@@ -47,6 +47,7 @@ router.patch("/me", requireRole("tenant_owner"), async (req, res) => {
       data.enableBdOperationsModule = Boolean(data.enableBdOperationsModule);
     }
     if (data.enabledServiceTypes !== undefined) {
+      // Business service types are an onboarding / Settings choice, NOT plan-gated.
       const raw = Array.isArray(data.enabledServiceTypes) ? data.enabledServiceTypes : [];
       data.enabledServiceTypes = [...new Set(raw.map((v) => String(v).trim().toLowerCase()).filter(Boolean))];
     }
@@ -54,16 +55,31 @@ router.patch("/me", requireRole("tenant_owner"), async (req, res) => {
       data.enabledSubcategories = normalizeEnabledSubcategories(data.enabledSubcategories);
     }
     if (data.enabledModules !== undefined) {
-      // Advanced modules are gated to Business / Ultimate plans; sanitize against
-      // the tenant's real plan so the API can't be used to bypass the plan tier.
+      // Advanced PLATFORM modules are plan-gated; sanitize against the tenant's real
+      // plan so the API can't be used to bypass the plan tier. Active Free Trial
+      // gets full evaluation (enterprise capabilities).
       const current = await prisma.tenant.findUnique({
         where: { id: req.tenantId },
-        select: { subscriptionPlan: true },
+        select: { subscriptionPlan: true, subscriptionStatus: true },
       });
-      data.enabledModules = sanitizeEnabledModules(data.enabledModules, current?.subscriptionPlan);
+      const plan = String(current?.subscriptionStatus || "").toLowerCase() === "trial"
+        ? "enterprise"
+        : current?.subscriptionPlan;
+      data.enabledModules = sanitizeEnabledModules(data.enabledModules, plan);
     }
     const tenant = await prisma.tenant.update({ where: { id: req.tenantId }, data });
     res.json(tenant);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// Mark the tenant's guided onboarding as complete (persisted, not per-browser).
+router.post("/me/complete-onboarding", requireRole("tenant_owner"), async (req, res) => {
+  try {
+    const tenant = await prisma.tenant.update({
+      where: { id: req.tenantId },
+      data: { onboardingCompletedAt: new Date() },
+    });
+    res.json({ onboardingCompletedAt: tenant.onboardingCompletedAt });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
@@ -71,7 +87,10 @@ router.get("/me/members", requirePermission("team", "view"), async (req, res) =>
   try {
     const users = await prisma.user.findMany({
       where: { tenantId: req.tenantId },
-      select: { id: true, name: true, email: true, role: true, tenantId: true, createdAt: true },
+      select: {
+        id: true, name: true, email: true, role: true, tenantId: true, createdAt: true,
+        branchId: true, branch: { select: { id: true, name: true } },
+      },
     });
     res.json(users);
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -90,6 +109,18 @@ router.post("/me/members", requireRole("tenant_owner"), checkPlanLimit("users"),
     const exists = await prisma.user.findUnique({ where: { email } });
     if (exists) return res.status(400).json({ message: "Email already registered" });
 
+    // Every staff belongs to a branch. Use the provided branch (if it belongs to
+    // this tenant) else fall back to the tenant's primary branch.
+    let branchId = null;
+    if (req.body.branchId) {
+      const b = await prisma.branch.findFirst({ where: { id: req.body.branchId, tenantId: req.tenantId }, select: { id: true } });
+      branchId = b?.id || null;
+    }
+    if (!branchId) {
+      const primary = await prisma.branch.findFirst({ where: { tenantId: req.tenantId, isPrimary: true }, select: { id: true } });
+      branchId = primary?.id || null;
+    }
+
     const resetToken = crypto.randomBytes(32).toString("hex");
     const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
     const placeholderPassword = crypto.randomBytes(32).toString("hex");
@@ -103,6 +134,7 @@ router.post("/me/members", requireRole("tenant_owner"), checkPlanLimit("users"),
         role: safeRole,
         status: "active",
         tenantId: req.tenantId,
+        branchId,
         resetToken,
         resetTokenExpiry,
       },
@@ -202,6 +234,16 @@ router.patch("/me/members/:userId", requireRole("tenant_owner"), async (req, res
       if (!trimmed) return res.status(400).json({ message: "Name cannot be empty" });
       data.name = trimmed;
     }
+    if (req.body.branchId !== undefined) {
+      // Reassign to a branch that belongs to this tenant (or null to unassign).
+      if (req.body.branchId === null || req.body.branchId === "") {
+        data.branchId = null;
+      } else {
+        const b = await prisma.branch.findFirst({ where: { id: req.body.branchId, tenantId: req.tenantId }, select: { id: true } });
+        if (!b) return res.status(400).json({ message: "Invalid branch" });
+        data.branchId = b.id;
+      }
+    }
     if (!Object.keys(data).length) {
       return res.status(400).json({ message: "No allowed fields provided" });
     }
@@ -209,7 +251,10 @@ router.patch("/me/members/:userId", requireRole("tenant_owner"), async (req, res
     const updated = await prisma.user.update({
       where: { id: target.id },
       data,
-      select: { id: true, name: true, email: true, role: true, tenantId: true, createdAt: true },
+      select: {
+        id: true, name: true, email: true, role: true, tenantId: true, createdAt: true,
+        branchId: true, branch: { select: { id: true, name: true } },
+      },
     });
 
     const actor = await prisma.user.findUnique({ where: { id: req.userId }, select: { name: true, email: true, role: true } });

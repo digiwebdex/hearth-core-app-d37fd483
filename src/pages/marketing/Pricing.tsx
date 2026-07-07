@@ -53,6 +53,8 @@ const Pricing = () => {
   const update = (key: string, val: string) => setForm((p) => ({ ...p, [key]: val }));
 
   const handleSelectPlan = (planId: string) => {
+    // Enterprise is Contact Sales — never self-serve registration.
+    if (planId === "enterprise") { navigate("/contact-us?interest=enterprise"); return; }
     navigate(`/register?plan=${planId}&billing=${billing}`);
   };
 

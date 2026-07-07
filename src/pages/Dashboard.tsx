@@ -270,10 +270,11 @@ const Dashboard = () => {
 
         {tenant ? (() => {
           const planCfg = getPlan((tenant.subscriptionPlan || "basic") as PlanType);
+          // Capability model: plans are limited by staff & branches, not record counts.
           const rows = [
-            { label: t("dashboard.usageClients", { defaultValue: "Clients" }), used: stats?.totalClients ?? 0, max: planCfg.maxClients },
-            { label: t("dashboard.usageBookings", { defaultValue: "Bookings" }), used: stats?.totalBookings ?? 0, max: planCfg.maxBookings },
-            { label: t("dashboard.usageUsers", { defaultValue: "Team members" }), used: stats?.totalUsers ?? 0, max: planCfg.maxUsers },
+            { label: t("dashboard.usageUsers", { defaultValue: "Staff" }), used: stats?.totalUsers ?? 0, max: planCfg.maxUsers },
+            { label: t("dashboard.usageBranches", { defaultValue: "Branches" }), used: (stats as { totalBranches?: number })?.totalBranches ?? 0, max: planCfg.maxBranches },
+            { label: t("dashboard.usageDomains", { defaultValue: "Domains" }), used: (stats as { totalDomains?: number })?.totalDomains ?? 0, max: planCfg.maxDomains },
           ];
           const statusRaw = String(tenant.subscriptionStatus || "active").toLowerCase();
           return (

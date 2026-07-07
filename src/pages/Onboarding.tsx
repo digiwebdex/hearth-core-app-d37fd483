@@ -127,6 +127,8 @@ const Onboarding = () => {
   };
 
   const goToDashboard = () => {
+    // Persist completion on the tenant (server-side), not just this browser.
+    tenantApi.completeOnboarding().catch(() => {});
     localStorage.setItem("onboarding_complete", "true");
     navigate("/dashboard");
   };

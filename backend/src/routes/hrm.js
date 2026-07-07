@@ -1,7 +1,10 @@
 const router = require("express").Router();
-const { authenticate, requirePermission, requireRole, prisma } = require("../middleware/auth");
+const { authenticate, requirePermission, requireRole, requireFeature, prisma } = require("../middleware/auth");
 
 router.use(authenticate);
+// HR & Payroll is a Business-tier platform capability (moduleAccess floor). Enforce
+// it at the API layer, not just in the sidebar. Active trials pass (full evaluation).
+router.use(requireFeature("hasHrPayroll"));
 
 const MANAGER_ROLES = new Set(["super_admin", "tenant_owner", "owner", "manager"]);
 const ATTENDANCE_STATUSES = new Set(["present", "absent", "half_day", "remote", "on_leave"]);

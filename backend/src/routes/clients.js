@@ -1,7 +1,7 @@
 const path = require("path");
 const fs = require("fs");
 const router = require("express").Router();
-const { authenticate, requirePermission, checkPlanLimit, prisma } = require("../middleware/auth");
+const { authenticate, requirePermission, prisma } = require("../middleware/auth");
 const {
   createClientDocumentsUpload,
   clientDocumentPublicUrl,
@@ -171,7 +171,7 @@ router.get("/:id", requirePermission("clients", "view"), async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post("/", requirePermission("clients", "create"), checkPlanLimit("clients"), async (req, res) => {
+router.post("/", requirePermission("clients", "create"), async (req, res) => {
   try {
     const item = await prisma.client.create({ data: { ...req.body, tenantId: req.tenantId } });
     res.status(201).json(item);

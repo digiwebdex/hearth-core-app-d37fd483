@@ -60,6 +60,8 @@
   "nav": {
     "home": "Home",
     "features": "Features",
+    "solutions": "Solutions",
+    "modules": "Modules",
     "pricing": "Pricing",
     "faq": "FAQ",
     "contact": "Contact",
@@ -966,7 +968,7 @@
       "travelDate": "Travel date"
     },
     "featureGate": {
-      "commissionDisabled": "Agent commission tracking is available on Pro plans and above."
+      "commissionDisabled": "Agent commission tracking is available on Professional plans and above."
     },
     "selectAgent": "Agent",
     "selectAgentPlaceholder": "Choose an agent (optional)"
@@ -1027,9 +1029,9 @@
     "title": "Dashboard",
     "yourPlan": "Your plan",
     "managePlan": "Manage / Upgrade plan",
-    "usageClients": "Clients",
-    "usageBookings": "Bookings",
-    "usageUsers": "Team members",
+    "usageUsers": "Staff",
+    "usageBranches": "Branches",
+    "usageDomains": "Domains",
     "subtitle": "Your agency at a glance — leads, bookings, payments, and operations.",
     "welcomeTitle": "Welcome to your travel agency dashboard",
     "welcomeDesc": "Start by adding a lead, sending a quotation, or creating a booking.",
@@ -1301,7 +1303,7 @@
     "q1": "Who is this platform for?",
     "a1": "Travel agencies, tour operators, ticketing offices and Hajj/Umrah service providers.",
     "q2": "What plans do you offer?",
-    "a2": "Four simple plans — Basic, Pro, Business and Unlimited.",
+    "a2": "Four simple plans — Starter, Professional, Business and Enterprise.",
     "q3": "Do I need technical skills?",
     "a3": "No. If you can use WhatsApp, you can use our platform.",
     "q4": "Can I change my plan later?",
@@ -1347,7 +1349,7 @@
   "marketing": {
     "pricing": {
       "metaTitle": "Pricing — Travel Agency Website & Software Solution",
-      "metaDesc": "Simple, transparent pricing for travel agencies. Choose Basic, Pro, Business, or Unlimited.",
+      "metaDesc": "Simple, transparent pricing for travel agencies. Choose Starter, Professional, Business, or Enterprise.",
       "badge": "Simple Pricing — No Hidden Fees",
       "title": "Simple, Transparent Pricing",
       "subtitle": "Choose the plan that fits your travel agency. All prices in BDT.",
@@ -1358,13 +1360,13 @@
       "save20": "Save 20%",
       "perMonth": "/month",
       "perYear": "/year",
-      "custom": "Custom",
+      "custom": "Contact Sales",
       "free": "Free",
       "contactPrice": "Contact Us for Price",
       "subscribeNow": "Subscribe Now",
       "more": "more",
       "accountsTitle": "Accounts & Finance",
-      "accountsBadge": "Basic Plan & Above",
+      "accountsBadge": "Starter Plan & Above",
       "accountsDesc": "Receivables, vendor payables, expenses, cash/bank accounts, ledger, and profitability tracking. Upgrade from Free to unlock operational finance tools.",
       "reportsTitle": "Reports & Analytics",
       "reportsBadge": "Business Plan & Above",
@@ -1522,11 +1524,11 @@
         "g4q": "Do I need any technical knowledge to use this?",
         "g4a": "No. Our platform is designed for travel professionals, not developers. The interface is straightforward — if you can use Facebook or WhatsApp, you can use our platform.",
         "p1q": "What plans are available?",
-        "p1a": "Four plans: Basic (৳500/mo, 500 clients & bookings), Pro (৳800/mo, 1,000 clients & bookings + website + SMS/Email), Business (৳1,500/mo, 2,000 clients & bookings + advanced features), and Unlimited (custom pricing, all features + full automation).",
+        "p1a": "Four plans: Starter (৳500/mo — CRM, bookings, finance, reports, 3 staff, 1 branch), Professional (৳800/mo — adds website CMS, email, SMS & WhatsApp, automation, 10 staff, 3 branches), Business (৳1,500/mo — adds marketing, HR & payroll, advanced automation & analytics, 30 staff, 10 branches), and Enterprise (custom pricing — white label, API, marketplace, dedicated support, unlimited staff & branches). Unlimited bookings, clients and records on every plan.",
         "p2q": "Can I upgrade or downgrade my plan later?",
         "p2a": "Absolutely. You can upgrade at any time and the change takes effect immediately. Downgrading is also possible at the end of your billing cycle. Your data is always preserved.",
         "p3q": "What payment methods do you accept?",
-        "p3a": "We accept bank transfer, bKash, and SSLCommerz for subscription payments. For Unlimited plans, we can arrange custom billing.",
+        "p3a": "We accept bank transfer, bKash, and SSLCommerz for subscription payments. For Enterprise plans, we can arrange custom billing.",
         "f1q": "Can I create and send quotations to clients?",
         "f1a": "Yes. The quotation builder lets you add multiple items with pricing, apply discounts, and generate professional PDF quotations. You can track their status (Draft, Sent, Approved, Rejected, Expired) and convert approved quotes directly into bookings.",
         "f2q": "How does the booking management work?",
@@ -1544,7 +1546,7 @@
         "s3q": "Where is the data stored?",
         "s3a": "Your data is stored on secure servers. We follow industry-standard practices for data protection and privacy. See our Privacy Policy for full details.",
         "sup1q": "How do I get support?",
-        "sup1a": "Free plan users get community support. Basic and Pro plans include email support with 24-hour response times. Business and Enterprise plans get priority support with faster response and dedicated contacts.",
+        "sup1a": "Free Trial users get community support. Starter and Professional plans include email support with 24-hour response times. Business and Enterprise plans get priority support with faster response and dedicated contacts.",
         "sup2q": "Do you offer onboarding help?",
         "sup2a": "Yes. All paid plans include basic onboarding guidance. Enterprise plans get a dedicated onboarding manager who helps with data migration, team training, and custom setup.",
         "sup3q": "Can I request a new feature?",
@@ -3046,15 +3048,11 @@
       "active": "Active"
     },
     "limits": {
-      "maxClients": "Clients",
-      "maxBookings": "Bookings",
-      "maxUsers": "Users",
+      "maxUsers": "Staff",
       "maxBranches": "Branches",
+      "maxDomains": "Domains",
       "maxSmsPerMonth": "SMS/month",
-      "maxStorageMB": "Storage (MB)",
-      "maxReports": "Reports",
-      "maxLeads": "Leads",
-      "maxQuotations": "Quotations"
+      "maxStorageMB": "Storage (MB)"
     },
     "features": {
       "hasCustomDomain": "Custom Domain",
@@ -3174,11 +3172,11 @@
       "actions": "Actions"
     },
     "plans": {
-      "basic": "Basic",
-      "pro": "Pro",
+      "basic": "Starter",
+      "pro": "Professional",
       "business": "Business",
-      "enterprise": "Unlimited",
-      "free": "Free"
+      "enterprise": "Enterprise",
+      "free": "Free Trial"
     },
     "status": {
       "active": "Active",
@@ -3621,7 +3619,7 @@
     "reason": {
       "trial_ended": {
         "title": "Your 7-day Pro trial has ended",
-        "desc": "Subscribe to continue using leads, bookings, invoices, and all Pro features."
+        "desc": "Subscribe to continue using leads, bookings, invoices, and all premium features."
       },
       "expired": {
         "title": "Subscription expired",

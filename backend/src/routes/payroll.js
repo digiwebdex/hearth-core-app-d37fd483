@@ -1,7 +1,9 @@
 const router = require("express").Router();
-const { authenticate, requirePermission, requireRole, prisma } = require("../middleware/auth");
+const { authenticate, requirePermission, requireRole, requireFeature, prisma } = require("../middleware/auth");
 
 router.use(authenticate);
+// Payroll is a Business-tier platform capability (moduleAccess floor). Active trials pass.
+router.use(requireFeature("hasHrPayroll"));
 
 // GET /api/payroll/salary-structures — list all salary structures for tenant
 router.get("/salary-structures", requirePermission("team", "view"), async (req, res) => {

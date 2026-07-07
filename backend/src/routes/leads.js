@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const { authenticate, requirePermission, checkPlanLimit, prisma } = require("../middleware/auth");
+const { authenticate, requirePermission, prisma } = require("../middleware/auth");
 const { dispatchTenantAutomation } = require("../services/tenantAutomationService");
 
 router.use(authenticate);
@@ -83,7 +83,7 @@ router.get("/:id", requirePermission("leads", "view"), async (req, res) => {
     res.json(item);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
-router.post("/", requirePermission("leads", "create"), checkPlanLimit("leads"), async (req, res) => {
+router.post("/", requirePermission("leads", "create"), async (req, res) => {
   try {
     const lead = await prisma.lead.create({ data: { ...req.body, tenantId: req.tenantId } });
     const tenant = await prisma.tenant.findUnique({ where: { id: req.tenantId }, select: { name: true } });

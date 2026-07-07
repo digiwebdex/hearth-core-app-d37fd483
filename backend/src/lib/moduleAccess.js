@@ -3,9 +3,25 @@
 // except bundles with a lower `minPlan` floor (e.g. Website is a Pro feature).
 // Menu-hiding on the frontend is not enough — this enforces the plan floor.
 
+// Plans gate PLATFORM capabilities only — NOT travel business categories
+// (docs/v2-master/111-SaaS-Plan-System.md). So the travel-operations bundles
+// (ticketing, visa, hajj, tourGroups, corporate, studentManpower, documentsDesk,
+// subAgents) are ungated by plan ("basic" floor) and instead surface by the
+// tenant's enabled service types. Only the true PLATFORM bundles carry a plan
+// floor: website (Pro), marketing + hrPayroll (Business). crm is a Starter core.
 const MODULE_MIN_PLAN = {
-  // default floor is "business"; per-bundle overrides:
-  website: "pro", // website builder is available from Pro upward
+  crm: "basic",
+  ticketing: "basic",
+  visa: "basic",
+  hajj: "basic",
+  tourGroups: "basic",
+  corporate: "basic",
+  studentManpower: "basic",
+  documentsDesk: "basic",
+  subAgents: "basic",
+  website: "pro", // Website CMS is a Professional platform capability
+  marketing: "business", // Marketing is a Business platform capability
+  hrPayroll: "business", // HR & Payroll is a Business platform capability
 };
 
 const ADVANCED_MODULE_IDS = [

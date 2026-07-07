@@ -1,4 +1,15 @@
-// ── Subscription Plans Configuration ──
+// ── Subscription Plans Configuration (capability-based) ──
+//
+// v2 Master Blueprint (docs/v2-master/111-SaaS-Plan-System.md): plans are NO
+// LONGER differentiated by record counts (bookings / clients / leads /
+// quotations). Plans differ by PLATFORM capabilities (feature flags + advanced
+// modules) plus Staff / Branch / Domain limits and real-cost usage quotas
+// (SMS / WhatsApp / Storage). Which travel services a tenant sells is an
+// onboarding / Settings choice, NOT a plan restriction.
+//
+// Mirrors backend/src/lib/planFeatures.js. Internal ids stay basic/pro/business/
+// enterprise (backend contract); the UI shows Starter / Professional / Business /
+// Enterprise via getPlanDisplayName.
 
 export type PlanType = "free" | "basic" | "pro" | "business" | "enterprise";
 export type BillingCycle = "monthly" | "yearly";
@@ -9,25 +20,21 @@ export interface PlanConfig {
   /** @deprecated Use monthlyPrice instead. Kept for backward compatibility. */
   price: number;
   name: string;
-  monthlyPrice: number; // BDT/month, 0 = free, -1 = custom
+  monthlyPrice: number; // BDT/month, 0 = free, -1 = custom (Contact Sales)
   yearlyPrice: number;  // BDT/year, 0 = free, -1 = custom
   description: string;
   badge?: string;
   trialDays: number; // 0 = no trial
 
-  // ── Limits (−1 = unlimited) ──
-  maxClients: number;
-  maxBookings: number;
-  maxUsers: number;
+  // ── Capability limits (−1 = unlimited, 0 = not allowed) ──
+  maxUsers: number;    // staff seats (add-ons can extend)
+  maxBranches: number; // branches/offices (add-ons can extend)
   maxDomains: number;
-  maxBranches: number;
   maxSmsPerMonth: number;
+  maxWhatsappPerMonth: number;
   maxStorageMB: number;
-  maxReports: number;
-  maxLeads: number;
-  maxQuotations: number;
 
-  // ── Feature flags ──
+  // ── Feature flags (platform capabilities) ──
   features: string[];
   restrictions: string[];
   paymentGateways: ("manual" | "sslcommerz" | "bkash" | "custom")[];
@@ -37,17 +44,28 @@ export interface PlanConfig {
   hasWhatsApp: boolean;
   hasEmailNotifications: boolean;
   hasAgentCommission: boolean;
-  hasAdvancedAnalytics: boolean;
+  hasAutomation: boolean;         // Automation Level 1 (Pro)
+  hasAdvancedAutomation: boolean; // Advanced Automation (Business)
   hasMarketingTools: boolean;
-  hasApiAccess: boolean;
+  hasHrPayroll: boolean;
+  hasAdvancedAnalytics: boolean;
   hasRefundSystem: boolean;
-  hasHajjUmrah: boolean;
+  hasApiAccess: boolean;
+  hasWhiteLabel: boolean;
+  hasMarketplace: boolean;
   hasPrioritySupport: boolean;
+  /** Travel category — ungated on every plan (kept for backward-compat). */
+  hasHajjUmrah: boolean;
 }
 
 // ── Helper: yearly price — pay for 10 months, get 12 (2 months free) ──
 const yearly = (monthly: number) =>
   monthly <= 0 ? monthly : monthly * 10;
+
+/** True when a plan has no fixed price (Enterprise = Contact Sales). */
+export function isCustomPricing(plan: PlanConfig): boolean {
+  return plan.monthlyPrice < 0;
+}
 
 export function getDisplayMonthlyPrice(plan: PlanConfig, cycle: BillingCycle): number {
   if (plan.monthlyPrice <= 0) return plan.monthlyPrice;
@@ -57,105 +75,95 @@ export function getDisplayMonthlyPrice(plan: PlanConfig, cycle: BillingCycle): n
 export const PLANS: PlanConfig[] = [
   {
     id: "basic", name: "Starter", price: 500, monthlyPrice: 500, yearlyPrice: yearly(500),
-    description: "For small travel agencies getting started", trialDays: 0,
-    maxClients: 500, maxBookings: 500, maxUsers: 3, maxDomains: 0,
-    maxBranches: 1, maxSmsPerMonth: 0, maxStorageMB: 500, maxReports: 10,
-    maxLeads: 500, maxQuotations: 500,
+    description: "Core agency management to get started", trialDays: 0,
+    maxUsers: 3, maxBranches: 1, maxDomains: 0,
+    maxSmsPerMonth: 0, maxWhatsappPerMonth: 0, maxStorageMB: 500,
     features: [
-      "500 clients",
-      "500 bookings",
-      "Hajj, Umrah, Visa, Air Ticket, Hotel + Tour, Transport, Manpower, Student & more",
-      "Email notifications",
-      "Accounting",
-      "Invoice + payments",
-      "3 team members",
+      "CRM (clients, leads, follow-ups)",
+      "Bookings for every travel service",
+      "Finance & accounting",
+      "Invoices + payments",
+      "Reports",
+      "3 staff · 1 branch",
     ],
-    restrictions: ["No custom domain", "No SMS / WhatsApp", "No website design"],
+    restrictions: ["No Website CMS", "No email/SMS/WhatsApp", "No automation"],
     paymentGateways: ["manual"],
     hasCustomDomain: false, hasWebsiteTemplates: false, hasSmsIntegration: false,
-    hasWhatsApp: false, hasEmailNotifications: true, hasAgentCommission: false,
-    hasAdvancedAnalytics: false, hasMarketingTools: false, hasApiAccess: false,
-    hasRefundSystem: false, hasHajjUmrah: true, hasPrioritySupport: false,
+    hasWhatsApp: false, hasEmailNotifications: false, hasAgentCommission: false,
+    hasAutomation: false, hasAdvancedAutomation: false, hasMarketingTools: false,
+    hasHrPayroll: false, hasAdvancedAnalytics: false, hasRefundSystem: false,
+    hasApiAccess: false, hasWhiteLabel: false, hasMarketplace: false,
+    hasPrioritySupport: false, hasHajjUmrah: true,
   },
   {
     id: "pro", name: "Professional", price: 800, monthlyPrice: 800, yearlyPrice: yearly(800),
-    description: "For growing agencies that need an online presence", badge: "Most Popular", trialDays: 0,
-    maxClients: 1000, maxBookings: 1000, maxUsers: 10, maxDomains: 1,
-    maxBranches: 2, maxSmsPerMonth: 500, maxStorageMB: 2048, maxReports: 30,
-    maxLeads: 1000, maxQuotations: 1000,
+    description: "Grow online — website, messaging & automation", badge: "Most Popular", trialDays: 0,
+    maxUsers: 10, maxBranches: 3, maxDomains: 1,
+    maxSmsPerMonth: 500, maxWhatsappPerMonth: 200, maxStorageMB: 2048,
     features: [
-      "1,000 clients",
-      "1,000 bookings",
-      "Hajj, Umrah, Visa, Air Ticket, Hotel + Tour, Transport, Manpower, Student & more",
-      "Company domain (domain charge excluded)",
-      "Website builder & CMS",
-      "SMS & Email integration",
-      "WhatsApp (200/mo) + daily WhatsApp summary",
-      "Accounting",
-      "Invoice + payments",
-      "10 team members",
+      "Everything in Starter",
+      "Website CMS & builder",
+      "Email notifications",
+      "SMS & WhatsApp integration",
+      "Company domain (charges excluded)",
+      "Agent commissions",
+      "Automation (Level 1)",
+      "10 staff · 3 branches",
     ],
-    restrictions: ["No CRM suite", "No marketing campaigns", "No advanced analytics"],
+    restrictions: ["No marketing campaigns", "No HR & Payroll", "No advanced analytics"],
     paymentGateways: ["manual", "sslcommerz"],
     hasCustomDomain: true, hasWebsiteTemplates: true, hasSmsIntegration: true,
     hasWhatsApp: true, hasEmailNotifications: true, hasAgentCommission: true,
-    hasAdvancedAnalytics: false, hasMarketingTools: false, hasApiAccess: false,
-    hasRefundSystem: false, hasHajjUmrah: true, hasPrioritySupport: false,
+    hasAutomation: true, hasAdvancedAutomation: false, hasMarketingTools: false,
+    hasHrPayroll: false, hasAdvancedAnalytics: false, hasRefundSystem: false,
+    hasApiAccess: false, hasWhiteLabel: false, hasMarketplace: false,
+    hasPrioritySupport: false, hasHajjUmrah: true,
   },
   {
     id: "business", name: "Business", price: 1500, monthlyPrice: 1500, yearlyPrice: yearly(1500),
-    description: "For established agencies scaling operations", badge: "Best Value", trialDays: 0,
-    maxClients: 2000, maxBookings: 2000, maxUsers: 25, maxDomains: 2,
-    maxBranches: 5, maxSmsPerMonth: 2000, maxStorageMB: 10240, maxReports: -1,
-    maxLeads: 2000, maxQuotations: 2000,
+    description: "Scale operations — marketing, HR & advanced automation", badge: "Best Value", trialDays: 0,
+    maxUsers: 30, maxBranches: 10, maxDomains: 2,
+    maxSmsPerMonth: 2000, maxWhatsappPerMonth: -1, maxStorageMB: 10240,
     features: [
-      "2,000 clients",
-      "2,000 bookings",
-      "Hajj, Umrah, Visa, Air Ticket, Hotel + Tour, Transport, Manpower, Student & more",
-      "Full CRM suite + marketing campaigns",
-      "Operations desks (Hajj, ticketing, visa, corporate)",
-      "Website design",
-      "SMS, Email & WhatsApp integration",
-      "Daily WhatsApp summary + auto backup",
-      "Advanced analytics + accounting",
-      "25 team members",
+      "Everything in Professional",
+      "Marketing campaigns (SMS/Email/WhatsApp)",
+      "HR & Payroll",
+      "Advanced automation",
+      "Advanced analytics",
+      "Refund system",
+      "30 staff · 10 branches",
     ],
     restrictions: [],
     paymentGateways: ["manual", "sslcommerz", "bkash"],
     hasCustomDomain: true, hasWebsiteTemplates: true, hasSmsIntegration: true,
     hasWhatsApp: true, hasEmailNotifications: true, hasAgentCommission: true,
-    hasAdvancedAnalytics: true, hasMarketingTools: true, hasApiAccess: false,
-    hasRefundSystem: true, hasHajjUmrah: true, hasPrioritySupport: false,
+    hasAutomation: true, hasAdvancedAutomation: true, hasMarketingTools: true,
+    hasHrPayroll: true, hasAdvancedAnalytics: true, hasRefundSystem: true,
+    hasApiAccess: false, hasWhiteLabel: false, hasMarketplace: false,
+    hasPrioritySupport: false, hasHajjUmrah: true,
   },
   {
-    id: "enterprise", name: "Enterprise", price: 5000, monthlyPrice: 5000, yearlyPrice: yearly(5000),
-    description: "For large agencies — unlimited scale, full automation & dedicated support", trialDays: 0,
-    maxClients: -1, maxBookings: -1, maxUsers: -1, maxDomains: -1,
-    maxBranches: -1, maxSmsPerMonth: -1, maxStorageMB: -1, maxReports: -1,
-    maxLeads: -1, maxQuotations: -1,
+    id: "enterprise", name: "Enterprise", price: -1, monthlyPrice: -1, yearlyPrice: -1,
+    description: "Custom capability package — configured by our team", badge: "Contact Sales", trialDays: 0,
+    maxUsers: -1, maxBranches: -1, maxDomains: -1,
+    maxSmsPerMonth: -1, maxWhatsappPerMonth: -1, maxStorageMB: -1,
     features: [
-      "Unlimited clients",
-      "Unlimited bookings",
-      "Unlimited team members",
-      "Unlimited branches & multi-office management",
-      "Full CRM suite, campaigns & operations desks",
-      "Daily WhatsApp summary + automatic backup",
-      "Unlimited SMS & WhatsApp automation",
-      "Unlimited storage",
-      "Unlimited custom domains",
-      "Full automation & workflow engine",
-      "API access & custom integrations",
-      "Dedicated account manager",
-      "Priority 24/7 WhatsApp support",
-      "Accounting + advanced analytics",
-      "All payment gateways",
+      "Everything in Business",
+      "Custom capability package",
+      "White Label",
+      "API access",
+      "Marketplace",
+      "Dedicated support",
+      "Unlimited staff & branches",
     ],
     restrictions: [],
     paymentGateways: ["manual", "sslcommerz", "bkash", "custom"],
     hasCustomDomain: true, hasWebsiteTemplates: true, hasSmsIntegration: true,
     hasWhatsApp: true, hasEmailNotifications: true, hasAgentCommission: true,
-    hasAdvancedAnalytics: true, hasMarketingTools: true, hasApiAccess: true,
-    hasRefundSystem: true, hasHajjUmrah: true, hasPrioritySupport: true,
+    hasAutomation: true, hasAdvancedAutomation: true, hasMarketingTools: true,
+    hasHrPayroll: true, hasAdvancedAnalytics: true, hasRefundSystem: true,
+    hasApiAccess: true, hasWhiteLabel: true, hasMarketplace: true,
+    hasPrioritySupport: true, hasHajjUmrah: true,
   },
 ];
 
@@ -165,10 +173,6 @@ export function getPlan(planId: PlanType): PlanConfig {
 }
 
 // ── Blueprint plan display names ──
-// Internal ids stay basic/pro/business/enterprise (the backend contract); the UI
-// shows the Master-Blueprint names: Free Trial / Starter / Professional /
-// Business / Enterprise (docs/v2-master/08-Plan-Feature-Matrix.md). One helper so
-// no screen hardcodes "Basic"/"Pro".
 export const FREE_TRIAL_DAYS = 7;
 
 const PLAN_DISPLAY_NAMES: Record<string, string> = {
@@ -230,18 +234,16 @@ export interface TenantSubscription {
   cancelledAt?: string;
   suspendedAt?: string;
   suspendReason?: string;
-  // Usage counters
-  usedClients?: number;
-  usedBookings?: number;
+  // Capability usage counters (add-ons may extend the effective limit)
   usedUsers?: number;
-  usedSms?: number;
-  usedStorageMB?: number;
   usedBranches?: number;
-  usedLeads?: number;
-  usedQuotations?: number;
+  usedDomains?: number;
+  usedSms?: number;
+  usedWhatsapp?: number;
+  usedStorageMB?: number;
 }
 
-// ── Usage helper ──
+// ── Usage helper (capability limits only — no record-count limits) ──
 export interface UsageCheck {
   resource: string;
   used: number;
@@ -255,14 +257,12 @@ export interface UsageCheck {
 export function checkUsage(sub: TenantSubscription): UsageCheck[] {
   const plan = getPlan(sub.plan);
   const checks: [string, number, number][] = [
-    ["Clients", sub.usedClients || 0, plan.maxClients],
-    ["Bookings", sub.usedBookings || 0, plan.maxBookings],
-    ["Users", sub.usedUsers || 0, plan.maxUsers],
-    ["SMS", sub.usedSms || 0, plan.maxSmsPerMonth],
-    ["Storage (MB)", sub.usedStorageMB || 0, plan.maxStorageMB],
+    ["Staff", sub.usedUsers || 0, plan.maxUsers],
     ["Branches", sub.usedBranches || 0, plan.maxBranches],
-    ["Leads", sub.usedLeads || 0, plan.maxLeads],
-    ["Quotations", sub.usedQuotations || 0, plan.maxQuotations],
+    ["Domains", sub.usedDomains || 0, plan.maxDomains],
+    ["SMS", sub.usedSms || 0, plan.maxSmsPerMonth],
+    ["WhatsApp", sub.usedWhatsapp || 0, plan.maxWhatsappPerMonth],
+    ["Storage (MB)", sub.usedStorageMB || 0, plan.maxStorageMB],
   ];
   return checks.map(([resource, used, limit]) => {
     const isUnlimited = limit === -1;
@@ -276,45 +276,50 @@ export function checkUsage(sub: TenantSubscription): UsageCheck[] {
   });
 }
 
-// Feature comparison table
-export const FEATURE_COMPARISON = [
-  { category: "Core", features: [
-    { name: "Dashboard", basic: true, pro: true, business: true, enterprise: true },
-    { name: "Automatic daily backup (data safety)", basic: true, pro: true, business: true, enterprise: true },
-    { name: "CRM System", basic: "500 clients", pro: "1,000 clients", business: "2,000 clients", enterprise: "Unlimited" },
-    { name: "Bookings", basic: "500", pro: "1,000", business: "2,000", enterprise: "Unlimited" },
-    { name: "Team Members", basic: "3", pro: "10", business: "25", enterprise: "Unlimited" },
-    { name: "Branches", basic: "1", pro: "2", business: "5", enterprise: "Unlimited" },
+// ── Feature comparison table (capability-based) ──
+type CmpValue = boolean | string;
+export const FEATURE_COMPARISON: {
+  category: string;
+  features: { name: string; basic: CmpValue; pro: CmpValue; business: CmpValue; enterprise: CmpValue }[];
+}[] = [
+  { category: "Core (all plans)", features: [
+    { name: "CRM (clients, leads, follow-ups)", basic: true, pro: true, business: true, enterprise: true },
+    { name: "Bookings — all travel services", basic: true, pro: true, business: true, enterprise: true },
+    { name: "Finance & accounting", basic: true, pro: true, business: true, enterprise: true },
+    { name: "Invoices + payments", basic: true, pro: true, business: true, enterprise: true },
+    { name: "Reports", basic: true, pro: true, business: true, enterprise: true },
+    { name: "Automatic daily backup", basic: true, pro: true, business: true, enterprise: true },
   ]},
-  { category: "Billing & Payments", features: [
-    { name: "Accounting", basic: true, pro: true, business: true, enterprise: true },
-    { name: "Invoice System", basic: true, pro: true, business: true, enterprise: true },
-    { name: "Manual Payment", basic: true, pro: true, business: true, enterprise: true },
-    { name: "SSLCommerz Gateway", basic: false, pro: true, business: true, enterprise: true },
-    { name: "bKash Gateway", basic: false, pro: false, business: true, enterprise: true },
-    { name: "Refund System", basic: false, pro: false, business: true, enterprise: true },
+  { category: "Team & Branches", features: [
+    { name: "Staff seats", basic: "3", pro: "10", business: "30", enterprise: "Unlimited" },
+    { name: "Branches / offices", basic: "1", pro: "3", business: "10", enterprise: "Unlimited" },
+    { name: "Additional staff / branch add-ons", basic: true, pro: true, business: true, enterprise: true },
   ]},
-  { category: "Communication", features: [
-    { name: "Email Integration", basic: true, pro: true, business: true, enterprise: true },
-    { name: "SMS Integration", basic: "None", pro: "500/mo", business: "2,000/mo", enterprise: "Unlimited" },
+  { category: "Website & Communication", features: [
+    { name: "Website CMS & builder", basic: false, pro: true, business: true, enterprise: true },
+    { name: "Company domain", basic: "None", pro: "1", business: "2", enterprise: "Unlimited" },
+    { name: "Email notifications", basic: false, pro: true, business: true, enterprise: true },
+    { name: "SMS integration", basic: "None", pro: "500/mo", business: "2,000/mo", enterprise: "Unlimited" },
     { name: "WhatsApp", basic: false, pro: "200/mo", business: "Unlimited", enterprise: "Unlimited" },
-    { name: "Marketing Campaigns (bulk SMS / WhatsApp / Email)", basic: false, pro: false, business: true, enterprise: true },
-    { name: "Daily WhatsApp summary to owner (+ auto-backup confirmation)", basic: false, pro: true, business: true, enterprise: true },
   ]},
-  { category: "Website & Storage", features: [
-    { name: "Company Domain (charges excluded)", basic: false, pro: "1", business: "2", enterprise: "Unlimited" },
-    { name: "Website Design", basic: false, pro: true, business: true, enterprise: true },
-    { name: "Storage", basic: "500 MB", pro: "2 GB", business: "10 GB", enterprise: "Unlimited" },
+  { category: "Platform Capabilities", features: [
+    { name: "Agent commissions", basic: false, pro: true, business: true, enterprise: true },
+    { name: "Automation", basic: false, pro: "Level 1", business: "Advanced", enterprise: "Advanced" },
+    { name: "Marketing campaigns", basic: false, pro: false, business: true, enterprise: true },
+    { name: "HR & Payroll", basic: false, pro: false, business: true, enterprise: true },
+    { name: "Advanced analytics", basic: false, pro: false, business: true, enterprise: true },
+    { name: "Refund system", basic: false, pro: false, business: true, enterprise: true },
   ]},
-  { category: "Advanced", features: [
-    { name: "Sell all services (Hajj, Umrah, Visa, Air Ticket, Hotel, Tour, Transport, Manpower, Student)", basic: true, pro: true, business: true, enterprise: true },
-    { name: "CRM suite (leads, complaints, campaigns, analytics)", basic: false, pro: false, business: true, enterprise: true },
-    { name: "Operations desks (Hajj/Umrah, ticketing, visa, corporate)", basic: false, pro: false, business: true, enterprise: true },
-    { name: "Advanced Analytics", basic: false, pro: false, business: true, enterprise: true },
-    { name: "Full Automation & Workflow Engine", basic: false, pro: false, business: false, enterprise: true },
-    { name: "API Access & Custom Integrations", basic: false, pro: false, business: false, enterprise: true },
-    { name: "Multi-branch Management", basic: false, pro: false, business: false, enterprise: true },
-    { name: "Dedicated Account Manager", basic: false, pro: false, business: false, enterprise: true },
-    { name: "Priority 24/7 WhatsApp Support", basic: false, pro: false, business: true, enterprise: true },
+  { category: "Payments", features: [
+    { name: "Manual payment", basic: true, pro: true, business: true, enterprise: true },
+    { name: "SSLCommerz gateway", basic: false, pro: true, business: true, enterprise: true },
+    { name: "bKash gateway", basic: false, pro: false, business: true, enterprise: true },
+  ]},
+  { category: "Enterprise", features: [
+    { name: "White Label", basic: false, pro: false, business: false, enterprise: true },
+    { name: "API access", basic: false, pro: false, business: false, enterprise: true },
+    { name: "Marketplace", basic: false, pro: false, business: false, enterprise: true },
+    { name: "Dedicated support", basic: false, pro: false, business: false, enterprise: true },
+    { name: "Custom capability package", basic: false, pro: false, business: false, enterprise: true },
   ]},
 ];

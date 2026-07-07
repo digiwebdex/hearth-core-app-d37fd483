@@ -106,6 +106,9 @@ function createApp() {
     allowedHeaders: ["Content-Type", "Authorization"],
   }));
   app.use(express.json({ limit: "12mb" }));
+  // Payment gateways (SSLCommerz) POST their callbacks as application/x-www-form-urlencoded;
+  // without this parser req.body is empty and the callback can never resolve the payment.
+  app.use(express.urlencoded({ extended: true, limit: "2mb" }));
   app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
   const { securityHeaders } = require("./middleware/security");
@@ -116,6 +119,7 @@ function createApp() {
 
   app.use("/api/auth", credentialAuthLimiter, require("./routes/auth"));
   app.use("/api/tenants", require("./routes/tenants"));
+  app.use("/api/branches", require("./routes/branches"));
   app.use("/api/master-data", require("./routes/masterData"));
   app.use("/api/tenant-domains", require("./routes/tenantDomains"));
   app.use("/api/dashboard", require("./routes/dashboard"));

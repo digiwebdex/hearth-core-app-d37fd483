@@ -1,11 +1,17 @@
 import { useMemo } from "react";
 import { getPlan, type PlanType, type PlanConfig, type BillingCycle, getPlanPrice, checkUsage, type TenantSubscription, type UsageCheck } from "@/lib/plans";
+import { useAuth } from "@/contexts/AuthContext";
 
 /**
  * Hook to check feature access based on the current tenant's plan.
+ * During an active Free Trial the backend grants full (enterprise) capabilities
+ * (effectiveGatingPlan), so this hook mirrors that: display fields use the real
+ * plan, but limits/features resolve against the effective plan (docs/v2-master/112).
  */
 export function usePlanAccess(currentPlan: PlanType = "free") {
+  const { isTrialActive } = useAuth();
   const plan: PlanConfig = useMemo(() => getPlan(currentPlan), [currentPlan]);
+  const gating: PlanConfig = useMemo(() => (isTrialActive ? getPlan("enterprise") : plan), [isTrialActive, plan]);
 
   return {
     plan,
@@ -17,39 +23,43 @@ export function usePlanAccess(currentPlan: PlanType = "free") {
     yearlyPrice: plan.yearlyPrice,
     trialDays: plan.trialDays,
 
-    // Limits
-    maxClients: plan.maxClients,
-    maxBookings: plan.maxBookings,
-    maxUsers: plan.maxUsers,
-    maxDomains: plan.maxDomains,
-    maxBranches: plan.maxBranches,
-    maxSmsPerMonth: plan.maxSmsPerMonth,
-    maxStorageMB: plan.maxStorageMB,
-    maxReports: plan.maxReports,
-    isUnlimitedClients: plan.maxClients === -1,
-    isUnlimitedBookings: plan.maxBookings === -1,
+    // Capability limits (staff / branches / domains — no record-count limits)
+    maxUsers: gating.maxUsers,
+    maxStaff: gating.maxUsers,
+    maxBranches: gating.maxBranches,
+    maxDomains: gating.maxDomains,
+    maxSmsPerMonth: gating.maxSmsPerMonth,
+    maxWhatsappPerMonth: gating.maxWhatsappPerMonth,
+    maxStorageMB: gating.maxStorageMB,
+    isUnlimitedStaff: gating.maxUsers === -1,
+    isUnlimitedBranches: gating.maxBranches === -1,
 
     // Feature flags
-    canUsePaymentGateway: plan.paymentGateways.length > 1,
-    canUseSslCommerz: plan.paymentGateways.includes("sslcommerz"),
-    canUseBkash: plan.paymentGateways.includes("bkash"),
-    canUseCustomGateway: plan.paymentGateways.includes("custom"),
-    canUseCustomDomain: plan.hasCustomDomain,
-    canUseWebsiteTemplates: plan.hasWebsiteTemplates,
-    canUseSms: plan.hasSmsIntegration,
-    canUseWhatsApp: plan.hasWhatsApp,
-    canUseEmail: plan.hasEmailNotifications,
-    canUseAgentCommission: plan.hasAgentCommission,
-    canUseAdvancedAnalytics: plan.hasAdvancedAnalytics,
-    canUseMarketingTools: plan.hasMarketingTools,
-    canUseApi: plan.hasApiAccess,
-    canUseRefund: plan.hasRefundSystem,
-    canUseHajjUmrah: plan.hasHajjUmrah,
-    hasPrioritySupport: plan.hasPrioritySupport,
+    canUsePaymentGateway: gating.paymentGateways.length > 1,
+    canUseSslCommerz: gating.paymentGateways.includes("sslcommerz"),
+    canUseBkash: gating.paymentGateways.includes("bkash"),
+    canUseCustomGateway: gating.paymentGateways.includes("custom"),
+    canUseCustomDomain: gating.hasCustomDomain,
+    canUseWebsiteTemplates: gating.hasWebsiteTemplates,
+    canUseSms: gating.hasSmsIntegration,
+    canUseWhatsApp: gating.hasWhatsApp,
+    canUseEmail: gating.hasEmailNotifications,
+    canUseAgentCommission: gating.hasAgentCommission,
+    canUseAutomation: gating.hasAutomation,
+    canUseAdvancedAutomation: gating.hasAdvancedAutomation,
+    canUseAdvancedAnalytics: gating.hasAdvancedAnalytics,
+    canUseMarketingTools: gating.hasMarketingTools,
+    canUseHrPayroll: gating.hasHrPayroll,
+    canUseApi: gating.hasApiAccess,
+    canUseWhiteLabel: gating.hasWhiteLabel,
+    canUseMarketplace: gating.hasMarketplace,
+    canUseRefund: gating.hasRefundSystem,
+    canUseHajjUmrah: gating.hasHajjUmrah,
+    hasPrioritySupport: gating.hasPrioritySupport,
 
     // Helpers
-    hasFeature: (feature: keyof PlanConfig) => !!plan[feature],
-    requiresUpgrade: (feature: keyof PlanConfig) => !plan[feature],
+    hasFeature: (feature: keyof PlanConfig) => !!gating[feature],
+    requiresUpgrade: (feature: keyof PlanConfig) => !gating[feature],
     getUpgradePlan: (feature: keyof PlanConfig): PlanType | null => {
       const order: PlanType[] = ["free", "basic", "pro", "business", "enterprise"];
       const currentIdx = order.indexOf(currentPlan);
