@@ -476,9 +476,17 @@ model Task {
   priority    String   @default("medium")
   dueDate     String?
   assignedTo  String?
+  // Optional CRM linkage — attach a task to any record (client | lead | booking | vendor | agent | corporate | invoice).
+  relatedType String?
+  relatedId   String?
+  createdBy   String?
   tenantId    String
   tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@index([tenantId, status])
+  @@index([tenantId, relatedType, relatedId])
 }
 
 model SupportTicket {
@@ -2129,4 +2137,31 @@ model Document {
   @@index([tenantId, entityType, entityId])
   @@index([tenantId, verificationStatus])
   @@index([tenantId, expiryDate])
+}
+
+// Entity-agnostic CRM interaction timeline — the single store for BOTH free-text
+// Notes (type = "note") and logged Activities (call | email | meeting | whatsapp |
+// sms | visit | task | status_change | other). Mirrors the Document engine's
+// {tenantId, entityType, entityId} shape (no per-parent FK) so one model serves
+// clients, corporate clients, vendors/suppliers and agents without duplication.
+// (Leads keep their existing LeadActivity timeline; this augments the others.)
+model CrmActivity {
+  id         String    @id @default(uuid())
+  tenantId   String
+  entityType String    // client | corporate | vendor | agent | lead
+  entityId   String
+  type       String    @default("note")
+  title      String?
+  body       String    @default("")
+  outcome    String?   // e.g. reached | no_answer | interested | follow_up
+  dueAt      DateTime? // optional follow-up / reminder timestamp
+  pinned     Boolean   @default(false)
+  metadata   Json?
+  createdBy  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+
+  @@index([tenantId, entityType, entityId, createdAt])
+  @@index([tenantId, type])
+  @@index([tenantId, dueAt])
 }

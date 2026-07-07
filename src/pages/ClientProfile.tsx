@@ -17,9 +17,10 @@ import { useToast } from "@/hooks/use-toast";
 import { clientApi, type Client, type Booking, type Invoice, type Payment } from "@/lib/api";
 import {
   ArrowLeft, Phone, Mail, MapPin, CreditCard, User, CalendarIcon, Upload,
-  Plane, Receipt, Wallet, FileText, AlertTriangle, Shield,
+  Plane, Receipt, Wallet, FileText, AlertTriangle, Shield, StickyNote,
 } from "lucide-react";
 import { WorkflowNextStep } from "@/components/WorkflowNextStep";
+import { ActivityTimeline } from "@/components/crm/ActivityTimeline";
 import ClientCrmExtras from "@/components/ClientCrmExtras";
 import { InlineEmpty } from "@/components/EmptyState";
 import { useHumanError } from "@/hooks/useHumanError";
@@ -212,6 +213,7 @@ const ClientProfile = () => {
                 <TabsTrigger value="bookings" className="gap-1.5"><Plane className="h-4 w-4" /> Bookings ({bookings.length})</TabsTrigger>
                 <TabsTrigger value="invoices" className="gap-1.5"><Receipt className="h-4 w-4" /> Invoices ({invoices.length})</TabsTrigger>
                 <TabsTrigger value="payments" className="gap-1.5"><Wallet className="h-4 w-4" /> Payments ({payments.length})</TabsTrigger>
+                <TabsTrigger value="timeline" className="gap-1.5"><StickyNote className="h-4 w-4" /> {t("crmActivity.title")}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="bookings">
@@ -307,6 +309,10 @@ const ClientProfile = () => {
                     )}
                   </CardContent>
                 </Card>
+              </TabsContent>
+
+              <TabsContent value="timeline">
+                {id && <ActivityTimeline entityType="client" entityId={id} />}
               </TabsContent>
             </Tabs>
           </div>

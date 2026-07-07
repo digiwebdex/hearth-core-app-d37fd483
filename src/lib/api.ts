@@ -173,6 +173,8 @@ export const clientApi = {
   adjustWallet: (id: string, data: { amount: number; type: "credit" | "debit"; note?: string }) =>
     request<{ balance: number; transaction: WalletTransaction }>(`/clients/${id}/wallet`, { method: "POST", body: JSON.stringify(data) }),
   getBirthdays: (days = 30) => request<ClientBirthday[]>(`/clients/birthdays?days=${days}`),
+  // Corporate Clients surface reuses the Client model (clientType = "corporate").
+  listCorporate: () => request<Client[]>("/clients?clientType=corporate"),
 };
 export interface ClientFamilyMember { id: string; clientId: string; name: string; relation: string; passportNumber?: string; dateOfBirth?: string; createdAt: string }
 export interface WalletTransaction { id: string; clientId: string; type: "credit" | "debit"; amount: number; balance: number; note?: string; createdAt: string }
@@ -216,6 +218,51 @@ export const vendorApi = {
     request<VendorNote>(`/vendors/${id}/notes`, { method: "POST", body: JSON.stringify(data) }),
   getPayableReport: () => request<VendorBill[]>("/vendors/reports/payables"),
 };
+
+// ── CRM Activities & Notes (entity-agnostic timeline) ──
+export type CrmActivityEntityType = "client" | "corporate" | "vendor" | "agent" | "lead";
+export type CrmActivityType =
+  | "note" | "call" | "email" | "meeting" | "whatsapp" | "sms" | "visit" | "task" | "status_change" | "other";
+export interface CrmActivity {
+  id: string;
+  tenantId: string;
+  entityType: CrmActivityEntityType;
+  entityId: string;
+  type: CrmActivityType;
+  title?: string | null;
+  body: string;
+  outcome?: string | null;
+  dueAt?: string | null;
+  pinned: boolean;
+  metadata?: Record<string, unknown> | null;
+  createdBy?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface CrmActivityInput {
+  entityType: CrmActivityEntityType;
+  entityId: string;
+  type?: CrmActivityType;
+  title?: string | null;
+  body: string;
+  outcome?: string | null;
+  dueAt?: string | null;
+  pinned?: boolean;
+  metadata?: Record<string, unknown> | null;
+}
+export const crmActivityApi = {
+  list: (entityType: CrmActivityEntityType, entityId: string, type?: CrmActivityType) =>
+    request<CrmActivity[]>(
+      `/crm-activities?entityType=${entityType}&entityId=${encodeURIComponent(entityId)}${type ? `&type=${type}` : ""}`,
+    ),
+  listDue: (limit = 100) => request<CrmActivity[]>(`/crm-activities/due?limit=${limit}`),
+  create: (data: CrmActivityInput) =>
+    request<CrmActivity>("/crm-activities", { method: "POST", body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<CrmActivityInput>) =>
+    request<CrmActivity>(`/crm-activities/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  delete: (id: string) => request<void>(`/crm-activities/${id}`, { method: "DELETE" }),
+};
+
 export interface Complaint {
   id: string; subject: string; description?: string;
   clientId?: string; clientName?: string; bookingId?: string;
@@ -316,7 +363,12 @@ export interface HubDocument {
 export const documentHubApi = {
   list: () => request<HubDocument[]>("/documents"),
 };
-export const taskApi = createCrudApi<Task>("tasks");
+export const taskApi = {
+  ...createCrudApi<Task>("tasks"),
+  /** Tasks linked to a specific record (e.g. a client or booking). */
+  listByRelated: (relatedType: TaskRelatedType, relatedId: string) =>
+    request<Task[]>(`/tasks?relatedType=${relatedType}&relatedId=${encodeURIComponent(relatedId)}`),
+};
 
 // ── Branches (core tenant-scoped ERP entity; plan-limited) ──
 export interface Branch {
@@ -753,7 +805,8 @@ export interface VendorNote { id: string; vendorId: string; type: "note" | "call
 export type LeadStatus = "new" | "contacted" | "qualified" | "quoted" | "won" | "lost";
 export interface Lead { id: string; name: string; phone: string; email: string; status: LeadStatus; source?: string; destination?: string; travelDateFrom?: string; travelDateTo?: string; travelerCount?: number; budget?: number; score?: number; assignedTo?: string; assignedToName?: string; nextFollowUp?: string; notes?: string; tags?: string[]; tenantId: string; createdAt: string; updatedAt?: string; }
 export interface LeadActivity { id: string; leadId: string; type: "note" | "status_change" | "follow_up" | "call" | "whatsapp" | "email" | "meeting"; content: string; oldStatus?: LeadStatus; newStatus?: LeadStatus; createdBy?: string; createdByName?: string; createdAt: string; }
-export interface Task { id: string; title: string; description: string; status: "todo" | "in_progress" | "done"; priority: "low" | "medium" | "high"; dueDate?: string; assignedTo?: string; tenantId: string; createdAt: string; }
+export type TaskRelatedType = "client" | "corporate" | "lead" | "booking" | "vendor" | "agent" | "invoice" | "quotation";
+export interface Task { id: string; title: string; description: string; status: "todo" | "in_progress" | "done" | "cancelled"; priority: "low" | "medium" | "high" | "urgent"; dueDate?: string; assignedTo?: string; relatedType?: TaskRelatedType | null; relatedId?: string | null; createdBy?: string | null; tenantId: string; createdAt: string; updatedAt?: string; }
 export type BookingStatus = "inquiry" | "pending" | "confirmed" | "ticketed" | "traveling" | "completed" | "cancelled";
 export interface BookingFollowUps {
   due: Booking[];
