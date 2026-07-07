@@ -499,6 +499,10 @@ model SupportTicket {
   createdBy       String?
   resolutionNotes String?
   resolvedAt      DateTime?
+  // Threaded conversation ({authorType:'customer'|'staff', body, at}[]) — backs the
+  // portal Support Ticket detail and Live Chat (reuses the ticket as the container,
+  // no separate message model). Null = no replies yet.
+  messages        Json?
   tenantId        String
   tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   createdAt       DateTime  @default(now())
