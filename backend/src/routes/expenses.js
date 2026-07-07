@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const { authenticate, requirePermission, prisma } = require("../middleware/auth");
+const acc = require("../services/accountingService");
 
 router.use(authenticate);
 
@@ -40,6 +41,15 @@ async function syncExpenseTransaction(expense) {
   } else {
     await prisma.transaction.create({ data: payload }).catch(() => {});
   }
+
+  // Double-entry journal: post when approved, reverse when it leaves approved.
+  try {
+    if (expense.status === "approved") {
+      await acc.postExpense(expense.tenantId, expense, { createdBy: expense.createdBy });
+    } else {
+      await acc.reverseEntry(expense.tenantId, "expense", expense.id, { createdBy: expense.createdBy });
+    }
+  } catch (e) { console.error("[accounting] expense:", e.message); }
 }
 
 router.get("/", requirePermission("accounts", "view"), async (req, res) => {
@@ -75,6 +85,7 @@ router.delete("/:id", requirePermission("accounts", "delete"), async (req, res) 
     const expense = await getTenantExpense(req.params.id, req.tenantId);
     if (!expense) return res.status(404).json({ message: "Not found" });
     await prisma.transaction.deleteMany({ where: { tenantId: req.tenantId, referenceType: "expense", referenceId: expense.id } }).catch(() => {});
+    await acc.reverseEntry(req.tenantId, "expense", expense.id, { createdBy: req.userId }).catch((e) => console.error("[accounting] reverse expense:", e.message));
     await prisma.expense.deleteMany({ where: { id: req.params.id, tenantId: req.tenantId } });
     res.json({ success: true });
   }

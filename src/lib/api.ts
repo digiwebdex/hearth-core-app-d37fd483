@@ -675,6 +675,66 @@ export const expenseApi = {
 export const subscriptionApi = createCrudApi<Subscription>("subscriptions");
 export const paymentRequestApi = createCrudApi<PaymentRequest>("payment-requests");
 
+// ── Double-Entry Accounting API ──
+export type AccountKind = "asset" | "liability" | "equity" | "income" | "expense";
+export interface ChartOfAccount {
+  id: string; tenantId: string; code: string; name: string; type: AccountKind;
+  subtype?: string | null; parentId?: string | null; normalBalance: "debit" | "credit";
+  isSystem: boolean; isActive: boolean; currency: string; description?: string | null;
+  createdAt: string; updatedAt: string;
+}
+export interface JournalLine {
+  id: string; journalEntryId: string; accountId: string; account?: ChartOfAccount;
+  debit: number; credit: number; description?: string | null; currency: string;
+}
+export interface JournalEntry {
+  id: string; tenantId: string; entryNumber: string; date: string; memo?: string | null;
+  source: string; referenceType?: string | null; referenceId?: string | null;
+  status: "posted" | "void"; currency: string; reversalOfId?: string | null;
+  totalDebit: number; totalCredit: number; createdBy?: string | null;
+  lines: JournalLine[]; createdAt: string;
+}
+export interface TrialBalanceRow { code: string; name: string; type: AccountKind; debit: number; credit: number; }
+export interface TrialBalance { rows: TrialBalanceRow[]; totalDebit: number; totalCredit: number; balanced: boolean; }
+export interface PLLine { code: string; name: string; subtype?: string | null; amount: number; }
+export interface ProfitLoss {
+  income: PLLine[]; expenses: PLLine[]; totalIncome: number; cogs: number;
+  operatingExpense: number; totalExpense: number; grossProfit: number; netProfit: number;
+}
+export interface AccountingBalanceSheet {
+  assets: PLLine[]; liabilities: PLLine[]; equity: PLLine[];
+  currentEarnings: number; totalAssets: number; totalLiabilities: number; totalEquity: number; balanced: boolean; asOf: string;
+}
+export interface FiscalPeriod { id: string; tenantId: string; name: string; startDate: string; endDate: string; status: "open" | "closed"; closedBy?: string | null; closedAt?: string | null; }
+export interface ManualJournalInput { date?: string; memo?: string; lines: { accountId?: string; code?: string; debit?: number; credit?: number; description?: string }[]; }
+
+const dateQuery = (p?: { from?: string; to?: string; asOf?: string }) => {
+  if (!p) return "";
+  const q = new URLSearchParams(Object.entries(p).filter(([, v]) => v) as [string, string][]).toString();
+  return q ? `?${q}` : "";
+};
+
+export const accountingApi = {
+  listAccounts: () => request<ChartOfAccount[]>("/accounting/chart-of-accounts"),
+  seedAccounts: () => request<{ seeded: boolean; count: number }>("/accounting/chart-of-accounts/seed", { method: "POST" }),
+  createAccount: (data: { code: string; name: string; type: AccountKind; subtype?: string; parentId?: string; description?: string }) =>
+    request<ChartOfAccount>("/accounting/chart-of-accounts", { method: "POST", body: JSON.stringify(data) }),
+  updateAccount: (id: string, data: Partial<ChartOfAccount>) =>
+    request<ChartOfAccount>(`/accounting/chart-of-accounts/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteAccount: (id: string) => request<void>(`/accounting/chart-of-accounts/${id}`, { method: "DELETE" }),
+  listJournal: (p?: { from?: string; to?: string; source?: string }) => request<JournalEntry[]>(`/accounting/journal${dateQuery(p)}`),
+  getEntry: (id: string) => request<JournalEntry>(`/accounting/journal/${id}`),
+  createJournal: (data: ManualJournalInput) => request<JournalEntry>("/accounting/journal", { method: "POST", body: JSON.stringify(data) }),
+  reverseJournal: (id: string, memo?: string) => request<JournalEntry>(`/accounting/journal/${id}/reverse`, { method: "POST", body: JSON.stringify({ memo }) }),
+  trialBalance: (p?: { from?: string; to?: string }) => request<TrialBalance>(`/accounting/reports/trial-balance${dateQuery(p)}`),
+  profitLoss: (p?: { from?: string; to?: string }) => request<ProfitLoss>(`/accounting/reports/profit-loss${dateQuery(p)}`),
+  balanceSheet: (p?: { asOf?: string }) => request<AccountingBalanceSheet>(`/accounting/reports/balance-sheet${dateQuery(p)}`),
+  fiscalPeriods: () => request<FiscalPeriod[]>("/accounting/fiscal-periods"),
+  closePeriod: (id: string) => request<FiscalPeriod>(`/accounting/fiscal-periods/${id}/close`, { method: "POST" }),
+  reopenPeriod: (id: string) => request<FiscalPeriod>(`/accounting/fiscal-periods/${id}/reopen`, { method: "POST" }),
+  resync: () => request<{ resynced: boolean; newlyPosted: number; totalEntries: number }>("/accounting/resync", { method: "POST" }),
+};
+
 // ── Quotation API ──
 export const quotationApi = {
   ...createCrudApi<Quotation>("quotations"),

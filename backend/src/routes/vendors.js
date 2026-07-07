@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const { authenticate, requirePermission, prisma } = require("../middleware/auth");
+const acc = require("../services/accountingService");
 
 router.use(authenticate);
 
@@ -111,6 +112,9 @@ router.post("/:id/bills", requirePermission("vendors", "create"), async (req, re
     const vendor = await getTenantVendor(req.params.id, req.tenantId);
     if (!vendor) return res.status(404).json({ message: "Vendor not found" });
     const bill = await prisma.vendorBill.create({ data: { ...req.body, vendorId: req.params.id, tenantId: req.tenantId } });
+    // Double-entry: Dr Cost of Services, Cr Accounts Payable. Best-effort.
+    acc.postSupplierBill(req.tenantId, bill, { createdBy: req.userId })
+      .catch((e) => console.error("[accounting] postSupplierBill:", e.message));
     const hydrated = await prisma.vendorBill.findFirst({ where: { id: bill.id, tenantId: req.tenantId }, include: { payments: true, vendor: { select: { id: true, name: true } } } });
     res.status(201).json((await hydrateVendorBills([hydrated]))[0]);
   }
@@ -142,6 +146,11 @@ router.delete("/:id/bills/:billId", requirePermission("vendors", "delete"), asyn
         where: { tenantId: req.tenantId, referenceType: "vendor_bill_payment", referenceId: { in: paymentIds } },
       }).catch(() => {});
     }
+    // Reverse the double-entry journal for the bill and each of its payments.
+    await acc.reverseEntry(req.tenantId, "supplier_bill", bill.id, { createdBy: req.userId }).catch((e) => console.error("[accounting] reverse bill:", e.message));
+    for (const pid of paymentIds) {
+      await acc.reverseEntry(req.tenantId, "supplier_payment", pid, { createdBy: req.userId }).catch((e) => console.error("[accounting] reverse bill payment:", e.message));
+    }
     res.json({ success: true });
   }
   catch (err) { res.status(500).json({ message: err.message }); }
@@ -158,6 +167,9 @@ router.post("/:id/bills/:billId/payments", requirePermission("vendors", "edit"),
     const paid = [...bill.payments, payment].reduce((s, p) => s + p.amount, 0);
     await prisma.vendorBill.update({ where: { id: req.params.billId }, data: { paidAmount: paid, dueAmount: Math.max(0, bill.totalAmount - paid), status: paid >= bill.totalAmount ? "paid" : paid > 0 ? "partial" : "unpaid" } });
     await syncVendorBillPaymentTransaction({ tenantId: req.tenantId, payment, bill });
+    // Double-entry: Dr Accounts Payable, Cr Cash/Bank/MFS. Best-effort.
+    acc.postSupplierPayment(req.tenantId, payment, { createdBy: req.userId })
+      .catch((e) => console.error("[accounting] postSupplierPayment:", e.message));
     res.status(201).json(payment);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

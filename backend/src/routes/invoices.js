@@ -5,9 +5,11 @@ const path = require("path");
 const { authenticate, requirePermission, prisma } = require("../middleware/auth");
 const {
   allocatePaymentToInstallments,
+  reallocateInstallments,
   ensureLedgerIncomeTransaction,
   installmentStatus,
 } = require("../lib/invoiceInstallments");
+const acc = require("../services/accountingService");
 
 const upload = multer({ dest: process.env.UPLOAD_DIR || path.join(__dirname, "../../uploads") });
 router.use(authenticate);
@@ -74,6 +76,10 @@ router.post("/", requirePermission("invoices", "create"), async (req, res) => {
         newValue: JSON.stringify({ totalAmount: invoice.totalAmount, clientId: invoice.clientId }),
       },
     }).catch(() => {});
+
+    // Double-entry: Dr A/R, Cr Sales (+ Cr VAT). Best-effort — never blocks invoicing.
+    acc.postSalesInvoice(req.tenantId, invoice, { createdBy: req.userId })
+      .catch((e) => console.error("[accounting] postSalesInvoice:", e.message));
 
     res.status(201).json(invoice);
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -143,6 +149,10 @@ router.post("/:id/payments", requirePermission("invoices", "create"), async (req
 
     await allocatePaymentToInstallments(prisma, req.params.id, req.tenantId, payment.amount);
 
+    // Double-entry: Dr Cash/Bank/MFS, Cr A/R. Best-effort — never blocks the payment.
+    acc.postCustomerPayment(req.tenantId, payment, { createdBy: req.userId })
+      .catch((e) => console.error("[accounting] postCustomerPayment:", e.message));
+
     await prisma.invoiceAuditEvent.create({ data: { invoiceId: req.params.id, type: "payment", content: `Payment of ${payment.amount} received via ${payment.method}`, amount: payment.amount, createdBy: req.userId } });
 
     // Audit log — invoice payment
@@ -185,8 +195,41 @@ router.post("/:id/payments", requirePermission("invoices", "create"), async (req
 });
 router.delete("/:id/payments/:payId", requirePermission("invoices", "delete"), async (req, res) => {
   try {
-    const result = await prisma.payment.deleteMany({ where: { id: req.params.payId, invoiceId: req.params.id, tenantId: req.tenantId } });
-    if (!result.count) return res.status(404).json({ message: "Not found" });
+    // Deleting a payment must REVERSE every downstream effect it created — invoice
+    // roll-up, booking roll-up, installment allocation, the single-entry ledger
+    // Transaction, and the double-entry journal (fixes the §10.6 must-fix gap).
+    const payment = await prisma.payment.findFirst({ where: { id: req.params.payId, invoiceId: req.params.id, tenantId: req.tenantId } });
+    if (!payment) return res.status(404).json({ message: "Not found" });
+
+    await prisma.payment.delete({ where: { id: payment.id } });
+
+    // Recompute the invoice from the remaining payments.
+    const inv = await prisma.invoice.findUnique({ where: { id: req.params.id }, include: { payments: true } });
+    const paid = inv.payments.reduce((s, p) => s + p.amount, 0);
+    const status = paid >= inv.totalAmount ? "paid" : paid > 0 ? "partial" : "unpaid";
+    await prisma.invoice.update({ where: { id: req.params.id }, data: { paidAmount: paid, dueAmount: inv.totalAmount - paid, status } });
+
+    // Recompute the booking roll-up across all its invoices.
+    const bookingId = payment.bookingId || inv.bookingId;
+    if (bookingId) {
+      const bInvoices = await prisma.invoice.findMany({ where: { bookingId, tenantId: req.tenantId } });
+      const bPaid = bInvoices.reduce((s, i) => s + i.paidAmount, 0);
+      const bTotal = bInvoices.reduce((s, i) => s + i.totalAmount, 0);
+      await prisma.booking.updateMany({ where: { id: bookingId, tenantId: req.tenantId }, data: { paidAmount: bPaid, dueAmount: bTotal - bPaid, paymentStatus: bPaid >= bTotal ? "paid" : bPaid > 0 ? "partial" : "unpaid" } });
+    }
+
+    // Re-apply installment allocation from the remaining paid total.
+    await reallocateInstallments(prisma, req.params.id, req.tenantId, paid);
+
+    // Reverse the single-entry ledger Transaction created for this payment.
+    await prisma.transaction.deleteMany({ where: { tenantId: req.tenantId, referenceType: "payment", referenceId: payment.id } });
+
+    // Reverse the double-entry journal entry (posts a mirror entry).
+    await acc.reverseEntry(req.tenantId, "customer_payment", payment.id, { createdBy: req.userId })
+      .catch((e) => console.error("[accounting] reverse payment:", e.message));
+
+    await prisma.invoiceAuditEvent.create({ data: { invoiceId: req.params.id, type: "payment_deleted", content: `Payment of ${payment.amount} removed`, amount: -payment.amount, createdBy: req.userId } }).catch(() => {});
+
     res.json({ success: true });
   }
   catch (err) { res.status(500).json({ message: err.message }); }
@@ -216,6 +259,11 @@ router.post("/:id/refunds", requirePermission("invoices", "approve"), async (req
     const refund = await prisma.invoiceRefund.create({ data: { ...req.body, invoiceId: req.params.id, processedBy: req.userId } });
     const refunded = [...inv.refunds, refund].reduce((s, r) => s + r.amount, 0);
     await prisma.invoice.update({ where: { id: req.params.id }, data: { refundedAmount: refunded, status: refunded >= inv.totalAmount ? "refunded" : inv.status } });
+
+    // Double-entry: Dr Sales Returns & Refunds, Cr Cash/Bank/MFS. Best-effort.
+    acc.postRefund(req.tenantId, refund, { createdBy: req.userId })
+      .catch((e) => console.error("[accounting] postRefund:", e.message));
+
     res.status(201).json(refund);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

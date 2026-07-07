@@ -58,8 +58,20 @@ async function ensureLedgerIncomeTransaction(prisma, { payment, invoice, tenantI
   }).catch(() => null);
 }
 
+// Reset all of an invoice's installment allocations and re-apply a total paid
+// amount from scratch — used when a payment is deleted (reverses the running
+// allocation instead of leaving installments over-paid).
+async function reallocateInstallments(prisma, invoiceId, tenantId, totalPaid) {
+  await prisma.invoiceInstallment.updateMany({
+    where: { invoiceId, tenantId },
+    data: { paidAmount: 0, status: "pending" },
+  });
+  await allocatePaymentToInstallments(prisma, invoiceId, tenantId, totalPaid);
+}
+
 module.exports = {
   installmentStatus,
   allocatePaymentToInstallments,
+  reallocateInstallments,
   ensureLedgerIncomeTransaction,
 };
