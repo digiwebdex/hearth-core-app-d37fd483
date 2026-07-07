@@ -57,7 +57,8 @@ const nextSuggestedPlan = (currentPlan: string): PlanType => {
   const normalized = (currentPlan || "free").toLowerCase();
   if (normalized === "basic") return "pro";
   if (normalized === "pro") return "business";
-  if (normalized === "business") return "enterprise";
+  // Business is the top self-serve tier; Enterprise is Contact Sales (not suggested here).
+  if (normalized === "business") return "business";
   return "pro";
 };
 
@@ -261,13 +262,19 @@ const Subscriptions = () => {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <p className="text-sm text-muted-foreground">{plan.description}</p>
-                  <p className="text-2xl font-bold">{price < 0 ? "Custom" : price === 0 ? "Free" : `৳${price.toLocaleString()}`}</p>
+                  <p className="text-2xl font-bold">{price < 0 ? "Contact Sales" : price === 0 ? "Free" : `৳${price.toLocaleString()}`}</p>
                   <ul className="text-sm space-y-1 text-muted-foreground">
                     {plan.features.slice(0, 4).map((feature) => <li key={feature}>• {feature}</li>)}
                   </ul>
-                  <Button className="w-full" variant={isCurrent ? "outline" : "default"} disabled={isCurrent || disabled} onClick={() => openRequestDialog(plan.id, undefined, summaryMethods[0]?.methodCode)}>
-                    {label}
-                  </Button>
+                  {plan.id === "enterprise" || price < 0 ? (
+                    <Button className="w-full" variant="outline" asChild>
+                      <a href="/contact-us?interest=enterprise">Contact Sales</a>
+                    </Button>
+                  ) : (
+                    <Button className="w-full" variant={isCurrent ? "outline" : "default"} disabled={isCurrent || disabled} onClick={() => openRequestDialog(plan.id, undefined, summaryMethods[0]?.methodCode)}>
+                      {label}
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             );

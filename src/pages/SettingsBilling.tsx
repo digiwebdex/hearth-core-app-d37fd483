@@ -100,7 +100,7 @@ const SettingsBilling = () => {
                   </Badge>
                 </div>
                 <p className="text-muted-foreground text-sm mt-1">
-                  ৳{plan.price.toLocaleString()}/month
+                  {plan.price < 0 ? "Contact Sales" : plan.price === 0 ? "Free" : `৳${plan.price.toLocaleString()}/month`}
                 </p>
                 {tenant?.subscriptionExpiry && (
                   <p className="text-xs text-muted-foreground mt-2">

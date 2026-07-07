@@ -25,7 +25,8 @@ export const nextSuggestedPlan = (currentPlan: string): PlanType => {
   const normalized = (currentPlan || "free").toLowerCase();
   if (normalized === "basic") return "pro";
   if (normalized === "pro") return "business";
-  if (normalized === "business") return "enterprise";
+  // Business is the top self-serve tier; Enterprise is Contact Sales (not suggested).
+  if (normalized === "business") return "business";
   return "pro";
 };
 
