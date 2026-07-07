@@ -5,10 +5,11 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "test": "node --test test/*.test.js",
-    "db:push": "npx prisma db push",
+    "db:migrate": "npx prisma migrate deploy",
+    "db:migrate:dev": "npx prisma migrate dev",
     "db:seed": "node prisma/seed.js",
-    "db:reset": "npx prisma db push --force-reset && node prisma/seed.js",
-    "setup": "npm install && npx prisma generate && npm run db:push && npm run db:seed"
+    "db:reset": "npx prisma migrate reset --force --skip-seed && npm run db:seed",
+    "setup": "npm install && npx prisma generate && npm run db:migrate && npm run db:seed"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
