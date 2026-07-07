@@ -17,6 +17,9 @@ const {
   getCategories,
   getStatusSetsForCategory,
   resolveStatus,
+  isKnownStatus,
+  validateTransition,
+  allowedNextStatuses,
 } = require("../src/lib/statusEngine");
 
 const REQUESTED_CATEGORIES = [
@@ -220,5 +223,49 @@ describe("GET /api/status-engine", () => {
     const res = await request(app).get("/api/status-engine/bookingStatus/resolve/confirmed");
     assert.equal(res.status, 401);
     assert.match(res.body.message, /token/i);
+  });
+});
+
+describe("statusEngine — transition enforcement (Booking Engine milestone)", () => {
+  it("allows documented forward booking transitions", () => {
+    assert.equal(validateTransition("bookingStatus", "inquiry", "pending").ok, true);
+    assert.equal(validateTransition("bookingStatus", "pending", "confirmed").ok, true);
+    assert.equal(validateTransition("bookingStatus", "confirmed", "ticketed").ok, true);
+    assert.equal(validateTransition("bookingStatus", "ticketed", "traveling").ok, true);
+    assert.equal(validateTransition("bookingStatus", "traveling", "completed").ok, true);
+    assert.equal(validateTransition("bookingStatus", "confirmed", "cancelled").ok, true);
+  });
+
+  it("rejects free-text / unknown status values (no more verbatim writes)", () => {
+    const r = validateTransition("bookingStatus", "confirmed", "banana");
+    assert.equal(r.ok, false);
+    assert.equal(r.reason, "unknown_status");
+  });
+
+  it("rejects illegal jumps and reopening terminal states", () => {
+    assert.equal(validateTransition("bookingStatus", "inquiry", "completed").ok, false);
+    assert.equal(validateTransition("bookingStatus", "completed", "pending").ok, false);
+    const r = validateTransition("bookingStatus", "cancelled", "confirmed");
+    assert.equal(r.ok, false);
+    assert.equal(r.reason, "invalid_transition");
+  });
+
+  it("treats a no-op (same status) as valid", () => {
+    assert.equal(validateTransition("bookingStatus", "confirmed", "confirmed").ok, true);
+  });
+
+  it("never traps legacy/unknown current values (allows any known target)", () => {
+    assert.equal(validateTransition("bookingStatus", "legacy_value", "confirmed").ok, true);
+    assert.equal(validateTransition("bookingStatus", null, "inquiry").ok, true);
+  });
+
+  it("exposes helpers used by callers/UI", () => {
+    assert.equal(isKnownStatus("bookingStatus", "ticketed"), true);
+    assert.equal(isKnownStatus("bookingStatus", "nope"), false);
+    assert.deepEqual(allowedNextStatuses("bookingStatus", "pending"), ["confirmed", "cancelled"]);
+  });
+
+  it("does not block writes for an unknown status-set id (caller/config error, not user input)", () => {
+    assert.equal(validateTransition("notARealSet", "a", "b").ok, true);
   });
 });

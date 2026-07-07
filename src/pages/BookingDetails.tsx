@@ -22,6 +22,7 @@ import {
   bookingApi, type Booking, type BookingStatus, type BookingSegment,
   type BookingTraveler, type BookingChecklistItem, type BookingTimelineEvent, type BookingDocument,
 } from "@/lib/api";
+import { allowedBookingStatuses } from "@/lib/bookingStatus";
 import { bookingPresetPath, bookingTypeToPreset } from "@/lib/bookingRoutePresets";
 import { mergeServiceDetailsIntoBooking } from "@/lib/bookingServiceDetails";
 import { BookingOpsPanel, SERVICE_OPS_TYPES } from "@/components/bookings/BookingOpsPanel";
@@ -276,7 +277,13 @@ const BookingDetails = () => {
               <Select value={booking.status} onValueChange={(v) => handleStatusChange(v as BookingStatus)}>
                 <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {STATUS_META.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                  {(() => {
+                    // Mirror the backend Status Engine: offer only valid transitions from the
+                    // booking's current status (plus the current value itself).
+                    const allowed = new Set<string>(allowedBookingStatuses(booking.status));
+                    return STATUS_META.filter((s) => allowed.has(s.value))
+                      .map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>);
+                  })()}
                 </SelectContent>
               </Select>
             </PermissionGate>

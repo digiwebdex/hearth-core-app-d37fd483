@@ -9,6 +9,19 @@ const {
   buildListWhere,
   pickServiceDetailsPayload,
 } = require("../lib/bookingServiceDetails");
+const { validateTransition } = require("../lib/statusEngine");
+
+// Central Status Engine guard for the Booking lifecycle (docs/v2-master/11 §10.3).
+// Returns a 400-shaped payload when the requested status is unknown or the
+// transition is not permitted from the booking's current status; null when OK.
+function checkBookingStatus(currentStatus, nextStatus) {
+  const result = validateTransition("bookingStatus", currentStatus, nextStatus);
+  if (result.ok) return null;
+  const msg = result.reason === "unknown_status"
+    ? `Unknown booking status "${nextStatus}"`
+    : `Cannot change booking status from "${currentStatus}" to "${nextStatus}"`;
+  return { message: msg, code: "INVALID_STATUS_TRANSITION", allowedNextStatuses: result.allowed };
+}
 
 const ALLOWED_DOC_MIMES = new Set([
   "application/pdf",
@@ -284,6 +297,10 @@ router.get("/:id", requirePermission("bookings", "view"), async (req, res) => {
 router.post("/", requirePermission("bookings", "create"), async (req, res) => {
   try {
     const data = await normalizeBookingInput({ ...req.body, tenantId: req.tenantId }, req.tenantId);
+    if (data.status !== undefined) {
+      const invalid = checkBookingStatus(null, data.status);
+      if (invalid) return res.status(400).json(invalid);
+    }
     const booking = await prisma.booking.create({ data });
     await syncAgentCommission(booking.id, data, req.tenantId).catch(() => {});
     const hydratedBooking = await getTenantBooking(booking.id, req.tenantId, BOOKING_LIST_INCLUDE);
@@ -342,6 +359,10 @@ router.patch("/:id", requirePermission("bookings", "edit"), async (req, res) => 
     if (!existing) return;
 
     const data = await normalizeBookingInput(req.body, req.tenantId, existing);
+    if (data.status !== undefined && data.status !== existing.status) {
+      const invalid = checkBookingStatus(existing.status, data.status);
+      if (invalid) return res.status(400).json(invalid);
+    }
     const result = await prisma.booking.updateMany({ where: { id: req.params.id, tenantId: req.tenantId }, data });
     if (!result.count) return res.status(404).json({ message: "Not found" });
 
@@ -431,6 +452,11 @@ router.patch("/:id/follow-up", requirePermission("bookings", "edit"), async (req
     const existing = await getTenantBooking(req.params.id, req.tenantId, BOOKING_LIST_INCLUDE);
     if (!existing) return res.status(404).json({ message: "Not found" });
 
+    if (req.body.status !== undefined && req.body.status !== existing.status) {
+      const invalid = checkBookingStatus(existing.status, req.body.status);
+      if (invalid) return res.status(400).json(invalid);
+    }
+
     const data = {};
     if (req.body.followUpDate !== undefined) data.followUpDate = req.body.followUpDate ? new Date(req.body.followUpDate) : null;
     if (req.body.followUpNote !== undefined) data.followUpNote = req.body.followUpNote || null;
@@ -462,6 +488,11 @@ router.patch("/:id/status", requirePermission("bookings", "edit"), async (req, r
   try {
     const old = await getTenantBooking(req.params.id, req.tenantId, BOOKING_LIST_INCLUDE);
     if (!old) return res.status(404).json({ message: "Not found" });
+
+    if (req.body.status !== old.status) {
+      const invalid = checkBookingStatus(old.status, req.body.status);
+      if (invalid) return res.status(400).json(invalid);
+    }
 
     await prisma.booking.updateMany({ where: { id: req.params.id, tenantId: req.tenantId }, data: { status: req.body.status } });
     await prisma.bookingTimelineEvent.create({

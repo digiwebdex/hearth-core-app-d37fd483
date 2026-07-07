@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { getTenantBookingTypes, getTenantBookingPresets } from "@/lib/bookingTypeOptions";
 import { parseLeadBookingPrefill } from "@/lib/leadNavigation";
+import { allowedBookingStatuses } from "@/lib/bookingStatus";
 import { bookingApi, quotationApi, leadApi, type Booking, type BookingStatus, type BookingType, type Quotation } from "@/lib/api";
 import EmptyState from "@/components/EmptyState";
 import LoadingState from "@/components/LoadingState";
@@ -336,6 +337,7 @@ const Bookings = () => {
   const [items, setItems] = useState<Booking[]>([]);
   const [form, setForm] = useState<BookingFormState>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [originalStatus, setOriginalStatus] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -426,6 +428,7 @@ const Bookings = () => {
   const resetForm = () => {
     setForm(emptyForm);
     setEditingId(null);
+    setOriginalStatus(null);
   };
 
   const openCreate = () => {
@@ -464,6 +467,7 @@ const Bookings = () => {
   const handleEdit = (b: Booking) => {
     setForm(bookingToForm(b));
     setEditingId(b.id);
+    setOriginalStatus(b.status);
     setDialogOpen(true);
   };
 
@@ -894,9 +898,17 @@ const Bookings = () => {
                   <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v as BookingStatus }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {(editingId ? STATUS_META : STATUS_META.filter((s) => s.value === "inquiry" || s.value === "pending" || s.value === "confirmed")).map((s) => (
-                        <SelectItem key={s.value} value={s.value}>{t(`bookingsForm.statuses.${s.value}`, { defaultValue: s.value })}</SelectItem>
-                      ))}
+                      {(() => {
+                        // Mirror the backend Status Engine: on edit, only offer valid
+                        // transitions from the booking's persisted status; on create, the
+                        // three entry statuses. Always include the current form value so it renders.
+                        const allowed = editingId
+                          ? new Set<string>([...allowedBookingStatuses(originalStatus), form.status])
+                          : new Set<string>(["inquiry", "pending", "confirmed", form.status]);
+                        return STATUS_META.filter((s) => allowed.has(s.value)).map((s) => (
+                          <SelectItem key={s.value} value={s.value}>{t(`bookingsForm.statuses.${s.value}`, { defaultValue: s.value })}</SelectItem>
+                        ));
+                      })()}
                     </SelectContent>
                   </Select>
                 </div>
