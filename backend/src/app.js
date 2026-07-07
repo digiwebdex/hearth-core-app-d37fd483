@@ -189,6 +189,9 @@ function createApp() {
   // customers see only their own data, agents only their own customers/bookings.
   // portal.js's existing endpoints are unchanged. See docs/v2-master/11-Architecture-Freeze.md §7.
   app.use("/api/portal", require("./routes/portalFoundation"));
+  // Customer Portal extras (Visa status, Support tickets + Live Chat) — same
+  // /api/portal prefix, same portalAuthenticate + email-ownership model.
+  app.use("/api/portal", require("./routes/portalCustomer"));
 
   app.use("/api/email", require("./routes/email"));
   app.use("/api/sms", require("./routes/sms"));
