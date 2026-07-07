@@ -2,7 +2,7 @@ const router = require("express").Router();
 const { authenticate, requireSuperAdmin, prisma } = require("../middleware/auth");
 const crypto = require("crypto");
 
-const DOMAIN_PLAN_LIMITS = { free: 0, basic: 0, pro: 1, business: 2, enterprise: -1, unlimited: -1 };
+const { getPlanLimit } = require("../lib/planFeatures");
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(["active", "trial"]);
 
 router.use(authenticate);
@@ -22,7 +22,9 @@ function normalizeDomain(rawDomain) {
 }
 
 function getDomainLimit(plan) {
-  return DOMAIN_PLAN_LIMITS[String(plan || "free").toLowerCase()] ?? 0;
+  // Single source of truth: the Plan Engine (planFeatures.js PLAN_LIMITS.domains).
+  const limit = getPlanLimit(plan, "domains");
+  return limit === undefined ? 0 : limit;
 }
 
 async function logDomainAudit(req, action, domain, extra = {}) {

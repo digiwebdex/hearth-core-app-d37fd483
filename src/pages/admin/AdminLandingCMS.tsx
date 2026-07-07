@@ -130,7 +130,7 @@ function defaultCms(): LandingCms {
       title: "Common Questions",
       items: [
         { q: "Who is this platform for?", a: "Travel agencies, tour operators, ticketing offices and Hajj/Umrah service providers." },
-        { q: "What plans do you offer?", a: "Four simple plans — Basic, Pro, Business and Unlimited." },
+        { q: "What plans do you offer?", a: "Four simple plans — Starter, Professional, Business and Enterprise." },
         { q: "Do I need technical skills?", a: "No. If you can use WhatsApp, you can use our platform." },
         { q: "Can I change my plan later?", a: "Yes — upgrade or downgrade anytime from your dashboard." },
       ],

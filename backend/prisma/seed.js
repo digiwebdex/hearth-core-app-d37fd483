@@ -48,6 +48,13 @@ async function upsertUser({ email, name, role, tenantId, password }) {
   });
 }
 
+// Shared with registration so the "every tenant has a primary branch" invariant
+// stays in sync (docs/v2-master/111-SaaS-Plan-System.md).
+const { ensurePrimaryBranch: ensurePrimaryBranchShared } = require("../src/lib/tenantProvisioning");
+async function ensurePrimaryBranch(tenantId, name = "Head Office") {
+  return ensurePrimaryBranchShared(prisma, tenantId, name);
+}
+
 async function main() {
   console.log("🌱 Seeding database...");
 
@@ -68,6 +75,7 @@ async function main() {
     password: adminPassword,
   });
   await prisma.tenant.update({ where: { id: adminTenant.id }, data: { ownerId: adminUser.id } });
+  await ensurePrimaryBranch(adminTenant.id, "Platform HQ");
 
   let demoTenant = await prisma.tenant.findFirst({ where: { name: "Al-Safa Travel Agency" } });
   if (!demoTenant) {
@@ -89,6 +97,7 @@ async function main() {
     password: demoPassword,
   });
   await prisma.tenant.update({ where: { id: demoTenant.id }, data: { ownerId: demoUser.id } });
+  await ensurePrimaryBranch(demoTenant.id, "Head Office");
 
   const existingClient = await prisma.client.findFirst({ where: { email: "ahmed@example.com", tenantId: demoTenant.id } });
   if (!existingClient) {

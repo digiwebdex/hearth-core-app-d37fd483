@@ -19,9 +19,17 @@ describe("moduleAccess (backend) — parity with src/test/moduleAccess.test.ts",
     }
   });
 
-  it("business-floor items stay hidden for basic and pro even if opted in", () => {
-    assert.equal(isNavItemModuleEnabled("hajj-operations", "basic", ["hajj"]), false);
-    assert.equal(isNavItemModuleEnabled("group-tours", "pro", ["tourGroups"]), false);
+  it("travel-ops bundles are ungated by plan (Starter can opt in)", () => {
+    // Business service categories are NOT plan-gated (docs/v2-master/111).
+    assert.equal(isNavItemModuleEnabled("hajj-operations", "basic", ["hajj"]), true);
+    assert.equal(isNavItemModuleEnabled("group-tours", "basic", ["tourGroups"]), true);
+  });
+
+  it("platform bundles stay hidden below their plan floor even if opted in", () => {
+    // marketing + hrPayroll are Business-floor platform capabilities.
+    assert.equal(isNavItemModuleEnabled("loyalty", "pro", ["marketing"]), false);
+    assert.equal(isNavItemModuleEnabled("payroll", "pro", ["hrPayroll"]), false);
+    assert.equal(isNavItemModuleEnabled("loyalty", "business", ["marketing"]), true);
   });
 
   it("website is a Pro-floor plan feature: auto-on for Pro+, hidden for Basic", () => {
@@ -44,18 +52,19 @@ describe("moduleAccess (backend) — parity with src/test/moduleAccess.test.ts",
     assert.equal(isNavItemModuleEnabled("payroll", "enterprise", []), false);
   });
 
-  it("planCanUseAdvancedModules: pro qualifies (website), basic and free do not", () => {
+  it("planCanUseAdvancedModules: basic qualifies (travel-ops/crm floor), free does not", () => {
     assert.equal(planCanUseAdvancedModules("business"), true);
     assert.equal(planCanUseAdvancedModules("enterprise"), true);
     assert.equal(planCanUseAdvancedModules("unlimited"), true);
     assert.equal(planCanUseAdvancedModules("pro"), true);
-    assert.equal(planCanUseAdvancedModules("basic"), false);
+    assert.equal(planCanUseAdvancedModules("basic"), true);
     assert.equal(planCanUseAdvancedModules("free"), false);
   });
 
   it("sanitizeEnabledModules drops unknown ids and ids above the plan floor", () => {
     assert.deepEqual(sanitizeEnabledModules(["hajj", "bogus"], "business"), ["hajj"]);
-    assert.deepEqual(sanitizeEnabledModules(["hajj", "website"], "pro"), ["website"]);
-    assert.deepEqual(sanitizeEnabledModules(["website"], "basic"), []);
+    assert.deepEqual(sanitizeEnabledModules(["hajj", "website"], "pro"), ["hajj", "website"]);
+    assert.deepEqual(sanitizeEnabledModules(["hajj", "website"], "basic"), ["hajj"]);
+    assert.deepEqual(sanitizeEnabledModules(["marketing"], "pro"), []);
   });
 });

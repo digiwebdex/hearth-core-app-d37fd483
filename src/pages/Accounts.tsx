@@ -140,7 +140,7 @@ const Accounts = () => {
               <li>• Unified searchable transaction ledger</li>
             </ul>
             <Button onClick={() => window.location.href = "/subscription"}>
-              Upgrade to Basic Plan
+              Upgrade to Starter Plan
             </Button>
           </div>
         }

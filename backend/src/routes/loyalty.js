@@ -1,7 +1,9 @@
 const router = require("express").Router();
-const { authenticate, requirePermission, requireRole, prisma } = require("../middleware/auth");
+const { authenticate, requirePermission, requireRole, requireFeature, prisma } = require("../middleware/auth");
 
 router.use(authenticate);
+// Loyalty/Marketing is a Business-tier platform capability (moduleAccess floor). Active trials pass.
+router.use(requireFeature("hasMarketingTools"));
 
 // ── Loyalty Rules (one per tenant) ──
 

@@ -9,10 +9,9 @@
 // re-implementing balances/aging; this file only adds the reporting-specific
 // aggregation and shaping that doesn't exist yet.
 //
-// Note on "Branch Filter": the v2 schema has no Branch model (branches are a
-// plan-limit display concept only — see docs/v2-master/08-Plan-Feature-Matrix.md).
-// parseReportFilters accepts branchId for API completeness but it is a
-// documented no-op reserved for a future Branch entity — not silently applied.
+// Note on "Branch Filter": branchId filters reports to a single Branch (a real
+// tenant-scoped ERP entity — see docs/v2-master/111-SaaS-Plan-System.md). It is
+// applied in the route's bookingWhere() where-clause.
 
 const { round2 } = require("./numeric");
 function isoDay(value) {
@@ -29,7 +28,7 @@ function parseReportFilters(query = {}) {
     agentId: query.agentId || null,
     customerId: query.customerId || query.clientId || null,
     supplierId: query.supplierId || query.vendorId || null,
-    branchId: query.branchId || null, // reserved — no Branch model in v2
+    branchId: query.branchId || null, // filter reports to a single Branch
   };
 }
 

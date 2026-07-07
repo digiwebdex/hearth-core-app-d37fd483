@@ -1,7 +1,9 @@
 const router = require("express").Router();
-const { authenticate, requirePermission, requireRole, prisma } = require("../middleware/auth");
+const { authenticate, requirePermission, requireRole, requireFeature, prisma } = require("../middleware/auth");
 
 router.use(authenticate);
+// Referrals/Marketing is a Business-tier platform capability (moduleAccess floor). Active trials pass.
+router.use(requireFeature("hasMarketingTools"));
 
 function generateCode(prefix = "REF") {
   return `${prefix}-${Math.random().toString(36).toUpperCase().slice(2, 8)}`;

@@ -14,7 +14,7 @@
 
 const crypto = require("crypto");
 const router = require("express").Router();
-const { authenticate, requirePermission, checkPlanLimit, prisma } = require("../middleware/auth");
+const { authenticate, requirePermission, prisma } = require("../middleware/auth");
 const { dispatchTenantAutomation } = require("../services/tenantAutomationService");
 const { parseServiceDetails } = require("../lib/bookingServiceDetails");
 const {
@@ -110,7 +110,7 @@ router.get("/:id", requirePermission("bookings", "view"), async (req, res) => {
   }
 });
 
-router.post("/", requirePermission("bookings", "create"), checkPlanLimit("bookings"), async (req, res) => {
+router.post("/", requirePermission("bookings", "create"), async (req, res) => {
   try {
     const validation = validateTourBooking(req.body);
     if (!validation.valid) return res.status(400).json({ message: "Validation failed", errors: validation.errors });

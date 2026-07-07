@@ -20,18 +20,23 @@ export interface AdvancedModule {
   autoOn?: boolean;
 }
 
+// Plans gate PLATFORM capabilities only — NOT travel business categories
+// (docs/v2-master/111-SaaS-Plan-System.md). Travel-operations bundles are
+// ungated by plan (minPlan "basic") and surface by the tenant's enabled service
+// types; only the true platform bundles carry a plan floor:
+// website (Pro), marketing + hrPayroll (Business).
 export const ADVANCED_MODULES: AdvancedModule[] = [
-  { id: "crm", labelKey: "modules.crm", descKey: "modules.crmDesc", items: ["crm-hub"] },
-  { id: "subAgents", labelKey: "modules.subAgents", descKey: "modules.subAgentsDesc", items: ["commissions"] },
-  { id: "corporate", labelKey: "modules.corporate", descKey: "modules.corporateDesc", items: ["corporate", "travel-approvals"] },
-  { id: "ticketing", labelKey: "modules.ticketing", descKey: "modules.ticketingDesc", items: ["ticket-transactions", "flight-reminders"] },
-  { id: "tourGroups", labelKey: "modules.tourGroups", descKey: "modules.tourGroupsDesc", items: ["group-tours", "mice"] },
-  { id: "visa", labelKey: "modules.visa", descKey: "modules.visaDesc", items: ["visa-tracker"] },
-  { id: "hajj", labelKey: "modules.hajj", descKey: "modules.hajjDesc", items: ["hajj-operations"] },
-  { id: "studentManpower", labelKey: "modules.studentManpower", descKey: "modules.studentManpowerDesc", items: ["bd-operations"] },
-  { id: "documentsDesk", labelKey: "modules.documentsDesk", descKey: "modules.documentsDeskDesc", items: ["documents", "service-operations"] },
-  { id: "hrPayroll", labelKey: "modules.hrPayroll", descKey: "modules.hrPayrollDesc", items: ["hrm", "activity-log", "payroll"] },
-  { id: "marketing", labelKey: "modules.marketing", descKey: "modules.marketingDesc", items: ["loyalty", "referrals"] },
+  { id: "crm", labelKey: "modules.crm", descKey: "modules.crmDesc", minPlan: "basic", items: ["crm-hub"] },
+  { id: "subAgents", labelKey: "modules.subAgents", descKey: "modules.subAgentsDesc", minPlan: "basic", items: ["commissions"] },
+  { id: "corporate", labelKey: "modules.corporate", descKey: "modules.corporateDesc", minPlan: "basic", items: ["corporate", "travel-approvals"] },
+  { id: "ticketing", labelKey: "modules.ticketing", descKey: "modules.ticketingDesc", minPlan: "basic", items: ["ticket-transactions", "flight-reminders"] },
+  { id: "tourGroups", labelKey: "modules.tourGroups", descKey: "modules.tourGroupsDesc", minPlan: "basic", items: ["group-tours", "mice"] },
+  { id: "visa", labelKey: "modules.visa", descKey: "modules.visaDesc", minPlan: "basic", items: ["visa-tracker"] },
+  { id: "hajj", labelKey: "modules.hajj", descKey: "modules.hajjDesc", minPlan: "basic", items: ["hajj-operations"] },
+  { id: "studentManpower", labelKey: "modules.studentManpower", descKey: "modules.studentManpowerDesc", minPlan: "basic", items: ["bd-operations"] },
+  { id: "documentsDesk", labelKey: "modules.documentsDesk", descKey: "modules.documentsDeskDesc", minPlan: "basic", items: ["documents", "service-operations"] },
+  { id: "hrPayroll", labelKey: "modules.hrPayroll", descKey: "modules.hrPayrollDesc", minPlan: "business", items: ["hrm", "activity-log", "payroll"] },
+  { id: "marketing", labelKey: "modules.marketing", descKey: "modules.marketingDesc", minPlan: "business", items: ["loyalty", "referrals"] },
   { id: "website", labelKey: "modules.website", descKey: "modules.websiteDesc", minPlan: "pro", autoOn: true, items: ["website-home", "website-builder", "website-blog", "website-publish", "website-seo"] },
 ];
 

@@ -23,15 +23,11 @@ interface Plan {
   price: number;
   yearlyPrice: number;
   trialDays: number;
-  maxBookings: number;
   maxUsers: number;
-  maxClients: number;
   maxBranches: number;
+  maxDomains: number;
   maxSmsPerMonth: number;
   maxStorageMB: number;
-  maxReports: number;
-  maxLeads: number;
-  maxQuotations: number;
   features: string;
   paymentGateways: string[];
   hasCustomDomain: boolean;
@@ -39,9 +35,15 @@ interface Plan {
   hasWhatsApp: boolean;
   hasEmailNotifications: boolean;
   hasAgentCommission: boolean;
+  hasAutomation: boolean;
+  hasAdvancedAutomation: boolean;
+  hasMarketingTools: boolean;
+  hasHrPayroll: boolean;
   hasAdvancedAnalytics: boolean;
   hasRefundSystem: boolean;
   hasApiAccess: boolean;
+  hasWhiteLabel: boolean;
+  hasMarketplace: boolean;
   hasHajjUmrah: boolean;
   hasPrioritySupport: boolean;
   active: boolean;
@@ -51,18 +53,14 @@ const defaultPlans: Plan[] = PLANS.map((p) => ({
   id: crypto.randomUUID(),
   name: p.name,
   slug: p.id,
-  price: p.price === -1 ? 5000 : p.price,
-  yearlyPrice: p.yearlyPrice === -1 ? 50000 : p.yearlyPrice,
+  price: p.price === -1 ? 0 : p.price,
+  yearlyPrice: p.yearlyPrice === -1 ? 0 : p.yearlyPrice,
   trialDays: p.trialDays,
-  maxBookings: p.maxBookings,
   maxUsers: p.maxUsers,
-  maxClients: p.maxClients,
   maxBranches: p.maxBranches,
+  maxDomains: p.maxDomains,
   maxSmsPerMonth: p.maxSmsPerMonth,
   maxStorageMB: p.maxStorageMB,
-  maxReports: p.maxReports,
-  maxLeads: p.maxLeads,
-  maxQuotations: p.maxQuotations,
   features: p.features.join(", "),
   paymentGateways: p.paymentGateways,
   hasCustomDomain: p.hasCustomDomain,
@@ -70,9 +68,15 @@ const defaultPlans: Plan[] = PLANS.map((p) => ({
   hasWhatsApp: p.hasWhatsApp,
   hasEmailNotifications: p.hasEmailNotifications,
   hasAgentCommission: p.hasAgentCommission,
+  hasAutomation: p.hasAutomation,
+  hasAdvancedAutomation: p.hasAdvancedAutomation,
+  hasMarketingTools: p.hasMarketingTools,
+  hasHrPayroll: p.hasHrPayroll,
   hasAdvancedAnalytics: p.hasAdvancedAnalytics,
   hasRefundSystem: p.hasRefundSystem,
   hasApiAccess: p.hasApiAccess,
+  hasWhiteLabel: p.hasWhiteLabel,
+  hasMarketplace: p.hasMarketplace,
   hasHajjUmrah: p.hasHajjUmrah,
   hasPrioritySupport: p.hasPrioritySupport,
   active: true,
@@ -80,24 +84,26 @@ const defaultPlans: Plan[] = PLANS.map((p) => ({
 
 const emptyForm: Omit<Plan, "id"> = {
   name: "", slug: "", price: 0, yearlyPrice: 0, trialDays: 14,
-  maxBookings: 0, maxUsers: 0, maxClients: 0, maxBranches: 1,
-  maxSmsPerMonth: 0, maxStorageMB: 100, maxReports: 0, maxLeads: 0, maxQuotations: 0,
+  maxUsers: 0, maxBranches: 1, maxDomains: 0,
+  maxSmsPerMonth: 0, maxStorageMB: 100,
   features: "", paymentGateways: ["manual"],
   hasCustomDomain: false, hasSmsIntegration: false, hasWhatsApp: false,
-  hasEmailNotifications: false, hasAgentCommission: false, hasAdvancedAnalytics: false,
-  hasRefundSystem: false, hasApiAccess: false, hasHajjUmrah: false, hasPrioritySupport: false,
+  hasEmailNotifications: false, hasAgentCommission: false, hasAutomation: false,
+  hasAdvancedAutomation: false, hasMarketingTools: false, hasHrPayroll: false,
+  hasAdvancedAnalytics: false, hasRefundSystem: false, hasApiAccess: false,
+  hasWhiteLabel: false, hasMarketplace: false, hasHajjUmrah: false, hasPrioritySupport: false,
   active: true,
 };
 
 const LIMIT_KEYS = [
-  "maxClients", "maxBookings", "maxUsers", "maxBranches",
-  "maxSmsPerMonth", "maxStorageMB", "maxReports", "maxLeads", "maxQuotations",
+  "maxUsers", "maxBranches", "maxDomains", "maxSmsPerMonth", "maxStorageMB",
 ] as const;
 
 const FEATURE_KEYS = [
   "hasCustomDomain", "hasEmailNotifications", "hasSmsIntegration", "hasWhatsApp",
-  "hasAgentCommission", "hasAdvancedAnalytics", "hasRefundSystem", "hasApiAccess",
-  "hasHajjUmrah", "hasPrioritySupport",
+  "hasAgentCommission", "hasAutomation", "hasAdvancedAutomation", "hasMarketingTools",
+  "hasHrPayroll", "hasAdvancedAnalytics", "hasRefundSystem", "hasApiAccess",
+  "hasWhiteLabel", "hasMarketplace", "hasHajjUmrah", "hasPrioritySupport",
 ] as const;
 
 const GATEWAYS = ["manual", "sslcommerz", "bkash", "custom"] as const;
@@ -268,7 +274,7 @@ const AdminPlans = () => {
                     <TableHead className="text-right">{t("adminPlans.table.yearly")}</TableHead>
                     <TableHead className="text-center">{t("adminPlans.table.trial")}</TableHead>
                     <TableHead className="text-center">{t("adminPlans.table.users")}</TableHead>
-                    <TableHead className="text-center">{t("adminPlans.table.bookings")}</TableHead>
+                    <TableHead className="text-center">{t("adminPlans.table.branches", { defaultValue: "Branches" })}</TableHead>
                     <TableHead className="text-center">{t("adminPlans.table.sms")}</TableHead>
                     <TableHead className="text-center">{t("adminPlans.table.storage")}</TableHead>
                     <TableHead>{t("adminPlans.table.features")}</TableHead>
@@ -284,7 +290,7 @@ const AdminPlans = () => {
                       <TableCell className="text-right text-sm">{t("adminPlans.table.yearlySuffix", { amount: p.yearlyPrice.toLocaleString() })}</TableCell>
                       <TableCell className="text-center text-sm">{p.trialDays > 0 ? t("adminPlans.table.trialDays", { days: p.trialDays }) : "—"}</TableCell>
                       <TableCell className="text-center text-sm">{getLimitLabel(p.maxUsers)}</TableCell>
-                      <TableCell className="text-center text-sm">{getLimitLabel(p.maxBookings)}</TableCell>
+                      <TableCell className="text-center text-sm">{getLimitLabel(p.maxBranches)}</TableCell>
                       <TableCell className="text-center text-sm">{getLimitLabel(p.maxSmsPerMonth)}</TableCell>
                       <TableCell className="text-center text-sm">{p.maxStorageMB === -1 ? "∞" : `${p.maxStorageMB} MB`}</TableCell>
                       <TableCell>

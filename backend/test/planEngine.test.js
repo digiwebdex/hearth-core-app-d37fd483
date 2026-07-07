@@ -29,7 +29,7 @@ describe("planEngine — Plan Registry shape", () => {
   it("getPlanRegistry returns one definition per tier, in tier order, each named", () => {
     const registry = getPlanRegistry();
     assert.deepEqual(registry.map((p) => p.plan), PLAN_TIERS);
-    assert.deepEqual(registry.map((p) => p.name), ["Basic", "Pro", "Business", "Enterprise"]);
+    assert.deepEqual(registry.map((p) => p.name), ["Starter", "Professional", "Business", "Enterprise"]);
   });
 });
 
@@ -45,11 +45,9 @@ describe("planEngine — wraps planFeatures.js without duplicating it", () => {
   }
 
   it("resolvePlanFeatureList only lists flags that are true", () => {
-    // basic only has hasEmailNotifications and hasHajjUmrah true today.
-    assert.deepEqual(
-      resolvePlanFeatureList("basic").sort(),
-      ["hasEmailNotifications", "hasHajjUmrah"].sort(),
-    );
+    // Capability model: Starter (basic) has no premium PLATFORM capabilities;
+    // hasHajjUmrah is a travel category kept true on every plan (ungated).
+    assert.deepEqual(resolvePlanFeatureList("basic").sort(), ["hasHajjUmrah"]);
   });
 });
 
@@ -82,12 +80,16 @@ describe("planEngine — alias normalization is correct end-to-end (no drift inh
 });
 
 describe("planEngine — Module Access resolver matches moduleAccess.js's plan floors", () => {
-  it("basic unlocks no advanced bundles (default floor is business, website floor is pro)", () => {
-    assert.deepEqual(resolvePlanModuleAccess("basic"), []);
+  // Travel-ops bundles are ungated (floor basic); only platform bundles carry a
+  // plan floor: website (pro), marketing + hrPayroll (business).
+  const TRAVEL_OPS = ["crm", "subAgents", "corporate", "ticketing", "tourGroups", "visa", "hajj", "studentManpower", "documentsDesk"];
+
+  it("basic unlocks all travel-ops bundles, no platform-gated bundles", () => {
+    assert.deepEqual(resolvePlanModuleAccess("basic").sort(), [...TRAVEL_OPS].sort());
   });
 
-  it("pro unlocks only the website bundle (its floor is pro)", () => {
-    assert.deepEqual(resolvePlanModuleAccess("pro"), ["website"]);
+  it("pro adds the website platform bundle", () => {
+    assert.deepEqual(resolvePlanModuleAccess("pro").sort(), [...TRAVEL_OPS, "website"].sort());
   });
 
   it("business and enterprise unlock every advanced bundle", () => {

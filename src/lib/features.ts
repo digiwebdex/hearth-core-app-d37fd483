@@ -22,6 +22,13 @@ export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
   { id: "whatsapp", name: "WhatsApp Integration", description: "WhatsApp messaging for clients", category: "communication" },
   { id: "marketing_tools", name: "Marketing Tools", description: "SMS/email campaign management", category: "communication" },
 
+  // Platform capabilities
+  { id: "automation", name: "Automation (Level 1)", description: "Rule-based notifications & workflow triggers", category: "core" },
+  { id: "advanced_automation", name: "Advanced Automation", description: "Multi-step workflow engine", category: "core" },
+  { id: "hr_payroll", name: "HR & Payroll", description: "Staff HRM, attendance and payroll", category: "core" },
+  { id: "white_label", name: "White Label", description: "Remove branding / fully branded platform", category: "core" },
+  { id: "marketplace", name: "Marketplace", description: "B2B marketplace access", category: "core" },
+
   // Website
   { id: "website_templates", name: "Website Templates", description: "Pre-built website designs", category: "website" },
   { id: "custom_domain", name: "Custom Domain", description: "Connect your own domain", category: "website" },
@@ -49,7 +56,7 @@ export const DEFAULT_FEATURE_MAP: FeaturePlanMap = {
   refund_system:        { free: false, basic: false, pro: false, business: true,  enterprise: true },
   email_notifications:  { free: false, basic: false, pro: true,  business: true,  enterprise: true },
   sms_integration:      { free: false, basic: false, pro: true,  business: true,  enterprise: true },
-  whatsapp:             { free: false, basic: false, pro: false, business: true,  enterprise: true },
+  whatsapp:             { free: false, basic: false, pro: true,  business: true,  enterprise: true },
   marketing_tools:      { free: false, basic: false, pro: false, business: true,  enterprise: true },
   website_templates:    { free: false, basic: false, pro: true,  business: true,  enterprise: true },
   custom_domain:        { free: false, basic: false, pro: true,  business: true,  enterprise: true },
@@ -58,7 +65,12 @@ export const DEFAULT_FEATURE_MAP: FeaturePlanMap = {
   payment_reports:      { free: false, basic: false, pro: false, business: true,  enterprise: true },
   accounting:           { free: false, basic: true,  pro: true,  business: true,  enterprise: true },
   agent_commission:     { free: false, basic: false, pro: true,  business: true,  enterprise: true },
+  automation:           { free: false, basic: false, pro: true,  business: true,  enterprise: true },
+  advanced_automation:  { free: false, basic: false, pro: false, business: true,  enterprise: true },
+  hr_payroll:           { free: false, basic: false, pro: false, business: true,  enterprise: true },
   api_access:           { free: false, basic: false, pro: false, business: false, enterprise: true },
+  white_label:          { free: false, basic: false, pro: false, business: false, enterprise: true },
+  marketplace:          { free: false, basic: false, pro: false, business: false, enterprise: true },
 };
 
 // ── Helpers ──

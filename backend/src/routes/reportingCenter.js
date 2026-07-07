@@ -47,6 +47,7 @@ function bookingWhere(tenantId, filters, bookingType) {
   if (filters.serviceType) where.serviceType = filters.serviceType;
   if (filters.agentId) where.agentId = filters.agentId;
   if (filters.customerId) where.clientId = filters.customerId;
+  if (filters.branchId) where.branchId = filters.branchId;
   const createdAt = dateRangeWhere(filters.from, filters.to);
   if (createdAt) where.createdAt = createdAt;
   return where;

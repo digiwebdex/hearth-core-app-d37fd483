@@ -29,6 +29,7 @@ const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Team = lazy(() => import("./pages/Team"));
+const Branches = lazy(() => import("./pages/Branches"));
 const StaffHrm = lazy(() => import("./pages/StaffHrm"));
 const Organization = lazy(() => import("./pages/Organization"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
@@ -110,6 +111,8 @@ const SiteContact = lazy(() => import("./pages/site/SiteContact"));
 const SiteBlog = lazy(() => import("./pages/site/SiteBlog"));
 const SitePricing = lazy(() => import("./pages/site/SitePricing"));
 const Features = lazy(() => import("./pages/marketing/Features"));
+const Modules = lazy(() => import("./pages/marketing/Modules"));
+const Solutions = lazy(() => import("./pages/marketing/Solutions"));
 const Pricing = lazy(() => import("./pages/marketing/Pricing"));
 const Demo = lazy(() => import("./pages/marketing/Demo"));
 const ContactUs = lazy(() => import("./pages/marketing/ContactUs"));
@@ -202,6 +205,8 @@ const AppContent = () => (
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/features" element={<Features />} />
+          <Route path="/modules" element={<Modules />} />
+          <Route path="/solutions" element={<Solutions />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/demo" element={<Demo />} />
           <Route path="/contact-us" element={<ContactUs />} />
@@ -275,6 +280,7 @@ const AppContent = () => (
           <Route path="/roles" element={<PM module="team"><RoleManagement /></PM>} />
           <Route path="/notifications" element={<P><NotificationLog /></P>} />
           <Route path="/team" element={<PM module="team"><Team /></PM>} />
+          <Route path="/branches" element={<PM module="branches"><Branches /></PM>} />
           <Route path="/hrm" element={<PM module="team"><StaffHrm /></PM>} />
           <Route path="/organization" element={<PM module="organization"><Organization /></PM>} />
           <Route path="/settings" element={<PM module="settings"><SettingsPage /></PM>} />

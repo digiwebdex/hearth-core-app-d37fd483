@@ -238,11 +238,22 @@ router.post("/register", async (req, res) => {
     const trialEnd = addTrialExpiry();
     const trialDays = getTrialDays();
 
-    const allowedPlans = ["free", "basic", "pro", "business", "enterprise"];
-    const subscriptionPlan = allowedPlans.includes(plan) ? plan : "basic";
+    // Enterprise is Contact Sales — it is never self-provisioned. A self-serve
+    // signup that asks for enterprise is given a full-featured Business trial and
+    // flagged as an enterprise lead for sales follow-up.
+    const allowedPlans = ["free", "basic", "pro", "business"];
+    const requestedPlan = String(plan || "").trim().toLowerCase();
+    const enterpriseLead = requestedPlan === "enterprise";
+    const subscriptionPlan = allowedPlans.includes(requestedPlan) ? requestedPlan : (enterpriseLead ? "business" : "basic");
     // Free → no trial, instant active; paid plans → trial of their chosen plan
     const subscriptionStatus = subscriptionPlan === "free" ? "active" : "trial";
     const subscriptionExpiry = subscriptionPlan === "free" ? null : trialEnd;
+
+    const normalizedServiceTypes = Array.isArray(enabledServiceTypes)
+      ? [...new Set(enabledServiceTypes.map((v) => String(v).trim().toLowerCase()).filter(Boolean))]
+      : [];
+    const { ensurePrimaryBranch, deriveModuleFlags } = require("../lib/tenantProvisioning");
+    const moduleFlags = deriveModuleFlags(normalizedServiceTypes);
 
     const rawSlug = (tenantName || name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50);
     let slug = rawSlug;
@@ -260,10 +271,10 @@ router.post("/register", async (req, res) => {
         subscriptionPlan,
         subscriptionStatus,
         subscriptionExpiry,
+        enableHajjUmrahModule: moduleFlags.enableHajjUmrahModule,
+        enableBdOperationsModule: moduleFlags.enableBdOperationsModule,
         enabledSubcategories: normalizeEnabledSubcategories(enabledSubcategories),
-        enabledServiceTypes: Array.isArray(enabledServiceTypes)
-          ? [...new Set(enabledServiceTypes.map((v) => String(v).trim().toLowerCase()).filter(Boolean))]
-          : [],
+        enabledServiceTypes: normalizedServiceTypes,
       },
     });
 
@@ -288,6 +299,10 @@ router.post("/register", async (req, res) => {
       },
     });
     await prisma.tenant.update({ where: { id: tenant.id }, data: { ownerId: user.id } });
+
+    // Provision the default primary branch and assign the owner to it — every
+    // tenant must have a primary branch (staff are branch-scoped).
+    await ensurePrimaryBranch(prisma, tenant.id).catch((e) => console.error("[REGISTER] Branch provisioning error:", e?.message || e));
 
     try {
       const { createPlatformNotification } = require("../services/platformNotificationService");

@@ -219,7 +219,35 @@ router.patch("/tenants/:id", async (req, res) => {
     if (data.enabledSubcategories !== undefined) {
       data.enabledSubcategories = normalizeEnabledSubcategories(data.enabledSubcategories);
     }
+    // Reactivation: setting status=active must restore access, else the subscription
+    // gate immediately re-expires a past-expiry tenant (shouldAutoExpire includes 'active').
+    const reactivating = data.subscriptionStatus === "active" && String(existing.subscriptionStatus || "").toLowerCase() !== "active";
+    if (reactivating && data.subscriptionExpiry === undefined) {
+      const curExpiry = existing.subscriptionExpiry ? new Date(existing.subscriptionExpiry) : null;
+      if (!curExpiry || curExpiry <= new Date()) {
+        const ext = new Date();
+        ext.setMonth(ext.getMonth() + 1);
+        data.subscriptionExpiry = ext;
+      }
+    }
     const updated = await prisma.tenant.update({ where: { id: req.params.id }, data });
+    if (reactivating && prisma.subscriptionHistory) {
+      await prisma.subscriptionHistory.create({
+        data: {
+          tenantId: updated.id,
+          oldPlan: existing.subscriptionPlan,
+          newPlan: updated.subscriptionPlan,
+          oldStatus: existing.subscriptionStatus,
+          newStatus: "active",
+          activationDate: new Date(),
+          expiryDate: updated.subscriptionExpiry,
+          actionType: "reactivated",
+          source: "admin",
+          note: "Reactivated by super admin",
+          actorUserId: req.userId,
+        },
+      }).catch(() => {});
+    }
     const actor = await prisma.user.findUnique({ where: { id: req.userId }, select: { name: true, email: true, role: true } });
     await prisma.auditLog.create({
       data: {

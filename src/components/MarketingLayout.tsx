@@ -25,6 +25,8 @@ const MarketingLayout = ({ children, title, description }: Props) => {
 
   const navLinks = [
     { label: t("nav.features"), path: "/features" },
+    { label: t("nav.solutions", { defaultValue: "Solutions" }), path: "/solutions" },
+    { label: t("nav.modules", { defaultValue: "Modules" }), path: "/modules" },
     { label: t("nav.pricing"), path: "/pricing" },
     { label: t("nav.faq"), path: "/faq" },
     { label: t("nav.contact"), path: "/contact-us" },
@@ -153,6 +155,8 @@ const MarketingLayout = ({ children, title, description }: Props) => {
               <h4 className="font-semibold mb-4 text-white/90">Product</h4>
               <div className="space-y-2.5 text-sm text-white/35">
                 <Link to="/features" className="block hover:text-white/60">Features</Link>
+                <Link to="/solutions" className="block hover:text-white/60">Solutions</Link>
+                <Link to="/modules" className="block hover:text-white/60">Modules</Link>
                 <Link to="/pricing" className="block hover:text-white/60">Pricing</Link>
                 <Link to="/demo" className="block hover:text-white/60">Book a Demo</Link>
                 <Link to="/faq" className="block hover:text-white/60">FAQ</Link>

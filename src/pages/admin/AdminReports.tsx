@@ -215,14 +215,16 @@ const AdminReports = () => {
   };
 
   const planLabel = (value: string) => {
+    const key = String(value || "").toLowerCase();
     const map: Record<string, string> = {
-      Free: isBn ? "ফ্রি" : "Free",
-      Basic: isBn ? "বেসিক" : "Basic",
-      Pro: isBn ? "প্রো" : "Pro",
-      Business: isBn ? "বিজনেস" : "Business",
-      Enterprise: isBn ? "এন্টারপ্রাইজ" : "Enterprise",
+      free: isBn ? "ফ্রি ট্রায়াল" : "Free Trial",
+      trial: isBn ? "ফ্রি ট্রায়াল" : "Free Trial",
+      basic: isBn ? "স্টার্টার" : "Starter",
+      pro: isBn ? "প্রফেশনাল" : "Professional",
+      business: isBn ? "বিজনেস" : "Business",
+      enterprise: isBn ? "এন্টারপ্রাইজ" : "Enterprise",
     };
-    return map[value] || value;
+    return map[key] || value;
   };
 
   const stats = useMemo(() => {

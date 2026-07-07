@@ -15,7 +15,7 @@
 
 const crypto = require("crypto");
 const router = require("express").Router();
-const { authenticate, requirePermission, checkPlanLimit, prisma } = require("../middleware/auth");
+const { authenticate, requirePermission, prisma } = require("../middleware/auth");
 const { dispatchTenantAutomation } = require("../services/tenantAutomationService");
 const { parseServiceDetails } = require("../lib/bookingServiceDetails");
 const {
@@ -124,7 +124,7 @@ router.get("/:id", requirePermission("hajj_umrah", "view"), async (req, res) => 
   }
 });
 
-router.post("/", requirePermission("hajj_umrah", "create"), checkPlanLimit("bookings"), async (req, res) => {
+router.post("/", requirePermission("hajj_umrah", "create"), async (req, res) => {
   try {
     const incoming = { ...req.body, type: BOOKING_TYPE_VALUE, serviceType: SERVICE_TYPE_VALUE };
     const validation = validateHajjBooking(incoming);

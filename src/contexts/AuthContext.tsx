@@ -126,7 +126,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       enabledServiceTypes?: string[];
     }) => {
       const res: any = await authApi.register(data as any);
-      // New flow: instant token + Pro trial (TRIAL_DAYS env, default 7)
+      // New flow: instant token + Free Trial with full evaluation access (TRIAL_DAYS env, default 7)
       if (res.token) {
         localStorage.setItem("token", res.token);
         if (res.user) setUser(res.user);

@@ -69,9 +69,9 @@ const TIMEZONES = [
 ];
 
 const PLAN_LABELS: Record<string, { label: string; color: string }> = {
-  free: { label: "Free", color: "secondary" },
-  basic: { label: "Basic", color: "secondary" },
-  pro: { label: "Pro", color: "default" },
+  free: { label: "Free Trial", color: "secondary" },
+  basic: { label: "Starter", color: "secondary" },
+  pro: { label: "Professional", color: "default" },
   business: { label: "Business", color: "default" },
   enterprise: { label: "Enterprise", color: "default" },
 };
@@ -549,7 +549,7 @@ const Organization = () => {
               {[
                 { icon: Building2, label: "Plan", value: planMeta.label },
                 { icon: Plane, label: "Modules", value: [moduleFlags.enableHajjUmrahModule && "Hajj/Umrah", moduleFlags.enableBdOperationsModule && "BD Ops"].filter(Boolean).join(", ") || "Core" },
-                { icon: Globe, label: "Custom Domain", value: plan === "pro" || plan === "business" || plan === "enterprise" ? "Enabled" : "Pro+ only" },
+                { icon: Globe, label: "Custom Domain", value: plan === "pro" || plan === "business" || plan === "enterprise" ? "Enabled" : "Professional+ only" },
                 { icon: Mail, label: "Email Notify", value: "Enabled" },
               ].map(({ icon: Icon, label, value }) => (
                 <div key={label} className="rounded-xl border bg-muted/30 p-3 space-y-1">
