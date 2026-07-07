@@ -2165,3 +2165,98 @@ model CrmActivity {
   @@index([tenantId, type])
   @@index([tenantId, dueAt])
 }
+
+// ── Double-Entry Accounting (v2 — user-approved beyond the original single-entry freeze) ──
+// A full double-entry general ledger that COEXISTS with the legacy single-entry
+// `Transaction` ledger (kept for backward compatibility). Business events
+// (sales invoice, customer payment, supplier bill, supplier payment, expense,
+// refund) post balanced `JournalEntry`s via the accounting posting service —
+// no parallel logic. Trial Balance, Profit & Loss and Balance Sheet are derived
+// from these journal entries. Everything is tenant-scoped. `currency` columns are
+// present for future multi-currency; invoice tax posts to a VAT/Tax Payable account.
+
+model ChartOfAccount {
+  id            String           @id @default(uuid())
+  tenantId      String
+  code          String
+  name          String
+  type          String           // asset | liability | equity | income | expense
+  subtype       String?          // cash | bank | mobile_banking | receivable | payable | tax | cogs | ...
+  parentId      String?
+  parent        ChartOfAccount?  @relation("CoaTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children      ChartOfAccount[] @relation("CoaTree")
+  normalBalance String           // debit | credit (derived from `type`)
+  isSystem      Boolean          @default(false) // seeded defaults — not user-deletable
+  isActive      Boolean          @default(true)
+  currency      String           @default("BDT")
+  description   String?
+  lines         JournalLine[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @default(now()) @updatedAt
+
+  @@unique([tenantId, code])
+  @@index([tenantId, type])
+  @@index([tenantId, parentId])
+}
+
+model FiscalPeriod {
+  id        String         @id @default(uuid())
+  tenantId  String
+  name      String         // e.g. "2026-07" (monthly) or "FY2026-2027"
+  startDate DateTime
+  endDate   DateTime
+  status    String         @default("open") // open | closed
+  closedBy  String?
+  closedAt  DateTime?
+  entries   JournalEntry[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @default(now()) @updatedAt
+
+  @@unique([tenantId, name])
+  @@index([tenantId, status])
+}
+
+model JournalEntry {
+  id             String         @id @default(uuid())
+  tenantId       String
+  entryNumber    String
+  date           DateTime
+  memo           String?
+  source         String         @default("manual") // manual | sales_invoice | customer_payment | supplier_bill | supplier_payment | expense | refund
+  referenceType  String?        // originating model (payment | invoice | expense | vendorBill | vendorBillPayment | invoiceRefund)
+  referenceId    String?        // originating row id — idempotency key together with `source`
+  status         String         @default("posted") // posted | void
+  currency       String         @default("BDT")
+  fiscalPeriodId String?
+  fiscalPeriod   FiscalPeriod?  @relation(fields: [fiscalPeriodId], references: [id], onDelete: SetNull)
+  reversalOfId   String?
+  reversalOf     JournalEntry?  @relation("EntryReversal", fields: [reversalOfId], references: [id], onDelete: SetNull)
+  reversedBy     JournalEntry[] @relation("EntryReversal")
+  totalDebit     Float          @default(0)
+  totalCredit    Float          @default(0)
+  createdBy      String?
+  lines          JournalLine[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @default(now()) @updatedAt
+
+  @@index([tenantId, date])
+  @@index([tenantId, source, referenceId])
+  @@index([tenantId, status])
+}
+
+model JournalLine {
+  id             String         @id @default(uuid())
+  tenantId       String
+  journalEntryId String
+  journalEntry   JournalEntry   @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  accountId      String
+  account        ChartOfAccount @relation(fields: [accountId], references: [id])
+  debit          Float          @default(0)
+  credit         Float          @default(0)
+  description    String?
+  currency       String         @default("BDT")
+  createdAt      DateTime       @default(now())
+
+  @@index([tenantId, accountId])
+  @@index([journalEntryId])
+}

@@ -201,6 +201,7 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
         { id: "expenses", titleKey: "sidebar.expenses", url: "/expenses", icon: Banknote, module: "accounts", minPlan: "basic" },
         { id: "commissions", titleKey: "sidebar.commissions", url: "/commissions", icon: Percent, module: "agents", requiredServiceTypes: ["air_ticket", "b2b_agent", "tour_domestic", "tour_international", "hajj_umrah"] },
         { id: "accounts", titleKey: "sidebar.accountsLedger", url: "/accounts", icon: Wallet, module: "accounts", minPlan: "basic" },
+        { id: "accounting", titleKey: "sidebar.accounting", url: "/accounting", icon: BookOpen, module: "accounts", minPlan: "basic" },
       ],
     },
 

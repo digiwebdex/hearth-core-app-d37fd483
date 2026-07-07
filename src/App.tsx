@@ -63,6 +63,7 @@ const Bookings = lazy(() => import("./pages/Bookings"));
 const Invoices = lazy(() => import("./pages/Invoices"));
 const InvoiceReceipt = lazy(() => import("./pages/InvoiceReceipt"));
 const Accounts = lazy(() => import("./pages/Accounts"));
+const Accounting = lazy(() => import("./pages/Accounting"));
 const Reports = lazy(() => import("./pages/Reports"));
 const HajjUmrah = lazy(() => import("./pages/HajjUmrah"));
 const BdOperations = lazy(() => import("./pages/BdOperations"));
@@ -265,6 +266,7 @@ const AppContent = () => (
           <Route path="/payments" element={<P><Invoices /></P>} />
           <Route path="/invoices/:id/receipt" element={<P><InvoiceReceipt /></P>} />
           <Route path="/accounts" element={<PM module="accounts"><Accounts /></PM>} />
+          <Route path="/accounting" element={<PM module="accounts"><Accounting /></PM>} />
           <Route path="/expenses" element={<PM module="accounts"><Accounts /></PM>} />
           <Route path="/commissions" element={<PM module="agents"><Agents /></PM>} />
           <Route path="/reports" element={<PM module="reports"><Reports /></PM>} />

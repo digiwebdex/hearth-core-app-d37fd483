@@ -144,6 +144,7 @@ function createApp() {
   app.use("/api/quotations", require("./routes/quotations"));
   app.use("/api/travel-packages", require("./routes/crud")("travelPackage"));
   app.use("/api/accounts", require("./routes/accounts"));
+  app.use("/api/accounting", require("./routes/accounting"));
   app.use("/api/transactions", require("./routes/crud")("transaction"));
   app.use("/api/expenses", require("./routes/expenses"));
   app.use("/api/tax-rules", require("./routes/taxRules"));
