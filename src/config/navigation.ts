@@ -148,6 +148,7 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
       items: [
         { id: "crm-hub", titleKey: "sidebar.crmWorkspace", url: "/crm", icon: LayoutGrid, module: "clients" },
         { id: "clients", titleKey: "sidebar.clients", url: "/clients", icon: UserCheck, module: "clients" },
+        { id: "corporate", titleKey: "sidebar.corporate", url: "/corporate", icon: Building2, module: "clients" },
         { id: "agents", titleKey: "sidebar.agents", url: "/agents", icon: UserCog, module: "agents" },
         { id: "vendors", titleKey: "sidebar.vendors", url: "/vendors", icon: Store, module: "vendors" },
       ],

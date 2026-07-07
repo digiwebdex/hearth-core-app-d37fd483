@@ -16,7 +16,10 @@ async function getTenantClient(clientId, tenantId, include = undefined) {
 
 router.get("/", requirePermission("clients", "view"), async (req, res) => {
   try {
-    const items = await prisma.client.findMany({ where: { tenantId: req.tenantId }, orderBy: { createdAt: "desc" } });
+    const where = { tenantId: req.tenantId };
+    // Optional filter (used by the Corporate Clients surface, which reuses this model).
+    if (req.query.clientType) where.clientType = String(req.query.clientType).toLowerCase();
+    const items = await prisma.client.findMany({ where, orderBy: { createdAt: "desc" } });
     res.json(items);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

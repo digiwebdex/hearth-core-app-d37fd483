@@ -167,7 +167,8 @@
     "financeAccounts": "Finance & Accounts",
     "hrPayroll": "HR & Payroll",
     "marketingLoyalty": "Marketing & Loyalty",
-    "crmWorkspace": "CRM workspace"
+    "crmWorkspace": "CRM workspace",
+    "corporate": "Corporate"
   },
   "packagesPage": {
     "pageTitle": "Packages & services",
@@ -1218,7 +1219,7 @@
   },
   "corporate": {
     "title": "Corporate travel",
-    "subtitle": "Monthly billing overview for corporate clients.",
+    "subtitle": "Manage corporate clients, contracts and monthly billing.",
     "emptyTitle": "No corporate clients",
     "emptyDesc": "Mark a client as Corporate in Clients to see them here.",
     "addCorporateClient": "Add corporate client",
@@ -1233,7 +1234,25 @@
     "colBilled": "Billed",
     "colPaid": "Paid",
     "colDue": "Due",
-    "colOpen": "Open"
+    "colOpen": "Open",
+    "clientsTab": "Clients",
+    "billingTab": "Billing",
+    "new": "New corporate client",
+    "editClient": "Edit corporate client",
+    "view": "View",
+    "created": "Corporate client created",
+    "updated": "Corporate client updated",
+    "nameRequired": "Company or contact name is required",
+    "colCreditLimit": "Credit limit",
+    "colContract": "Contract",
+    "fCompany": "Company name",
+    "fContactName": "Contact person",
+    "fPhone": "Phone",
+    "fEmail": "Email",
+    "fCreditLimit": "Credit limit (৳)",
+    "fContractRef": "Contract reference",
+    "fContractExpiry": "Contract expiry",
+    "fAddress": "Address"
   },
   "landing": {
     "heroBadge": "🚀 #1 Travel Agency Software in Bangladesh",
@@ -4086,5 +4105,82 @@
     "registerTitle": "Get portal access",
     "registerHint": "Enter the email your travel agency has on file. We'll email you a secure sign-in link — no password needed.",
     "registerNoAccount": "If no account exists for this email, please ask your travel agency to add you as a client."
+  },
+  "crmActivity": {
+    "title": "Timeline",
+    "added": "Added",
+    "deleted": "Deleted",
+    "add": "Add",
+    "empty": "No notes or activities yet. Add the first one above.",
+    "pinned": "Pinned",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "followUp": "Follow-up date",
+    "placeholderNote": "Write a note…",
+    "placeholderActivity": "Describe the activity…",
+    "deleteConfirmTitle": "Delete this entry?",
+    "deleteConfirmBody": "This action cannot be undone.",
+    "filter": {
+      "all": "All",
+      "note": "Notes",
+      "activity": "Activities"
+    },
+    "type": {
+      "note": "Note",
+      "call": "Call",
+      "email": "Email",
+      "meeting": "Meeting",
+      "whatsapp": "WhatsApp",
+      "sms": "SMS",
+      "visit": "Visit",
+      "task": "Task",
+      "status_change": "Status change",
+      "other": "Other"
+    }
+  },
+  "tasksPage": {
+    "fTitle": "Title",
+    "fDescription": "Description",
+    "fStatus": "Status",
+    "fPriority": "Priority",
+    "fDueDate": "Due date",
+    "fAssignee": "Assignee",
+    "fAssigneePlaceholder": "Name or team member",
+    "colTitle": "Title",
+    "colStatus": "Status",
+    "colPriority": "Priority",
+    "colLinked": "Linked to",
+    "colDue": "Due date",
+    "colActions": "Actions",
+    "create": "Create",
+    "update": "Update",
+    "createdToast": "Task created",
+    "updatedToast": "Task updated",
+    "deletedToast": "Task deleted",
+    "saveFailed": "Failed to save task",
+    "emptyTitle": "No tasks yet",
+    "emptyDesc": "Create your first task to start tracking work.",
+    "status": {
+      "todo": "To Do",
+      "in_progress": "In Progress",
+      "done": "Done",
+      "cancelled": "Cancelled"
+    },
+    "priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "related": {
+      "client": "Client",
+      "corporate": "Corporate",
+      "lead": "Lead",
+      "booking": "Booking",
+      "vendor": "Supplier",
+      "agent": "Agent",
+      "invoice": "Invoice",
+      "quotation": "Quotation"
+    }
   }
 }
