@@ -58,15 +58,27 @@ router.post("/initiate", authenticate, async (req, res) => {
     if (!gateway) return res.status(400).json({ message: "Gateway is required" });
     if (!amount || amount <= 0) return res.status(400).json({ message: "Valid amount is required" });
 
-    // COD — instant confirmation
+    // COD — instant confirmation. This path records offline cash against a customer
+    // INVOICE only. It must NEVER auto-activate a subscription payment request:
+    // COD confirms instantly with no real money and the amount is client-supplied,
+    // so honouring paymentRequestId here would let any authenticated user activate a
+    // paid plan for free (and, with another tenant's requestId, force-activate their
+    // subscription). Subscription payments must go through a validated online gateway
+    // (SSLCommerz/bKash) or the manual proof → admin-approval workflow.
     if (gateway === "cod") {
+      if (paymentRequestId) {
+        return res.status(400).json({
+          message: "Cash on delivery cannot be used for subscription payments. Use an online gateway or submit manual payment proof for admin approval.",
+        });
+      }
+
       const tran_id = `COD-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-      if (invoiceId || paymentRequestId) {
+      if (invoiceId) {
         await handlePaymentSuccess({
           transactionId: tran_id,
-          invoiceId: invoiceId || null,
-          paymentRequestId: paymentRequestId || null,
+          invoiceId,
+          paymentRequestId: null,
           amount,
           method: "cod",
           gateway: "cod",
@@ -81,7 +93,7 @@ router.post("/initiate", authenticate, async (req, res) => {
         transactionId: tran_id,
         amount,
         invoiceId: invoiceId || null,
-        paymentRequestId: paymentRequestId || null,
+        paymentRequestId: null,
         tenantId: req.tenantId,
         metadata: { customerName, customerEmail, customerPhone },
       });
