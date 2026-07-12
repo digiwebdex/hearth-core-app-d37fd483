@@ -44,11 +44,15 @@ describe("moduleAccess", () => {
     }
   });
 
-  it("sellable modules surface when their bundle is enabled on an eligible plan", () => {
-    expect(isNavItemModuleEnabled("agents", "business", ["subAgents"])).toBe(true);
-    expect(isNavItemModuleEnabled("vendors", "business", ["suppliers"])).toBe(true);
-    expect(isNavItemModuleEnabled("visa-stock", "business", ["visa"])).toBe(true);
-    expect(isNavItemModuleEnabled("expenses", "business", ["advancedFinance"])).toBe(true);
+  it("core-but-hidden modules are re-enableable on ANY plan incl. Basic (not locked to Business)", () => {
+    expect(isNavItemModuleEnabled("agents", "basic", ["subAgents"])).toBe(true);
+    expect(isNavItemModuleEnabled("vendors", "basic", ["suppliers"])).toBe(true);
+    expect(isNavItemModuleEnabled("visa-stock", "basic", ["visaStock"])).toBe(true);
+    expect(isNavItemModuleEnabled("expenses", "basic", ["advancedFinance"])).toBe(true);
+    expect(isNavItemModuleEnabled("tasks", "basic", ["tasks"])).toBe(true);
+    // genuinely-advanced desks stay Business-floor
+    expect(isNavItemModuleEnabled("hajj-operations", "basic", ["hajj"])).toBe(false);
+    expect(isNavItemModuleEnabled("visa-tracker", "basic", ["visa"])).toBe(false);
   });
 
   it("business and ultimate can activate advanced items via enabled modules", () => {
@@ -63,12 +67,13 @@ describe("moduleAccess", () => {
     expect(isNavItemModuleEnabled("payroll", "enterprise", [])).toBe(false);
   });
 
-  it("planCanUseAdvancedModules: pro qualifies (website), basic and free do not", () => {
+  it("planCanUseAdvancedModules: basic+ qualify (basic-floor bundles exist now); free does not", () => {
     expect(planCanUseAdvancedModules("business")).toBe(true);
     expect(planCanUseAdvancedModules("enterprise")).toBe(true);
     expect(planCanUseAdvancedModules("unlimited")).toBe(true);
     expect(planCanUseAdvancedModules("pro")).toBe(true);
-    expect(planCanUseAdvancedModules("basic")).toBe(false);
+    // Basic can now opt into the core-but-hidden bundles (Suppliers, Tasks, Visa Stock…)
+    expect(planCanUseAdvancedModules("basic")).toBe(true);
     expect(planCanUseAdvancedModules("free")).toBe(false);
   });
 
