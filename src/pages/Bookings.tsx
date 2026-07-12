@@ -12,6 +12,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { useWizard } from "@/hooks/useWizard";
+import { WizardStepper } from "@/components/WizardStepper";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -330,6 +333,16 @@ function bookingToForm(b: Booking): BookingFormState {
   return applyServiceDetailsToForm(form, merged.serviceDetails || undefined);
 }
 
+/** One row in the New Booking wizard's review/summary step. */
+function ReviewRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 px-3 py-2">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-medium text-right">{value}</span>
+    </div>
+  );
+}
+
 const Bookings = () => {
   const { t, i18n } = useTranslation();
   const isBnLang = String(i18n.resolvedLanguage || i18n.language || "en").startsWith("bn");
@@ -423,9 +436,18 @@ const Bookings = () => {
   }, [routeSegment, location.pathname]);
 
   const profit = useMemo(() => form.amount - form.cost, [form.amount, form.cost]);
+  // New Booking is a 4-step wizard: Service → Customer → Pricing → Review.
+  const wizard = useWizard(4);
+  const canProceed = (step: number): boolean => {
+    if (step === 1) return !!form.clientName;        // Customer step requires a client
+    if (step === 2) return form.amount > 0;           // Pricing step requires a selling amount
+    return true;
+  };
+
   const resetForm = () => {
     setForm(emptyForm);
     setEditingId(null);
+    wizard.reset();
   };
 
   const openCreate = () => {
@@ -866,13 +888,18 @@ const Bookings = () => {
             <SheetTitle>{editingId ? t("bookingsForm.editBooking") : t("bookingsForm.newBooking")}</SheetTitle>
             <SheetDescription>
               {isBnLang
-                ? "নিচের তিনটি ধাপ পূরণ করুন — সার্ভিস, কাস্টমার ও মূল্য।"
-                : "Complete the three steps below — service, customer, and pricing."}
+                ? "ধাপে ধাপে পূরণ করুন — সার্ভিস, কাস্টমার, মূল্য ও রিভিউ।"
+                : "Step through: service, customer, pricing, then review."}
             </SheetDescription>
           </SheetHeader>
 
-          <form onSubmit={handleSubmit} className="mt-4 space-y-6">
-            {/* 1. Service details */}
+          <form onSubmit={(e) => { if (!wizard.isLast) { e.preventDefault(); return; } handleSubmit(e); }} className="mt-4 space-y-4">
+            <WizardStepper
+              steps={isBnLang ? ["সার্ভিস", "কাস্টমার", "মূল্য", "রিভিউ"] : ["Service", "Customer", "Pricing", "Review"]}
+              current={wizard.step}
+              onStepClick={wizard.goTo}
+            />
+            {wizard.step === 0 && (
             <section className="space-y-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {isBnLang ? "১. সার্ভিসের তথ্য" : "1. Service details"}
@@ -918,11 +945,11 @@ const Bookings = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>{t("bookingsForm.travelFrom")}</Label>
-                    <Input type="date" value={form.travelDateFrom} onChange={(e) => setForm((f) => ({ ...f, travelDateFrom: e.target.value }))} />
+                    <DatePicker value={form.travelDateFrom} onChange={(iso) => setForm((f) => ({ ...f, travelDateFrom: iso }))} placeholder={isBnLang ? "তারিখ" : "Pick a date"} />
                   </div>
                   <div className="space-y-2">
                     <Label>{t("bookingsForm.travelTo")}</Label>
-                    <Input type="date" value={form.travelDateTo} onChange={(e) => setForm((f) => ({ ...f, travelDateTo: e.target.value }))} />
+                    <DatePicker value={form.travelDateTo} onChange={(iso) => setForm((f) => ({ ...f, travelDateTo: iso }))} placeholder={isBnLang ? "তারিখ" : "Pick a date"} />
                   </div>
                 </div>
               )}
@@ -931,9 +958,10 @@ const Bookings = () => {
                 <Input type="number" min={1} value={form.travelerCount} onChange={(e) => setForm((f) => ({ ...f, travelerCount: +e.target.value }))} />
               </div>
             </section>
+            )}
 
-            {/* 2. Customer & agent */}
-            <section className="space-y-3 border-t pt-4">
+            {wizard.step === 1 && (
+            <section className="space-y-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {isBnLang ? "২. কাস্টমার ও এজেন্ট" : "2. Customer & Agent"}
               </p>
@@ -955,9 +983,10 @@ const Bookings = () => {
               ) : null}
               <AgentSelect value={form.agentId} onChange={(agentId) => setForm((f) => ({ ...f, agentId }))} />
             </section>
+            )}
 
-            {/* 3. Pricing */}
-            <section className="space-y-3 border-t pt-4">
+            {wizard.step === 2 && (
+            <section className="space-y-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {isBnLang ? "৩. মূল্য" : "3. Pricing"}
               </p>
@@ -982,11 +1011,41 @@ const Bookings = () => {
                 <Input value={form.internalNotes} onChange={(e) => setForm((f) => ({ ...f, internalNotes: e.target.value }))} placeholder={t("bookingsForm.notesPlaceholder")} />
               </div>
             </section>
+            )}
+
+            {wizard.step === 3 && (
+            <section className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {isBnLang ? "৪. রিভিউ" : "4. Review"}
+              </p>
+              <div className="rounded-lg border divide-y text-sm">
+                <ReviewRow label={isBnLang ? "সার্ভিস" : "Service"} value={t(`bookingsForm.types.${form.type}`, { defaultValue: form.type })} />
+                {form.title ? <ReviewRow label={isBnLang ? "টাইটেল" : "Title"} value={form.title} /> : null}
+                <ReviewRow label={isBnLang ? "ক্লায়েন্ট" : "Client"} value={form.clientName || "—"} />
+                <ReviewRow label={isBnLang ? "ট্রাভেলার" : "Travelers"} value={String(form.travelerCount)} />
+                <ReviewRow label={isBnLang ? "বিক্রয় মূল্য" : "Selling"} value={`৳${(form.amount || 0).toLocaleString()}`} />
+                <ReviewRow label={isBnLang ? "খরচ" : "Cost"} value={`৳${(form.cost || 0).toLocaleString()}`} />
+                <ReviewRow label={isBnLang ? "লাভ" : "Profit"} value={`৳${profit.toLocaleString()}`} />
+                <ReviewRow label={isBnLang ? "স্ট্যাটাস" : "Status"} value={t(`bookingsForm.statuses.${form.status}`, { defaultValue: form.status })} />
+              </div>
+            </section>
+            )}
 
             <div className="flex gap-2 border-t pt-4 sticky bottom-0 bg-background">
-              <Button type="submit" className="flex-1" disabled={!form.clientName}>
-                {editingId ? t("bookingsForm.update") : t("bookingsForm.create")}
-              </Button>
+              {!wizard.isFirst && (
+                <Button type="button" variant="outline" onClick={wizard.back}>
+                  {isBnLang ? "পূর্ববর্তী" : "Back"}
+                </Button>
+              )}
+              {!wizard.isLast ? (
+                <Button type="button" className="flex-1" disabled={!canProceed(wizard.step)} onClick={() => wizard.next(canProceed(wizard.step))}>
+                  {isBnLang ? "পরবর্তী" : "Next"}
+                </Button>
+              ) : (
+                <Button type="submit" className="flex-1" disabled={!form.clientName || form.amount <= 0}>
+                  {editingId ? t("bookingsForm.update") : t("bookingsForm.create")}
+                </Button>
+              )}
               <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>
                 {t("bookingsForm.cancel")}
               </Button>

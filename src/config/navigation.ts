@@ -100,10 +100,10 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
     },
   ]);
 
+  // Team & Roles moved to the Settings hub (always reachable). HRM/attendance/payroll
+  // remain here but are gated behind the opt-in "hrPayroll" advanced module.
   const hrItems: NavItemConfig[] = [
-    { id: "team", titleKey: "sidebar.team", url: "/team", icon: Users, module: "team" },
     { id: "hrm", titleKey: "sidebar.hrm", url: "/hrm", icon: CalendarClock, module: "team" },
-    { id: "roles", titleKey: "sidebar.roles", url: "/roles", icon: UserCog2, module: "team" },
     ...(showActivityLog
       ? [{ id: "activity-log", titleKey: "sidebar.activityLog", url: "/activity-log", icon: Activity, module: "team" as const }]
       : []),
@@ -148,7 +148,7 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
       labelKey: "sidebar.salesBookings",
       icon: Plane,
       items: ([
-        { id: "quotations", titleKey: "sidebar.quotations", url: "/quotations", icon: FileText, module: "quotations" },
+        // Quotations folded into the Bookings flow (reachable from the Bookings page).
         { id: "bookings", titleKey: "sidebar.bookings", url: "/bookings", icon: Plane, module: "bookings" },
         { id: "visa-stock", titleKey: "sidebar.visaStock", url: "/visa-stock", icon: FileText, module: "bookings" },
         { id: "service-catalog", titleKey: "sidebar.serviceCatalogItem", url: "/packages/all", icon: Package2, module: "packages" },
@@ -230,8 +230,8 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
       labelKey: "sidebar.financeAccounts",
       icon: Wallet,
       items: ([
-        { id: "invoices", titleKey: "sidebar.invoices", url: "/invoices", icon: Receipt, module: "invoices" },
-        { id: "payments", titleKey: "sidebar.payments", url: "/payments", icon: CreditCard, module: "invoices" },
+        // Invoices + Payments are one area (the Invoices page has both tabs).
+        { id: "invoices", titleKey: "sidebar.invoicesPayments", url: "/invoices", icon: Receipt, module: "invoices" },
         { id: "expenses", titleKey: "sidebar.expenses", url: "/expenses", icon: Banknote, module: "accounts", minPlan: "basic" },
         {
           id: "commissions",
@@ -279,17 +279,14 @@ export function getNavigationGroups(options: NavigationOptions = {}): NavGroupCo
       ],
     },
 
-    // 10 — Administration
+    // 10 — Account (Settings is a hub: Organization, Team, Roles, Optional Modules,
+    // Subscription, Notifications, User Guide all live inside Settings now.)
     {
       id: "administration",
       labelKey: "sidebar.administration",
       icon: Settings,
       items: [
-        { id: "notifications", titleKey: "sidebar.notifications", url: "/notifications", icon: Bell, module: "reports" },
         { id: "settings", titleKey: "sidebar.settings", url: "/settings", icon: Settings, module: "settings" },
-        { id: "organization", titleKey: "sidebar.organization", url: "/organization", icon: Building2, module: "organization" },
-        { id: "subscription", titleKey: "sidebar.subscription", url: "/subscription", icon: Crown, module: "subscription" },
-        { id: "userGuide", titleKey: "sidebar.userGuide", url: "/user-guide", icon: BookOpen, module: "dashboard" },
       ],
     },
   ];

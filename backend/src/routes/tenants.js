@@ -15,7 +15,7 @@ router.use(authenticate);
 const ALLOWED_TENANT_FIELDS = [
   "name", "logo", "phone", "whatsapp", "website", "address", "city", "country",
   "currency", "timezone", "websiteConfig", "enableHajjUmrahModule", "enableBdOperationsModule",
-  "enabledServiceTypes", "enabledSubcategories", "enabledModules",
+  "enabledServiceTypes", "enabledSubcategories", "enabledModules", "onboardingDismissedAt",
 ];
 
 function pickAllowed(body, allowedFields) {
@@ -45,6 +45,9 @@ router.patch("/me", requireRole("tenant_owner"), async (req, res) => {
     }
     if (data.enableBdOperationsModule !== undefined) {
       data.enableBdOperationsModule = Boolean(data.enableBdOperationsModule);
+    }
+    if (data.onboardingDismissedAt !== undefined) {
+      data.onboardingDismissedAt = data.onboardingDismissedAt ? new Date(data.onboardingDismissedAt) : null;
     }
     if (data.enabledServiceTypes !== undefined) {
       const raw = Array.isArray(data.enabledServiceTypes) ? data.enabledServiceTypes : [];

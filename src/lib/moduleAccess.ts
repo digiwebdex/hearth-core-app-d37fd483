@@ -22,7 +22,14 @@ export interface AdvancedModule {
 
 export const ADVANCED_MODULES: AdvancedModule[] = [
   { id: "crm", labelKey: "modules.crm", descKey: "modules.crmDesc", items: ["crm-hub"] },
-  { id: "subAgents", labelKey: "modules.subAgents", descKey: "modules.subAgentsDesc", items: ["commissions"] },
+  // ── "Core-but-hidden" bundles: OFF by default for a lean first-run, but any plan
+  //    (incl. Basic) can re-enable them in Settings → Optional Modules (minPlan basic).
+  { id: "subAgents", labelKey: "modules.subAgents", descKey: "modules.subAgentsDesc", minPlan: "basic", items: ["agents", "commissions"] },
+  { id: "suppliers", labelKey: "modules.suppliers", descKey: "modules.suppliersDesc", minPlan: "basic", items: ["vendors"] },
+  { id: "visaStock", labelKey: "modules.visaStock", descKey: "modules.visaStockDesc", minPlan: "basic", items: ["visa-stock"] },
+  { id: "advancedFinance", labelKey: "modules.advancedFinance", descKey: "modules.advancedFinanceDesc", minPlan: "basic", items: ["expenses", "accounts"] },
+  { id: "tasks", labelKey: "modules.tasks", descKey: "modules.tasksDesc", minPlan: "basic", items: ["tasks"] },
+  // ── Genuinely advanced desks: Business / Ultimate only ──
   { id: "corporate", labelKey: "modules.corporate", descKey: "modules.corporateDesc", items: ["corporate", "travel-approvals"] },
   { id: "ticketing", labelKey: "modules.ticketing", descKey: "modules.ticketingDesc", items: ["ticket-transactions", "flight-reminders"] },
   { id: "tourGroups", labelKey: "modules.tourGroups", descKey: "modules.tourGroupsDesc", items: ["group-tours", "mice"] },

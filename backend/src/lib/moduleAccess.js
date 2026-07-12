@@ -6,11 +6,21 @@
 const MODULE_MIN_PLAN = {
   // default floor is "business"; per-bundle overrides:
   website: "pro", // website builder is available from Pro upward
+  // "core-but-hidden" bundles — off by default but re-enableable on any plan:
+  subAgents: "basic",
+  suppliers: "basic",
+  visaStock: "basic",
+  advancedFinance: "basic",
+  tasks: "basic",
 };
 
 const ADVANCED_MODULE_IDS = [
   "crm",
   "subAgents",
+  "suppliers",
+  "visaStock",
+  "advancedFinance",
+  "tasks",
   "corporate",
   "ticketing",
   "tourGroups",

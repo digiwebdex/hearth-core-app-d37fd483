@@ -327,7 +327,15 @@ export const ROLE_METADATA: RoleMeta[] = [
 ];
 
 export function getRoleMeta(role: AppRole): RoleMeta {
-  return ROLE_METADATA.find((r) => r.id === role) || ROLE_METADATA[0];
+  const mapped = mapLegacyRole(role);
+  // Never fall back to ROLE_METADATA[0] (super_admin) — that leaked "Super Admin"
+  // into the tenant header whenever the role was briefly undefined/unrecognized.
+  // Default to the tenant staff role instead.
+  return (
+    ROLE_METADATA.find((r) => r.id === mapped) ||
+    ROLE_METADATA.find((r) => r.id === "sales_agent") ||
+    ROLE_METADATA[0]
+  );
 }
 
 export function getTenantRoles(): RoleMeta[] {
