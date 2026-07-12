@@ -19,6 +19,7 @@ model Tenant {
   country               String?
   website               String?
   logo                  String?
+  onboardingDismissedAt DateTime?
   notes                 String?
   subscriptionPlan      String                @default("free")
   subscriptionStatus    String                @default("active")

@@ -623,6 +623,7 @@ export interface Tenant {
   city?: string;
   country?: string;
   logo?: string;
+  onboardingDismissedAt?: string | null;
   currency?: string;
   timezone?: string;
   subscriptionPlan: "free" | "basic" | "pro" | "business" | "enterprise";

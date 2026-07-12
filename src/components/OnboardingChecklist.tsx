@@ -5,103 +5,100 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, Circle, ArrowRight, X, BookOpen } from "lucide-react";
-import {
-  clientApi,
-  leadApi,
-  quotationApi,
-  bookingApi,
-  invoiceApi,
-  tenantApi,
-} from "@/lib/api";
+import { clientApi, bookingApi, invoiceApi, tenantApi } from "@/lib/api";
+import { travelPackageApi } from "@/lib/travelPackageApi";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
+// Local flag for instant UX; the durable source of truth is Tenant.onboardingDismissedAt.
 const DISMISS_KEY = "taw_onboarding_checklist_dismissed";
 
-type StepDef = {
-  id: string;
-  done: boolean;
-  labelBn: string;
-  labelEn: string;
-  path: string;
-};
+type StepDef = { id: string; done: boolean; labelBn: string; labelEn: string; path: string };
 
 export function OnboardingChecklist() {
   const { i18n } = useTranslation();
   const isBn = String(i18n.resolvedLanguage || i18n.language || "en").startsWith("bn");
   const navigate = useNavigate();
+  const { tenant, refreshTenant } = useAuth();
   const [steps, setSteps] = useState<StepDef[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dismissed, setDismissed] = useState(() => localStorage.getItem(DISMISS_KEY) === "1");
+  const [dismissed, setDismissed] = useState(
+    () => localStorage.getItem(DISMISS_KEY) === "1" || !!tenant?.onboardingDismissedAt,
+  );
+
+  useEffect(() => {
+    if (tenant?.onboardingDismissedAt) setDismissed(true);
+  }, [tenant?.onboardingDismissedAt]);
 
   useEffect(() => {
     if (dismissed) return;
     (async () => {
       try {
-        const [leads, clients, quotations, bookings, invoices, members] = await Promise.all([
-          leadApi.list().catch(() => []),
+        const [clients, packages, bookings, invoices] = await Promise.all([
           clientApi.list().catch(() => []),
-          quotationApi.list().catch(() => []),
+          travelPackageApi.list().catch(() => []),
           bookingApi.list().catch(() => []),
           invoiceApi.list().catch(() => []),
-          tenantApi.getMembers().catch(() => []),
         ]);
-        const hasServices = clients.length > 0 || bookings.length > 0;
+        // Steps follow the guide's money trail: Capture → Confirm → Collect → Track.
         setSteps([
           {
-            id: "lead",
-            done: leads.length > 0,
-            labelBn: "প্রথম লিড যোগ করুন",
-            labelEn: "Add your first lead",
-            path: "/leads",
+            id: "agency",
+            done: !!(tenant?.name && tenant?.logo && tenant?.phone),
+            labelBn: "এজেন্সির নাম, লোগো ও ফোন সেট করুন",
+            labelEn: "Set agency name, logo & phone",
+            path: "/organization",
           },
           {
             id: "client",
             done: clients.length > 0,
-            labelBn: "ক্লায়েন্ট তৈরি করুন",
-            labelEn: "Create a client",
+            labelBn: "প্রথম ক্লায়েন্ট যোগ করুন",
+            labelEn: "Add your first client",
             path: "/clients",
           },
           {
-            id: "quote",
-            done: quotations.length > 0,
-            labelBn: "কোটেশন পাঠান",
-            labelEn: "Send a quotation",
-            path: "/quotations/new",
+            id: "package",
+            done: packages.length > 0,
+            labelBn: "একটি সার্ভিস/প্যাকেজ যোগ করুন",
+            labelEn: "Add a service / package",
+            path: "/packages/all",
           },
           {
             id: "booking",
             done: bookings.length > 0,
-            labelBn: "বুকিং নিশ্চিত করুন",
-            labelEn: "Confirm a booking",
+            labelBn: "প্রথম বুকিং তৈরি করুন (বা ইনকোয়ারি)",
+            labelEn: "Create your first booking (or inquiry)",
             path: "/bookings",
           },
           {
             id: "invoice",
-            done: invoices.length > 0,
-            labelBn: "ইনভয়েস তৈরি করুন",
-            labelEn: "Create an invoice",
+            done: invoices.length > 0 && invoices.some((i) => (i.paidAmount || 0) > 0),
+            labelBn: "ইনভয়েস তৈরি করে পেমেন্ট রেকর্ড করুন",
+            labelEn: "Raise an invoice & record a payment",
             path: "/invoices",
           },
           {
-            id: "team",
-            done: members.length > 1,
-            labelBn: "টিম মেম্বার আমন্ত্রণ",
-            labelEn: "Invite a team member",
-            path: "/team",
-          },
-          {
-            id: "catalog",
-            done: hasServices,
-            labelBn: "সার্ভিস ক্যাটালগ সেটআপ",
-            labelEn: "Set up service catalog",
-            path: "/packages/all",
+            id: "dashboard",
+            done: true, // this widget lives on the Dashboard — reaching it completes the step
+            labelBn: "আপনার ড্যাশবোর্ড দেখুন",
+            labelEn: "Open your Dashboard",
+            path: "/dashboard",
           },
         ]);
       } finally {
         setLoading(false);
       }
     })();
-  }, [dismissed]);
+  }, [dismissed, tenant?.name, tenant?.logo, tenant?.phone]);
+
+  const dismiss = () => {
+    localStorage.setItem(DISMISS_KEY, "1");
+    setDismissed(true);
+    // Persist per-tenant so it stays dismissed across devices/sessions.
+    tenantApi.update({ onboardingDismissedAt: new Date().toISOString() } as Parameters<typeof tenantApi.update>[0])
+      .then(() => refreshTenant())
+      .catch(() => {});
+  };
 
   if (dismissed || loading || steps.length === 0) return null;
 
@@ -117,7 +114,7 @@ export function OnboardingChecklist() {
             <CheckCircle2 className="h-5 w-5" />
             {isBn ? "অনবোর্ডিং সম্পন্ন — আপনি প্রস্তুত!" : "Onboarding complete — you're ready!"}
           </div>
-          <Button variant="ghost" size="sm" onClick={() => { localStorage.setItem(DISMISS_KEY, "1"); setDismissed(true); }}>
+          <Button variant="ghost" size="sm" onClick={dismiss}>
             <X className="h-4 w-4" />
           </Button>
         </CardContent>
@@ -139,7 +136,7 @@ export function OnboardingChecklist() {
                 : `${doneCount}/${steps.length} done — launch your agency in 6 steps`}
             </CardDescription>
           </div>
-          <Button variant="ghost" size="icon" className="shrink-0" onClick={() => { localStorage.setItem(DISMISS_KEY, "1"); setDismissed(true); }}>
+          <Button variant="ghost" size="icon" className="shrink-0" onClick={dismiss}>
             <X className="h-4 w-4" />
           </Button>
         </div>
