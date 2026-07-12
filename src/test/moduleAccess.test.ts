@@ -35,6 +35,22 @@ describe("moduleAccess", () => {
     expect(isNavItemModuleEnabled("service-catalog", "free", [])).toBe(true);
   });
 
+  it("lean default: the 7 core items show for a fresh Basic tenant, sellable modules are hidden", () => {
+    const core = ["dashboard", "clients", "bookings", "invoices", "service-catalog", "reports", "settings"];
+    for (const id of core) expect(isNavItemModuleEnabled(id, "basic", [])).toBe(true);
+    // moved into opt-in bundles — hidden by default on Basic
+    for (const id of ["agents", "vendors", "visa-stock", "tasks", "expenses", "accounts"]) {
+      expect(isNavItemModuleEnabled(id, "basic", [])).toBe(false);
+    }
+  });
+
+  it("sellable modules surface when their bundle is enabled on an eligible plan", () => {
+    expect(isNavItemModuleEnabled("agents", "business", ["subAgents"])).toBe(true);
+    expect(isNavItemModuleEnabled("vendors", "business", ["suppliers"])).toBe(true);
+    expect(isNavItemModuleEnabled("visa-stock", "business", ["visa"])).toBe(true);
+    expect(isNavItemModuleEnabled("expenses", "business", ["advancedFinance"])).toBe(true);
+  });
+
   it("business and ultimate can activate advanced items via enabled modules", () => {
     expect(isNavItemModuleEnabled("hajj-operations", "business", ["hajj"])).toBe(true);
     expect(isNavItemModuleEnabled("website-builder", "business", ["website"])).toBe(true);

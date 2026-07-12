@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   CreditCard, ArrowRight, User, Lock, Bell, ShieldCheck,
   Loader2, CheckCircle2, Eye, EyeOff,
+  Building2, Users, UserCog, Crown, BookOpen,
 } from "lucide-react";
 
 const API = import.meta.env.VITE_API_URL || "/api";
@@ -127,6 +128,37 @@ const SettingsPage = () => {
           <h1 className="text-2xl font-bold tracking-tight">{t("pages.settingsTitle", "Settings")}</h1>
           <p className="text-muted-foreground text-sm mt-1">{t("pages.settingsSubtitle", "Manage your account, notifications, and integrations")}</p>
         </div>
+
+        {/* ── Manage hub: pages reachable from Settings (kept out of the lean sidebar) ── */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ArrowRight className="h-4 w-4 text-primary" /> {t("pages.settingsManage", "Manage")}
+            </CardTitle>
+            <CardDescription>{t("pages.settingsManageDesc", "Organization, team, subscription and more")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {[
+                { to: "/organization", icon: Building2, label: t("sidebar.organization", "Organization") },
+                { to: "/team", icon: Users, label: t("sidebar.team", "Team Members") },
+                { to: "/roles", icon: UserCog, label: t("sidebar.roles", "Roles & Permissions") },
+                { to: "/subscription", icon: Crown, label: t("sidebar.subscription", "Subscription") },
+                { to: "/notifications", icon: Bell, label: t("sidebar.notifications", "Notifications") },
+                { to: "/user-guide", icon: BookOpen, label: t("sidebar.userGuide", "User Guide") },
+              ].map(({ to, icon: Icon, label }) => (
+                <Link key={to} to={to}>
+                  <div className="flex items-center gap-2.5 rounded-xl border p-3 hover:bg-muted/50 hover:border-primary/30 transition-all cursor-pointer h-full">
+                    <div className="rounded-lg bg-primary/10 p-1.5 shrink-0">
+                      <Icon className="h-4 w-4 text-primary" />
+                    </div>
+                    <p className="text-sm font-medium leading-tight">{label}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* ── My Profile ── */}
         <Card>

@@ -83,7 +83,7 @@
     "dashboard": "ড্যাশবোর্ড",
     "clients": "ক্লায়েন্ট",
     "agents": "সাব-এজেন্ট",
-    "vendors": "সাপ্লায়ার / ভেন্ডর",
+    "vendors": "সাপ্লায়ার",
     "leads": "লিড",
     "followUps": "ফলো-আপ",
     "tasks": "টাস্ক",
@@ -91,6 +91,7 @@
     "bookings": "বুকিং",
     "visaStock": "ভিসা স্টক",
     "invoices": "ইনভয়েস",
+    "invoicesPayments": "ইনভয়েস ও পেমেন্ট",
     "payments": "পেমেন্ট",
     "paymentReminders": "পেমেন্ট রিমাইন্ডার",
     "expenses": "খরচ",
@@ -384,6 +385,10 @@
     "upgradeHint": "অ্যাডভান্সড মডিউল চালু করতে Business বা Ultimate প্ল্যানে আপগ্রেড করুন।"
   },
   "modules": {
+    "suppliers": "সাপ্লায়ার",
+    "suppliersDesc": "বিল ও পেয়েবল সহ সাপ্লায়ার/ভেন্ডর ডিরেক্টরি।",
+    "advancedFinance": "অ্যাডভান্সড ফিন্যান্স",
+    "advancedFinanceDesc": "কোর ইনভয়েস ও পেমেন্টের বাইরে খরচ ট্র্যাকিং ও ক্যাশ/ব্যাংক লেজার।",
     "subAgents": "সাব-এজেন্ট ও কমিশন",
     "subAgentsDesc": "B2B সাব-এজেন্ট অ্যাকাউন্ট ও এজেন্ট কমিশন ট্র্যাকিং।",
     "corporate": "কর্পোরেট ট্রাভেল",

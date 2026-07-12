@@ -22,14 +22,18 @@ export interface AdvancedModule {
 
 export const ADVANCED_MODULES: AdvancedModule[] = [
   { id: "crm", labelKey: "modules.crm", descKey: "modules.crmDesc", items: ["crm-hub"] },
-  { id: "subAgents", labelKey: "modules.subAgents", descKey: "modules.subAgentsDesc", items: ["commissions"] },
+  // Sub-Agents = agent directory + per-booking commission (opt-in; not needed by a lean agency)
+  { id: "subAgents", labelKey: "modules.subAgents", descKey: "modules.subAgentsDesc", items: ["agents", "commissions"] },
+  { id: "suppliers", labelKey: "modules.suppliers", descKey: "modules.suppliersDesc", items: ["vendors"] },
   { id: "corporate", labelKey: "modules.corporate", descKey: "modules.corporateDesc", items: ["corporate", "travel-approvals"] },
   { id: "ticketing", labelKey: "modules.ticketing", descKey: "modules.ticketingDesc", items: ["ticket-transactions", "flight-reminders"] },
   { id: "tourGroups", labelKey: "modules.tourGroups", descKey: "modules.tourGroupsDesc", items: ["group-tours", "mice"] },
-  { id: "visa", labelKey: "modules.visa", descKey: "modules.visaDesc", items: ["visa-tracker"] },
+  { id: "visa", labelKey: "modules.visa", descKey: "modules.visaDesc", items: ["visa-tracker", "visa-stock"] },
   { id: "hajj", labelKey: "modules.hajj", descKey: "modules.hajjDesc", items: ["hajj-operations"] },
   { id: "studentManpower", labelKey: "modules.studentManpower", descKey: "modules.studentManpowerDesc", items: ["bd-operations"] },
-  { id: "documentsDesk", labelKey: "modules.documentsDesk", descKey: "modules.documentsDeskDesc", items: ["documents", "service-operations"] },
+  { id: "documentsDesk", labelKey: "modules.documentsDesk", descKey: "modules.documentsDeskDesc", items: ["documents", "service-operations", "tasks"] },
+  // Advanced finance: expense tracking + cash/bank ledger beyond the core Invoices & Payments
+  { id: "advancedFinance", labelKey: "modules.advancedFinance", descKey: "modules.advancedFinanceDesc", items: ["expenses", "accounts"] },
   { id: "hrPayroll", labelKey: "modules.hrPayroll", descKey: "modules.hrPayrollDesc", items: ["hrm", "activity-log", "payroll"] },
   { id: "marketing", labelKey: "modules.marketing", descKey: "modules.marketingDesc", items: ["loyalty", "referrals"] },
   { id: "website", labelKey: "modules.website", descKey: "modules.websiteDesc", minPlan: "pro", autoOn: true, items: ["website-home", "website-builder", "website-blog", "website-publish", "website-seo"] },

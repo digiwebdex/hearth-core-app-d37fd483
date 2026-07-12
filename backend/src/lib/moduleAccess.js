@@ -11,6 +11,7 @@ const MODULE_MIN_PLAN = {
 const ADVANCED_MODULE_IDS = [
   "crm",
   "subAgents",
+  "suppliers",
   "corporate",
   "ticketing",
   "tourGroups",
@@ -18,6 +19,7 @@ const ADVANCED_MODULE_IDS = [
   "hajj",
   "studentManpower",
   "documentsDesk",
+  "advancedFinance",
   "hrPayroll",
   "marketing",
   "website",
