@@ -92,9 +92,46 @@ const MarketingHome = () => {
 
           {/* Right — preview with floating stat chips */}
           <div className="relative">
-            <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-gradient-to-br from-sky-300 via-sky-200 to-amber-100 shadow-2xl shadow-slate-900/20 ring-1 ring-white/60">
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/10 to-transparent" />
-              <div className="absolute bottom-6 left-6 h-24 w-40 rounded-lg bg-white/20 backdrop-blur-sm" />
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/10 ring-1 ring-slate-900/5">
+              <div className="flex items-center gap-1.5 border-b border-slate-100 bg-slate-50 px-4 py-3">
+                <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
+                <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                <span className="ml-3 truncate text-xs font-medium text-slate-400">app.travelagencyweb.com/dashboard</span>
+              </div>
+              <div className="p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-slate-400">Dashboard</p>
+                    <p className="text-lg font-bold text-slate-900">Good morning, Rahim</p>
+                  </div>
+                  <span className="rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">This month</span>
+                </div>
+                <div className="mt-4 grid grid-cols-3 gap-3">
+                  {[
+                    { k: "Revenue", v: "৳38.5L", up: "+12%" },
+                    { k: "Bookings", v: "1,240", up: "+8%" },
+                    { k: "New Leads", v: "318", up: "+21%" },
+                  ].map((t) => (
+                    <div key={t.k} className="rounded-xl border border-slate-100 bg-slate-50/60 p-3">
+                      <p className="text-[11px] text-slate-400">{t.k}</p>
+                      <p className="mt-1 text-sm font-bold text-slate-900">{t.v}</p>
+                      <p className="text-[10px] font-semibold text-emerald-500">{t.up}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 rounded-xl border border-slate-100 p-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-xs font-semibold text-slate-600">Revenue trend</p>
+                    <p className="text-[10px] text-slate-400">Last 8 months</p>
+                  </div>
+                  <div className="flex h-24 items-end gap-2">
+                    {[40, 55, 48, 70, 62, 85, 78, 96].map((h, i) => (
+                      <div key={i} className="flex-1 rounded-t-md bg-gradient-to-t from-primary/30 to-primary" style={{ height: `${h}%` }} />
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
             {/* Floating: Monthly Revenue */}
             <div className="absolute -left-4 top-10 flex items-center gap-3 rounded-xl bg-white p-3 pr-5 shadow-xl shadow-slate-900/10 ring-1 ring-slate-100">
