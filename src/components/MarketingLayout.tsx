@@ -1,10 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Phone, Mail, MapPin, ArrowUp } from "lucide-react";
+import { Menu, X, Plane, Phone, Mail, MapPin, ArrowUp } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import logoImg from "@/assets/logo-icon.png";
 
 interface Props {
   children: React.ReactNode;
@@ -12,8 +11,8 @@ interface Props {
   description?: string;
 }
 
-const BRAND = "Travel Agency Website & Software Solution";
-const BRAND_SHORT = "TAWSS";
+const BRAND = "TravelAgencyWeb";
+const BRAND_FULL = "Travel Agency Website & Software Solution";
 const DOMAIN = "travelagencyweb.com";
 const PUBLISHED_DOMAIN = "travelagencyweb.com";
 
@@ -24,10 +23,11 @@ const MarketingLayout = ({ children, title, description }: Props) => {
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   const navLinks = [
-    { label: t("nav.features"), path: "/features" },
-    { label: t("nav.pricing"), path: "/pricing" },
-    { label: t("nav.faq"), path: "/faq" },
-    { label: t("nav.contact"), path: "/contact-us" },
+    { label: "Home", path: "/" },
+    { label: "Features", path: "/features" },
+    { label: "Pricing", path: "/pricing" },
+    { label: "About", path: "/about" },
+    { label: "Contact", path: "/contact-us" },
   ];
 
   useEffect(() => {
@@ -46,7 +46,7 @@ const MarketingLayout = ({ children, title, description }: Props) => {
     }
     if (title) {
       const setMeta = (sel: string, attr: string, val: string) => {
-        let el = document.querySelector(sel);
+        const el = document.querySelector(sel);
         if (el) el.setAttribute(attr, val);
       };
       setMeta('meta[property="og:title"]', "content", title);
@@ -57,7 +57,7 @@ const MarketingLayout = ({ children, title, description }: Props) => {
     updateAttr('meta[property="og:url"]', "content", pageUrl);
     updateAttr('meta[property="og:image"]', "content", ogImage);
     updateAttr('meta[name="twitter:image"]', "content", ogImage);
-    return () => { document.title = `${BRAND} — Complete Travel Agency Management`; };
+    return () => { document.title = `${BRAND_FULL} — Complete Travel Agency Management`; };
   }, [title, description, location.pathname]);
 
   useEffect(() => {
@@ -68,63 +68,75 @@ const MarketingLayout = ({ children, title, description }: Props) => {
 
   useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
+  const isActive = (path: string) => location.pathname === path;
+
   return (
-    <div className="min-h-screen bg-[#0c1222] text-white">
+    <div className="min-h-screen bg-white text-slate-900">
       {/* Navbar */}
-      <header className="sticky top-0 z-50 border-b border-white/8 bg-[#0c1222]/95 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur-xl">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <Link to="/" className="flex items-center gap-2">
-            <img src={logoImg} alt={BRAND} className="h-10 w-10 object-contain" />
-            <div className="hidden sm:flex flex-col leading-tight">
-              <span className="text-sm font-bold text-white tracking-wide">Travel Agency</span>
-              <span className="text-[10px] text-white/50 tracking-wider uppercase">Website & Software Solution</span>
-            </div>
+          <Link to="/" className="flex items-center gap-2.5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm shadow-primary/30">
+              <Plane className="h-5 w-5" />
+            </span>
+            <span className="text-lg font-bold tracking-tight text-slate-900">
+              Travel<span className="text-primary">Agency</span>Web
+            </span>
           </Link>
 
           {/* Desktop */}
-          <nav className="hidden md:flex items-center gap-7 text-sm">
+          <nav className="hidden md:flex items-center gap-1.5 text-sm">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
-                className={`transition-colors hover:text-white ${
-                  location.pathname === link.path ? "text-amber-400 font-medium" : "text-white/55"
+                className={`rounded-lg px-3 py-2 font-medium transition-colors ${
+                  isActive(link.path)
+                    ? "bg-primary/10 text-primary"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                 }`}
               >
                 {link.label}
               </Link>
             ))}
-            <LanguageSwitcher className="text-white/70 hover:text-white" />
-            <Link to="/pricing">
-              <Button size="sm" className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white">
-                {t("common.getStarted")}
-              </Button>
-            </Link>
           </nav>
 
+          <div className="hidden md:flex items-center gap-3">
+            <LanguageSwitcher className="text-slate-600 hover:text-slate-900" />
+            <Link to="/login" className="text-sm font-medium text-slate-700 hover:text-slate-900">
+              Log in
+            </Link>
+            <Link to="/register">
+              <Button size="sm" className="shadow-sm shadow-primary/30">
+                Start Free Trial
+              </Button>
+            </Link>
+          </div>
+
           {/* Mobile toggle */}
-          <button className="md:hidden text-white" onClick={() => setMenuOpen(!menuOpen)}>
+          <button className="md:hidden text-slate-700" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
             {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
 
         {/* Mobile nav */}
         {menuOpen && (
-          <div className="md:hidden border-t border-white/8 bg-[#0c1222] px-4 pb-4">
+          <div className="md:hidden border-t border-slate-200 bg-white px-4 pb-4">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
-                className={`block py-2.5 text-sm ${
-                  location.pathname === link.path ? "text-amber-400 font-medium" : "text-white/55"
+                className={`block rounded-lg px-3 py-2.5 text-sm font-medium ${
+                  isActive(link.path) ? "bg-primary/10 text-primary" : "text-slate-600"
                 }`}
               >
                 {link.label}
               </Link>
             ))}
-            <div className="py-2.5"><LanguageSwitcher className="text-white/70" /></div>
-            <Link to="/pricing" className="block py-2.5">
-              <Button size="sm" className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white">{t("common.getStarted")}</Button>
+            <div className="py-2.5"><LanguageSwitcher className="text-slate-600" /></div>
+            <Link to="/login" className="block py-2 text-sm font-medium text-slate-700">Log in</Link>
+            <Link to="/register" className="block pt-2">
+              <Button size="sm" className="w-full">Start Free Trial</Button>
             </Link>
           </div>
         )}
@@ -134,64 +146,67 @@ const MarketingLayout = ({ children, title, description }: Props) => {
       <main>{children}</main>
 
       {/* Footer */}
-      <footer className="border-t border-white/8 pt-16 pb-8 bg-[#080e1a]">
+      <footer className="border-t border-slate-200 bg-slate-50 pt-16 pb-8">
         <div className="container mx-auto px-4">
           <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <img src={logoImg} alt={BRAND} className="h-10 w-10 object-contain" />
-                <div className="flex flex-col leading-tight">
-                  <span className="text-sm font-bold text-white tracking-wide">Travel Agency</span>
-                  <span className="text-[10px] text-white/50 tracking-wider uppercase">Website & Software Solution</span>
-                </div>
+              <div className="flex items-center gap-2.5 mb-4">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                  <Plane className="h-5 w-5" />
+                </span>
+                <span className="text-lg font-bold tracking-tight text-slate-900">
+                  Travel<span className="text-primary">Agency</span>Web
+                </span>
               </div>
-              <p className="text-sm text-white/35 leading-relaxed">
-                {BRAND}. From inquiry to trip completion — manage leads, quotations, bookings, invoices, and vendors in one place.
+              <p className="text-sm text-slate-500 leading-relaxed">
+                Run your entire travel agency from one platform — tours, visas, air tickets, hotels,
+                accounting, Hajj &amp; Umrah, in English and Bangla.
               </p>
             </div>
             <div>
-              <h4 className="font-semibold mb-4 text-white/90">Product</h4>
-              <div className="space-y-2.5 text-sm text-white/35">
-                <Link to="/features" className="block hover:text-white/60">Features</Link>
-                <Link to="/pricing" className="block hover:text-white/60">Pricing</Link>
-                <Link to="/demo" className="block hover:text-white/60">Book a Demo</Link>
-                <Link to="/faq" className="block hover:text-white/60">FAQ</Link>
+              <h4 className="font-semibold mb-4 text-slate-900">Product</h4>
+              <div className="space-y-2.5 text-sm text-slate-500">
+                <Link to="/features" className="block hover:text-primary">Features</Link>
+                <Link to="/pricing" className="block hover:text-primary">Pricing</Link>
+                <Link to="/demo" className="block hover:text-primary">Book a Demo</Link>
+                <Link to="/faq" className="block hover:text-primary">FAQ</Link>
               </div>
             </div>
             <div>
-              <h4 className="font-semibold mb-4 text-white/90">Company</h4>
-              <div className="space-y-2.5 text-sm text-white/35">
-                <Link to="/contact-us" className="block hover:text-white/60">Contact Us</Link>
-                <Link to="/privacy" className="block hover:text-white/60">Privacy Policy</Link>
-                <Link to="/terms" className="block hover:text-white/60">Terms of Service</Link>
+              <h4 className="font-semibold mb-4 text-slate-900">Company</h4>
+              <div className="space-y-2.5 text-sm text-slate-500">
+                <Link to="/about" className="block hover:text-primary">About</Link>
+                <Link to="/contact-us" className="block hover:text-primary">Contact Us</Link>
+                <Link to="/privacy" className="block hover:text-primary">Privacy Policy</Link>
+                <Link to="/terms" className="block hover:text-primary">Terms of Service</Link>
               </div>
             </div>
             <div>
-              <h4 className="font-semibold mb-4 text-white/90">Contact</h4>
-              <div className="space-y-3 text-sm text-white/35">
+              <h4 className="font-semibold mb-4 text-slate-900">Contact</h4>
+              <div className="space-y-3 text-sm text-slate-500">
                 <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-amber-400/50" />
-                  <span>+880 1234-567890</span>
+                  <Phone className="h-4 w-4 text-primary" />
+                  <span>+880 1674-533303</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-amber-400/50" />
+                  <Mail className="h-4 w-4 text-primary" />
                   <span>support@travelagencyweb.com</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-amber-400/50" />
+                  <MapPin className="h-4 w-4 text-primary" />
                   <span>Dhaka, Bangladesh</span>
                 </div>
               </div>
             </div>
           </div>
-          <div className="mt-12 pt-6 border-t border-white/8 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-white/25">
+          <div className="mt-12 pt-6 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-slate-400">
               © {new Date().getFullYear()} {BRAND}. All rights reserved.
             </p>
-            <div className="flex gap-6 text-sm text-white/25">
-              <Link to="/privacy" className="hover:text-white/45">Privacy</Link>
-              <Link to="/terms" className="hover:text-white/45">Terms</Link>
-              <Link to="/contact-us" className="hover:text-white/45">Support</Link>
+            <div className="flex gap-6 text-sm text-slate-400">
+              <Link to="/privacy" className="hover:text-primary">Privacy</Link>
+              <Link to="/terms" className="hover:text-primary">Terms</Link>
+              <Link to="/contact-us" className="hover:text-primary">Support</Link>
             </div>
           </div>
         </div>
@@ -202,7 +217,7 @@ const MarketingLayout = ({ children, title, description }: Props) => {
         href="https://wa.me/8801674533303"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 left-6 z-50 flex items-center gap-2 rounded-full bg-[#25D366] px-4 py-3 text-white shadow-lg shadow-black/30 transition-transform hover:scale-105"
+        className="fixed bottom-6 left-6 z-50 flex items-center gap-2 rounded-full bg-[#25D366] px-4 py-3 text-white shadow-lg shadow-black/20 transition-transform hover:scale-105"
         aria-label="Chat on WhatsApp"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -215,7 +230,7 @@ const MarketingLayout = ({ children, title, description }: Props) => {
       {showScrollTop && (
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500 text-white shadow-lg shadow-black/30 transition-transform hover:scale-105"
+          className="fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:scale-105"
           aria-label="Back to top"
         >
           <ArrowUp className="h-5 w-5" />

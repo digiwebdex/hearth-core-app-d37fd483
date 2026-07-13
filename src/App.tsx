@@ -90,6 +90,7 @@ import AdminMasterData from "./pages/admin/AdminMasterData";
 import AdminTwoFactor from "./pages/admin/AdminTwoFactor";
 import AdminStaff from "./pages/admin/AdminStaff";
 import SiteHome from "./pages/site/SiteHome";
+import MarketingHome from "./pages/marketing/MarketingHome";
 import SiteAbout from "./pages/site/SiteAbout";
 import SitePackages from "./pages/site/SitePackages";
 import SiteContact from "./pages/site/SiteContact";
@@ -170,7 +171,7 @@ const PublicSiteRoute = ({ page }: { page: SitePage }) => {
   const Page = getSitePage(page);
   if (isTenantPublicHost()) return <WebsiteProvider><Page /></WebsiteProvider>;
   if (page === "home") {
-    return getReservedSubdomain(window.location.hostname) === "app" ? <Navigate to="/login" replace /> : <Index />;
+    return getReservedSubdomain(window.location.hostname) === "app" ? <Navigate to="/login" replace /> : <MarketingHome />;
   }
   return <NotFound />;
 };
@@ -193,6 +194,7 @@ const AppContent = () => (
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/home" element={<MarketingHome />} />
           <Route path="/features" element={<Features />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/demo" element={<Demo />} />
