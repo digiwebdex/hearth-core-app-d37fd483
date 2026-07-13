@@ -120,6 +120,7 @@ const ContactUs = lazy(() => import("./pages/marketing/ContactUs"));
 const FAQ = lazy(() => import("./pages/marketing/FAQ"));
 const Privacy = lazy(() => import("./pages/marketing/Privacy"));
 const Terms = lazy(() => import("./pages/marketing/Terms"));
+const MarketingHome = lazy(() => import("./pages/marketing/MarketingHome"));
 
 // Heavier / less-common pages (already lazy before this cleanup)
 const SettingsTax = lazy(() => import("./pages/SettingsTax"));
@@ -181,7 +182,7 @@ const PublicSiteRoute = ({ page }: { page: SitePage }) => {
   const Page = getSitePage(page);
   if (isTenantPublicHost()) return <WebsiteProvider><Page /></WebsiteProvider>;
   if (page === "home") {
-    return getReservedSubdomain(window.location.hostname) === "app" ? <Navigate to="/login" replace /> : <Index />;
+    return getReservedSubdomain(window.location.hostname) === "app" ? <Navigate to="/login" replace /> : <MarketingHome />;
   }
   return <NotFound />;
 };
@@ -205,6 +206,7 @@ const AppContent = () => (
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/home" element={<MarketingHome />} />
           <Route path="/features" element={<Features />} />
           <Route path="/modules" element={<Modules />} />
           <Route path="/solutions" element={<Solutions />} />
