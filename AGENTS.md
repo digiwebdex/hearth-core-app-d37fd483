@@ -95,6 +95,18 @@ Many live installs use **`/var/www/hearth-core-app`** with **PM2 `hearth-api`**,
 | Manual deploy | `bash scripts/vps-pm2-deploy.sh` (or repo-root `./deploy.sh`) |
 | GitHub Actions | `.github/workflows/deploy.yml` — default `VPS_DEPLOY_MODE=pm2` |
 
+If `git pull` fails with **“Your local changes would be overwritten”**, the deploy script now auto-resets tracked files before pull. To fix manually once:
+
+```bash
+cd /var/www/hearth-core-app
+git status
+git reset --hard HEAD
+git pull origin main
+bash scripts/vps-pm2-deploy.sh
+```
+
+`backend/.env` and `.env.production` are not removed by this reset (gitignored / backed up by the deploy script).
+
 **GitHub secrets (PM2 mode):**
 
 | Secret | Required | Example |
